@@ -1,5 +1,6 @@
 import React from 'react';
 import ProductCard from './ProductCard';
+import SkeletonCard from './SkeletonCard';
 
 const CatalogGrid = () => {
     // Premium Mock Data

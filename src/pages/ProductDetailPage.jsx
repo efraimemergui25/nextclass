@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
+import StickyProductBar from '../components/StickyProductBar';
+import ProductHotspots from '../components/ProductHotspots';
 
 const ProductDetailPage = () => {
     // Scroll to top on mount
@@ -19,6 +21,7 @@ const ProductDetailPage = () => {
 
     return (
         <PageTransition>
+            <StickyProductBar productName={'TouchBoard Pro 75"'} price="₪9,500" />
             <div className="min-h-screen bg-brand-light pt-32 pb-24 px-6 md:px-12 w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 max-w-[1400px] mx-auto">
 
@@ -27,16 +30,9 @@ const ProductDetailPage = () => {
                         initial={{ opacity: 0, x: 40 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="w-full relative"
+                        className="w-full relative lg:sticky lg:top-32 self-start"
                     >
-                        {/* Sticky container for desktop */}
-                        <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm flex items-center justify-center aspect-square lg:sticky lg:top-32 group overflow-hidden">
-                            <img
-                                src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=1200"
-                                alt="Product View"
-                                className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-700 ease-in-out"
-                            />
-                        </div>
+                        <ProductHotspots />
                     </motion.div>
 
                     {/* Left Column (Info - RTL End) */}

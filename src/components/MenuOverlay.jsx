@@ -51,6 +51,9 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     <nav className="flex flex-col items-center space-y-8 md:space-y-12">
                         {[
                             { name: "קטלוג פתרונות", path: "/catalog" },
+                            { name: "השוואת דגמים", path: "/compare" },
+                            { name: "מרכז הדרכות", path: "/vod" },
+                            { name: "מגזין חדשנות", path: "/magazine" },
                             { name: "מרחבי חדשנות", path: "/innovation" },
                             { name: "הסיפור שלנו", path: "/story" },
                             { name: "צור קשר", path: "/contact" }

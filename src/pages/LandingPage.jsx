@@ -6,6 +6,7 @@ import HeroSection from '../components/HeroSection';
 import SocialProofStrip from '../components/SocialProofStrip';
 import CatalogGrid from '../components/CatalogGrid';
 import ValueProps from '../components/ValueProps';
+import QuoteWizard from '../components/QuoteWizard';
 
 const LandingPage = () => {
     return (
@@ -16,7 +17,7 @@ const LandingPage = () => {
                 <HeroSection />
                 <SocialProofStrip />
                 <CatalogGrid />
-
+                <QuoteWizard />
                 <ValueProps />
 
             </div>

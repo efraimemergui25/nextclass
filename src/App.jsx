@@ -13,7 +13,11 @@ import AboutPage from './pages/AboutPage';
 import SuccessStoriesPage from './pages/SuccessStoriesPage';
 import SupportPage from './pages/SupportPage';
 import ContactPage from './pages/ContactPage';
+import VODCenterPage from './pages/VODCenterPage';
+import MagazinePage from './pages/MagazinePage';
+import ComparePage from './pages/ComparePage';
 import AIAssistantWidget from './components/AIAssistantWidget';
+import FloatingWhatsApp from './components/FloatingWhatsApp';
 
 function AnimatedRoutes() {
     const location = useLocation();
@@ -30,6 +34,9 @@ function AnimatedRoutes() {
                 <Route path="/innovation" element={<SuccessStoriesPage />} />
                 <Route path="/help" element={<SupportPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/vod" element={<VODCenterPage />} />
+                <Route path="/magazine" element={<MagazinePage />} />
+                <Route path="/compare" element={<ComparePage />} />
                 <Route path="*" element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -47,6 +54,7 @@ function App() {
                 </main>
                 <Footer />
                 <AIAssistantWidget />
+                <FloatingWhatsApp />
             </div>
         </Router>
     );
