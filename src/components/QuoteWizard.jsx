@@ -5,13 +5,13 @@ const SelectionCard = ({ title, icon, isSelected, onClick }) => (
     <motion.button
         onClick={onClick}
         whileTap={{ scale: 0.97 }}
-        className={`bg-white rounded-2xl p-6 md:p-8 text-center flex flex-col items-center gap-4 transition-all duration-200 border-2 w-full ${isSelected
-                ? 'border-brand-blue shadow-lg bg-brand-blue/5'
-                : 'border-transparent shadow-sm hover:border-gray-200 hover:shadow-md'
+        className={`rounded-3xl p-6 md:p-8 text-center flex flex-col items-center gap-4 transition-all duration-300 w-full hover:scale-[1.02] active:scale-[0.98] ${isSelected
+            ? 'bg-brand-blue/10 shadow-md ring-2 ring-brand-blue/50 ring-inset'
+            : 'bg-white shadow-sm hover:shadow-xl'
             }`}
     >
-        <span className="text-4xl">{icon}</span>
-        <span className={`font-bold text-lg ${isSelected ? 'text-brand-blue' : 'text-brand-dark'}`}>
+        <span className="text-5xl">{icon}</span>
+        <span className={`font-bold text-lg ${isSelected ? 'text-brand-blue' : 'text-[#1D1D1F]'}`}>
             {title}
         </span>
     </motion.button>
@@ -56,10 +56,10 @@ const QuoteWizard = () => {
 
                 {/* Section Title */}
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-5xl font-black text-brand-dark tracking-tight mb-3">
+                    <h2 className="text-section mb-4">
                         בונים לכם הצעת מחיר בדקה
                     </h2>
-                    <p className="text-gray-500 text-lg font-light">
+                    <p className="text-body font-normal">
                         ענו על שתי שאלות קצרות ונתאים לכם חבילה מושלמת.
                     </p>
                 </div>
@@ -187,10 +187,10 @@ const QuoteWizard = () => {
                                         <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
                                             על סמך הבחירות שלכם, הכנו הצעה ראשונית עם הציוד והתוכנה המתאימים ביותר למוסד שלכם.
                                         </p>
-                                        <div className="bg-white rounded-2xl p-8 shadow-sm w-full max-w-sm mx-auto mb-8">
+                                        <div className="bg-white rounded-3xl p-8 shadow-sm w-full max-w-sm mx-auto mb-8 border border-gray-50">
                                             <div className="text-sm font-bold text-brand-blue uppercase tracking-widest mb-2">הצעת מחיר ראשונית</div>
-                                            <div className="text-4xl font-black text-brand-dark mb-1">₪28,500</div>
-                                            <div className="text-sm text-gray-400">*לפני מע״מ, כולל התקנה והדרכה</div>
+                                            <div className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-1">₪28,500</div>
+                                            <div className="text-sm text-gray-400 font-medium mt-2">*לפני מע״מ, כולל התקנה והדרכה</div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mx-auto">
                                             <motion.button
@@ -223,8 +223,8 @@ const QuoteWizard = () => {
                             onClick={handleBack}
                             disabled={step === 1}
                             className={`font-bold px-6 py-3 rounded-xl transition-colors ${step === 1
-                                    ? 'text-gray-300 cursor-not-allowed'
-                                    : 'text-gray-500 hover:text-brand-dark hover:bg-white'
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-gray-500 hover:text-brand-dark hover:bg-white'
                                 }`}
                         >
                             ← חזור
@@ -235,8 +235,8 @@ const QuoteWizard = () => {
                             whileHover={canProceed ? { scale: 1.03 } : {}}
                             whileTap={canProceed ? { scale: 0.97 } : {}}
                             className={`font-bold px-8 py-3 rounded-2xl transition-all ${canProceed
-                                    ? 'bg-brand-blue text-white hover:bg-blue-600 shadow-sm'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                ? 'bg-brand-blue text-white hover:bg-blue-600 shadow-sm'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
                             הבא →

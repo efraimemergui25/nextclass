@@ -10,43 +10,45 @@ const HeroSection = () => {
     };
 
     return (
-        <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden">
+        <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased">
             {/* Background Image (Abstract/Tech/Clean Classroom) */}
             <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
                 style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')" }}
             />
 
-            {/* Critical CRO Overlay: Readability to Brand Flow */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-brand-light" />
+            {/* Critical Overlay: Adjusted Gradient for Ideal Contrast */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
 
             {/* Content Container */}
-            <div className="relative z-10 max-w-7xl mx-auto px-6 mt-16">
+            <div className="relative z-10 max-w-7xl mx-auto px-6">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight drop-shadow-lg leading-tight mb-6">
-                        הופכים כל כיתה <br className="md:hidden" />למרחב של השראה.
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tighter drop-shadow-2xl leading-[1.1] mb-6">
+                        חדשנות חסרת פשרות.
+                        <br />
+                        <span className="text-white/90">מקצוענות בכל מרחב למידה.</span>
                     </h1>
 
-                    <p className="mt-6 text-xl md:text-2xl text-gray-200 font-light max-w-2xl mx-auto leading-relaxed">
-                        טכנולוגיית קצה למוסדות החינוך המובילים בישראל.
+                    <p className="mt-6 text-lg md:text-xl text-gray-300 font-normal tracking-wide max-w-2xl mx-auto leading-relaxed">
+                        הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                     </p>
 
-                    {/* Gestalt Proximity: Highly Refined Primary Action */}
+                    {/* Gestalt Figure-Ground: Premium Glassmorphism Button */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2, duration: 0.6 }}
+                        transition={{ delay: 0.3, duration: 0.6 }}
                         className="mt-10 flex justify-center"
                     >
                         <motion.button
                             onClick={handleScrollDown}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="bg-brand-blue text-white rounded-full px-10 py-4 font-bold text-xl shadow-lg hover:shadow-xl transition-all"
+                            className="px-10 py-4 rounded-full backdrop-blur-md bg-white/10 border border-white/30 text-white font-bold text-lg hover:bg-white hover:text-brand-dark transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
                         >
                             לכל הפתרונות
                         </motion.button>
@@ -55,7 +57,6 @@ const HeroSection = () => {
             </div>
 
             {/* Scroll Down Indicator (Gestalt Continuity) */}
-            {/* Absolute positioning using standard Tailwind, animated with Framer Motion y-axis bounce */}
             <motion.div
                 className="absolute bottom-10 left-1/2 cursor-pointer text-white/70 hover:text-white transition-colors"
                 style={{ translateX: "-50%" }}

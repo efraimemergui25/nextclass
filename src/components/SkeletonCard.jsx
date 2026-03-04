@@ -2,9 +2,9 @@ import React from 'react';
 
 const SkeletonCard = () => {
     return (
-        <div className="bg-white rounded-[2rem] p-6 flex flex-col h-full shadow-sm animate-pulse">
+        <div className="card-premium flex flex-col h-full animate-pulse transition-none hover:shadow-sm hover:scale-100 cursor-default">
             {/* Image placeholder */}
-            <div className="aspect-video w-full bg-gray-200 rounded-2xl mb-6" />
+            <div className="aspect-video w-full bg-gray-200 rounded-2xl mb-12" />
 
             {/* Category badge */}
             <div className="h-3 w-24 bg-gray-200 rounded-full mb-4" />

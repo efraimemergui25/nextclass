@@ -16,5 +16,36 @@
         background-color: #F5F5F7;
         color: #1D1D1F;
         -webkit-font-smoothing: antialiased;
+        @apply font-sans;
+    }
+}
+
+@layer components {
+
+    /* iOS Glassmorphism Standard */
+    .glass-light {
+        @apply bg-white/70 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0, 0, 0, 0.06)];
+    }
+
+    .glass-dark {
+        @apply bg-[#1D1D1F]/75 backdrop-blur-3xl border border-white/10 shadow-2xl;
+    }
+
+    /* Gestalt Common Region (Premium Cards) */
+    .card-premium {
+        @apply bg-white rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 ease-out border-none;
+    }
+
+    /* Typography Enforcement */
+    .text-hero {
+        @apply text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.1] text-[#1D1D1F];
+    }
+
+    .text-section {
+        @apply text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.1] text-[#1D1D1F];
+    }
+
+    .text-body {
+        @apply text-base md:text-lg font-normal leading-relaxed text-gray-500;
     }
 }

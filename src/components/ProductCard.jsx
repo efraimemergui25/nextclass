@@ -11,9 +11,8 @@ const ProductCard = ({
 }) => {
     return (
         <motion.div
-            // Gestalt Law of Common Region: No borders, purely shadow and space
-            className="bg-white rounded-[2rem] p-6 flex flex-col h-full shadow-sm hover:shadow-2xl transition-all duration-500 ease-out cursor-pointer relative group"
-            whileHover={{ y: -6 }}
+            // Gestalt Law of Common Region: Enforce .card-premium from index.css
+            className="card-premium relative group cursor-pointer"
         >
             <Link to={`/catalog/${id}`} className="flex flex-col h-full outline-none focus:ring-2 focus:ring-brand-blue/50 rounded-xl">
 
@@ -29,18 +28,18 @@ const ProductCard = ({
                 </div>
 
                 {/* Typography (RTL Aligned) */}
-                <div className="flex flex-col flex-grow text-right">
-                    <span className="text-xs font-bold text-brand-blue tracking-[0.15em] uppercase mb-3">
+                <div className="flex flex-col flex-grow text-right mt-6">
+                    <span className="text-xs font-bold text-brand-blue tracking-widest uppercase mb-3">
                         {category}
                     </span>
 
-                    <h3 className="text-xl md:text-2xl font-bold text-brand-dark mb-3 leading-tight">
+                    <h3 className="text-2xl font-extrabold text-[#1D1D1F] tracking-tight mb-3 leading-tight">
                         {title}
                     </h3>
 
                     {/* Spacer pushes price to bottom */}
-                    <div className="mt-auto pt-6 flex items-end justify-between">
-                        <span className="text-2xl md:text-3xl font-black text-brand-dark tracking-tight">
+                    <div className="mt-8 pt-6 flex items-end justify-between border-t border-gray-50/50">
+                        <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">
                             {price}
                         </span>
 

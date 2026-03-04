@@ -37,7 +37,7 @@ const ValueProps = () => {
     return (
         <section className="bg-brand-light py-24 w-full border-t border-gray-200/50">
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 w-full">
-                <h2 className="text-3xl md:text-5xl font-black text-center text-brand-dark mb-20 tracking-tight">
+                <h2 className="text-section text-center mb-20">
                     סטנדרט חדש של שירות למוסדות חינוך
                 </h2>
 
@@ -60,15 +60,17 @@ const ValueProps = () => {
                             }}
                             className="flex flex-col items-center"
                         >
-                            <div className="bg-white p-5 md:p-6 rounded-3xl shadow-sm mb-8 flex items-center justify-center transition-all hover:shadow-lg hover:-translate-y-1">
-                                {prop.icon}
+                            <div className="card-premium w-full flex flex-col items-center">
+                                <div className="bg-brand-light p-5 md:p-6 rounded-2xl mb-8 flex items-center justify-center">
+                                    {prop.icon}
+                                </div>
+                                <h3 className="text-2xl font-bold text-[#1D1D1F] mb-4 leading-tight">
+                                    {prop.title}
+                                </h3>
+                                <p className="text-body max-w-xs px-2">
+                                    {prop.description}
+                                </p>
                             </div>
-                            <h3 className="text-2xl font-bold text-brand-dark mb-4 leading-tight">
-                                {prop.title}
-                            </h3>
-                            <p className="text-gray-500 font-normal leading-relaxed text-base md:text-lg max-w-xs px-2">
-                                {prop.description}
-                            </p>
                         </motion.div>
                     ))}
                 </motion.div>

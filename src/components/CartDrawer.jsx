@@ -45,7 +45,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         exit="closed"
                         variants={overlayVariants}
                         onClick={onClose}
-                        className="fixed inset-0 bg-[#1D1D1F]/40 backdrop-blur-sm z-[60]"
+                        className="fixed inset-0 glass-dark z-[60]"
                         aria-hidden="true"
                     />
 

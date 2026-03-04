@@ -46,7 +46,7 @@ const AIAssistantWidget = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
                         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        className="fixed bottom-40 right-6 w-80 md:w-96 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col h-[500px] z-50"
+                        className="fixed bottom-40 right-6 w-80 md:w-96 glass-light rounded-3xl overflow-hidden flex flex-col h-[500px] z-50"
                     >
                         {/* Header */}
                         <div className="bg-brand-dark text-white p-4 font-bold text-lg flex justify-between items-center shrink-0">

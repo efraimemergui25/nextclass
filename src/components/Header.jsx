@@ -31,7 +31,7 @@ const Header = () => {
     }, [isMenuOpen, isCartOpen]);
 
     const headerClasses = isScrolled
-        ? "bg-white/80 backdrop-blur-xl shadow-sm"
+        ? "glass-light"
         : "bg-transparent";
 
     const textColors = isScrolled ? "text-[#1D1D1F]" : "text-[#FFFFFF]";
@@ -41,10 +41,17 @@ const Header = () => {
             <header className={`fixed w-full top-0 z-50 transition-all duration-300 ease-in-out ${headerClasses}`}>
                 <div className="max-w-[1400px] mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
 
-                    {/* Visual Start (RTL Right) - Logo */}
-                    <div className={`text-2xl font-black tracking-tighter ${textColors} transition-colors duration-300`}>
-                        next<span className="font-light">class</span>
-                    </div>
+                    {/* Visual Start (RTL Right) - Premium Logo */}
+                    <a href="/" className={`flex items-center gap-2.5 ${textColors} transition-colors duration-300 group`}>
+                        {/* Geometric Gestalt Icon - Two Overlapping Circles */}
+                        <svg className="w-8 h-8 shrink-0" viewBox="0 0 32 32" fill="none">
+                            <circle cx="12" cy="16" r="9" stroke={isScrolled ? "#1D1D1F" : "#FFFFFF"} strokeWidth="2" className="transition-all duration-300" />
+                            <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
+                        </svg>
+                        <div className="text-2xl tracking-tighter">
+                            <span className="font-black">next</span><span className="font-light text-[#007AFF]">class</span>
+                        </div>
+                    </a>
 
                     {/* Visual End (RTL Left) - Actions */}
                     <div className="flex items-center gap-4 md:gap-6">
