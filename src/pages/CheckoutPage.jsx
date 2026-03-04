@@ -1,239 +1,227 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
-import { MotionButton } from './CartPage';
+
+const FloatingInput = ({ label, type = "text", id }) => (
+    <div className="relative w-full">
+        <input
+            type={type}
+            id={id}
+            placeholder=" "
+            className="peer w-full bg-white border-2 border-gray-200 rounded-2xl px-5 pt-6 pb-2 text-brand-dark font-medium text-base outline-none focus:border-brand-blue transition-colors placeholder-transparent"
+        />
+        <label
+            htmlFor={id}
+            className="absolute right-5 top-2 text-xs font-bold text-gray-400 transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-placeholder-shown:font-medium peer-focus:top-2 peer-focus:text-xs peer-focus:font-bold peer-focus:text-brand-blue"
+        >
+            {label}
+        </label>
+    </div>
+);
+
+const SelectableCard = ({ title, subtitle, isSelected, onClick, icon }) => (
+    <motion.button
+        onClick={onClick}
+        whileTap={{ scale: 0.98 }}
+        className={`w-full text-right p-5 rounded-2xl border-2 transition-all duration-200 flex items-center gap-4 ${isSelected
+                ? 'border-brand-blue bg-brand-blue/5 shadow-sm'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+    >
+        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-brand-blue' : 'border-gray-300'
+            }`}>
+            {isSelected && <div className="w-3 h-3 bg-brand-blue rounded-full" />}
+        </div>
+        <div className="flex flex-col flex-1">
+            <span className="font-bold text-brand-dark text-base">{title}</span>
+            {subtitle && <span className="text-sm text-gray-500 mt-0.5">{subtitle}</span>}
+        </div>
+        {icon && <span className="text-2xl">{icon}</span>}
+    </motion.button>
+);
 
 const CheckoutPage = () => {
-    const [step, setStep] = useState(2); // 1: Cart (skipped here), 2: Shipping, 3: Payment
-    const [shippingMethod, setShippingMethod] = useState('standard');
-    const [paymentMethod, setPaymentMethod] = useState('credit');
+    const [deliveryOption, setDeliveryOption] = useState('free');
+    const [paymentMethod, setPaymentMethod] = useState('po');
 
-    // Mocks for summary
-    const subtotal = 12500;
-    const vat = subtotal * 0.17;
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
-    const shippingCost = {
-        standard: 0,
-        express: 150,
-        premium: 850
-    }[shippingMethod];
-
-    const total = subtotal + vat + shippingCost;
-
-    const shippingOptions = [
-        { id: 'standard', title: 'משלוח רגיל למוסד', desc: 'עד 7 ימי עסקים', price: 0 },
-        { id: 'express', title: 'משלוח אקספרס', desc: 'עד 2 ימי עסקים', price: 150 },
-        { id: 'premium', title: 'משלוח + התקנה והדרכת צוות', desc: 'תיאום אישי מלא מול רכז התקשוב', price: 850 }
+    // Dummy cart items
+    const orderItems = [
+        { title: "מסך מגע אינטראקטיבי Pro 75\"", qty: 2, price: 19000 },
+        { title: "לוח חכם סטנדרטי 65\"", qty: 1, price: 3700 },
     ];
 
-    const paymentOptions = [
-        { id: 'credit', title: 'כרטיס אשראי', icon: '💳' },
-        { id: 'bit', title: 'Bit', icon: '📱' },
-        { id: 'applepay', title: 'Apple Pay / Google Pay', icon: '🍎' },
-        { id: 'po', title: 'הזמנת רכש מוסדית / העברה בנקאית', icon: '🏦' }
-    ];
+    const subtotal = orderItems.reduce((sum, item) => sum + item.price, 0);
+    const deliveryCost = deliveryOption === 'premium' ? 850 : 0;
+    const beforeVat = subtotal + deliveryCost;
+    const vat = Math.round(beforeVat * 0.17);
+    const total = beforeVat + vat;
+
+    const formatPrice = (n) => `₪${n.toLocaleString('he-IL')}`;
 
     return (
         <PageTransition>
-            <div className="bg-[#F5F5F7] min-h-[calc(100vh-73px)] py-12">
-                <div className="max-w-6xl mx-auto px-6 md:px-12">
+            <div className="min-h-screen bg-brand-light pt-32 pb-24 px-6 md:px-12 w-full">
+                <div className="max-w-[1400px] mx-auto">
 
-                    {/* Stepper Header */}
-                    <div className="mb-12">
-                        <h1 className="text-4xl font-extrabold text-[#1D1D1F] tracking-tight mb-8">השלמת רכישה</h1>
+                    {/* Page Title */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-16"
+                    >
+                        <Link to="/" className="text-sm text-gray-400 hover:text-brand-blue transition-colors mb-4 inline-block">
+                            ← חזור לאתר
+                        </Link>
+                        <h1 className="text-4xl md:text-5xl font-black text-brand-dark tracking-tight">
+                            קופה מוסדית
+                        </h1>
+                    </motion.div>
 
-                        <div className="flex items-center justify-between max-w-xl relative">
-                            {/* Connecting Line */}
-                            <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -z-10 rounded-full"></div>
-                            <div
-                                className="absolute top-1/2 right-0 h-1 bg-[#007AFF] -z-10 rounded-full transition-all duration-500 ease-out"
-                                style={{ width: step === 2 ? '50%' : '100%' }}
-                            ></div>
+                    {/* 2-Column Layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
 
-                            {/* Steps */}
-                            {['סל קניות', 'משלוח', 'תשלום'].map((label, idx) => {
-                                const stepNumber = idx + 1;
-                                const isActive = step === stepNumber;
-                                const isPassed = step > stepNumber;
+                        {/* RIGHT COLUMN (RTL Start) - Form (Takes 3 of 5 cols) */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="lg:col-span-3 flex flex-col gap-16"
+                        >
+                            {/* Section 1: Institution Details */}
+                            <section>
+                                <h2 className="text-2xl font-black text-brand-dark mb-2">פרטי המוסד</h2>
+                                <p className="text-gray-500 mb-8">פרטי בית הספר או המוסד לצורך הפקת חשבונית.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <FloatingInput label="שם המוסד / בית ספר" id="schoolName" />
+                                    <FloatingInput label="שם איש קשר" id="contactName" />
+                                    <FloatingInput label="טלפון" id="phone" type="tel" />
+                                    <FloatingInput label="דוא״ל" id="email" type="email" />
+                                </div>
+                            </section>
 
-                                return (
-                                    <div key={stepNumber} className="flex flex-col items-center gap-2">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${isActive || isPassed ? 'bg-[#007AFF] text-white shadow-md' : 'bg-white text-gray-400 border-2 border-gray-200'}`}>
-                                            {isPassed ? '✓' : stepNumber}
+                            {/* Section 2: Delivery & Installation */}
+                            <section>
+                                <h2 className="text-2xl font-black text-brand-dark mb-2">אפשרויות אספקה</h2>
+                                <p className="text-gray-500 mb-8">בחרו את אופן ההובלה וההתקנה המועדף עליכם.</p>
+                                <div className="flex flex-col gap-4">
+                                    <SelectableCard
+                                        title="משלוח רגיל (חינם)"
+                                        subtitle="אספקה תוך 5–7 ימי עסקים עד לכתובת המוסד."
+                                        isSelected={deliveryOption === 'free'}
+                                        onClick={() => setDeliveryOption('free')}
+                                        icon="📦"
+                                    />
+                                    <SelectableCard
+                                        title="הובלה, התקנה פיזית והדרכת צוות (₪850)"
+                                        subtitle="טכנאי מוסמך מתקין באתר עם הדרכה של שעה לצוות ההוראה."
+                                        isSelected={deliveryOption === 'premium'}
+                                        onClick={() => setDeliveryOption('premium')}
+                                        icon="🔧"
+                                    />
+                                </div>
+                            </section>
+
+                            {/* Section 3: Payment Method */}
+                            <section>
+                                <h2 className="text-2xl font-black text-brand-dark mb-2">אמצעי תשלום</h2>
+                                <p className="text-gray-500 mb-8">בחרו את שיטת התשלום המועדפת.</p>
+                                <div className="flex flex-col gap-4">
+                                    <SelectableCard
+                                        title="כרטיס אשראי מוסדי"
+                                        subtitle="חיוב מיידי בכרטיס האשראי של המוסד."
+                                        isSelected={paymentMethod === 'credit'}
+                                        onClick={() => setPaymentMethod('credit')}
+                                        icon="💳"
+                                    />
+                                    <SelectableCard
+                                        title="העברה בנקאית"
+                                        subtitle="קבלת פרטי חשבון בנק להעברה ישירה."
+                                        isSelected={paymentMethod === 'bank'}
+                                        onClick={() => setPaymentMethod('bank')}
+                                        icon="🏦"
+                                    />
+                                    <SelectableCard
+                                        title="הזמנת רכש (PO) ממשרד החינוך / עירייה"
+                                        subtitle="שלחו מספר הזמנת רכש מאושרת ונפיק חשבונית מול כתב ההתחייבות."
+                                        isSelected={paymentMethod === 'po'}
+                                        onClick={() => setPaymentMethod('po')}
+                                        icon="📋"
+                                    />
+                                </div>
+                            </section>
+                        </motion.div>
+
+                        {/* LEFT COLUMN (RTL End) - Order Summary (Takes 2 of 5 cols) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="lg:col-span-2"
+                        >
+                            <div className="bg-white rounded-3xl p-8 shadow-sm lg:sticky lg:top-32">
+                                <h3 className="text-xl font-black text-brand-dark mb-8">סיכום הזמנה</h3>
+
+                                {/* Items */}
+                                <div className="flex flex-col gap-6 mb-8">
+                                    {orderItems.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-start text-sm">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-brand-dark">{item.title}</span>
+                                                <span className="text-gray-400 mt-1">כמות: {item.qty}</span>
+                                            </div>
+                                            <span className="font-bold text-brand-dark whitespace-nowrap mr-4">
+                                                {formatPrice(item.price)}
+                                            </span>
                                         </div>
-                                        <span className={`text-sm font-medium ${isActive ? 'text-[#1D1D1F]' : 'text-gray-400'}`}>{label}</span>
+                                    ))}
+                                </div>
+
+                                {/* Totals */}
+                                <div className="border-t border-gray-100 pt-6 space-y-4 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">סה״כ ביניים</span>
+                                        <span className="font-bold text-brand-dark">{formatPrice(subtotal)}</span>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start">
-
-                        {/* Main Checkout Flow Area */}
-                        <div className="flex-1 w-full bg-white rounded-3xl p-8 lg:p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-                            <AnimatePresence mode="wait">
-
-                                {step === 2 && (
-                                    <motion.div
-                                        key="shipping"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                                    >
-                                        <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6">בחר שיטת משלוח</h2>
-
-                                        <div className="space-y-4">
-                                            {shippingOptions.map((opt) => (
-                                                <label
-                                                    key={opt.id}
-                                                    className={`flex items-center justify-between p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${shippingMethod === opt.id ? 'border-[#007AFF] bg-blue-50/30 shadow-sm' : 'border-gray-100 hover:border-gray-200'}`}
-                                                    onClick={() => setShippingMethod(opt.id)}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${shippingMethod === opt.id ? 'border-[#007AFF]' : 'border-gray-300'}`}>
-                                                            {shippingMethod === opt.id && <div className="w-3 h-3 bg-[#007AFF] rounded-full"></div>}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-[#1D1D1F] text-lg">{opt.title}</div>
-                                                            <div className="text-gray-500 text-sm mt-1">{opt.desc}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="font-bold text-[#1D1D1F]">
-                                                        {opt.price === 0 ? 'חינם' : `₪${opt.price}`}
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-
-                                        <div className="mt-10 flex justify-end">
-                                            <MotionButton variant="primary" className="px-12 py-4 text-lg" onClick={() => setStep(3)}>
-                                                המשך לתשלום
-                                            </MotionButton>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {step === 3 && (
-                                    <motion.div
-                                        key="payment"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                                    >
-                                        <h2 className="text-2xl font-bold text-[#1D1D1F] mb-2">אמצעי תשלום</h2>
-                                        <p className="text-gray-500 mb-8">כל העסקאות מאובטחות ומוצפנות.</p>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {paymentOptions.map((opt) => (
-                                                <div
-                                                    key={opt.id}
-                                                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 flex flex-col items-center text-center gap-3 ${paymentMethod === opt.id ? 'border-[#007AFF] bg-blue-50/30' : 'border-gray-100 hover:border-gray-200'}`}
-                                                    onClick={() => setPaymentMethod(opt.id)}
-                                                >
-                                                    <span className="text-3xl">{opt.icon}</span>
-                                                    <span className="font-bold text-[#1D1D1F]">{opt.title}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Dynamic Payment Details Area depending on selection */}
-                                        <AnimatePresence>
-                                            {paymentMethod === 'po' && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    className="mt-6 p-8 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm"
-                                                >
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className="w-10 h-10 rounded-full bg-blue-50 text-[#007AFF] flex items-center justify-center">
-                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                            </svg>
-                                                        </div>
-                                                        <h3 className="text-xl font-bold text-[#1D1D1F]">מסלול רכש מוסדי (B2B)</h3>
-                                                    </div>
-                                                    <p className="text-base text-gray-600 mb-6 leading-relaxed">
-                                                        תהליך מותאם אישית למוסדות חינוך מול נציג ייעודי. נא להפיק הזמנת רכש מול ח.פ 512345678 (nextclass בע"מ) ולהעבירה אלינו להמשך טיפול ותיאום אספקה.
-                                                    </p>
-
-                                                    <div className="bg-[#F5F5F7] p-5 rounded-2xl border border-gray-100 mb-2">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">פרטי חשבון להעברה / ערבות</p>
-                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-[#1D1D1F]">
-                                                            <div className="flex items-center gap-6">
-                                                                <div><span className="text-gray-400 text-xs block mb-1">בנק</span>בנק הפועלים (12)</div>
-                                                                <div><span className="text-gray-400 text-xs block mb-1">סניף</span>345</div>
-                                                                <div><span className="text-gray-400 text-xs block mb-1">חשבון</span>987654</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-
-                                        <div className="mt-10 flex justify-between items-center">
-                                            <button onClick={() => setStep(2)} className="text-gray-500 hover:text-[#1D1D1F] font-medium transition-colors">
-                                                חזור למשלוח
-                                            </button>
-                                            <MotionButton variant="primary" className="px-12 py-4 text-lg shadow-[0_8px_25px_rgba(0,122,255,0.4)]">
-                                                השלם הזמנה
-                                            </MotionButton>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Order Summary Sidebar */}
-                        <div className="w-full lg:w-[400px]">
-                            <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-                                <h2 className="text-xl font-bold text-[#1D1D1F] mb-6">סיכום הזמנה</h2>
-
-                                {/* Mini Cart Preview */}
-                                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden">
-                                        <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=200" alt="Item" className="w-full h-full object-cover mix-blend-multiply" />
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">אספקה</span>
+                                        <span className="font-bold text-brand-dark">
+                                            {deliveryCost === 0 ? 'חינם' : formatPrice(deliveryCost)}
+                                        </span>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-[#1D1D1F] text-sm">מסך מגע אינטראקטיבי Pro 75</p>
-                                        <p className="text-gray-500 text-xs">כמות: 2</p>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">מע״מ (17%)</span>
+                                        <span className="font-bold text-brand-dark">{formatPrice(vat)}</span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4 mb-6 text-sm">
-                                    <div className="flex justify-between items-center text-gray-600">
-                                        <span>סיכום ביניים</span>
-                                        <span className="font-medium text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
+                                {/* Grand Total */}
+                                <div className="border-t border-gray-100 pt-6 mt-6">
+                                    <div className="flex justify-between items-center mb-8">
+                                        <span className="text-lg font-bold text-brand-dark">סה״כ לתשלום</span>
+                                        <span className="text-3xl font-black text-brand-dark">{formatPrice(total)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-gray-600">
-                                        <span>משלוח</span>
-                                        <span className="font-medium text-[#1D1D1F]">{shippingCost === 0 ? 'חינם' : `₪${shippingCost}`}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-gray-600">
-                                        <span>מע"מ (17%)</span>
-                                        <span className="font-medium text-[#1D1D1F]">₪{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                </div>
 
-                                <div className="border-t border-gray-200 pt-6">
-                                    <div className="flex justify-between items-end">
-                                        <span className="text-lg font-bold text-[#1D1D1F]">סה"כ לתשלום</span>
-                                        <div className="text-left">
-                                            <span className="block text-3xl font-extrabold text-[#1D1D1F]">₪{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                    </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="w-full bg-brand-blue text-white py-5 rounded-2xl font-bold text-lg hover:bg-blue-600 hover:shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-brand-blue/30"
+                                    >
+                                        אשר הזמנת רכש
+                                    </motion.button>
+
+                                    <p className="text-center text-xs text-gray-400 mt-4 leading-relaxed">
+                                        בלחיצה על ״אשר הזמנת רכש״ אתה מאשר את
+                                        <Link to="/terms" className="text-brand-blue hover:underline mx-1">תנאי השימוש</Link>
+                                        ו<Link to="/privacy" className="text-brand-blue hover:underline mx-1">מדיניות הפרטיות</Link>.
+                                    </p>
                                 </div>
                             </div>
-
-                            {/* Security Badges */}
-                            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                רכישה מאובטחת תחת תקני PCI-DSS
-                            </div>
-                        </div>
+                        </motion.div>
 
                     </div>
                 </div>
