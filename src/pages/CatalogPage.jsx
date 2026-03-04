@@ -1,185 +1,128 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
-
+import { HardwareCatalog } from '../utils/mockData';
+import { MotionButton } from './CartPage';
 const CatalogPage = () => {
+    // Animation variants
+    const container = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemObj = {
+        hidden: { opacity: 0, y: 30 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+    };
+
     return (
         <PageTransition>
-            <div className="bg-[#F5F5F7] min-h-full font-sans text-[#1D1D1F] antialiased flex">
+            <div className="bg-[#F5F5F7] min-h-screen py-12">
+                <div className="max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col md:flex-row gap-12">
 
-                {/* 2. Left Sidebar (Smart Filters) */}
-                <aside className="hidden lg:block w-72 bg-white border-r border-gray-100 min-h-[calc(100vh-73px)] p-8">
-                    <h2 className="text-xl font-bold tracking-tight mb-8">Filters</h2>
+                    {/* RTL: Sidebar acts visually as the right pane */}
+                    <aside className="w-full md:w-64 flex-shrink-0">
+                        <div className="pl-6 sticky top-32">
+                            <h2 className="text-2xl font-bold text-[#1D1D1F] mb-8">סינון קטגוריות</h2>
 
-                    {/* Filter Category 1 */}
-                    <div className="mb-8">
-                        <div className="flex justify-between items-center mb-4 cursor-pointer">
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Manufacturer</h3>
-                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
+                            <div className="space-y-8">
+                                {/* Filter Group (Law of Common Region via spacing/grouping) */}
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2">סוג ציוד</h3>
+                                    <ul className="space-y-3">
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" defaultChecked /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">מסכי מגע (2)</span></label></li>
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" defaultChecked /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">עמדות מידע (1)</span></label></li>
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" defaultChecked /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">מעבדות STEM (3)</span></label></li>
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" defaultChecked /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">תוכנה (1)</span></label></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2">תקנים ואישורים</h3>
+                                    <ul className="space-y-3">
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" defaultChecked /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">מאושר משרד החינוך</span></label></li>
+                                        <li><label className="flex items-center space-x-3 space-x-reverse cursor-pointer group"><input type="checkbox" className="form-checkbox h-5 w-5 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF] transition duration-150 ease-in-out" /><span className="text-gray-700 group-hover:text-[#1D1D1F] transition-colors">עמידות לתקן צבאי</span></label></li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <div className="space-y-3">
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" defaultChecked />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">Nexus Systems</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">AeroTech</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">Quantum Compute</span>
-                            </label>
-                        </div>
-                    </div>
+                    </aside>
 
-                    {/* Filter Category 2 */}
-                    <div className="mb-8">
-                        <div className="flex justify-between items-center mb-4 cursor-pointer">
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Compatibility</h3>
-                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                        <div className="space-y-3">
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" defaultChecked />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">2U Rackmount</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">4U Expansion</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Filter Category 3 */}
-                    <div className="mb-8">
-                        <div className="flex justify-between items-center mb-4 cursor-pointer">
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Stock Status</h3>
-                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                        <div className="space-y-3">
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" defaultChecked />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">In Stock (Domestic)</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" className="form-checkbox h-4 w-4 text-[#007AFF] border-gray-300 rounded focus:ring-[#007AFF]" />
-                                <span className="text-sm font-medium text-gray-600 group-hover:text-[#1D1D1F] transition-colors">Available on Backorder</span>
-                            </label>
-                        </div>
-                    </div>
-
-                </aside>
-
-                <main className="flex-1 w-full px-6 py-8 md:px-10 lg:px-12">
-
-                    {/* 1. Header Area */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold tracking-tight text-[#1D1D1F] mb-3">Server Components & Hardware</h1>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 pb-4">
-                            <p className="text-sm font-medium text-gray-500 mb-4 sm:mb-0">Showing 42 results for <span className="text-[#1D1D1F] font-semibold">Contract #9982</span></p>
-
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Sort by:</span>
-                                <select className="text-sm font-semibold text-[#1D1D1F] bg-transparent border-none focus:ring-0 cursor-pointer pr-8 outline-none appearance-none">
-                                    <option>Relevance</option>
-                                    <option>Price: Low to High</option>
-                                    <option>Price: High to Low</option>
+                    {/* Main Content Area */}
+                    <main className="flex-1">
+                        <div className="flex justify-between items-end mb-8 border-b border-gray-200 pb-4">
+                            <div>
+                                <h1 className="text-4xl font-extrabold text-[#1D1D1F] tracking-tight mb-2">פתרונות טכנולוגיים לחינוך</h1>
+                                <p className="text-gray-500">מציג {HardwareCatalog.length} פריטים פרימיום</p>
+                            </div>
+                            <div className="hidden sm:block">
+                                <select className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none focus:ring-0 cursor-pointer border-none pl-8 rtl:pr-8 pr-2">
+                                    <option>מיון לפי: המלצת המערכת</option>
+                                    <option>מחיר: נמוך לגבוה</option>
+                                    <option>מחיר: גבוה לנמוך</option>
+                                    <option>הכי פופולרי</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
 
-                    {/* 3. Product Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {/* Product Grid (Law of Similarity & Common Region) */}
+                        <motion.div
+                            variants={container}
+                            initial="hidden"
+                            animate="show"
+                            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-12"
+                        >
+                            {HardwareCatalog.map((product) => (
+                                <motion.div key={product.id} variants={itemObj} className="group flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                                    {/* Image Area - Standardized Aspect Ratio */}
+                                    <div className="relative aspect-square bg-[#F5F5F7] overflow-hidden p-6 flex flex-col items-center justify-center">
+                                        <img
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
+                                        />
+                                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                                            <span className={`text-xs font-bold ${product.stockStatus.includes('מלאי') ? 'text-emerald-600' : 'text-blue-600'}`}>
+                                                {product.stockStatus}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                        {/* Card 1 */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col border border-gray-100">
-                            <div className="w-full aspect-square bg-[#F5F5F7] rounded-xl mb-6 flex items-center justify-center">
-                                <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-widest mb-1.5">SKU: NX-8842-A</h3>
-                            <p className="text-base font-medium text-gray-600 leading-snug mb-4 flex-1">NexusBlade Enterprise Server 2U Base Array</p>
+                                    {/* Content Area */}
+                                    <div className="flex flex-col flex-1 p-8">
+                                        <p className="text-sm font-medium text-gray-400 tracking-wide uppercase mb-2">{product.sku}</p>
+                                        <h3 className="text-xl md:text-2xl font-bold text-[#1D1D1F] mb-4 leading-tight">{product.name}</h3>
+                                        <p className="text-base font-normal text-gray-600 leading-relaxed mb-8 flex-1 line-clamp-3">
+                                            {product.description}
+                                        </p>
 
-                            <div className="mb-6">
-                                <p className="text-xs text-gray-400 mb-0.5">Contract Price</p>
-                                <p className="text-xl font-semibold text-[#1D1D1F]">$13,450.00</p>
-                            </div>
+                                        <div className="mt-auto">
+                                            <div className="flex items-end justify-between mb-8">
+                                                <div>
+                                                    <p className="text-xs text-gray-400 line-through mb-1">₪{product.basePrice.toLocaleString()}</p>
+                                                    <p className="text-2xl font-bold text-[#1D1D1F]">
+                                                        ₪{product.contractPrice.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            </div>
 
-                            <button className="w-full py-2.5 px-4 bg-transparent border-2 border-[#007AFF] text-[#007AFF] rounded-md font-semibold text-sm hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:ring-offset-1">
-                                View Specs
-                            </button>
-                        </div>
+                                            <Link to={`/catalog/${product.id}`} className="block w-full">
+                                                <MotionButton variant="ghost" className="w-full py-4 text-[#007AFF] bg-blue-50/50 hover:bg-blue-50 font-bold text-base">
+                                                    גלה עוד
+                                                </MotionButton>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </main>
 
-                        {/* Card 2 */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col border border-gray-100">
-                            <div className="w-full aspect-square bg-[#F5F5F7] rounded-xl mb-6 flex items-center justify-center">
-                                <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-widest mb-1.5">SKU: MEM-D4-64E</h3>
-                            <p className="text-base font-medium text-gray-600 leading-snug mb-4 flex-1">64GB DDR4 ECC RAM Module (Certified)</p>
-
-                            <div className="mb-6">
-                                <p className="text-xs text-gray-400 mb-0.5">Contract Price</p>
-                                <p className="text-xl font-semibold text-[#1D1D1F]">$320.00</p>
-                            </div>
-
-                            <button className="w-full py-2.5 px-4 bg-transparent border-2 border-[#007AFF] text-[#007AFF] rounded-md font-semibold text-sm hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:ring-offset-1">
-                                View Specs
-                            </button>
-                        </div>
-
-                        {/* Card 3 */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col border border-gray-100">
-                            <div className="w-full aspect-square bg-[#F5F5F7] rounded-xl mb-6 flex items-center justify-center">
-                                <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-widest mb-1.5">SKU: NET-25G-SFP</h3>
-                            <p className="text-base font-medium text-gray-600 leading-snug mb-4 flex-1">Dual-port 25GbE SFP28 Network Adapter</p>
-
-                            <div className="mb-6">
-                                <p className="text-xs text-gray-400 mb-0.5">Contract Price</p>
-                                <p className="text-xl font-semibold text-[#1D1D1F]">$685.00</p>
-                            </div>
-
-                            <button className="w-full py-2.5 px-4 bg-transparent border-2 border-[#007AFF] text-[#007AFF] rounded-md font-semibold text-sm hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:ring-offset-1">
-                                View Specs
-                            </button>
-                        </div>
-
-                        {/* Card 4 */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col border border-gray-100">
-                            <div className="w-full aspect-square bg-[#F5F5F7] rounded-xl mb-6 flex items-center justify-center">
-                                <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-widest mb-1.5">SKU: SSD-384-NVM</h3>
-                            <p className="text-base font-medium text-gray-600 leading-snug mb-4 flex-1">3.84TB NVMe Enterprise Mixed-Use SSD</p>
-
-                            <div className="mb-6">
-                                <p className="text-xs text-gray-400 mb-0.5">Contract Price</p>
-                                <p className="text-xl font-semibold text-[#1D1D1F]">$890.00</p>
-                            </div>
-
-                            <button className="w-full py-2.5 px-4 bg-transparent border-2 border-[#007AFF] text-[#007AFF] rounded-md font-semibold text-sm hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:ring-offset-1">
-                                View Specs
-                            </button>
-                        </div>
-
-                    </div>
-                </main>
+                </div>
             </div>
         </PageTransition>
     );

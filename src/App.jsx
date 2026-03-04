@@ -2,12 +2,13 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-import MainNavigation from './components/MainNavigation';
-import InstitutionalLogin from './pages/InstitutionalLogin';
-import Dashboard from './pages/Dashboard';
+import Header from './components/Header';
+import LandingPage from './pages/LandingPage';
 import CatalogPage from './pages/CatalogPage';
-import SuccessPage from './pages/SuccessPage';
-import ProductDetailPage from './pages/ProductDetailPage';
+import ProductDetail from './pages/ProductDetail';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import AIAssistantWidget from './components/AIAssistantWidget';
 
 function AnimatedRoutes() {
     const location = useLocation();
@@ -15,13 +16,12 @@ function AnimatedRoutes() {
     return (
         <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-                <Route path="/login" element={<InstitutionalLogin />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/catalog" element={<CatalogPage />} />
-                <Route path="/catalog/:id" element={<ProductDetailPage />} />
-                <Route path="/success" element={<SuccessPage />} />
-                {/* Default route */}
-                <Route path="/" element={<CatalogPage />} />
+                <Route path="/catalog/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="*" element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
     );
@@ -30,13 +30,13 @@ function AnimatedRoutes() {
 function App() {
     return (
         <Router>
-            <div className="min-h-screen flex flex-col font-sans text-[#1D1D1F] antialiased bg-[#F5F5F7]">
-                {/* MainNavigation remains persistent outside the animated routes */}
-                <MainNavigation />
-
-                <main className="flex-1 w-full bg-[#F5F5F7] flex flex-col">
+            {/* Globals: RTL setup and standard generic layout for "Apple Store" vibe */}
+            <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased bg-[#F5F5F7] selection:bg-blue-100 pt-[73px]">
+                <Header />
+                <main className="flex-1 w-full flex flex-col">
                     <AnimatedRoutes />
                 </main>
+                <AIAssistantWidget />
             </div>
         </Router>
     );
