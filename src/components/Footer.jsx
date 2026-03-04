@@ -10,52 +10,52 @@ const Footer = () => {
 
                     {/* RTL Column 1: Brand */}
                     <div className="flex flex-col">
-                        <div className="text-2xl font-black tracking-tighter text-brand-dark mb-4">
-                            next<span className="font-light">class</span>
-                        </div>
+                        <Link to="/" className="text-2xl font-black tracking-tighter text-[#1D1D1F] mb-4 hover:opacity-80 active:scale-[0.97] transition-all w-fit">
+                            next<span className="font-light text-[#007AFF]">class</span>
+                        </Link>
                         <p className="text-gray-500 font-normal leading-relaxed">
                             הטכנולוגיה שמאחורי החינוך הטוב בישראל.
                         </p>
                     </div>
 
-                    {/* RTL Column 2: Solutions */}
+                    {/* RTL Column 2: Solutions — Route to catalog with category filter */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-brand-dark mb-6 text-lg">פתרונות</h4>
+                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">פתרונות</h4>
                         <nav className="flex flex-col space-y-3">
-                            <Link to="/catalog" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">מסכי מגע</Link>
-                            <Link to="/stem" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">מעבדות STEM</Link>
-                            <Link to="/digital-signage" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">שילוט דיגיטלי</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מסכי מגע</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מעבדות STEM</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">שילוט דיגיטלי</Link>
                         </nav>
                     </div>
 
                     {/* RTL Column 3: Support */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-brand-dark mb-6 text-lg">שירות ותמיכה</h4>
+                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">שירות ותמיכה</h4>
                         <nav className="flex flex-col space-y-3">
-                            <Link to="/help" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">מרכז עזרה</Link>
-                            <Link to="/warranty" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">תקנון אחריות</Link>
-                            <Link to="/contact" className="text-gray-500 hover:text-brand-blue transition-colors w-fit">צור קשר</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מרכז עזרה</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">תקנון אחריות</Link>
+                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">צור קשר</Link>
                         </nav>
                     </div>
 
                     {/* RTL Column 4: Contact */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-brand-dark mb-6 text-lg">דברו איתנו</h4>
+                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">דברו איתנו</h4>
                         <div className="flex flex-col space-y-3 text-gray-500">
-                            <a href="mailto:hello@nextclass.co.il" className="hover:text-brand-blue transition-colors w-fit">hello@nextclass.co.il</a>
-                            <a href="tel:0546398257" className="hover:text-brand-blue transition-colors w-fit" dir="ltr">054-6398257</a>
+                            <a href="mailto:hello@nextclass.co.il" className="hover:text-[#007AFF] active:scale-[0.97] transition-all w-fit">hello@nextclass.co.il</a>
+                            <a href="tel:0546398257" className="hover:text-[#007AFF] active:scale-[0.97] transition-all w-fit" dir="ltr">054-6398257</a>
                             <span>פארק המדע, נס ציונה</span>
                         </div>
                     </div>
 
                 </div>
 
-                {/* Bottom Bar Content */}
+                {/* Bottom Bar */}
                 <div className="border-t border-gray-100 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
                     <div>© 2026 nextclass. כל הזכויות שמורות.</div>
                     <div className="mt-4 md:mt-0 flex gap-6">
-                        <Link to="/privacy" className="hover:text-brand-blue transition-colors">מדיניות פרטיות</Link>
-                        <Link to="/terms" className="hover:text-brand-blue transition-colors">תנאי שימוש</Link>
+                        <Link to="/catalog" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">מדיניות פרטיות</Link>
+                        <Link to="/catalog" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">תנאי שימוש</Link>
                     </div>
                 </div>
             </div>

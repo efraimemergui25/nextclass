@@ -1,172 +1,180 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
-
-const products = [
-    {
-        name: 'TouchBoard Pro 75"',
-        image: "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=400",
-        screenSize: '75"',
-        resolution: "4K UHD",
-        touch: "20 נקודות IR",
-        os: "Android 13",
-        glass: "מחוסמת 4mm",
-        brightness: "450 nits",
-        warranty: "3 שנים",
-        speakers: "✓",
-        wifi: "✓",
-        price: "₪9,500"
-    },
-    {
-        name: 'TouchBoard Lite 65"',
-        image: "https://images.unsplash.com/photo-1555529902-5261145633bf?auto=format&fit=crop&q=80&w=400",
-        screenSize: '65"',
-        resolution: "4K UHD",
-        touch: "10 נקודות IR",
-        os: "Android 12",
-        glass: "מחוסמת 3mm",
-        brightness: "350 nits",
-        warranty: "2 שנים",
-        speakers: "✓",
-        wifi: "✓",
-        price: "₪6,200"
-    },
-    {
-        name: 'CampusSign 86"',
-        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=400",
-        screenSize: '86"',
-        resolution: "4K UHD",
-        touch: "ללא מגע",
-        os: "CMS ייעודי",
-        glass: "מחוסמת 5mm",
-        brightness: "700 nits",
-        warranty: "3 שנים",
-        speakers: "—",
-        wifi: "✓",
-        price: "₪13,200"
-    }
-];
-
-const specs = [
-    { key: "screenSize", label: "גודל מסך" },
-    { key: "resolution", label: "רזולוציה" },
-    { key: "touch", label: "טכנולוגיית מגע" },
-    { key: "os", label: "מערכת הפעלה" },
-    { key: "glass", label: "זכוכית" },
-    { key: "brightness", label: "בהירות" },
-    { key: "warranty", label: "אחריות" },
-    { key: "speakers", label: "רמקולים מובנים" },
-    { key: "wifi", label: "WiFi" },
-    { key: "price", label: "מחיר מוסדי" },
-];
+import { useCompare } from '../context/CompareContext';
 
 const ComparePage = () => {
+    const { selectedForCompare, removeFromCompare, clearCompare } = useCompare();
+
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
+    // Build a unified spec label list from ALL selected products' specs arrays
+    const allSpecLabels = useMemo(() => {
+        if (!selectedForCompare.length) return [];
+        const labelSet = new Set();
+        selectedForCompare.forEach(product => {
+            const specs = product.specs || [];
+            specs.forEach(spec => labelSet.add(spec.label));
+        });
+        return Array.from(labelSet);
+    }, [selectedForCompare]);
+
+    // Helper: find a spec value for a product by label
+    const getSpecValue = (product, label) => {
+        const specs = product.specs || [];
+        const found = specs.find(s => s.label === label);
+        return found ? found.value : null;
+    };
+
     return (
         <PageTransition>
-            <div className="min-h-screen bg-white pt-32 pb-24 px-6 w-full">
-                <div className="max-w-[1200px] mx-auto">
+            <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full overflow-x-hidden">
+                <div className="max-w-[1400px] mx-auto">
 
-                    {/* Header */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-center mb-16"
-                    >
-                        <h1 className="text-4xl md:text-5xl font-black text-brand-dark tracking-tight mb-4">
-                            מצאו את המסך המושלם לכיתה שלכם.
-                        </h1>
-                        <p className="text-lg text-gray-500 font-light">
-                            השוואה מפורטת בין הדגמים המובילים שלנו.
-                        </p>
-                    </motion.div>
+                    <AnimatePresence mode="wait">
+                        {selectedForCompare.length === 0 ? (
+                            /* --- EMPTY STATE --- */
+                            <motion.div
+                                key="empty-state"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                                className="flex flex-col items-center justify-center text-center min-h-[50vh]"
+                            >
+                                <svg className="w-24 h-24 text-gray-200 mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                </svg>
+                                <h1 className="text-3xl md:text-4xl font-black text-[#1D1D1F] tracking-tight mb-4 leading-tight">
+                                    לא נבחרו מוצרים להשוואה
+                                </h1>
+                                <Link to="/catalog" className="text-[#007AFF] text-lg font-medium hover:text-blue-600 active:scale-[0.97] transition-all border-b-2 border-transparent hover:border-blue-600 pb-1">
+                                    חזרה לקטלוג המוצרים
+                                </Link>
+                            </motion.div>
+                        ) : (
+                            /* --- DYNAMIC COMPARISON GRID --- */
+                            <motion.div
+                                key="grid-state"
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 30 }}
+                                transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                                className="flex flex-col w-full"
+                            >
+                                {/* Header */}
+                                <div className="text-center mb-16 relative">
+                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1D1D1F] tracking-tight mb-4 leading-tight">
+                                        השוואת דגמים
+                                    </h1>
+                                    <p className="text-base md:text-lg text-gray-500 font-normal leading-relaxed">
+                                        סוקרים {selectedForCompare.length} מוצרים נבחרים.
+                                    </p>
 
-                    {/* Comparison Grid */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="overflow-x-auto pb-4 -mx-6 px-6"
-                    >
-                        <div className="min-w-[700px]">
-
-                            {/* Product Headers Row */}
-                            <div className="grid grid-cols-4 gap-4 mb-8">
-                                {/* Empty top-left cell */}
-                                <div />
-                                {products.map((product, idx) => (
-                                    <div key={idx} className="text-center">
-                                        <div className="w-full aspect-square bg-brand-light rounded-2xl p-4 flex items-center justify-center mb-4 overflow-hidden">
-                                            <img
-                                                src={product.image}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover rounded-xl"
-                                            />
-                                        </div>
-                                        <h3 className="font-black text-brand-dark text-base md:text-lg">
-                                            {product.name}
-                                        </h3>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Spec Rows */}
-                            {specs.map((spec, rowIdx) => (
-                                <div
-                                    key={spec.key}
-                                    className={`grid grid-cols-4 gap-4 py-4 px-4 rounded-xl ${rowIdx % 2 === 0 ? 'bg-gray-50/80' : 'bg-white'
-                                        }`}
-                                >
-                                    {/* Spec Label */}
-                                    <div className="flex items-center">
-                                        <span className="font-bold text-brand-dark text-sm">
-                                            {spec.label}
-                                        </span>
-                                    </div>
-                                    {/* Product Values */}
-                                    {products.map((product, colIdx) => {
-                                        const value = product[spec.key];
-                                        const isCheck = value === "✓";
-                                        const isDash = value === "—";
-                                        const isPrice = spec.key === "price";
-
-                                        return (
-                                            <div key={colIdx} className="flex items-center justify-center text-center">
-                                                {isCheck ? (
-                                                    <span className="text-brand-blue font-black text-xl">✓</span>
-                                                ) : isDash ? (
-                                                    <span className="text-gray-300 text-lg">—</span>
-                                                ) : isPrice ? (
-                                                    <span className="font-black text-brand-dark text-lg">{value}</span>
-                                                ) : (
-                                                    <span className="text-gray-600 text-sm font-medium">{value}</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-
-                            {/* CTA Row */}
-                            <div className="grid grid-cols-4 gap-4 mt-8">
-                                <div />
-                                {products.map((_, idx) => (
-                                    <motion.button
-                                        key={idx}
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        className="w-full bg-brand-blue text-white py-3 rounded-xl font-bold text-sm hover:bg-blue-600 transition-colors"
+                                    <button
+                                        onClick={clearCompare}
+                                        className="absolute top-0 right-0 md:right-12 mt-4 text-sm font-bold text-red-500 hover:text-red-600 active:scale-[0.97] transition-all"
                                     >
-                                        הוסף להצעת מחיר
-                                    </motion.button>
-                                ))}
-                            </div>
+                                        נקה השוואה
+                                    </button>
+                                </div>
 
-                        </div>
-                    </motion.div>
+                                <div className="overflow-x-auto pb-12" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                    <div className="min-w-[700px] w-full">
+
+                                        {/* STICKY HEADER ROW: Product Cards */}
+                                        <div
+                                            className="grid border-b-2 border-[#1D1D1F]/10 sticky top-[73px] z-40 bg-[#F5F5F7]/95 backdrop-blur-3xl pt-8 pb-6"
+                                            style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
+                                        >
+                                            <div className="flex bg-transparent"></div>
+                                            {selectedForCompare.map((product) => (
+                                                <div key={product.id} className="text-center px-4 relative group flex flex-col items-center">
+                                                    <button
+                                                        onClick={() => removeFromCompare(product.id)}
+                                                        className="absolute top-2 right-4 w-8 h-8 bg-white text-gray-500 rounded-full flex items-center justify-center shadow-md hover:text-red-500 hover:scale-110 active:scale-[0.9] transition-all z-10"
+                                                        aria-label="הסר מההשוואה"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                    <div className="w-full aspect-[4/3] bg-white rounded-2xl mb-4 p-3 shadow-sm border border-gray-100 flex items-center justify-center overflow-hidden">
+                                                        <img
+                                                            src={product.imageUrl || product.image}
+                                                            alt={product.title}
+                                                            className="max-h-full max-w-full object-contain"
+                                                        />
+                                                    </div>
+                                                    <h3 className="font-extrabold text-[#1D1D1F] text-base md:text-lg leading-tight mb-1 line-clamp-2">
+                                                        {product.title}
+                                                    </h3>
+                                                    <div className="text-[#007AFF] font-black text-xl mb-4">
+                                                        {product.price}
+                                                    </div>
+
+                                                    <Link to={`/catalog/${product.id}`} className="w-full">
+                                                        <motion.div
+                                                            whileHover={{ scale: 1.02, y: -1 }}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            className="w-full bg-[#1D1D1F] text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition-colors text-center"
+                                                        >
+                                                            למפרט המלא
+                                                        </motion.div>
+                                                    </Link>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* SPEC ROWS — Dynamically built from products' specs arrays */}
+                                        <div className="flex flex-col mt-4">
+                                            {/* Category Row (always first) */}
+                                            <div
+                                                className="grid border-b border-gray-100 py-5 hover:bg-white/50 transition-colors"
+                                                style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
+                                            >
+                                                <div className="flex items-center pr-4">
+                                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">קטגוריה</span>
+                                                </div>
+                                                {selectedForCompare.map((product) => (
+                                                    <div key={product.id} className="flex items-center justify-center text-center px-4">
+                                                        <span className="text-[#007AFF] font-bold text-sm">{product.category}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Dynamic Spec Rows */}
+                                            {allSpecLabels.map((label) => (
+                                                <div
+                                                    key={label}
+                                                    className="grid border-b border-gray-100 py-5 hover:bg-white/50 transition-colors"
+                                                    style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
+                                                >
+                                                    <div className="flex items-center pr-4">
+                                                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
+                                                    </div>
+                                                    {selectedForCompare.map((product) => {
+                                                        const value = getSpecValue(product, label);
+                                                        return (
+                                                            <div key={product.id} className="flex items-center justify-center text-center px-4">
+                                                                {value ? (
+                                                                    <span className="text-[#1D1D1F] font-black text-base leading-tight">{value}</span>
+                                                                ) : (
+                                                                    <span className="text-gray-300 text-lg">—</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                 </div>
             </div>

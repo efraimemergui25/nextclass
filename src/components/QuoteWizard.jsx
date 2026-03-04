@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SelectionCard = ({ title, icon, isSelected, onClick }) => (
@@ -194,16 +194,18 @@ const QuoteWizard = () => {
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mx-auto">
                                             <motion.button
-                                                whileHover={{ scale: 1.03 }}
-                                                whileTap={{ scale: 0.97 }}
-                                                className="flex-1 bg-brand-blue text-white py-4 rounded-2xl font-bold text-base hover:bg-blue-600 transition-colors"
+                                                whileHover={{ scale: 1.03, y: -2 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => alert('הצעת המחיר נשלחה לכתובת המייל שלכם! \n\nנציג שלנו יחזור אליכם תוך 24 שעות.')}
+                                                className="flex-1 bg-[#007AFF] text-white py-4 rounded-2xl font-bold text-base shadow-[0_8px_16px_rgba(0,122,255,0.2)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.4)] transition-all duration-300"
                                             >
                                                 הורד הצעת מחיר
                                             </motion.button>
                                             <motion.button
-                                                whileHover={{ scale: 1.03 }}
-                                                whileTap={{ scale: 0.97 }}
-                                                className="flex-1 bg-white text-brand-dark py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-gray-300 transition-colors"
+                                                whileHover={{ scale: 1.03, y: -2 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => window.open('tel:0546398257')}
+                                                className="flex-1 bg-white text-[#1D1D1F] py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-[#007AFF] hover:shadow-md active:scale-[0.97] transition-all duration-300"
                                             >
                                                 דברו עם יועץ
                                             </motion.button>

@@ -25,8 +25,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
     // Slide-in from LEFT Animation (RTL opposite side)
     const drawerVariants = {
-        closed: { x: "-100%", transition: { ease: [0.32, 0.72, 0, 1], duration: 0.5 } },
-        open: { x: 0, transition: { ease: [0.32, 0.72, 0, 1], duration: 0.5 } }
+        closed: { x: "-100%", transition: { type: "spring", stiffness: 250, damping: 25 } },
+        open: { x: 0, transition: { type: "spring", stiffness: 250, damping: 25 } }
     };
 
     const overlayVariants = {
@@ -45,7 +45,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         exit="closed"
                         variants={overlayVariants}
                         onClick={onClose}
-                        className="fixed inset-0 glass-dark z-[60]"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70]"
                         aria-hidden="true"
                     />
 
@@ -55,14 +55,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         animate="open"
                         exit="closed"
                         variants={drawerVariants}
-                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white shadow-2xl z-[70] flex flex-col"
+                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white/85 backdrop-blur-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[80] flex flex-col"
                     >
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-brand-dark">סל הרכש שלך</h2>
+                        <div className="p-6 border-b border-gray-100/50 flex justify-between items-center">
+                            <h2 className="text-2xl font-black text-[#1D1D1F]">סל הרכש שלך</h2>
                             <button
                                 onClick={onClose}
-                                className="p-2 -m-2 text-gray-400 hover:text-brand-dark transition-colors focus:outline-none"
+                                className="p-2 -m-2 text-gray-400 hover:text-[#1D1D1F] hover:rotate-90 active:scale-[0.9] transition-all duration-300 focus:outline-none"
                                 aria-label="סגור חלונית עגלה"
                             >
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -72,18 +72,18 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* Scrollable Items List */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-6">
                             {cartItems.map((item) => (
-                                <div key={item.id} className="flex gap-4">
+                                <div key={item.id} className="flex gap-4 bg-[#F5F5F7] rounded-2xl p-4 mb-4">
                                     {/* Thumbnail */}
-                                    <div className="w-20 h-20 rounded-xl bg-brand-light flex items-center justify-center shrink-0 overflow-hidden border border-gray-100">
+                                    <div className="w-20 h-20 rounded-xl bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                         <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover mix-blend-multiply" />
                                     </div>
 
                                     {/* Info */}
                                     <div className="flex flex-col flex-1 justify-between py-1">
                                         <div className="flex justify-between items-start gap-2">
-                                            <h3 className="font-bold text-brand-dark text-sm md:text-base leading-tight">
+                                            <h3 className="font-bold text-[#1D1D1F] text-sm md:text-base leading-tight">
                                                 {item.title}
                                             </h3>
                                             <button className="text-gray-400 hover:text-red-500 transition-colors">
@@ -95,12 +95,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
                                         <div className="flex justify-between items-end mt-2">
                                             {/* Qty Toggle */}
-                                            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-2 text-sm font-bold text-brand-dark">
-                                                <motion.button whileTap={{ scale: 0.8 }} className="p-1 hover:text-brand-blue">-</motion.button>
+                                            <div className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-lg px-2 text-sm font-bold text-[#1D1D1F]">
+                                                <motion.button whileTap={{ scale: 0.8 }} className="p-1 hover:text-[#007AFF]">-</motion.button>
                                                 <span>{item.qty}</span>
-                                                <motion.button whileTap={{ scale: 0.8 }} className="p-1 hover:text-brand-blue">+</motion.button>
+                                                <motion.button whileTap={{ scale: 0.8 }} className="p-1 hover:text-[#007AFF]">+</motion.button>
                                             </div>
-                                            <div className="font-bold text-brand-dark">{item.price}</div>
+                                            <div className="font-black text-[#1D1D1F] text-lg">{item.price}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -108,17 +108,17 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* Fixed Footer */}
-                        <div className="p-6 border-t border-gray-100 bg-gray-50/50">
+                        <div className="p-6 border-t border-white/50 bg-white/50 backdrop-blur-md">
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-gray-500 font-medium">סה״כ ביניים</span>
-                                <span className="text-2xl font-black text-brand-dark">₪22,700</span>
+                                <span className="text-3xl font-black text-[#1D1D1F]">₪22,700</span>
                             </div>
 
                             <Link to="/checkout" onClick={onClose} className="w-full block">
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="w-full bg-brand-dark text-white py-5 rounded-2xl font-bold text-lg hover:bg-black transition-colors"
+                                    className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-black text-xl hover:bg-blue-600 shadow-[0_8px_20px_rgba(0,122,255,0.2)] transition-all"
                                 >
                                     מעבר לקופה מוסדית
                                 </motion.button>

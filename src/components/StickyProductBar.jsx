@@ -21,7 +21,7 @@ const StickyProductBar = ({ productName = "TouchBoard Pro 75\"", price = "₪9,5
                     initial={{ y: -80, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -80, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 25 }}
                     className="fixed top-0 left-0 w-full glass-light z-40 py-3 px-6 md:px-12"
                 >
                     <div className="max-w-[1400px] mx-auto flex justify-between items-center">

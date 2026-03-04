@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection = () => {
+    const navigate = useNavigate();
+
     const handleScrollDown = () => {
         window.scrollTo({
             top: window.innerHeight,
@@ -11,13 +14,13 @@ const HeroSection = () => {
 
     return (
         <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased">
-            {/* Background Image (Abstract/Tech/Clean Classroom) */}
+            {/* Background Image */}
             <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
                 style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')" }}
             />
 
-            {/* Critical Overlay: Adjusted Gradient for Ideal Contrast */}
+            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
 
             {/* Content Container */}
@@ -37,18 +40,18 @@ const HeroSection = () => {
                         הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                     </p>
 
-                    {/* Gestalt Figure-Ground: Premium Glassmorphism Button */}
+                    {/* Primary CTA — Routes to Catalog */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, duration: 0.6 }}
-                        className="mt-10 flex justify-center"
+                        className="mt-10 flex justify-center gap-4"
                     >
                         <motion.button
-                            onClick={handleScrollDown}
-                            whileHover={{ scale: 1.05 }}
+                            onClick={() => navigate('/catalog')}
+                            whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-10 py-4 rounded-full backdrop-blur-md bg-white/10 border border-white/30 text-white font-bold text-lg hover:bg-white hover:text-brand-dark transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                            className="px-10 py-4 rounded-full bg-[#007AFF] text-white font-bold text-lg shadow-[0_8px_16px_rgba(0,122,255,0.3)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.5)] transition-all duration-300"
                         >
                             לכל הפתרונות
                         </motion.button>
@@ -58,7 +61,7 @@ const HeroSection = () => {
 
             {/* Scroll Down Indicator (Gestalt Continuity) */}
             <motion.div
-                className="absolute bottom-10 left-1/2 cursor-pointer text-white/70 hover:text-white transition-colors"
+                className="absolute bottom-10 left-1/2 cursor-pointer text-white/70 hover:text-white active:scale-[0.97] transition-all duration-300"
                 style={{ translateX: "-50%" }}
                 onClick={handleScrollDown}
                 animate={{ y: [0, 10, 0] }}

@@ -48,4 +48,17 @@
     .text-body {
         @apply text-base md:text-lg font-normal leading-relaxed text-gray-500;
     }
+
+    /* Standardized Button Hierarchy */
+    .btn-primary {
+        @apply bg-[#007AFF] text-white font-bold rounded-full px-8 py-4 text-lg shadow-[0_8px_16px_rgba(0, 122, 255, 0.2)] hover:shadow-[0_12px_24px_rgba(0, 122, 255, 0.4)] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
+    }
+
+    .btn-glass {
+        @apply bg-white/50 backdrop-blur-md border border-gray-200/50 text-[#1D1D1F] font-bold rounded-full px-8 py-4 text-lg hover:bg-white hover:shadow-md hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
+    }
+
+    .btn-ghost {
+        @apply text-gray-500 font-medium px-4 py-2 rounded-lg hover:text-[#007AFF] hover:bg-[#007AFF]/5 active:scale-[0.97] transition-all duration-300 ease-out;
+    }
 }

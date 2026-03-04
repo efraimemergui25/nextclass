@@ -5,6 +5,7 @@ import PageTransition from '../components/PageTransition';
 import HeroSection from '../components/HeroSection';
 import SocialProofStrip from '../components/SocialProofStrip';
 import CatalogGrid from '../components/CatalogGrid';
+import ShoppableImage from '../components/ShoppableImage';
 import ValueProps from '../components/ValueProps';
 import QuoteWizard from '../components/QuoteWizard';
 
@@ -17,6 +18,7 @@ const LandingPage = () => {
                 <HeroSection />
                 <SocialProofStrip />
                 <CatalogGrid />
+                <ShoppableImage />
                 <QuoteWizard />
                 <ValueProps />
 
