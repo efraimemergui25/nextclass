@@ -51,7 +51,7 @@ const CatalogGrid = () => {
             {/* Animation: Apple Spring Physics for layout reflows */}
             <motion.div
                 layout
-                transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12"
             >
                 <AnimatePresence mode='popLayout'>
@@ -59,10 +59,10 @@ const CatalogGrid = () => {
                         <motion.div
                             key={product.id}
                             layout
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                         >
                             <ProductCard product={product} />
                         </motion.div>

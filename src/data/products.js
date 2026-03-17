@@ -4,7 +4,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע אינטראקטיבי NextBoard Pro 65\"",
         price: 7200,
-        image: "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
         description: "מסך כיתתי סטנדרטי התואם למרחבי למידה ממוצעים. מאפשר חוויית כתיבה טבעית וכולל מערכת הפעלה פנימית לניהול תוכן ושיעורים אינטראקטיביים.",
         specs: [
             {
@@ -50,7 +50,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע אינטראקטיבי NextBoard Pro 75\"",
         price: 9500,
-        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
         description: "הסטנדרט המועדף לתיכונים וחטיבות ביניים. מסך 75 אינץ׳ עוצמתי עם זכוכית אנטי-גלאר המבטיחה צפייה חדה מכל פינה בכיתה.",
         specs: [
             {
@@ -100,7 +100,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע אינטראקטיבי NextBoard Max 86\"",
         price: 14500,
-        image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
         description: "מפלצת ביצועים לאולמות הרצאה וספריות. ה-86 אינץ׳ מספק שטח עבודה כפול לתצוגה מפוצלת של חזווית מורה ותלמידים במקביל.",
         specs: [
             {
@@ -150,7 +150,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע Enterprise Infinity 98\"",
         price: 28000,
-        image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
         description: "פתרון דגל למרחבי למידה המוניים ואודיטוריומים. מחליף לחלוטין את הצורך במקרן עם בהירות פסיכית ושחור מוחלט.",
         specs: [
             {
@@ -200,7 +200,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך טאקטי Flex נייד 65\"",
         price: 8900,
-        image: "https://images.unsplash.com/photo-1588702545911-5f940bb36109?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
         description: "חווייה ניידת לחלוטין. מגיע עם עגלה מוטורית שקטה המאפשרת העברה חלקה ממרחב למרחב, כולל מנגנון שינוי זווית לשולחן אינטראקטיבי.",
         specs: [
             {
@@ -246,7 +246,7 @@ const products = [
         category: "מסכי מגע",
         title: "EduTouch Glass קיבולטיבי 75\"",
         price: 11200,
-        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
         description: "מסך פרימיום נטול מסגרת עם טכנולוגיית מגע PCAP (כמו בסמארטפון). עיצוב מינימליסטי וזיהוי מגע כירורגי ללוחות שרטוט ומגמות אדריכלות.",
         specs: [
             {
@@ -296,7 +296,7 @@ const products = [
         category: "מסכי מגע",
         title: "NextBoard Dual OS 86\"",
         price: 15900,
-        image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
         description: "מגיע מצויד בשבב מחשוב כפול המריץ גם Android וגם Windows 11 Pro באופן מובנה מודולרי. מאפשר מעבר חלק בלחיצת כפתור.",
         specs: [
             {
@@ -346,7 +346,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע Eco Lite 65\"",
         price: 5900,
-        image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
         description: "הפתרון הידידותי ביותר לתקציב לפרוייקטים המוניים בבתי ספר יסודיים. שומר על איכות צפייה מעולה במארז חסכוני באנרגיה.",
         specs: [
             {
@@ -392,7 +392,7 @@ const products = [
         category: "מסכי מגע",
         title: "מסך מגע עמיד לתנאי מעבדה 55\"",
         price: 8400,
-        image: "https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop",
         description: "מסך מחופה בציפוי תעשייתי דוחה קורוזיה ושמנים. למעבדות מדעים, סדנאות, ומרכזי רובוטיקה הדורשים עמידות של ציוד קצה מכני.",
         specs: [
             {
@@ -438,7 +438,7 @@ const products = [
         category: "מסכי מגע",
         title: "NextBoard Ultra 8K 75\"",
         price: 22000,
-        image: "https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
         description: "העתיד של המסכים האינטראקטיביים. רזולוציית 8K מטיחה פרטים בלתי נתפסים גם בעמידה אפסית מהמסך. מושלם ללימודי גיאומטריה ומחקר רפואי.",
         specs: [
             {
@@ -488,7 +488,7 @@ const products = [
         category: "מסכי מידע",
         title: "עמדת מידע קיוסק 55\"",
         price: 5500,
-        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
         description: "קיוסק מידע אנכי בעיצוב מודרני ממתכת. מתאים לכניסות בתי ספר וספריות להצגת אקטואליה, מערכת שעות והודעות מנהל בזמן אמת.",
         specs: [
             {
@@ -534,7 +534,7 @@ const products = [
         category: "מסכי מידע",
         title: "מסך מידע מוסדי Wall 65\"",
         price: 4900,
-        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=800&auto=format&fit=crop",
         description: "מסך שילוט קונבנציונלי למסדרונות הרחבים. עובד 18/7 עם ניהול תכנים מרחוק וכיבוי אוטומטי בלילה לחסכון.",
         specs: [
             {
@@ -580,7 +580,7 @@ const products = [
         category: "מסכי מידע",
         title: "InfoDisplay Pro קמפוס 75\"",
         price: 8500,
-        image: "https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
         description: "מסך מידע גדול במיוחד לרחבות איסוף וקפטריות עמוסות. בהירות רדיקלית המבטיחה משיכת תשומת לב גם באור שמש טבעי.",
         specs: [
             {
@@ -626,7 +626,7 @@ const products = [
         category: "מסכי מידע",
         title: "שילוט חוץ עמיד IP65 בגודל 55\"",
         price: 18000,
-        image: "https://images.unsplash.com/photo-1616886475510-cd32a58b5e28?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=800&auto=format&fit=crop",
         description: "מסך שילוט דיגיטלי להתקנה בחצרות בית הספר. אטום לחלוטין למים, אבק וחבטות קלות, ובנוי לעמוד החל משמש ישראלית יוקדת ועד סופות חורף.",
         specs: [
             {
@@ -672,7 +672,7 @@ const products = [
         category: "מסכי מידע",
         title: "שילוט חוץ רחב IP65 בגודל 65\"",
         price: 24500,
-        image: "https://images.unsplash.com/photo-1595859703085-f55ae0e66eb1?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
         description: "שער הכניסה המודרני למוסד החינוכי. 65 אינץ' של שקיפות ובהירות בתנאי חוץ קיצוניים, מושלם לשילוט חוצות או שלטי הכוונה אדריכליים בכניסה.",
         specs: [
             {
@@ -718,7 +718,7 @@ const products = [
         category: "מסכי מידע",
         title: "קיוסק הכוונה (Wayfinding) מגע 43\"",
         price: 6400,
-        image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=800&auto=format&fit=crop",
         description: "עמדת הכוונה אלגנטית לספריות ולמרכזי פסג״ה. כוללת מסך מגע לחיפוש כיתות, חוגים, וניווט אקטיבי של מבקרים ושחקני קמפוס חדשים.",
         specs: [
             {
@@ -764,7 +764,7 @@ const products = [
         category: "מסכי מידע",
         title: "מסך פנורמי אופקי לקפיטריה 49\"",
         price: 4100,
-        image: "https://images.unsplash.com/photo-1610444583946-b51e06fd7a49?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
         description: "בנוי לניצול מרבית לשטחי תצוגה בתקרות נמוכות או דלפקי קפיטריה. מחליף לחלוטין לוחות מחיקים ומציע עדכון יומי מרחוק של התפריט המוסדי.",
         specs: [
             {
@@ -810,7 +810,7 @@ const products = [
         category: "מסכי מידע",
         title: "InfoBar UltraStretch 86\"",
         price: 15400,
-        image: "https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=800&auto=format&fit=crop",
         description: "פס מידע פוטנציאלי לכל רוחב הכיתה או המסדרון באספקט מיוחד של 58:9. משמש כסטריפ הודעות דינמי מעל דלתות ולמעברי מעבדות.",
         specs: [
             {
@@ -856,7 +856,7 @@ const products = [
         category: "מסכי מידע",
         title: "מודול VideoWall ללא מסגרת 55\"",
         price: 11000,
-        image: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
         description: "פאנל בודד להרכבת קירות וידאו מפלצתיים במבואה הראשית. השוליים הדקיקים שלו (0.88מ״מ) מאפשרים חיבור הדוק ללא הפרעות ויזואליות בין הפאנלים.",
         specs: [
             {
@@ -902,7 +902,7 @@ const products = [
         category: "מסכי מידע",
         title: "InfoDisplay Pro קופה/קמפוס 86\"",
         price: 12500,
-        image: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=800&auto=format&fit=crop",
         description: "הענק המשרמן, המאגד את מיטב התכונות בלוח ענק של 86 אינץ'. מיועד לאזורי קבלה של הנהלות מחוז ועיריות.",
         specs: [
             {
@@ -948,7 +948,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "שולחן כוחות פיזיקלי מתקדם לשני תלמידים",
         price: 4500,
-        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop",
         description: "ציוד חובה קלאסי להמחשת וקטורים והרכבת כוחות בפיזיקה מכנית. מבנה פליז ואלומיניום כבד ליציבות מעולה בזמן ניסויים.",
         specs: [
             {
@@ -994,7 +994,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "שולחן כימיה עמיד לחומצות (עמדת מורה)",
         price: 8900,
-        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop",
         description: "עמדת המורה המרכזית בחדר הכימיה. משטח עבודה כהה ועמיד במיוחד נגד כתמים ושיתוך מחומצות מרוכזות. בטיחות קודמת לכל.",
         specs: [
             {
@@ -1040,7 +1040,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "שולחן מעבדת כימיה (עמדת תלמיד זוגית)",
         price: 3200,
-        image: "https://images.unsplash.com/photo-1518152006812-edab29b069ac?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=800&auto=format&fit=crop",
         description: "עמדת עבודה לזוג תלמידים. מתוכננת לשהות של שיעור כפול (90 דק'), עם הכנה למוטות תמיכה ותפסנים למבחנות וכלים.",
         specs: [
             {
@@ -1086,7 +1086,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "מנדף כימי שולחני נייד (Fume Hood)",
         price: 6600,
-        image: "https://images.unsplash.com/photo-1574689049596-1e68f85f4c6b?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop",
         description: "מנדף עצמאי השומר באדיקות על בטיחות נשימה בעת ערבוב חומרים נדיפים. קל יחסית וניתן להזזה בניהול אב הבית מכיתה לכיתה.",
         specs: [
             {
@@ -1132,7 +1132,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "עגלת מעבדה ביולוגיה רב-שימושית",
         price: 2400,
-        image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop",
         description: "עגלת אל-חלד קלאסית בבתי חולים ובמעבדות ברמה התיכונית. מאפשרת העברת סטים של מיקרוסקופים או נוזלים בצורה בטוחה בין מסדרונות.",
         specs: [
             {
@@ -1178,7 +1178,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "שולחן אופטיקה עם מסילת לייזר ויצירה",
         price: 5200,
-        image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=800&auto=format&fit=crop",
         description: "מערכת ציוד הכרחית לחקר גלים, שבירת אור, ועדשות. המסילה מקובעת כך שהלייזר יישאר יציב גם בעת כיוונון מראות ועדשות מרכזיות.",
         specs: [
             {
@@ -1224,7 +1224,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "מערכת הדגמה קינמטית על שולחן אוויר",
         price: 9800,
-        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop",
         description: "המחשה מהפנטת לתנועה ללא חיכוך, התנגשויות אלסטיות, ושימור תנע. מנוע האוויר השקט דוחס שכבת אוויר אחידה מתחת לדיסקיות.",
         specs: [
             {
@@ -1270,7 +1270,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "סטריאו-מיקרוסקופ דיגיטלי FHD",
         price: 3800,
-        image: "https://images.unsplash.com/photo-1530973428-5bf2dbbec622?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop",
         description: "קפיצת מדרגה בלימודי הביולוגיה. במקום שתלמידים יציצו אחד-אחד, המיקרוסקופ משדר את הדגימה אל מסך המגע הכיתתי או טאבלטים מקומיים.",
         specs: [
             {
@@ -1316,7 +1316,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "שולחן מעבדה הנדסי ארגונומי (חשמלי)",
         price: 4300,
-        image: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=800&auto=format&fit=crop",
         description: "מיועד במיוחד לעבודות הדורשות ריכוז מוטורי כגון הלחמת מעגלים בפיזיקה שימושית או מודל עיצוב מוצר. גובהו מתכוונן כדי לאפשר עמידה וישיבה.",
         specs: [
             {
@@ -1362,7 +1362,7 @@ const products = [
         category: "מעבדות מדעים",
         title: "ארון בטיחותי לאחסון כימיקלים",
         price: 7400,
-        image: "https://images.unsplash.com/photo-1574689211272-bc15e2193eec?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop",
         description: "חיוני לאחסון חומרים דליקים וריאגנטים מסוכנים. קירות פלדה כפולים לאחסנה מווסתת למקרי תקריות אש או נזילות סמויות במעבדה.",
         specs: [
             {
@@ -1408,7 +1408,7 @@ const products = [
         category: "ציוד קצה",
         title: "עמדת מחשב מתקדמת לצוות מנהלה",
         price: 3400,
-        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop",
         description: "מחשב Mini-PC משולב עם מסך 24 אינץ' שמבטיח עבודה חלקה במסמכים כבדים ובמערכות פדגוגיות. אפס כבלים מפוזרים ולוק הייטקיסטי.",
         specs: [
             {
@@ -1454,7 +1454,7 @@ const products = [
         category: "ציוד קצה",
         title: "עמדת כתיבה למורה (Podium)",
         price: 4100,
-        image: "https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
         description: "דוכן מרצה חכם המרכז בתוכו את כל שליטת הכיתה. ללא צורך בהפניית גב לכיתה תוך שמירה על קשר עין עם התלמידים למניעת הפרעות.",
         specs: [
             {
@@ -1500,7 +1500,7 @@ const products = [
         category: "ציוד קצה",
         title: "תצוגת מורה מתקדמת 27\" 4K",
         price: 2100,
-        image: "https://images.unsplash.com/photo-1586282391129-76a6df230234?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop",
         description: "למורות ולרכזים הדורשים סביבת עבודה נרחבת לבניית מערכי שיעור, גיליונות נתונים ובדיקת מבחנים מרושתים בלי להעמיס על העיניים.",
         specs: [
             {
@@ -1546,7 +1546,7 @@ const products = [
         category: "ציוד קצה",
         title: "מחשב All-in-One 24\"",
         price: 3600,
-        image: "https://images.unsplash.com/photo-1610443422678-bdcf179e8369?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
         description: "מערכת מושלמת למזכירויות ועמדות מידע בספריות. ללא מארז נפרד - גם המחשב תפור מאחורי המסך, חוסך מקום, שקט ובטוח מתקלות משיכת חוטים.",
         specs: [
             {
@@ -1592,7 +1592,7 @@ const products = [
         category: "ציוד קצה",
         title: "מחשב מגע למנהלים AIO 27\"",
         price: 5200,
-        image: "https://images.unsplash.com/photo-1544455850-fa06b62ee188?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop",
         description: "סביבת פרימיום נציגה שמשנה לחלוטין את עיצוב חדר המנהל. משמשת לפגישות מצומצמות ולהצגת נתונים בדרך אלגנטית ומגע אינטואיטיבי אנושי.",
         specs: [
             {
@@ -1638,7 +1638,7 @@ const products = [
         category: "ציוד קצה",
         title: "עגלת טעינה ניידת ל-36 טאבלטים/מחשבים",
         price: 4900,
-        image: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
         description: "מתחם נייד ונעול השולח מכשורי 1:1 נטענים לכל כיתה. מספק מעגל טעינה חכם המונע נפילות מתח כשיש שלושים מכשירים מחוברים לשקע רגיל.",
         specs: [
             {
@@ -1684,7 +1684,7 @@ const products = [
         category: "ציוד קצה",
         title: "זרוע ארגונומית כפולה לשני מסכים",
         price: 850,
-        image: "https://images.unsplash.com/photo-1593640495253-23196b27a87f?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop",
         description: "לניהול שורת נתונים בשקיפות, הזרוע ממקמת שני צגים בצורה צפה. מרחב שולחן מרווח ובריאות הצוואר תודות לכיוון נטול המאמץ (בוכנת גז).",
         specs: [
             {
@@ -1730,7 +1730,7 @@ const products = [
         category: "ציוד קצה",
         title: "עמדת מעגן Docking Station כפולה",
         price: 750,
-        image: "https://images.unsplash.com/photo-1585229230578-8ba94dcf2b9a?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
         description: "לצוותים המתניידים עם לפטופ. קליק אחד של כבל USB-C פשוט, והלפטופ נטען, ומתחבר מיד לשני מסכים, רשת חוטית, והתקני פלייבק וקול בחדר המורים.",
         specs: [
             {
@@ -1776,7 +1776,7 @@ const products = [
         category: "ציוד קצה",
         title: "רמקולי עוצמה אקוסטיים לכיתה",
         price: 1100,
-        image: "https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop",
         description: "ערכת הגברה קיר מינימליסטית עם בלוטות'. עוקפת בקלות את הרעש החיצוני ומשליכה צליל חד לאחרון התלמידים בכיתה בשיעורי האזנה לשפות ומוזיקה.",
         specs: [
             {
@@ -1822,7 +1822,7 @@ const products = [
         category: "ציוד קצה",
         title: "מצלמת עקיבה בהוראה היברידית",
         price: 3500,
-        image: "https://images.unsplash.com/photo-1510515152599-2a74c7283626?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
         description: "מצלמה חכמה שנעה באופן אוטומטי בעקבות המרצה בכלל המרחב. תלמידים מרחוק מקבלים שיעור טלוויזיוני מושקע במקום מסך מצלמת רשת קפוא ומשעמם.",
         specs: [
             {
@@ -1868,7 +1868,7 @@ const products = [
         category: "תוכנה",
         title: "תוכנת ניהול ועריכה EduEdit",
         price: 450,
-        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
         description: "הפתרון המוכח לניהול ולעריכת תכנים במוסדות חינוך ובמגמות יצירתיות. הרישוי מתאים להתקנה הפצה מוסדית ונועד לתמוך במאות עמדות מחשבים עם מינימום עומס על ה-IT.",
         specs: [
             {
@@ -1914,7 +1914,7 @@ const products = [
         category: "תוכנה",
         title: "מערכת CMS לניהול מסכי מידע בראיית קמפוס",
         price: 1200,
-        image: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
         description: "מערכת שליטה עילאית (Content Management System) המאפשרת למזכירות ולרכבת התיכון לשלוח הודעות מתפרצות ומערכות שעות לכל תצוגת הקמפוס מיידית בגרירה פשוטה (Drag & Drop).",
         specs: [
             {
@@ -1960,7 +1960,7 @@ const products = [
         category: "תוכנה",
         title: "EduEdit Pro (רישוי שכבתי ל-100 משתמשים)",
         price: 38000,
-        image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
         description: "גרסת הפרו למגלי וידאו ועיצוב. מונעת מכוח AI המייעל רינדור טקסט ומודלים, בחבילה המיועדת להקצות הרשאות לשכבה מלאה (עד 100 לייסנסים גלובלים).",
         specs: [
             {
@@ -2006,7 +2006,7 @@ const products = [
         category: "תוכנה",
         title: "מערכת השתלטות וניהול כיתה ClassControl",
         price: 850,
-        image: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
         description: "העיניים והידיים של המורה. התוכנה מאפשרת לחסום גלישה חופשית, לנעול מסכי תלמידים להקשבה מרוכזת, ולשדר את מסך המורה או תלמיד נבחר לכולם.",
         specs: [
             {
@@ -2052,7 +2052,7 @@ const products = [
         category: "תוכנה",
         title: "סימולציית מעבדה וירטואלית (ChemBio VR)",
         price: 1550,
-        image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
         description: "תחליף בטוח וזול לניסויים מסוכנים. התוכנה מספקת פיזיקה כימית אמיתית לחומרים בווירטואליה, ומאפשרת ביצוע תגובות מורכבות ללא צורך באוורור ומיגון קורוזיבי.",
         specs: [
             {
@@ -2098,7 +2098,7 @@ const products = [
         category: "תוכנה",
         title: "מערכת בניית מערכת שעות חכמה TimeSync",
         price: 2200,
-        image: "https://images.unsplash.com/photo-1507925922849-c1e08929d27f?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
         description: "הקץ לשיבוצים ידניים מסורבלים ולחפיפות הרסניות. אלגוריתם שמתעדף תנאי העסקה, אולמות מצומצמים ומגבלות מורים עד לייצור מערכת מושלמת (ללא התנגשויות).",
         specs: [
             {
@@ -2144,7 +2144,7 @@ const products = [
         category: "תוכנה",
         title: "רישוי קמפוס כולל - NextClass Suite",
         price: 12500,
-        image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
         description: "The Ultimate Bundle. רישוי קמפוסי גלובלי המכסה את כלל האפליקציות של NextClass ללא צורך בספירת ראשונים. גישה חופשית לעדכונים אבטחה וכלי ניהול פלייטים.",
         specs: [
             {
@@ -2190,7 +2190,7 @@ const products = [
         category: "תוכנה",
         title: "מודול ניהול ספריה ואיתור פריטים",
         price: 1100,
-        image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
         description: "הספריה עוברת דיגיטציה. מערכת אינוונטר מבוססת ברקוד או RFID שמסייעת לספרנית לאתר ספרים אבודים ולהזכיר לתלמידים דרך הנייד על תאריכי החזרה.",
         specs: [
             {
@@ -2236,7 +2236,7 @@ const products = [
         category: "תוכנה",
         title: "מערכת מעקב פניות וציוד מחשוב (IT Helpdesk)",
         price: 2900,
-        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
         description: "כלי העבודה החשוב ביותר לצוות ה-IT הבית-ספרי ולרכז התקשוב. מערכת טיקטים שבה מורים פותחים תקלה ויודעים במדויק מתי היא תיפתר, תוך תעדוף משברים בכיתה על פני בעיות פקידותיות.",
         specs: [
             {
@@ -2282,7 +2282,7 @@ const products = [
         category: "תוכנה",
         title: "רישוי תוכנת שרטוט הנדסי 3D לתלמידים (EduCAD)",
         price: 3300,
-        image: "https://images.unsplash.com/photo-1544377193-33dce4d67d01?auto=format&fit=crop&q=80&w=1000",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
         description: "מנוע השרטוט שמכניס תלמידי תיכון לתעשיית האדריכלות ושחזור פני השטח. פלדלת אינטואיטיבית לבניית מודלים מוכרים, החל מסרטוט טכני יבש ועד להדפסת מודלים בתלת מימד למדפסות הקמפוס.",
         specs: [
             {

@@ -24,7 +24,7 @@
 
     /* iOS Glassmorphism Standard */
     .glass-light {
-        @apply bg-white/70 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0, 0, 0, 0.06)];
+        @apply bg-white/70 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_#00000010];
     }
 
     .glass-dark {
@@ -51,7 +51,7 @@
 
     /* Standardized Button Hierarchy */
     .btn-primary {
-        @apply bg-[#007AFF] text-white font-bold rounded-full px-8 py-4 text-lg shadow-[0_8px_16px_rgba(0, 122, 255, 0.2)] hover:shadow-[0_12px_24px_rgba(0, 122, 255, 0.4)] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
+        @apply bg-[#007AFF] text-white font-bold rounded-full px-8 py-4 text-lg shadow-[0_8px_16px_#007AFF33] hover:shadow-[0_12px_24px_#007AFF66] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
     }
 
     .btn-glass {

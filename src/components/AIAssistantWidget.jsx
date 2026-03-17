@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AIAssistantWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [isVisible, setIsVisible] = useState(false);
+
+    // Show only after scrolling past 80% of the hero viewport
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsVisible(window.scrollY > window.innerHeight * 0.8);
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const mockMessages = [
         {
@@ -14,17 +25,20 @@ const AIAssistantWidget = () => {
 
     return (
         <>
-            {/* Floating Action Button */}
+            {/* Floating Action Button — Hidden on hero, fades in on scroll */}
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="fixed bottom-24 right-6 z-50 w-14 h-14 bg-brand-blue text-white rounded-full shadow-lg flex items-center justify-center focus:outline-none"
+                className={`fixed bottom-24 right-6 z-[50] w-14 h-14 bg-[#007AFF] text-white rounded-full shadow-lg flex items-center justify-center focus:outline-none transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] ${isVisible
+                        ? 'opacity-100 translate-y-0'
+                        : 'opacity-0 translate-y-10 pointer-events-none'
+                    }`}
                 aria-label="פתח יועץ פדגוגי"
             >
                 {/* Pulse ring */}
-                {!isOpen && (
-                    <span className="absolute inset-0 rounded-full bg-brand-blue animate-ping opacity-30 pointer-events-none" />
+                {!isOpen && isVisible && (
+                    <span className="absolute inset-0 rounded-full bg-[#007AFF] animate-ping opacity-30 pointer-events-none" />
                 )}
 
                 {isOpen ? (
@@ -45,13 +59,13 @@ const AIAssistantWidget = () => {
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        className="fixed bottom-40 right-6 w-80 md:w-96 glass-light rounded-3xl overflow-hidden flex flex-col h-[500px] z-50"
+                        transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                        className="fixed bottom-40 right-6 w-80 md:w-96 bg-white/70 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] rounded-3xl overflow-hidden flex flex-col h-[500px] z-[50]"
                     >
                         {/* Header */}
-                        <div className="bg-brand-dark text-white p-4 font-bold text-lg flex justify-between items-center shrink-0">
+                        <div className="bg-[#1D1D1F] text-white p-4 font-bold text-lg flex justify-between items-center shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center">
                                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                                     </svg>
@@ -60,7 +74,7 @@ const AIAssistantWidget = () => {
                             </div>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                                className="p-1 hover:bg-white/10 active:scale-[0.9] rounded-lg transition-all"
                                 aria-label="סגור צ'אט"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -79,13 +93,12 @@ const AIAssistantWidget = () => {
                                     transition={{ delay: 0.3 }}
                                     className="flex gap-3 items-start"
                                 >
-                                    {/* AI Avatar */}
-                                    <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center shrink-0 mt-1">
+                                    <div className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center shrink-0 mt-1">
                                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                                         </svg>
                                     </div>
-                                    <div className="bg-white rounded-2xl rounded-tr-sm p-4 shadow-sm text-sm text-brand-dark leading-relaxed max-w-[85%]">
+                                    <div className="bg-white rounded-2xl rounded-tr-sm p-4 shadow-sm text-sm text-[#1D1D1F] leading-relaxed max-w-[85%]">
                                         {msg.text}
                                     </div>
                                 </motion.div>
@@ -99,11 +112,11 @@ const AIAssistantWidget = () => {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 placeholder="כתוב הודעה..."
-                                className="flex-1 rounded-full bg-gray-100 px-4 py-3 text-sm text-brand-dark outline-none focus:ring-2 focus:ring-brand-blue/30 transition-all placeholder:text-gray-400"
+                                className="flex-1 rounded-full bg-gray-100 px-4 py-3 text-sm text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all placeholder:text-gray-400"
                             />
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                className="w-10 h-10 bg-brand-blue text-white rounded-full flex items-center justify-center shrink-0 hover:bg-blue-600 transition-colors focus:outline-none"
+                                className="w-10 h-10 bg-[#007AFF] text-white rounded-full flex items-center justify-center shrink-0 hover:bg-blue-600 transition-colors focus:outline-none"
                                 aria-label="שלח הודעה"
                             >
                                 <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

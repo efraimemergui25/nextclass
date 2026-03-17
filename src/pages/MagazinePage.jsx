@@ -1,152 +1,200 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
 
-const articles = [
-    {
-        category: "פדגוגיה",
-        title: "5 שיטות הוראה שמשלבות טכנולוגיה בלי לאבד את המגע האנושי",
-        excerpt: "איך מורים מובילים בישראל משלבים מסכים חכמים ושיעורים פרונטליים לחוויית למידה עמוקה יותר.",
-        image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800",
-        date: "15 פברואר 2026"
-    },
-    {
-        category: "טכנולוגיה",
-        title: "מסכי MicroLED — האם זה הסטנדרט הבא לכיתות הלימוד?",
-        excerpt: "סקירה טכנולוגית מקיפה על טכנולוגיית MicroLED ולמה היא עשויה להחליף את ה-LCD בתוך 3 שנים.",
-        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=800",
-        date: "8 פברואר 2026"
-    },
-    {
-        category: "חדשנות",
-        title: "כשהמעבדה נפגשת עם העולם האמיתי: STEM בשדה",
-        excerpt: "פרויקט ייחודי של בתי ספר בנגב שמוציא את הלמידה מהכיתה ומשלב טכנולוגיה ניידת.",
-        image: "https://images.unsplash.com/photo-1567168544230-db2832c1d398?auto=format&fit=crop&q=80&w=800",
-        date: "1 פברואר 2026"
-    },
-    {
-        category: "שוק החינוך",
-        title: "תקציב טכנולוגיה 2026: מה משרד החינוך מתכנן ואיך להתכונן",
-        excerpt: "ניתוח מעמיק של הקצאות התקציב הצפויות וההזדמנויות לרכש מוסדי מתוכנן.",
-        image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800",
-        date: "25 ינואר 2026"
-    }
+// Verified Unsplash URLs only — zero hallucinated IDs
+const IMAGES = [
+    "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1200&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1200&auto=format&fit=crop",
 ];
 
-const ArticleCard = ({ article }) => (
-    <motion.article
-        whileHover={{ y: -6 }}
-        className="group cursor-pointer"
-    >
-        <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-gray-200 mb-5">
-            <img
-                src={article.image}
-                alt={article.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-        </div>
-        <span className="text-xs font-bold text-brand-blue tracking-[0.15em] uppercase">
-            {article.category}
-        </span>
-        <h3 className="text-xl md:text-2xl font-black text-brand-dark mt-2 mb-3 leading-tight tracking-tight group-hover:text-brand-blue transition-colors">
-            {article.title}
-        </h3>
-        <p className="text-gray-500 leading-relaxed mb-4 line-clamp-2">
-            {article.excerpt}
-        </p>
-        <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">{article.date}</span>
-            <span className="text-sm font-bold text-brand-blue group-hover:underline">
-                קרא עוד ←
-            </span>
-        </div>
-    </motion.article>
-);
+const articles = [
+    {
+        id: 1,
+        category: "חדשנות פדגוגית",
+        title: "איך מסכי מגע אינטראקטיביים משנים את פני הכיתה הישראלית",
+        excerpt: "מחקר חדש מראה כי שילוב מסכים אינטראקטיביים בכיתות הלימוד מעלה את המעורבות התלמידים ב-40% ואת שימור החומר הנלמד ב-25%. סקירה מעמיקה על המהפכה הדיגיטלית בחינוך.",
+        date: "28 פברואר 2026",
+        readTime: "6 דקות קריאה",
+        image: IMAGES[0],
+    },
+    {
+        id: 2,
+        category: "מעבדות מדעים",
+        title: "עיצוב מעבדת פיזיקה חכמה: מדריך מקיף למנהלי מוסדות",
+        excerpt: "כל מה שצריך לדעת על תכנון והקמת מעבדת פיזיקה מודרנית — משולחנות כוחות ועד מערכות איסוף נתונים דיגיטליות.",
+        date: "22 פברואר 2026",
+        readTime: "8 דקות קריאה",
+        image: IMAGES[1],
+    },
+    {
+        id: 3,
+        category: "טרנדים",
+        title: "5 טרנדים בטכנולוגיית חינוך שצריך לעקוב אחריהם ב-2026",
+        excerpt: "מבינה מלאכותית בניהול שיעורים ועד מציאות מורחבת במעבדות — הטרנדים שיעצבו את החינוך הישראלי השנה.",
+        date: "15 פברואר 2026",
+        readTime: "5 דקות קריאה",
+        image: IMAGES[2],
+    },
+    {
+        id: 4,
+        category: "מקרי בוחן",
+        title: "בית הספר שעבר לדיגיטלי: סיפור ההצלחה של תיכון אורט",
+        excerpt: "כיצד פריסה מוסדית של 45 מסכי מגע ומערכת EduEdit שינתה את חווית הלמידה וחסכה 30% מזמן ההכנה של המורים.",
+        date: "10 פברואר 2026",
+        readTime: "7 דקות קריאה",
+        image: IMAGES[3],
+    },
+    {
+        id: 5,
+        category: "תשתיות",
+        title: "מדריך רכש: איך בוחרים שילוט דיגיטלי לקמפוס אקדמי",
+        excerpt: "השוואה מעמיקה בין פתרונות שילוט דיגיטלי למוסדות חינוך — מבהירות המסך ועד עמידות בשמש ישראלית.",
+        date: "5 פברואר 2026",
+        readTime: "4 דקות קריאה",
+        image: IMAGES[0],
+    },
+    {
+        id: 6,
+        category: "חדשנות פדגוגית",
+        title: "תוכנת ניהול כיתה: השוואת EduEdit מול המתחרים",
+        excerpt: "סקירה מקצועית של פתרונות תוכנה לניהול ועריכת תכנים לימודיים עם דגש על התאמה למערכת החינוך הישראלית.",
+        date: "1 פברואר 2026",
+        readTime: "6 דקות קריאה",
+        image: IMAGES[1],
+    },
+];
 
 const MagazinePage = () => {
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
-
-    const featured = {
-        category: "בינה מלאכותית",
-        title: "כיתת העתיד: איך בינה מלאכותית משנה את תפקיד המורה?",
-        excerpt: "מנהלים ואנשי חינוך ברחבי ישראל מתחילים לאמץ כלי AI שמשנים את דרך ההוראה — מהכנת שיעורים ועד הערכה אישית לכל תלמיד. סקירה מקיפה.",
-        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1400",
-        date: "25 פברואר 2026"
-    };
+    const heroArticle = articles[0];
+    const gridArticles = articles.slice(1);
 
     return (
         <PageTransition>
-            <div className="min-h-screen bg-brand-light pt-32 pb-24 px-6 w-full">
-                <div className="max-w-[1400px] mx-auto">
+            <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 overflow-x-hidden">
+                <div className="max-w-7xl mx-auto">
 
                     {/* Page Header */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-16"
+                        transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                        className="text-center mb-16"
                     >
-                        <h1 className="text-5xl md:text-7xl font-black text-brand-dark tracking-tighter">
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-[#1D1D1F] tracking-tight leading-tight mb-4">
                             מגזין חדשנות
                         </h1>
-                        <p className="text-lg text-gray-500 font-light mt-3">
-                            תובנות, מגמות וכלים מעולם ה-EdTech הישראלי.
+                        <p className="text-lg md:text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                            תובנות, מדריכים ומקרי בוחן מעולם הטכנולוגיה החינוכית.
                         </p>
                     </motion.div>
 
-                    {/* Featured Article Hero */}
+                    {/* ═══════════ HERO ARTICLE — Full Width Featured ═══════════ */}
                     <motion.article
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="group cursor-pointer mb-20"
+                        transition={{ type: "spring", stiffness: 250, damping: 25, delay: 0.1 }}
+                        className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-2xl transition-all duration-500 items-center overflow-hidden group cursor-pointer"
                     >
-                        <div className="relative w-full aspect-[21/9] rounded-3xl overflow-hidden bg-gray-200 mb-6">
+                        {/* Hero Image */}
+                        <div className="overflow-hidden rounded-3xl">
                             <img
-                                src={featured.image}
-                                alt={featured.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                src={heroArticle.image}
+                                alt={heroArticle.title}
+                                className="w-full aspect-video lg:aspect-square object-cover rounded-3xl group-hover:scale-105 transition-transform duration-700 ease-out"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                                loading="lazy"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                            <div className="absolute bottom-0 right-0 p-8 md:p-12 max-w-3xl">
-                                <span className="text-xs font-bold text-blue-300 tracking-[0.15em] uppercase mb-2 block">
-                                    {featured.category}
-                                </span>
-                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight mb-3">
-                                    {featured.title}
-                                </h2>
-                                <p className="text-gray-300 text-base md:text-lg leading-relaxed hidden md:block">
-                                    {featured.excerpt}
-                                </p>
+                        </div>
+
+                        {/* Hero Content */}
+                        <div className="flex flex-col justify-center py-2 md:py-6">
+                            <span className="text-[#007AFF] text-xs font-bold uppercase tracking-widest mb-4 inline-block bg-blue-50 px-3 py-1 rounded-full self-start">
+                                {heroArticle.category}
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#1D1D1F] leading-tight tracking-tight mb-4 line-clamp-3">
+                                {heroArticle.title}
+                            </h2>
+                            <p className="text-gray-500 text-base md:text-lg leading-relaxed mb-8 line-clamp-4">
+                                {heroArticle.excerpt}
+                            </p>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 text-sm text-gray-400 font-medium">
+                                    <span>{heroArticle.date}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{heroArticle.readTime}</span>
+                                </div>
+                                <motion.div
+                                    whileHover={{ x: -4 }}
+                                    className="text-[#007AFF] font-bold text-sm flex items-center gap-1"
+                                >
+                                    קרא עוד
+                                    <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </motion.div>
                             </div>
                         </div>
                     </motion.article>
 
-                    {/* Article Grid */}
-                    <motion.div
-                        initial="hidden"
-                        whileInView="show"
-                        viewport={{ once: true }}
-                        variants={{
-                            hidden: { opacity: 0 },
-                            show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-                        }}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16"
-                    >
-                        {articles.map((article, idx) => (
-                            <motion.div
-                                key={idx}
-                                variants={{
-                                    hidden: { opacity: 0, y: 20 },
-                                    show: { opacity: 1, y: 0 }
-                                }}
+                    {/* ═══════════ ARTICLE GRID — Remaining Cards ═══════════ */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                        {gridArticles.map((article, index) => (
+                            <motion.article
+                                key={article.id}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: "-50px" }}
+                                transition={{ type: "spring", stiffness: 250, damping: 25, delay: index * 0.08 }}
+                                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 flex flex-col cursor-pointer group"
                             >
-                                <ArticleCard article={article} />
-                            </motion.div>
+                                {/* Card Image */}
+                                <div className="overflow-hidden">
+                                    <img
+                                        src={article.image}
+                                        alt={article.title}
+                                        className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                        loading="lazy"
+                                    />
+                                </div>
+
+                                {/* Card Content */}
+                                <div className="flex flex-col flex-grow p-6">
+                                    <span className="text-[#007AFF] text-xs font-bold uppercase tracking-widest mb-4 inline-block bg-blue-50 px-3 py-1 rounded-full self-start">
+                                        {article.category}
+                                    </span>
+                                    <h3 className="text-2xl font-black text-[#1D1D1F] leading-tight mb-3 line-clamp-2 tracking-tight">
+                                        {article.title}
+                                    </h3>
+                                    <p className="text-gray-500 leading-relaxed mb-6 line-clamp-3 text-sm">
+                                        {article.excerpt}
+                                    </p>
+
+                                    {/* Meta Footer */}
+                                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                                            <span>{article.date}</span>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span>{article.readTime}</span>
+                                        </div>
+                                        <motion.span
+                                            whileHover={{ x: -4 }}
+                                            className="text-[#007AFF] font-bold text-xs flex items-center gap-1"
+                                        >
+                                            קרא עוד
+                                            <svg className="w-3.5 h-3.5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                            </svg>
+                                        </motion.span>
+                                    </div>
+                                </div>
+                            </motion.article>
                         ))}
-                    </motion.div>
+                    </div>
 
                 </div>
             </div>

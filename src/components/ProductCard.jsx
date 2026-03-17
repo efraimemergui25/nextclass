@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
+
+// Premium Apple-style placeholder when image fails to load
+const ImageFallback = () => (
+    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-3">
+        <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">nextclass</span>
+    </div>
+);
 
 const ProductCard = ({ product }) => {
     const {
@@ -9,9 +19,10 @@ const ProductCard = ({ product }) => {
         category = "מסכים ואינטראקטיב",
         title = "NextBoard Pro 86\"",
         price = 14900,
-        image = "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=800"
+        image = ""
     } = product || {};
 
+    const [imgError, setImgError] = useState(false);
     const formattedPrice = `₪${price.toLocaleString()}`;
 
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
@@ -22,7 +33,7 @@ const ProductCard = ({ product }) => {
         if (selected) {
             removeFromCompare(id);
         } else {
-            addToCompare({ id, title, price: formattedPrice, imageUrl: image, category });
+            addToCompare({ id, title, price: formattedPrice, imageUrl: image, category, specs: product?.specs });
         }
     };
 
@@ -34,23 +45,31 @@ const ProductCard = ({ product }) => {
 
                 {/* Image Container — STRICT aspect-[4/3] & object-cover (Law of Common Region) */}
                 <div className="relative overflow-hidden rounded-t-3xl bg-[#F5F5F7]">
-                    <img
-                        src={image}
-                        alt={title}
-                        className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    />
+                    {imgError || !image ? (
+                        <div className="w-full aspect-[4/3]">
+                            <ImageFallback />
+                        </div>
+                    ) : (
+                        <img
+                            src={image}
+                            alt={title}
+                            className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                            onError={() => setImgError(true)}
+                            loading="lazy"
+                        />
+                    )}
                     {/* Subtle inner shadow for hardware depth */}
                     <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-t-3xl pointer-events-none" />
                 </div>
 
                 {/* Typography (RTL Aligned) */}
                 <div className="flex flex-col flex-grow text-right p-6 pt-5">
-                    <span className="text-xs font-bold text-[#007AFF] tracking-widest uppercase mb-2">
+                    <span className="text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">
                         {category}
                     </span>
 
                     {/* line-clamp-2 enforces consistent grid alignment (Law of Similarity) */}
-                    <h3 className="text-xl md:text-2xl font-extrabold text-[#1D1D1F] tracking-tight mb-3 leading-tight line-clamp-2">
+                    <h3 className="text-xl md:text-2xl font-black text-[#1D1D1F] tracking-tighter mb-3 leading-[1.1] line-clamp-2">
                         {title}
                     </h3>
 
@@ -64,9 +83,9 @@ const ProductCard = ({ product }) => {
                             {/* Compare Button — Glassmorphism Mini */}
                             <button
                                 onClick={handleCompareClick}
-                                className={`p-2.5 rounded-xl border backdrop-blur-md transition-all duration-300 flex items-center justify-center active:scale-[0.9] ${selected
+                                className={`p-2.5 rounded-full border backdrop-blur-md transition-all duration-300 flex items-center justify-center active:scale-[0.95] ${selected
                                     ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF] shadow-sm'
-                                    : 'bg-white/60 border-gray-200 text-gray-400 hover:border-[#007AFF] hover:text-[#007AFF]'
+                                    : 'bg-white/60 border-gray-200 text-gray-400 hover:bg-gray-100/50 hover:border-gray-300 hover:text-[#1D1D1F]'
                                     }`}
                                 aria-label={selected ? "נבחר להשוואה" : "השווה דגם"}
                                 title={selected ? "נבחר להשוואה" : "השווה דגם"}
@@ -77,7 +96,7 @@ const ProductCard = ({ product }) => {
                             </button>
                             {/* CTA Pill */}
                             <div
-                                className="bg-[#007AFF]/5 text-[#007AFF] font-bold px-5 py-2.5 rounded-xl hover:bg-[#007AFF] hover:text-white active:scale-[0.97] transition-all duration-300 inline-block text-center text-sm"
+                                className="bg-[#007AFF]/5 text-[#007AFF] font-bold tracking-wide px-5 py-2.5 rounded-full hover:bg-[#007AFF] hover:text-white active:scale-[0.97] transition-all duration-300 inline-block text-center text-sm"
                             >
                                 למפרט המלא
                             </div>

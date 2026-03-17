@@ -9,11 +9,11 @@ const MenuOverlay = ({ isOpen, onClose }) => {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
-            transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
         },
         exit: {
             opacity: 0,
-            transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] }
+            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
         }
     };
 
@@ -21,24 +21,29 @@ const MenuOverlay = ({ isOpen, onClose }) => {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
-            transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+            transition: { staggerChildren: 0.05, delayChildren: 0.15 }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
+        hidden: { opacity: 0, x: 30, scale: 0.95 },
         visible: {
             opacity: 1,
-            y: 0,
-            transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+            x: 0,
+            scale: 1,
+            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
         }
     };
 
-    // Only functional routes that exist in the app
+    // Routes mapped to ACTUAL existing routes in App.jsx
     const navItems = [
         { name: "קטלוג פתרונות", path: "/catalog" },
         { name: "השוואת דגמים", path: "/compare" },
-        { name: "עגלת רכש", path: "/checkout" },
+        { name: "מרכז הדרכות", path: "/vod" },
+        { name: "מגזין חדשנות", path: "/magazine" },
+        { name: "מרחבי חדשנות", path: "/innovation" },
+        { name: "הסיפור שלנו", path: "/story" },
+        { name: "צור קשר", path: "/contact" },
     ];
 
     return (
@@ -49,40 +54,39 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="fixed inset-0 z-[80] bg-white/75 backdrop-blur-3xl h-screen w-full overflow-hidden flex flex-col font-sans antialiased"
+                    className="fixed inset-0 z-[80] bg-white/80 backdrop-blur-[40px] h-screen w-full overflow-hidden flex flex-col"
                 >
-                    {/* Header */}
-                    <div className="absolute top-0 left-0 w-full px-6 md:px-12 py-6 flex justify-between items-center z-10">
-                        <Link to="/" onClick={onClose} className="flex items-center gap-2.5 group active:scale-[0.97] transition-transform">
-                            <svg className="w-8 h-8 shrink-0" viewBox="0 0 32 32" fill="none">
+                    {/* ─── Top Bar ─── */}
+                    <div className="w-full px-6 md:px-12 py-5 flex justify-between items-center shrink-0">
+                        <Link to="/" onClick={onClose} className="flex items-center gap-2.5 active:scale-[0.97] transition-transform">
+                            <svg className="w-7 h-7 shrink-0" viewBox="0 0 32 32" fill="none">
                                 <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
                                 <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
                             </svg>
-                            <div className="text-2xl tracking-tighter text-[#1D1D1F]">
-                                <span className="font-extrabold">next</span><span className="font-light text-[#007AFF]">class</span>
+                            <div className="text-xl tracking-tighter text-[#1D1D1F]">
+                                <span className="font-black">next</span><span className="font-light text-[#007AFF]">class</span>
                             </div>
                         </Link>
 
-                        {/* Close Button — Tactile Spring Feedback */}
                         <motion.button
                             onClick={onClose}
                             whileHover={{ rotate: 90, scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="text-gray-800 hover:text-[#1D1D1F] transition-colors focus:outline-none p-2 -m-2"
+                            whileTap={{ scale: 0.85 }}
+                            className="w-10 h-10 rounded-full bg-black/5 backdrop-blur-md flex items-center justify-center text-gray-500 hover:text-[#1D1D1F] hover:bg-black/10 transition-all duration-300"
                             aria-label="סגור תפריט"
                         >
-                            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </motion.button>
                     </div>
 
-                    {/* Navigation Links */}
+                    {/* ─── Navigation Links ─── */}
                     <motion.nav
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
-                        className="flex flex-col items-center justify-center h-full gap-6 md:gap-10 pt-20 pb-10 px-6"
+                        className="flex-1 flex flex-col items-start justify-center px-10 md:px-20 lg:px-32 gap-1"
                     >
                         {navItems.map((item, index) => {
                             const isActive = location.pathname === item.path;
@@ -90,35 +94,44 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                 <motion.div
                                     key={index}
                                     variants={itemVariants}
-                                    className="relative flex items-center justify-center"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.97 }}
+                                    className="w-full"
                                 >
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className={`text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight transition-all duration-300 ${isActive ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'
+                                        className={`block w-full py-3 md:py-4 text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight transition-all duration-300 active:scale-[0.98] ${isActive
+                                            ? 'text-[#007AFF]'
+                                            : 'text-[#1D1D1F] hover:text-[#007AFF] hover:-translate-x-3'
                                             }`}
                                     >
                                         {item.name}
                                     </Link>
+                                    {/* Subtle separator line */}
+                                    {index < navItems.length - 1 && (
+                                        <div className="h-px bg-black/5 w-full" />
+                                    )}
                                 </motion.div>
                             );
                         })}
-
-                        {/* CTA at bottom of menu */}
-                        <motion.div variants={itemVariants} className="mt-6">
-                            <Link to="/catalog" onClick={onClose}>
-                                <motion.div
-                                    whileHover={{ scale: 1.05, y: -2 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="bg-[#007AFF] text-white px-10 py-4 rounded-full font-bold text-xl shadow-[0_8px_16px_rgba(0,122,255,0.25)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.4)] transition-all duration-300"
-                                >
-                                    גלה את כל הפתרונות
-                                </motion.div>
-                            </Link>
-                        </motion.div>
                     </motion.nav>
+
+                    {/* ─── Bottom CTA Bar ─── */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                        className="w-full px-10 md:px-20 lg:px-32 pb-10 pt-4 shrink-0"
+                    >
+                        <Link to="/catalog" onClick={onClose} className="block">
+                            <motion.div
+                                whileHover={{ scale: 1.02, y: -2 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="w-full md:w-auto md:inline-flex backdrop-blur-xl bg-[#007AFF] text-white px-10 py-4 rounded-2xl font-bold text-base text-center shadow-[0_8px_24px_rgba(0,122,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,122,255,0.4)] transition-all duration-300"
+                            >
+                                גלה את כל הפתרונות
+                            </motion.div>
+                        </Link>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>

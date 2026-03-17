@@ -30,28 +30,28 @@ const HeroSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tighter drop-shadow-2xl leading-[1.1] mb-6">
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-2xl leading-[1.1] mb-6">
                         חדשנות חסרת פשרות.
                         <br />
                         <span className="text-white/90">מקצוענות בכל מרחב למידה.</span>
                     </h1>
 
-                    <p className="mt-6 text-lg md:text-xl text-gray-300 font-normal tracking-wide max-w-2xl mx-auto leading-relaxed">
+                    <p className="mt-6 text-lg md:text-xl text-gray-300 font-normal leading-relaxed max-w-2xl mx-auto">
                         הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                     </p>
 
-                    {/* Primary CTA — Routes to Catalog */}
+                    {/* CTA — True iOS Glassmorphism on dark cinematic background */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, duration: 0.6 }}
-                        className="mt-10 flex justify-center gap-4"
+                        className="mt-10 flex justify-center"
                     >
                         <motion.button
                             onClick={() => navigate('/catalog')}
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
-                            className="px-10 py-4 rounded-full bg-[#007AFF] text-white font-bold text-lg shadow-[0_8px_16px_rgba(0,122,255,0.3)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.5)] transition-all duration-300"
+                            className="backdrop-blur-xl bg-white/10 border border-white/20 text-white font-bold tracking-wide rounded-full px-10 py-4 text-lg hover:bg-white hover:text-black transition-all duration-500 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]"
                         >
                             לכל הפתרונות
                         </motion.button>
@@ -59,7 +59,7 @@ const HeroSection = () => {
                 </motion.div>
             </div>
 
-            {/* Scroll Down Indicator (Gestalt Continuity) */}
+            {/* Scroll Down Indicator */}
             <motion.div
                 className="absolute bottom-10 left-1/2 cursor-pointer text-white/70 hover:text-white active:scale-[0.97] transition-all duration-300"
                 style={{ translateX: "-50%" }}

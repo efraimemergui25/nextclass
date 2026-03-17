@@ -32,9 +32,9 @@ const Footer = () => {
                     <div className="flex flex-col">
                         <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">שירות ותמיכה</h4>
                         <nav className="flex flex-col space-y-3">
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מרכז עזרה</Link>
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">תקנון אחריות</Link>
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">צור קשר</Link>
+                            <Link to="/help" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מרכז עזרה</Link>
+                            <Link to="/help" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">תקנון אחריות</Link>
+                            <Link to="/contact" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">צור קשר</Link>
                         </nav>
                     </div>
 
@@ -54,8 +54,8 @@ const Footer = () => {
                 <div className="border-t border-gray-100 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
                     <div>© 2026 nextclass. כל הזכויות שמורות.</div>
                     <div className="mt-4 md:mt-0 flex gap-6">
-                        <Link to="/catalog" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">מדיניות פרטיות</Link>
-                        <Link to="/catalog" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">תנאי שימוש</Link>
+                        <Link to="/" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">מדיניות פרטיות</Link>
+                        <Link to="/" className="hover:text-[#007AFF] active:scale-[0.97] transition-all">תנאי שימוש</Link>
                     </div>
                 </div>
             </div>

@@ -20,6 +20,7 @@ import AIAssistantWidget from './components/AIAssistantWidget';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
 import CompareTray from './components/CompareTray';
 import { CompareProvider } from './context/CompareContext';
+import { CartProvider } from './context/CartContext';
 
 function AnimatedRoutes() {
     const location = useLocation();
@@ -47,20 +48,22 @@ function AnimatedRoutes() {
 
 function App() {
     return (
-        <CompareProvider>
-            <Router>
-                <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased bg-[#F5F5F7] selection:bg-blue-100 pt-[73px] overflow-x-hidden">
-                    <Header />
-                    <main className="flex-1 w-full flex flex-col relative z-0">
-                        <AnimatedRoutes />
-                    </main>
-                    <Footer />
-                    <AIAssistantWidget />
-                    <FloatingWhatsApp />
-                    <CompareTray />
-                </div>
-            </Router>
-        </CompareProvider>
+        <CartProvider>
+            <CompareProvider>
+                <Router>
+                    <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased bg-[#F5F5F7] selection:bg-blue-100 pt-[73px] overflow-x-hidden">
+                        <Header />
+                        <main className="flex-1 w-full flex flex-col relative z-0">
+                            <AnimatedRoutes />
+                        </main>
+                        <Footer />
+                        <AIAssistantWidget />
+                        <FloatingWhatsApp />
+                        <CompareTray />
+                    </div>
+                </Router>
+            </CompareProvider>
+        </CartProvider>
     );
 }
 
