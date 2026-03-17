@@ -117,10 +117,11 @@ const MenuOverlay = ({ isOpen, onClose }) => {
 
                     {/* ─── Bottom CTA Bar ─── */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ delay: 0.2, duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                        className="w-full px-10 md:px-20 lg:px-32 pb-10 pt-4 shrink-0"
+                        initial={{ opacity: 0, x: 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 100 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-y-0 left-0 w-full md:w-[500px] bg-white/50 backdrop-blur-3xl backdrop-saturate-[1.5] border-l border-white/50 z-[150] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] flex flex-col p-12 transition-apple-fluid"
                     >
                         <Link to="/catalog" onClick={onClose} className="block">
                             <motion.div

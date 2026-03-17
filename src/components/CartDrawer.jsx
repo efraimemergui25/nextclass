@@ -46,11 +46,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
                     {/* Drawer from LEFT */}
                     <motion.div
-                        initial="closed"
-                        animate="open"
-                        exit="closed"
-                        variants={drawerVariants}
-                        className="fixed inset-y-0 left-0 w-full md:w-[450px] glass-light shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[150] flex flex-col transition-apple-fluid"
+                        initial={{ x: "100%" }}
+                        animate={{ x: 0 }}
+                        exit={{ x: "100%" }}
+                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white/50 backdrop-blur-3xl backdrop-saturate-[1.5] border-l border-white/50 shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[150] flex flex-col transition-apple-fluid"
                     >
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex justify-between items-center">

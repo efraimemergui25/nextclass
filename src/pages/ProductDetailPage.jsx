@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
-import StickyProductBar from '../components/StickyProductBar';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import products from '../data/products';
@@ -11,26 +10,26 @@ import products from '../data/products';
 const SCROLLYTELLING_FEATURES = [
     {
         id: 1,
-        title: "רזולוציה עוצרת נשימה",
-        description: "חווית צפייה חדה כתער בכל תנאי תאורה. פאנל ה-OLED המתקדם שלנו מספק ניגודיות אינסופית וצבעים חיים שנאמנים למציאות.",
+        title: "חוויית 4K קולנועית בכל כיתה",
+        description: "פאנל ה-OLED החדשני מעניק חדות בלתי מתפשרת וצבעים מדויקים, כדי שכל פרט בשיעור ייראה חי, ברור ובולט גם באור יום מלא.",
         image: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1200&auto=format&fit=crop"
     },
     {
         id: 2,
-        title: "עיצוב תעשייתי עילית",
-        description: "שילוב מושלם של אלומיניום תעופתי וזכוכית קריסטלית. אלגנטיות שנכנסת לכל חלל למידה ומעניקה לו מראה מודרני ונקי.",
-        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200&auto=format&fit=crop"
-    },
-    {
-        id: 3,
-        title: "חיבוריות אלחוטית מושלמת",
-        description: "שתף תכנים בלחיצת כפתור מכל מכשיר (Apple, Windows, Android). מהירות ונוחות ללא פשרות עם שבב ה-W3 המובנה.",
+        title: "חיבור מיידי, ללא כבלים",
+        description: "שתף בקלות מהסמארטפון או הלפטופ ישירות למסך הגדול. טכנולוגיית ה-AirPlay וה-Miracast המובנית מאפשרת לך להתחיל ללמד בשניות.",
         image: "https://images.unsplash.com/photo-1551703599-6b3e8379aa8b?q=80&w=1200&auto=format&fit=crop"
     },
     {
+        id: 3,
+        title: "אינטראקציה חכמה ואינטואיטיבית",
+        description: "ניהול אפליקציות וכלי למידה בלחיצה אחת. ממשק ה-NextTouch מותאם אישית לצרכים שלך, ומאפשר זרימה חופשית של תוכן ותקשורת.",
+        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
         id: 4,
-        title: "ביצועים ללא פשרות",
-        description: "מעבד ה-M2 Pro מבטיח עבודה חלקה גם ביישומים הכבדים ביותר. כלי העבודה המושלם למורים ולתלמידים במאה ה-21.",
+        title: "עוצמה שדוחפת קדימה",
+        description: "עם מעבד ה-M2 Pro העוצמתי, הכל רץ מהר וחלק — מהפעלת סרטוני VR ועד עבודה על אפליקציות כבדות במקביל. ללא השהיות, ללא פשרות.",
         image: "https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?q=80&w=1200&auto=format&fit=crop"
     }
 ];
@@ -45,7 +44,6 @@ const ACCESSORIES = [
     { id: 'mount', title: 'מתקן תלייה מגנטי', price: 300 },
 ];
 
-// Premium Apple-style placeholder when image fails to load
 const ImageFallback = () => (
     <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-4 rounded-[2rem]">
         <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -60,32 +58,24 @@ const ProductDetailPage = () => {
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
     const { addToCart } = useCart();
     const [imgError, setImgError] = useState(false);
-
-    // Phase 1: B2C States
     const [activeColor, setActiveColor] = useState(COLORS[0]);
     const [selectedAccessories, setSelectedAccessories] = useState(new Set());
-
-    // Phase 3: Sticky Buy Bar State
     const [showStickyBar, setShowStickyBar] = useState(false);
 
-    // Scrollytelling Logic (Scroll Detection)
     const scrollytellingRef = useRef(null);
     const { scrollYProgress } = useScroll({
         target: scrollytellingRef,
         offset: ["start start", "end end"]
     });
 
-    // Transforms for sticky visuals
     const scale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
     const imageOpacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0.8, 1, 1, 0.8]);
 
-    // Global Scroll Detection for Sticky Buy Bar
     const { scrollY } = useScroll();
     useMotionValueEvent(scrollY, "change", (latest) => {
         setShowStickyBar(latest > 600);
     });
 
-    // Reset states when navigating
     useEffect(() => {
         setImgError(false);
         setActiveColor(COLORS[0]);
@@ -93,9 +83,7 @@ const ProductDetailPage = () => {
         window.scrollTo(0, 0);
     }, [id]);
 
-    const product = useMemo(() => {
-        return products.find(p => p.id === id) || products[0];
-    }, [id]);
+    const product = useMemo(() => products.find(p => p.id === id) || products[0], [id]);
 
     const totalPrice = useMemo(() => {
         let total = product.price;
@@ -131,25 +119,22 @@ const ProductDetailPage = () => {
 
     return (
         <PageTransition>
-            {/* Phase 3: Sticky Buy Bar (Apple Standard) */}
             <AnimatePresence>
                 {showStickyBar && (
                     <motion.div
                         initial={{ y: "-100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "-100%" }}
-                        className="fixed top-0 left-0 w-full z-[50] glass-light border-b border-gray-200/50 shadow-sm py-4 px-6 md:px-12 flex justify-between items-center transition-apple-fluid"
+                        className="fixed top-0 left-0 w-full z-[50] bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border-b border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] py-4 px-6 md:px-12 flex justify-between items-center transition-apple-fluid"
                     >
                         <div className="flex flex-col">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{product.category}</span>
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{product.category}</span>
                             <h2 className="text-sm md:text-base font-black text-[#1D1D1F] tracking-tighter truncate max-w-[150px] md:max-w-none">
                                 {product.title}
                             </h2>
                         </div>
                         <div className="flex items-center gap-6">
-                            <span className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter">
-                                {formattedPrice}
-                            </span>
+                            <span className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</span>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -165,7 +150,6 @@ const ProductDetailPage = () => {
 
             <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full overflow-x-hidden">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20">
-                    {/* Right Column: Visual (Sticky) */}
                     <div className="w-full relative lg:sticky lg:top-32 self-start transform-gpu">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -189,7 +173,6 @@ const ProductDetailPage = () => {
                         </AnimatePresence>
                     </div>
 
-                    {/* Left Column: Info */}
                     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col">
                         <div className="text-sm font-medium text-gray-400 mb-8 flex items-center gap-2">
                             <Link to="/" className="hover:text-[#007AFF] transition-apple-fluid">ראשי</Link>
@@ -203,7 +186,6 @@ const ProductDetailPage = () => {
                         <h1 className="text-hero mb-4">{product.title}</h1>
                         <div className="text-2xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter mb-12">{formattedPrice}</div>
 
-                        {/* Setup Selections */}
                         <section className="mb-12">
                             <h3 className="text-lg font-bold text-[#1D1D1F] mb-6">בחירת צבע</h3>
                             <div className="flex gap-4">
@@ -241,7 +223,6 @@ const ProductDetailPage = () => {
                             </div>
                         </section>
 
-                        {/* Actions */}
                         <div className="flex flex-col gap-4">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
@@ -263,18 +244,18 @@ const ProductDetailPage = () => {
                 </div>
 
                 {/* ──── Apple-Tier Scrollytelling Section ──── */}
-                <div ref={scrollytellingRef} className="relative min-h-[400vh] bg-white mt-40 rounded-[4rem] overflow-hidden shadow-[0_-20px_50px_rgba(0,0,0,0.02)]">
+                <div ref={scrollytellingRef} className="relative min-h-[150vh] bg-[#F5F5F7] mt-40 rounded-[4rem] overflow-hidden shadow-[0_-20px_50px_rgba(0,0,0,0.02)]">
                     <div className="max-w-7xl mx-auto h-full grid grid-cols-1 md:grid-cols-2">
 
                         {/* Narrative Text (Left Side / RTL Stack) */}
-                        <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-[60vh] pt-[40vh] pb-[40vh] px-8 md:px-12">
+                        <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-[50vh] pt-[30vh] pb-[30vh] px-12">
                             {SCROLLYTELLING_FEATURES.map((feature) => (
                                 <motion.div
                                     key={feature.id}
-                                    initial={{ opacity: 0, y: 70 }}
+                                    initial={{ opacity: 0, y: 50 }}
                                     whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ margin: "-20%", once: false }}
-                                    transition={{ duration: 0.9, ease: [0.32, 0.72, 0, 1] }}
+                                    viewport={{ margin: "-20%" }}
+                                    transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
                                     className="max-w-md w-full"
                                 >
                                     <h2 className="text-4xl md:text-6xl font-black text-[#1D1D1F] leading-tight mb-8 tracking-tighter">
@@ -288,14 +269,14 @@ const ProductDetailPage = () => {
                         </div>
 
                         {/* Sticky Visual (Right Side / RTL Focus) */}
-                        <div className="order-1 md:order-2 h-screen sticky top-0 flex items-center justify-center p-6 md:p-12 overflow-hidden">
+                        <div className="order-1 md:order-2 h-screen sticky top-24 flex items-center justify-center p-6 md:p-12 overflow-hidden">
                             <motion.div
                                 style={{ scale, opacity: imageOpacity }}
-                                className="relative w-full aspect-square md:aspect-[4/5] lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl transform-gpu will-change-transform bg-[#F5F5F7]"
+                                className="relative w-full aspect-square md:aspect-[4/5] lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl transform-gpu will-change-transform bg-white"
                             >
                                 <AnimatePresence mode="wait">
                                     <motion.img
-                                        key={Math.round(scrollYProgress.get() * 3)} // Trigger swap based on scroll proximity
+                                        key={Math.min(Math.floor(scrollYProgress.get() * SCROLLYTELLING_FEATURES.length), SCROLLYTELLING_FEATURES.length - 1)}
                                         src={SCROLLYTELLING_FEATURES[Math.min(Math.floor(scrollYProgress.get() * SCROLLYTELLING_FEATURES.length), SCROLLYTELLING_FEATURES.length - 1)].image}
                                         alt="Feature Focus"
                                         className="w-full h-full object-cover transition-apple-fluid"
@@ -311,7 +292,6 @@ const ProductDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Full Specs Section */}
                 {product.specs && product.specs.length > 0 && (
                     <div className="max-w-7xl mx-auto mt-32">
                         <h3 className="text-section mb-12 border-b border-gray-100 pb-4 inline-block">מפרט טכני מלא</h3>

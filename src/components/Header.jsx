@@ -60,7 +60,7 @@ const Header = () => {
                 }}
                 animate={hidden ? "hidden" : "visible"}
                 transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl glass-light rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
+                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
             >
                 {/* ═══════════ RIGHT ZONE (RTL Anchor) — Logo ═══════════ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 pointer-events-auto z-[120]">
@@ -111,10 +111,10 @@ const Header = () => {
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-80 glass-light rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col gap-1 z-[110] pointer-events-auto transform-gpu will-change-transform"
+                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-80 bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col gap-1 z-[110] pointer-events-auto transform-gpu will-change-transform"
                                 >
                                     {/* Triangle pointer */}
-                                    <div className="absolute -top-2 right-1/2 translate-x-1/2 w-4 h-4 glass-light border-t border-l border-white/40 rotate-45 pointer-events-none" />
+                                    <div className="absolute -top-2 right-1/2 translate-x-1/2 w-4 h-4 bg-white/40 backdrop-blur-3xl border-t border-l border-white/60 rotate-45 pointer-events-none" />
 
                                     {CATEGORIES.map((cat) => (
                                         <Link
@@ -193,7 +193,7 @@ const Header = () => {
                     {/* 2. iOS Back Button (Center of group) */}
                     <button
                         onClick={() => navigate(-1)}
-                        className="w-10 h-10 md:w-11 md:h-11 cursor-pointer rounded-full bg-white/40 hover:bg-gray-100/80 backdrop-blur-md border border-gray-200 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
+                        className="w-10 h-10 md:w-11 md:h-11 cursor-pointer rounded-full bg-white/50 hover:bg-white/80 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
                         aria-label="חזור אחורה"
                     >
                         <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#1D1D1F] pointer-events-none" />
