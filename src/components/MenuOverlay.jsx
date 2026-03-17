@@ -99,7 +99,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className={`block w-full py-3 md:py-4 text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight transition-all duration-300 active:scale-[0.98] transform-gpu ${isActive
+                                        className={`block w-full py-3 md:py-4 text-5xl md:text-7xl font-black tracking-tighter transition-all duration-300 active:scale-[0.98] transform-gpu ${isActive
                                             ? 'text-[#007AFF]'
                                             : 'text-[#1D1D1F] hover:text-[#007AFF] hover:-translate-x-3'
                                             }`}
@@ -127,7 +127,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                             <motion.div
                                 whileHover={{ scale: 1.02, y: -2 }}
                                 whileTap={{ scale: 0.97 }}
-                                className="w-full md:w-auto md:inline-flex backdrop-blur-xl bg-[#007AFF] text-white px-10 py-4 rounded-2xl font-bold text-base text-center shadow-[0_8px_24px_rgba(0,122,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,122,255,0.4)] transition-all duration-300"
+                                className="w-full md:w-auto md:inline-flex backdrop-blur-xl bg-[#007AFF] text-white px-10 py-4 rounded-2xl font-semibold tracking-wide text-base text-center shadow-[0_8px_24px_rgba(0,122,255,0.25)] hover:shadow-[0_12px_32px_rgba(0,122,255,0.4)] transition-all duration-300"
                             >
                                 גלה את כל הפתרונות
                             </motion.div>

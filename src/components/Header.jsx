@@ -78,7 +78,7 @@ const Header = () => {
                     {/* Link 1: Home */}
                     <Link
                         to="/"
-                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300"
+                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300"
                     >
                         דף הבית
                     </Link>
@@ -91,7 +91,7 @@ const Header = () => {
                     >
                         <Link
                             to="/catalog"
-                            className={`flex items-center gap-1.5 font-semibold transition-colors duration-300 ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'
+                            className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'
                                 }`}
                         >
                             המוצרים שלנו
@@ -120,7 +120,7 @@ const Header = () => {
                                         <Link
                                             key={cat.slug}
                                             to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
-                                            className="text-gray-500 font-medium text-sm py-2.5 px-3 rounded-xl hover:text-[#007AFF] hover:bg-[#007AFF]/5 hover:translate-x-[-8px] transition-all duration-300 pointer-events-auto"
+                                            className="text-[#86868B] font-medium text-base py-2.5 px-3 rounded-xl hover:text-[#1D1D1F] hover:bg-black/5 hover:translate-x-[-8px] transition-all duration-300 pointer-events-auto"
                                         >
                                             {cat.label}
                                         </Link>
@@ -146,23 +146,21 @@ const Header = () => {
                     {/* Link 3: Compare */}
                     <Link
                         to="/compare"
-                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
+                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
                     >
                         השוואת דגמים
                     </Link>
 
-                    {/* Link 4: About */}
                     <Link
                         to="/about"
-                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
+                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
                     >
                         הסיפור שלנו
                     </Link>
 
-                    {/* Link 5: Contact */}
                     <Link
                         to="/contact"
-                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
+                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
                     >
                         צור קשר
                     </Link>

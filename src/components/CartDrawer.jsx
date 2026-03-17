@@ -87,7 +87,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                         {/* Info */}
                                         <div className="flex flex-col flex-1 justify-between py-1">
                                             <div className="flex justify-between items-start gap-2">
-                                                <h3 className="font-bold text-[#1D1D1F] text-sm md:text-base leading-tight">
+                                                <h3 className="text-base font-bold text-[#1D1D1F] leading-tight line-clamp-2">
                                                     {item.title || item.name}
                                                 </h3>
                                                 <button
@@ -120,7 +120,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                         +
                                                     </motion.button>
                                                 </div>
-                                                <div className="font-black tracking-tighter text-[#1D1D1F] text-lg">{item.price}</div>
+                                                <div className="font-black tracking-tighter text-[#1D1D1F] text-xl">{item.price}</div>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -132,14 +132,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         <div className="p-6 border-t border-white/50 glass-light">
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-gray-500 font-medium tracking-wide">סה״כ ביניים</span>
-                                <span className="text-3xl font-black tracking-tighter text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
+                                <span className="text-2xl font-black tracking-tighter text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
                             </div>
 
                             <Link to="/checkout" onClick={onClose} className="w-full block">
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-bold tracking-wide text-xl hover:bg-blue-600 shadow-[0_8px_20px_rgba(0,122,255,0.2)] transition-all"
+                                    className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-semibold tracking-wide text-base hover:bg-blue-600 shadow-[0_8px_20px_rgba(0,122,255,0.2)] transition-all"
                                 >
                                     מעבר לתשלום מאובטח
                                 </motion.button>
