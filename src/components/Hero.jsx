@@ -10,13 +10,13 @@ const Hero = () => {
                 {/* Headline */}
                 <h1
                     id="hero-heading"
-                    className="text-4xl md:text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter mb-6 leading-[1.1]"
+                    className="text-hero mb-6"
                 >
                     Smarter IT Procurement <br className="hidden sm:block" /> for Institutions.
                 </h1>
 
                 {/* Sub-headline */}
-                <p className="text-lg md:text-xl font-normal text-gray-500 leading-relaxed max-w-2xl mb-12">
+                <p className="text-hero-sub mb-12">
                     Access contracts, bulk pricing, and enterprise-grade hardware.
                 </p>
 

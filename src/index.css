@@ -25,7 +25,7 @@
     h4,
     h5,
     h6 {
-        @apply tracking-tighter leading-[1.1] font-black text-[#1D1D1F];
+        @apply tracking-tighter leading-[1.05] font-black text-[#1D1D1F];
     }
 }
 
@@ -50,13 +50,17 @@
         @apply transition-all duration-400 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu will-change-transform;
     }
 
-    /* Typography Enforcement */
+    /* Typography Enforcement — Apple Scale */
     .text-hero {
-        @apply text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1] text-[#1D1D1F];
+        @apply text-5xl md:text-[5.5rem] font-black tracking-tighter leading-[1.05] text-[#1D1D1F];
+    }
+
+    .text-hero-sub {
+        @apply text-xl md:text-2xl font-normal leading-relaxed text-[#86868B] max-w-2xl;
     }
 
     .text-section {
-        @apply text-3xl md:text-4xl font-black tracking-tight leading-[1.1] text-[#1D1D1F];
+        @apply text-3xl md:text-4xl font-bold tracking-tight leading-tight text-[#1D1D1F];
     }
 
     .text-body {

@@ -30,13 +30,13 @@ const HeroSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-2xl leading-[1.1] mb-6">
+                    <h1 className="text-hero text-white mb-6 drop-shadow-2xl">
                         חדשנות חסרת פשרות.
                         <br />
-                        <span className="text-white/90">מקצוענות בכל מרחב למידה.</span>
+                        <span className="text-white/90 font-bold">מקצוענות בכל מרחב למידה.</span>
                     </h1>
 
-                    <p className="mt-6 text-lg md:text-xl text-gray-300 font-normal leading-relaxed max-w-2xl mx-auto">
+                    <p className="text-hero-sub text-gray-300 mx-auto">
                         הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                     </p>
 
