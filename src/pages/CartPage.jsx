@@ -25,7 +25,7 @@ export const MotionButton = ({
         <motion.button
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
             className={`${baseClasses} ${variants[variant]} ${className}`}
             onClick={onClick}
             {...props}
@@ -71,8 +71,8 @@ const CartPage = () => {
 
     const itemVariants = {
         hidden: { opacity: 0, x: -20 },
-        show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 400, damping: 25 } },
-        exit: { opacity: 0, x: 20, scale: 0.95, transition: { duration: 0.2 } }
+        show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } },
+        exit: { opacity: 0, x: 20, scale: 0.95, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } }
     };
 
     // Empty State Render
@@ -91,8 +91,8 @@ const CartPage = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                             </svg>
                         </div>
-                        <h2 className="text-4xl font-black text-[#1D1D1F] mb-6 tracking-tight">העגלה שלך ריקה</h2>
-                        <p className="text-gray-500 mb-12 text-xl font-light leading-relaxed">נראה שעוד לא בחרת ציוד לפרויקט הנוכחי. הקטלוג שלנו מחכה לך.</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#1D1D1F] mb-6 tracking-tighter">העגלה שלך ריקה</h2>
+                        <p className="text-gray-500 mb-12 text-xl font-normal leading-relaxed px-4">נראה שעוד לא בחרת ציוד לפרויקט הנוכחי. הקטלוג שלנו מחכה לך.</p>
                         <Link to="/catalog" className="inline-block">
                             <MotionButton variant="primary" className="px-12 py-5 text-xl font-black w-full sm:w-auto">
                                 חזרה לקטלוג
@@ -115,7 +115,7 @@ const CartPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-16"
                     >
-                        <h1 className="text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tight">עגלת הרכש שלך</h1>
+                        <h1 className="text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter">עגלת הרכש שלך</h1>
                     </motion.div>
 
                     <div className="flex flex-col xl:flex-row gap-16 xl:gap-24 items-start">
@@ -144,7 +144,7 @@ const CartPage = () => {
                                             {/* Item Details */}
                                             <div className="flex-1 w-full pl-0 md:pl-4 flex flex-col justify-center h-full pt-2">
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-2xl md:text-3xl font-extrabold text-[#1D1D1F] leading-tight">{item.name}</h3>
+                                                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.name}</h3>
                                                     <button
                                                         onClick={() => handleRemove(item.id)}
                                                         className="text-gray-400 hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"
@@ -155,14 +155,14 @@ const CartPage = () => {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8">מק"ט: {item.sku}</p>
+                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mb-8">מק"ט: {item.sku}</p>
 
                                                 <div className="flex items-center justify-between w-full mt-auto">
                                                     {/* Quantity Controls */}
                                                     <div className="flex items-center bg-[#F5F5F7] rounded-full p-1.5 shadow-sm">
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                                            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                                             onClick={() => handleQuantityChange(item.id, -1)}
                                                             className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
@@ -171,7 +171,7 @@ const CartPage = () => {
                                                         <span className="w-12 text-center font-black text-[#1D1D1F] text-lg">{item.quantity}</span>
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                                            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                                             onClick={() => handleQuantityChange(item.id, 1)}
                                                             className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
@@ -180,7 +180,7 @@ const CartPage = () => {
                                                     </div>
 
                                                     {/* Price */}
-                                                    <div className="text-left font-black text-3xl md:text-4xl tracking-tight text-[#1D1D1F]">
+                                                    <div className="text-left font-black text-3xl md:text-4xl tracking-tighter text-[#1D1D1F]">
                                                         ₪{(item.contractPrice * item.quantity).toLocaleString()}
                                                     </div>
                                                 </div>
@@ -199,25 +199,25 @@ const CartPage = () => {
                                 transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
                                 className="bg-[#F5F5F7] rounded-[3rem] p-12 shadow-[0_40px_80px_rgba(0,0,0,0.05)]"
                             >
-                                <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tight">סיכום הזמנה</h2>
+                                <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tighter">סיכום הזמנה</h2>
 
                                 <div className="space-y-6 mb-10">
                                     <div className="flex justify-between items-center text-gray-500 font-medium">
                                         <span className="text-lg">סיכום ביניים ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} פריטים)</span>
-                                        <span className="text-xl font-bold text-[#1D1D1F]">₪{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-gray-500 font-medium">
+                                    <div className="flex justify-between items-center text-gray-500 font-normal">
                                         <span className="text-lg">מע"מ (17%)</span>
-                                        <span className="text-xl font-bold text-[#1D1D1F]">₪{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
 
                                 <div className="border-t-0 pt-6 mb-12"> {/* Replaced border with whitespace via mb/pt */}
                                     <div className="flex justify-between items-end">
-                                        <span className="text-2xl font-black text-[#1D1D1F]">סה"כ לתשלום</span>
+                                        <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">סה"כ לתשלום</span>
                                         <div className="text-left">
                                             <span className="block text-5xl font-black text-[#1D1D1F] tracking-tighter">₪{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            <span className="text-sm font-medium text-gray-400 mt-2 block">כולל מיסים, לא כולל משלוח</span>
+                                            <span className="text-sm font-bold text-gray-400 mt-2 block tracking-wide">כולל מיסים, לא כולל משלוח</span>
                                         </div>
                                     </div>
                                 </div>

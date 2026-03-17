@@ -81,13 +81,13 @@ const MagazinePage = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ type: "spring", stiffness: 250, damping: 25 }}
-                        className="text-center mb-16"
+                        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                        className="text-center mb-16 transform-gpu will-change-transform"
                     >
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-[#1D1D1F] tracking-tight leading-tight mb-4">
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter leading-[1.1] mb-4">
                             מגזין חדשנות
                         </h1>
-                        <p className="text-lg md:text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-lg md:text-xl text-gray-500 font-normal max-w-2xl mx-auto leading-relaxed">
                             תובנות, מדריכים ומקרי בוחן מעולם הטכנולוגיה החינוכית.
                         </p>
                     </motion.div>
@@ -96,15 +96,15 @@ const MagazinePage = () => {
                     <motion.article
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ type: "spring", stiffness: 250, damping: 25, delay: 0.1 }}
-                        className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-2xl transition-all duration-500 items-center overflow-hidden group cursor-pointer"
+                        transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1], delay: 0.1 }}
+                        className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm hover:shadow-2xl transition-all duration-500 items-center overflow-hidden group cursor-pointer border border-gray-100/50 transform-gpu will-change-transform"
                     >
                         {/* Hero Image */}
-                        <div className="overflow-hidden rounded-3xl">
+                        <div className="overflow-hidden rounded-3xl transform-gpu">
                             <img
                                 src={heroArticle.image}
                                 alt={heroArticle.title}
-                                className="w-full aspect-video lg:aspect-square object-cover rounded-3xl group-hover:scale-105 transition-transform duration-700 ease-out"
+                                className="w-full aspect-video lg:aspect-square object-cover rounded-3xl group-hover:scale-105 transition-transform duration-700 ease-out will-change-transform"
                                 onError={(e) => { e.target.style.display = 'none'; }}
                                 loading="lazy"
                             />
@@ -115,10 +115,10 @@ const MagazinePage = () => {
                             <span className="text-[#007AFF] text-xs font-bold uppercase tracking-widest mb-4 inline-block bg-blue-50 px-3 py-1 rounded-full self-start">
                                 {heroArticle.category}
                             </span>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#1D1D1F] leading-tight tracking-tight mb-4 line-clamp-3">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#1D1D1F] leading-tight tracking-tighter mb-4 line-clamp-3">
                                 {heroArticle.title}
                             </h2>
-                            <p className="text-gray-500 text-base md:text-lg leading-relaxed mb-8 line-clamp-4">
+                            <p className="text-gray-500 text-base md:text-lg font-normal leading-relaxed mb-8 line-clamp-4">
                                 {heroArticle.excerpt}
                             </p>
                             <div className="flex items-center justify-between">
@@ -148,15 +148,15 @@ const MagazinePage = () => {
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: "-50px" }}
-                                transition={{ type: "spring", stiffness: 250, damping: 25, delay: index * 0.08 }}
-                                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 flex flex-col cursor-pointer group"
+                                transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1], delay: index * 0.08 }}
+                                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 flex flex-col cursor-pointer group border border-gray-100/50 transform-gpu will-change-transform"
                             >
                                 {/* Card Image */}
                                 <div className="overflow-hidden">
                                     <img
                                         src={article.image}
                                         alt={article.title}
-                                        className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                                        className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out will-change-transform"
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                         loading="lazy"
                                     />
@@ -167,10 +167,10 @@ const MagazinePage = () => {
                                     <span className="text-[#007AFF] text-xs font-bold uppercase tracking-widest mb-4 inline-block bg-blue-50 px-3 py-1 rounded-full self-start">
                                         {article.category}
                                     </span>
-                                    <h3 className="text-2xl font-black text-[#1D1D1F] leading-tight mb-3 line-clamp-2 tracking-tight">
+                                    <h3 className="text-2xl font-black text-[#1D1D1F] leading-tight mb-3 line-clamp-2 tracking-tighter">
                                         {article.title}
                                     </h3>
-                                    <p className="text-gray-500 leading-relaxed mb-6 line-clamp-3 text-sm">
+                                    <p className="text-gray-500 font-normal leading-relaxed mb-6 line-clamp-3 text-sm">
                                         {article.excerpt}
                                     </p>
 
@@ -198,7 +198,7 @@ const MagazinePage = () => {
 
                 </div>
             </div>
-        </PageTransition>
+        </PageTransition >
     );
 };
 

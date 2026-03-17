@@ -39,7 +39,7 @@ const ProductCard = ({ product }) => {
 
     return (
         <motion.div
-            className="relative group cursor-pointer bg-white rounded-3xl overflow-hidden hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500"
+            className="relative group cursor-pointer bg-white rounded-3xl overflow-hidden hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-apple-fluid"
         >
             <Link to={`/catalog/${id}`} className="flex flex-col h-full outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-3xl">
 
@@ -53,7 +53,7 @@ const ProductCard = ({ product }) => {
                         <img
                             src={image}
                             alt={title}
-                            className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                            className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-apple-fluid"
                             onError={() => setImgError(true)}
                             loading="lazy"
                         />
@@ -85,7 +85,7 @@ const ProductCard = ({ product }) => {
                                 onClick={handleCompareClick}
                                 className={`p-2.5 rounded-full border backdrop-blur-md transition-all duration-300 flex items-center justify-center active:scale-[0.95] ${selected
                                     ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF] shadow-sm'
-                                    : 'bg-white/60 border-gray-200 text-gray-400 hover:bg-gray-100/50 hover:border-gray-300 hover:text-[#1D1D1F]'
+                                    : 'glass-light border-gray-200 text-gray-400 hover:bg-gray-100/50 hover:border-gray-300 hover:text-[#1D1D1F]'
                                     }`}
                                 aria-label={selected ? "נבחר להשוואה" : "השווה דגם"}
                                 title={selected ? "נבחר להשוואה" : "השווה דגם"}
@@ -96,9 +96,9 @@ const ProductCard = ({ product }) => {
                             </button>
                             {/* CTA Pill */}
                             <div
-                                className="bg-[#007AFF]/5 text-[#007AFF] font-bold tracking-wide px-5 py-2.5 rounded-full hover:bg-[#007AFF] hover:text-white active:scale-[0.97] transition-all duration-300 inline-block text-center text-sm"
+                                className="bg-[#007AFF] text-white font-bold tracking-wide px-6 py-2.5 rounded-full hover:scale-[1.05] active:scale-[0.95] shadow-lg shadow-blue-500/20 transition-apple-fluid inline-block text-center text-sm min-h-[44px] flex items-center justify-center"
                             >
-                                למפרט המלא
+                                הוסף לעגלה
                             </div>
                         </div>
                     </div>

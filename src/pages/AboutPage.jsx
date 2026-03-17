@@ -60,7 +60,7 @@ const AboutPage = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="text-xl md:text-3xl text-gray-500 font-light mt-12 leading-relaxed max-w-4xl mx-auto"
+                        className="text-xl md:text-3xl text-gray-500 font-normal mt-12 leading-relaxed max-w-4xl mx-auto"
                     >
                         מתחילים מהבנת האתגר של המורה בכיתה, ובונים משם פתרון שלם — חומרה, תוכנה, הדרכה ותמיכה.
                     </motion.p>
@@ -98,13 +98,13 @@ const AboutPage = () => {
                                 <span className="text-brand-blue font-bold text-sm tracking-[0.2em] uppercase mb-4">
                                     החזון שלנו
                                 </span>
-                                <h3 className="text-3xl md:text-4xl font-black text-brand-dark mb-6 leading-tight tracking-tight">
+                                <h3 className="text-3xl md:text-4xl lg:text-5xl font-black text-brand-dark mb-6 leading-tight tracking-tighter">
                                     להביא את הסטנדרט של הייטק לתוך כיתות הלימוד.
                                 </h3>
-                                <p className="text-lg md:text-xl text-gray-600 leading-loose">
+                                <p className="text-lg md:text-xl text-gray-500 font-normal leading-loose">
                                     הקמנו את nextclass מתוך הבנה שהפער הטכנולוגי בחינוך הוא האתגר הגדול של דורנו. אנחנו כאן כדי לגשר עליו עם הכלים המתקדמים בעולם, בליווי צמוד ומקצועי שמתאים לשטח הישראלי.
                                 </p>
-                                <p className="text-lg md:text-xl text-gray-600 leading-loose mt-6">
+                                <p className="text-lg md:text-xl text-gray-500 font-normal leading-loose mt-6">
                                     הצוות שלנו מורכב ממהנדסים, פדגוגים ואנשי שטח שחיים ונושמים חינוך טכנולוגי. כל מוצר שאנו מציעים עבר בדיקות קפדניות ומותאם לסביבת הלמידה הישראלית.
                                 </p>
                             </motion.div>

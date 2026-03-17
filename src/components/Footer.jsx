@@ -20,17 +20,17 @@ const Footer = () => {
 
                     {/* RTL Column 2: Solutions — Route to catalog with category filter */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">פתרונות</h4>
+                        <h4 className="font-black text-[#1D1D1F] mb-6 text-lg tracking-tighter">פתרונות</h4>
                         <nav className="flex flex-col space-y-3">
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מסכי מגע</Link>
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מעבדות STEM</Link>
-                            <Link to="/catalog" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">שילוט דיגיטלי</Link>
+                            <Link to="/catalog?category=מסכים אינטראקטיביים והקרנה" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מסכים חכמים</Link>
+                            <Link to="/catalog?category=מחשוב לצוות ותלמידים" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מחשוב וטאבלטים</Link>
+                            <Link to="/catalog?category=מעבדות STEM ומרחבי חדשנות" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מעבדות STEM</Link>
                         </nav>
                     </div>
 
                     {/* RTL Column 3: Support */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">שירות ותמיכה</h4>
+                        <h4 className="font-black text-[#1D1D1F] mb-6 text-lg tracking-tighter">שירות ותמיכה</h4>
                         <nav className="flex flex-col space-y-3">
                             <Link to="/help" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">מרכז עזרה</Link>
                             <Link to="/help" className="text-gray-500 hover:text-[#007AFF] hover:translate-x-[-4px] active:scale-[0.97] transition-all w-fit">תקנון אחריות</Link>
@@ -40,7 +40,7 @@ const Footer = () => {
 
                     {/* RTL Column 4: Contact */}
                     <div className="flex flex-col">
-                        <h4 className="font-bold text-[#1D1D1F] mb-6 text-lg">דברו איתנו</h4>
+                        <h4 className="font-black text-[#1D1D1F] mb-6 text-lg tracking-tighter">דברו איתנו</h4>
                         <div className="flex flex-col space-y-3 text-gray-500">
                             <a href="mailto:hello@nextclass.co.il" className="hover:text-[#007AFF] active:scale-[0.97] transition-all w-fit">hello@nextclass.co.il</a>
                             <a href="tel:0546398257" className="hover:text-[#007AFF] active:scale-[0.97] transition-all w-fit" dir="ltr">054-6398257</a>

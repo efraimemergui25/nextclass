@@ -2,7 +2,7 @@ import React from 'react';
 
 const SkeletonCard = () => {
     return (
-        <div className="card-premium flex flex-col h-full animate-pulse transition-none hover:shadow-sm hover:scale-100 cursor-default">
+        <div className="card-premium flex flex-col h-full animate-pulse transition-none hover:shadow-sm hover:scale-100 cursor-default transform-gpu will-change-transform">
             {/* Image placeholder */}
             <div className="aspect-video w-full bg-gray-200 rounded-2xl mb-12" />
 

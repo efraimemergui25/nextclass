@@ -20,13 +20,13 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
     // Slide-in from LEFT Animation (RTL opposite side)
     const drawerVariants = {
-        closed: { x: "-100%", transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } },
-        open: { x: 0, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } }
+        closed: { x: "-100%", transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } },
+        open: { x: 0, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } }
     };
 
     const overlayVariants = {
-        closed: { opacity: 0, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } },
-        open: { opacity: 1, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } }
+        closed: { opacity: 0, transition: { duration: 0.3 } },
+        open: { opacity: 1, transition: { duration: 0.3 } }
     };
 
     return (
@@ -40,7 +40,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         exit="closed"
                         variants={overlayVariants}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70]"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[140]"
                         aria-hidden="true"
                     />
 
@@ -50,14 +50,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         animate="open"
                         exit="closed"
                         variants={drawerVariants}
-                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white/85 backdrop-blur-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[80] flex flex-col"
+                        className="fixed inset-y-0 left-0 w-full md:w-[450px] glass-light shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[150] flex flex-col transition-apple-fluid"
                     >
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex justify-between items-center">
-                            <h2 className="text-2xl font-black tracking-tighter text-[#1D1D1F]">סל הרכש שלך</h2>
+                            <h2 className="text-2xl font-black tracking-tighter text-[#1D1D1F]">סל הקניות שלך</h2>
                             <button
                                 onClick={onClose}
-                                className="p-2 -m-2 text-gray-400 hover:text-[#1D1D1F] hover:rotate-90 active:scale-[0.9] transition-all duration-300 focus:outline-none"
+                                className="p-3 -m-3 text-gray-400 hover:text-[#1D1D1F] hover:rotate-90 active:scale-[0.9] transition-apple-fluid focus:outline-none flex items-center justify-center shrink-0 min-w-[44px] min-h-[44px]"
                                 aria-label="סגור חלונית עגלה"
                             >
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -76,7 +76,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                                        transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                                         className="flex gap-4 bg-[#F5F5F7] rounded-2xl p-4 mb-4"
                                     >
                                         {/* Thumbnail */}
@@ -115,7 +115,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                     <motion.button
                                                         onClick={() => increaseQuantity(item.id)}
                                                         whileTap={{ scale: 0.8 }}
-                                                        className="p-1 hover:text-[#007AFF] cursor-pointer"
+                                                        className="p-3 hover:text-[#007AFF] cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                     >
                                                         +
                                                     </motion.button>
@@ -129,7 +129,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* Fixed Footer */}
-                        <div className="p-6 border-t border-white/50 bg-white/50 backdrop-blur-md">
+                        <div className="p-6 border-t border-white/50 glass-light">
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-gray-500 font-medium tracking-wide">סה״כ ביניים</span>
                                 <span className="text-3xl font-black tracking-tighter text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
@@ -141,9 +141,26 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                     whileTap={{ scale: 0.98 }}
                                     className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-bold tracking-wide text-xl hover:bg-blue-600 shadow-[0_8px_20px_rgba(0,122,255,0.2)] transition-all"
                                 >
-                                    מעבר לקופה מוסדית
+                                    מעבר לתשלום מאובטח
                                 </motion.button>
                             </Link>
+
+                            {/* B2C Trust Badges */}
+                            <div className="flex items-center justify-center gap-4 mt-6 opacity-30 grayscale">
+                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
+                                    <rect width="38" height="24" rx="4" fill="#1D1D1F" />
+                                    <path d="M14 12V10H16V12H14ZM18 12V10H20V12H18ZM14 16V14H20V16H14Z" fill="white" />
+                                </svg>
+                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
+                                    <rect width="38" height="24" rx="4" fill="#007AFF" />
+                                    <circle cx="14" cy="12" r="5" fill="white" fillOpacity="0.8" />
+                                    <circle cx="24" cy="12" r="5" fill="white" fillOpacity="0.8" />
+                                </svg>
+                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
+                                    <rect width="38" height="24" rx="4" fill="#1D1D1F" />
+                                    <text x="50%" y="65%" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">Pay</text>
+                                </svg>
+                            </div>
                         </div>
                     </motion.div>
                 </>

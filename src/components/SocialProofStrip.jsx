@@ -14,7 +14,7 @@ const SocialProofStrip = () => {
         <section className="w-full bg-brand-light py-10 border-b border-gray-200/50 overflow-hidden">
             <div className="max-w-[1400px] mx-auto text-center px-6 md:px-12 w-full">
 
-                <h3 className="text-center text-sm font-bold text-gray-400 tracking-widest uppercase mb-8">
+                <h3 className="text-center text-sm font-bold text-gray-400 tracking-[0.2em] uppercase mb-8">
                     נבחר על ידי מעל 500 מוסדות חינוך, עיריות ורשתות מובילות
                 </h3>
 
@@ -30,7 +30,7 @@ const SocialProofStrip = () => {
                             className={`${client.width} h-12 md:h-16 flex items-center justify-center filter grayscale transition-all duration-300 cursor-default shrink-0 snap-center`}
                         >
                             {/* Text acting as premium placeholder logo */}
-                            <div className="w-full flex justify-center text-brand-dark font-black text-xl md:text-2xl tracking-tighter opacity-80 mix-blend-multiply whitespace-nowrap">
+                            <div className="w-full flex justify-center text-[#1D1D1F] font-black text-xl md:text-2xl tracking-tighter opacity-80 mix-blend-multiply whitespace-nowrap">
                                 {client.name}
                             </div>
                         </motion.div>

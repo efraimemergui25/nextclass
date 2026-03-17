@@ -9,11 +9,11 @@ const MenuOverlay = ({ isOpen, onClose }) => {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
-            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
+            transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
         },
         exit: {
             opacity: 0,
-            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
+            transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
         }
     };
 
@@ -31,7 +31,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
             opacity: 1,
             x: 0,
             scale: 1,
-            transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 }
+            transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] }
         }
     };
 
@@ -54,10 +54,10 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="fixed inset-0 z-[80] bg-white/80 backdrop-blur-[40px] h-screen w-full overflow-hidden flex flex-col"
+                    className="fixed inset-0 z-[150] glass-light h-screen w-full overflow-hidden flex flex-col transition-apple-fluid"
                 >
                     {/* ─── Top Bar ─── */}
-                    <div className="w-full px-6 md:px-12 py-5 flex justify-between items-center shrink-0">
+                    <div className="w-full px-6 md:px-12 py-5 flex justify-between items-center shrink-0 border-b border-black/5">
                         <Link to="/" onClick={onClose} className="flex items-center gap-2.5 active:scale-[0.97] transition-transform">
                             <svg className="w-7 h-7 shrink-0" viewBox="0 0 32 32" fill="none">
                                 <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
@@ -72,7 +72,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                             onClick={onClose}
                             whileHover={{ rotate: 90, scale: 1.1 }}
                             whileTap={{ scale: 0.85 }}
-                            className="w-10 h-10 rounded-full bg-black/5 backdrop-blur-md flex items-center justify-center text-gray-500 hover:text-[#1D1D1F] hover:bg-black/10 transition-all duration-300"
+                            className="w-11 h-11 rounded-full bg-black/5 flex items-center justify-center text-gray-500 hover:text-[#1D1D1F] hover:bg-black/10 transition-apple-fluid"
                             aria-label="סגור תפריט"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -99,7 +99,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className={`block w-full py-3 md:py-4 text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight transition-all duration-300 active:scale-[0.98] ${isActive
+                                        className={`block w-full py-3 md:py-4 text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight transition-all duration-300 active:scale-[0.98] transform-gpu ${isActive
                                             ? 'text-[#007AFF]'
                                             : 'text-[#1D1D1F] hover:text-[#007AFF] hover:-translate-x-3'
                                             }`}
@@ -119,7 +119,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     <motion.div
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                        transition={{ delay: 0.2, duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                         className="w-full px-10 md:px-20 lg:px-32 pb-10 pt-4 shrink-0"
                     >
                         <Link to="/catalog" onClick={onClose} className="block">

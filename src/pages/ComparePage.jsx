@@ -42,13 +42,13 @@ const ComparePage = () => {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                 className="flex flex-col items-center justify-center text-center min-h-[50vh]"
                             >
                                 <svg className="w-24 h-24 text-gray-200 mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                 </svg>
-                                <h1 className="text-3xl md:text-4xl font-black text-[#1D1D1F] tracking-tight mb-4 leading-tight">
+                                <h1 className="text-3xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter mb-4 leading-tight">
                                     לא נבחרו מוצרים להשוואה
                                 </h1>
                                 <Link to="/catalog" className="text-[#007AFF] text-lg font-medium hover:text-blue-600 active:scale-[0.97] transition-all border-b-2 border-transparent hover:border-blue-600 pb-1">
@@ -62,12 +62,12 @@ const ComparePage = () => {
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 30 }}
-                                transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                 className="flex flex-col w-full"
                             >
                                 {/* Header */}
                                 <div className="text-center mb-16 relative">
-                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1D1D1F] tracking-tight mb-4 leading-tight">
+                                    <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter mb-4 leading-[1.1]">
                                         השוואת דגמים
                                     </h1>
                                     <p className="text-base md:text-lg text-gray-500 font-normal leading-relaxed">
@@ -107,10 +107,10 @@ const ComparePage = () => {
                                                             className="max-h-full max-w-full object-contain"
                                                         />
                                                     </div>
-                                                    <h3 className="font-extrabold text-[#1D1D1F] text-base md:text-lg leading-tight mb-1 line-clamp-2">
+                                                    <h3 className="font-black text-[#1D1D1F] text-base md:text-lg lg:text-xl leading-tight mb-1 line-clamp-2 tracking-tighter">
                                                         {product.title}
                                                     </h3>
-                                                    <div className="text-[#007AFF] font-black text-xl mb-4">
+                                                    <div className="text-[#007AFF] font-black text-xl lg:text-2xl tracking-tighter mb-4">
                                                         {product.price}
                                                     </div>
 
@@ -118,7 +118,8 @@ const ComparePage = () => {
                                                         <motion.div
                                                             whileHover={{ scale: 1.02, y: -1 }}
                                                             whileTap={{ scale: 0.97 }}
-                                                            className="w-full bg-[#1D1D1F] text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition-colors text-center"
+                                                            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                                                            className="w-full bg-[#1D1D1F] text-white py-3 rounded-xl font-bold tracking-wide text-sm hover:bg-black transition-all text-center"
                                                         >
                                                             למפרט המלא
                                                         </motion.div>

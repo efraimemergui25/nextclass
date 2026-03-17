@@ -56,7 +56,7 @@ const QuoteWizard = () => {
 
                 {/* Section Title */}
                 <div className="text-center mb-12">
-                    <h2 className="text-section mb-4">
+                    <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-4 tracking-tighter leading-[1.1]">
                         בונים לכם הצעת מחיר בדקה
                     </h2>
                     <p className="text-body font-normal">
@@ -69,7 +69,7 @@ const QuoteWizard = () => {
                     <motion.div
                         className="h-full bg-brand-blue rounded-full"
                         animate={{ width: `${(step / totalSteps) * 100}%` }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                     />
                 </div>
 
@@ -88,7 +88,7 @@ const QuoteWizard = () => {
                                 transition={{ duration: 0.3 }}
                                 className="w-full"
                             >
-                                <h3 className="text-2xl font-bold text-brand-dark text-center mb-8">
+                                <h3 className="text-2xl md:text-3xl font-black text-brand-dark text-center mb-8 tracking-tighter">
                                     איזה מוסד אתם מייצגים?
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -125,7 +125,7 @@ const QuoteWizard = () => {
                                 transition={{ duration: 0.3 }}
                                 className="w-full"
                             >
-                                <h3 className="text-2xl font-bold text-brand-dark text-center mb-8">
+                                <h3 className="text-2xl md:text-3xl font-black text-brand-dark text-center mb-8 tracking-tighter">
                                     מה הצורך המרכזי?
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">

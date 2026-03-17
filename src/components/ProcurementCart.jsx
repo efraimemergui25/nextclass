@@ -25,7 +25,7 @@ const ProcurementCart = () => {
 
                 {/* 1. Cart Table (Main Area) */}
                 <div className="flex-1 w-full">
-                    <h1 className="text-3xl font-bold tracking-tight mb-8">Procurement Cart</h1>
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-8 text-[#1D1D1F]">Procurement Cart</h1>
 
                     <div className="flex flex-col">
                         {/* Table Header */}
@@ -47,8 +47,8 @@ const ProcurementCart = () => {
                                         </svg>
                                     </div>
                                     <div className="flex flex-col">
-                                        <h3 className="text-lg font-semibold text-[#1D1D1F] tracking-tight leading-snug mb-1">{item.name}</h3>
-                                        <p className="text-sm font-bold text-gray-500">SKU: {item.sku}</p>
+                                        <h3 className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter leading-snug mb-1">{item.name}</h3>
+                                        <p className="text-sm font-bold text-gray-400 tracking-tight">SKU: {item.sku}</p>
                                     </div>
                                 </div>
 
@@ -102,8 +102,8 @@ const ProcurementCart = () => {
                         </div>
                         <div className="w-full border-t border-gray-200 my-4"></div>
                         <div className="flex justify-between items-center">
-                            <span className="text-lg font-bold">Grand Total</span>
-                            <span className="text-xl font-bold tracking-tight">${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            <span className="text-lg font-bold text-gray-500">Grand Total</span>
+                            <span className="text-3xl font-black tracking-tighter text-[#1D1D1F]">${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         </div>
                     </div>
 

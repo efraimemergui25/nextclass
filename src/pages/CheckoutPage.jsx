@@ -9,7 +9,7 @@ const FloatingInput = ({ label, type = "text", id }) => (
             type={type}
             id={id}
             placeholder=" "
-            className="peer w-full bg-white border-2 border-transparent focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 rounded-xl px-5 py-4 text-[#1D1D1F] font-bold text-lg transition-all shadow-sm outline-none placeholder-transparent"
+            className="peer w-full bg-white border-2 border-transparent focus:border-[#007AFF] focus:ring-4 focus:ring-[#007AFF]/10 rounded-xl px-5 py-4 text-[#1D1D1F] font-bold text-lg transition-apple-fluid shadow-sm outline-none placeholder-transparent"
         />
         <label
             htmlFor={id}
@@ -25,7 +25,7 @@ const SelectableCard = ({ title, subtitle, isSelected, onClick, icon }) => (
         onClick={onClick}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.98 }}
-        className={`w-full text-right p-6 rounded-2xl border-2 transition-all duration-300 flex items-center gap-5 ${isSelected
+        className={`w-full text-right p-6 rounded-3xl border-2 transition-apple-fluid flex items-center gap-5 ${isSelected
             ? 'border-[#007AFF] bg-blue-50/50 shadow-md'
             : 'border-transparent bg-white shadow-sm hover:border-gray-200'
             }`}
@@ -82,8 +82,8 @@ const CheckoutPage = () => {
                         <Link to="/" className="text-sm font-bold text-gray-400 hover:text-[#007AFF] transition-colors mb-4 inline-block">
                             ← חזור לאתר
                         </Link>
-                        <h1 className="text-4xl md:text-6xl font-black text-[#1D1D1F] tracking-tight">
-                            קופה מוסדית
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter leading-[1.1]">
+                            קופה
                         </h1>
                     </motion.div>
 
@@ -97,68 +97,62 @@ const CheckoutPage = () => {
                             transition={{ delay: 0.1 }}
                             className="lg:col-span-3 flex flex-col gap-16"
                         >
-                            {/* Section 1: Institution Details */}
+                            {/* Section 1: Shipping Details */}
                             <section>
-                                <h2 className="text-2xl font-black text-[#1D1D1F] mb-2 tracking-tight">פרטי המוסד</h2>
-                                <p className="text-gray-500 font-medium mb-8">פרטי בית הספר או המוסד לצורך הפקת חשבונית ומשלוח.</p>
+                                <h2 className="text-2xl md:text-3xl font-black text-[#1D1D1F] mb-1 tracking-tighter">פרטי משלוח</h2>
+                                <p className="text-gray-500 font-normal leading-relaxed mb-8">לאן נשלח את המוצרים החדשים שלך?</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <FloatingInput label="שם המוסד / בית ספר" id="schoolName" />
-                                    <FloatingInput label="שם איש קשר" id="contactName" />
-                                    <FloatingInput label="טלפון" id="phone" type="tel" />
-                                    <FloatingInput label="דוא״ל" id="email" type="email" />
+                                    <FloatingInput label="שם מלא" id="contactName" />
+                                    <FloatingInput label="כתובת למשלוח" id="address" />
+                                    <FloatingInput label="עיר" id="city" />
+                                    <FloatingInput label="טלפון ליצירת קשר" id="phone" type="tel" />
+                                    <div className="md:col-span-2">
+                                        <FloatingInput label="דוא״ל (לקבלת חשבונית)" id="email" type="email" />
+                                    </div>
                                 </div>
                             </section>
 
-                            {/* Section 2: Delivery & Installation */}
+                            {/* Section 2: Delivery Speed */}
                             <section>
-                                <h2 className="text-2xl font-black text-[#1D1D1F] mb-2 tracking-tight">אפשרויות אספקה</h2>
-                                <p className="text-gray-500 font-medium mb-8">בחרו את אופן ההובלה וההתקנה המועדף עליכם למרחבי הלמידה.</p>
+                                <h2 className="text-2xl md:text-3xl font-black text-[#1D1D1F] mb-1 tracking-tighter">שיטת משלוח</h2>
+                                <p className="text-gray-500 font-normal leading-relaxed mb-8">בחר את מהירות המשלוח המועדפת עליך.</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <SelectableCard
-                                        title="משלוח רגיל (חינם)"
-                                        subtitle="הורדת ציוד בחצר המוסד. עד 5–7 ימי עסקים."
+                                        title="משלוח עד הבית (חינם)"
+                                        subtitle="עד 5 ימי עסקים לכל חלקי הארץ."
                                         isSelected={deliveryOption === 'free'}
                                         onClick={() => setDeliveryOption('free')}
-                                        icon="🚚"
+                                        icon="🏠"
                                     />
                                     <SelectableCard
-                                        title="הובלה, התקנה פיזית והדרכה (₪850)"
-                                        subtitle="טכנאי מוסמך מתקין את המסכים בכיתות ומדריך את צוות ההוראה שעה."
+                                        title="משלוח מהיר מהיום למחר (₪850)"
+                                        subtitle="הזמן עכשיו וקבל את המוצר מחר בבוקר."
                                         isSelected={deliveryOption === 'premium'}
                                         onClick={() => setDeliveryOption('premium')}
-                                        icon="🛠️"
+                                        icon="🚀"
                                     />
                                 </div>
                             </section>
 
                             {/* Section 3: Payment Method */}
                             <section>
-                                <h2 className="text-2xl font-black text-[#1D1D1F] mb-2 tracking-tight">אמצעי תשלום מוסדי</h2>
-                                <p className="text-gray-500 font-medium mb-8">איך נסגור חשבון? בחר את השיטה המתאימה לגזברות שלכם.</p>
+                                <h2 className="text-2xl md:text-3xl font-black text-[#1D1D1F] mb-1 tracking-tighter">פרטי תשלום</h2>
+                                <p className="text-gray-500 font-normal leading-relaxed mb-8">התשלום מאובטח ומוצפן בתקן המחמיר ביותר.</p>
                                 <div className="grid grid-cols-1 gap-6">
                                     <SelectableCard
-                                        title="הזמנת רכש (PO) ממשרד החינוך / עירייה"
-                                        subtitle="שלחו מספר הזמנת רכש מאושרת לחשבות ונפיק חשבונית לתשלום מול כתב ההתחייבות."
-                                        isSelected={paymentMethod === 'po'}
-                                        onClick={() => setPaymentMethod('po')}
-                                        icon="📋"
+                                        title="כרטיס אשראי / Digital Wallet"
+                                        subtitle="תשלום בטוח ב-Visa, Mastercard, Apple Pay"
+                                        isSelected={paymentMethod === 'credit'}
+                                        onClick={() => setPaymentMethod('credit')}
+                                        icon="💳"
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <SelectableCard
-                                            title="כרטיס אשראי מוסדי"
-                                            subtitle="חיוב מיידי פשוט ומאובטח."
-                                            isSelected={paymentMethod === 'credit'}
-                                            onClick={() => setPaymentMethod('credit')}
-                                            icon="💳"
-                                        />
-                                        <SelectableCard
-                                            title="העברה בנקאית"
-                                            subtitle="קבלו פרטי בנק להעברת הכספים ישירות."
-                                            isSelected={paymentMethod === 'bank'}
-                                            onClick={() => setPaymentMethod('bank')}
-                                            icon="🏦"
-                                        />
-                                    </div>
+                                    <SelectableCard
+                                        title="PayPal"
+                                        subtitle="שימוש בחשבון ה-PayPal שלך."
+                                        isSelected={paymentMethod === 'bank'}
+                                        onClick={() => setPaymentMethod('bank')}
+                                        icon="🅿️"
+                                    />
                                 </div>
                             </section>
                         </motion.div>
@@ -171,17 +165,17 @@ const CheckoutPage = () => {
                             className="lg:col-span-2"
                         >
                             <div className="bg-white rounded-3xl p-8 shadow-sm lg:sticky lg:top-32 border border-gray-100">
-                                <h3 className="text-2xl font-black text-[#1D1D1F] mb-8 tracking-tight">סיכום הזמנה מוסדית</h3>
+                                <h3 className="text-2xl font-black text-[#1D1D1F] mb-8 tracking-tight">סיכום הזמנה</h3>
 
                                 {/* Items */}
                                 <div className="flex flex-col gap-6 mb-8">
                                     {orderItems.map((item, idx) => (
                                         <div key={idx} className="flex justify-between items-start">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-[#1D1D1F] leading-snug pr-2 text-base">{item.title}</span>
-                                                <span className="text-sm font-semibold text-gray-400 mt-1 pr-2">כמות: {item.qty}</span>
+                                                <span className="font-black text-[#1D1D1F] leading-snug pr-2 text-base tracking-tighter">{item.title}</span>
+                                                <span className="text-sm font-bold text-gray-400 mt-1 pr-2">כמות: {item.qty}</span>
                                             </div>
-                                            <span className="font-black text-[#1D1D1F] whitespace-nowrap text-lg">
+                                            <span className="font-black text-[#1D1D1F] whitespace-nowrap text-lg tracking-tighter">
                                                 {formatPrice(item.price)}
                                             </span>
                                         </div>
@@ -191,18 +185,14 @@ const CheckoutPage = () => {
                                 {/* Totals */}
                                 <div className="border-t border-gray-100 pt-6 space-y-4 text-sm font-medium">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">סה״כ רחף (לפני מע״מ)</span>
+                                        <span className="text-gray-500">סה״כ ביניים</span>
                                         <span className="font-bold text-[#1D1D1F]">{formatPrice(subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">שיטת הובלה: {deliveryOption === 'premium' ? 'התקנה פיזית' : 'רגיל'}</span>
+                                        <span className="text-gray-500">משלוח</span>
                                         <span className="font-bold text-[#1D1D1F]">
                                             {deliveryCost === 0 ? 'חינם' : formatPrice(deliveryCost)}
                                         </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">מע״מ כחוק (17%)</span>
-                                        <span className="font-bold text-[#1D1D1F]">{formatPrice(vat)}</span>
                                     </div>
                                 </div>
 
@@ -210,17 +200,17 @@ const CheckoutPage = () => {
                                 <div className="border-t border-gray-100 pt-6 mt-6">
                                     <div className="flex justify-between items-end mb-8">
                                         <span className="text-xl font-bold text-[#1D1D1F] mb-1">סה״כ לתשלום</span>
-                                        <span className="text-4xl font-black text-[#1D1D1F] tracking-tighter">{formatPrice(total)}</span>
+                                        <span className="text-4xl lg:text-5xl font-black text-[#1D1D1F] tracking-tighter">{formatPrice(total)}</span>
                                     </div>
 
                                     <button
-                                        className="w-full bg-[#007AFF] text-white py-5 rounded-2xl font-black text-xl hover:-translate-y-1 shadow-[0_10px_20px_rgba(0,122,255,0.2)] hover:shadow-[0_15px_30px_rgba(0,122,255,0.4)] transition-all duration-300 focus:outline-none"
+                                        className="w-full bg-[#007AFF] text-white py-5 rounded-2xl font-bold tracking-wide text-xl hover:-translate-y-1 shadow-[0_10px_20px_rgba(0,122,255,0.2)] hover:shadow-[0_15px_30px_rgba(0,122,255,0.4)] transition-apple-fluid focus:outline-none min-h-[56px]"
                                     >
-                                        אשר הזמנת רכש
+                                        בצע תשלום מאובטח
                                     </button>
 
-                                    <p className="text-center text-xs font-bold text-gray-400 mt-6 tracking-wide">
-                                        מוכר רשמי משרד החינוך | כולל מע״מ | תמיכה 24/7
+                                    <p className="text-center text-xs font-bold text-gray-400 mt-6 tracking-widest uppercase">
+                                        תשלום מאובטח SSL | כולל מע״מ | משלוח חינם
                                     </p>
                                 </div>
                             </div>

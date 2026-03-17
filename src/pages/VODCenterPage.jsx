@@ -37,7 +37,8 @@ const videos = [
 
 const VideoCard = ({ video }) => (
     <motion.div
-        whileHover={{ y: -6 }}
+        whileHover={{ y: -6, scale: 1.01 }}
+        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
         className="group cursor-pointer"
     >
         {/* Thumbnail with Play Overlay */}
@@ -65,7 +66,7 @@ const VideoCard = ({ video }) => (
         </div>
 
         {/* Info */}
-        <h3 className="font-bold text-brand-dark text-base md:text-lg leading-tight group-hover:text-brand-blue transition-colors">
+        <h3 className="font-black text-brand-dark text-base md:text-lg leading-tight group-hover:text-brand-blue tracking-tighter transition-colors">
             {video.title}
         </h3>
     </motion.div>
@@ -84,12 +85,13 @@ const VODCenterPage = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                     className="text-center max-w-3xl mx-auto mb-16"
                 >
-                    <h1 className="text-5xl md:text-6xl font-black text-brand-dark tracking-tight mb-4">
+                    <h1 className="text-5xl md:text-6xl font-black text-brand-dark tracking-tighter leading-[1.1] mb-4">
                         לומדים מהטובים ביותר.
                     </h1>
-                    <p className="text-lg md:text-xl text-gray-500 font-light leading-relaxed">
+                    <p className="text-lg md:text-xl text-gray-500 font-normal leading-relaxed">
                         ספריית ההדרכות המלאה לצוותי ההוראה.
                     </p>
                 </motion.div>
@@ -101,7 +103,7 @@ const VODCenterPage = () => {
                     viewport={{ once: true }}
                     variants={{
                         hidden: { opacity: 0 },
-                        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                        show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
                     }}
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 max-w-[1400px] mx-auto"
                 >
@@ -110,7 +112,7 @@ const VODCenterPage = () => {
                             key={idx}
                             variants={{
                                 hidden: { opacity: 0, y: 20 },
-                                show: { opacity: 1, y: 0 }
+                                show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 350, damping: 30, mass: 0.8 } }
                             }}
                         >
                             <VideoCard video={video} />

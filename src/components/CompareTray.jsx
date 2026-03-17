@@ -14,9 +14,9 @@ const CompareTray = () => {
                     initial={{ y: 100, opacity: 0, x: '-50%' }}
                     animate={{ y: 0, opacity: 1, x: '-50%' }}
                     exit={{ y: 100, opacity: 0, x: '-50%' }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                     style={{ left: '50%' }}
-                    className="fixed bottom-8 z-[60] bg-white/70 backdrop-blur-3xl border border-white/60 shadow-[0_20px_40px_rgba(0,0,0,0.08)] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px]"
+                    className="fixed bottom-8 z-[60] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_20px_40px_rgba(0,0,0,0.08)] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px] transform-gpu will-change-transform"
                 >
                     {/* RTL Right: avatars and count */}
                     <div className="flex items-center gap-4">

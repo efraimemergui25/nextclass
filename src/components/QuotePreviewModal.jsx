@@ -5,11 +5,11 @@ const QuotePreviewModal = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6 lg:p-8 overflow-y-auto">
 
             {/* Inner Modal Container */}
-            <div className="bg-white w-full max-w-[850px] rounded-2xl shadow-2xl relative my-auto animate-fade-in-up border border-white/20">
+            <div className="bg-white w-full max-w-[850px] rounded-2xl shadow-2xl relative my-auto animate-fade-in-up border border-white/20 transform-gpu will-change-transform">
 
                 {/* 1. Header Array */}
                 <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
-                    <h2 className="text-xl md:text-2xl font-semibold text-[#1D1D1F] tracking-tight">
+                    <h2 className="text-xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
                         Official Quote Preview
                     </h2>
 
@@ -30,8 +30,8 @@ const QuotePreviewModal = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start mb-16 gap-6 sm:gap-0">
 
                             {/* Top left text logo */}
-                            <div className="text-3xl tracking-tight text-[#1D1D1F] leading-none shrink-0 border-b-2 border-[#1D1D1F] pb-1 inline-block">
-                                <span className="font-bold">next</span>
+                            <div className="text-3xl tracking-tighter text-[#1D1D1F] leading-none shrink-0 border-b-2 border-[#1D1D1F] pb-1 inline-block">
+                                <span className="font-black">next</span>
                                 <span className="font-light">class</span>
                             </div>
 
@@ -95,7 +95,7 @@ const QuotePreviewModal = () => {
                             </div>
                             <div className="flex justify-between items-center pt-4">
                                 <span className="text-lg font-bold text-[#1D1D1F]">Grand Total</span>
-                                <span className="text-xl font-bold text-[#1D1D1F] tracking-tight tabular-nums">$176,760.00</span>
+                                <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter tabular-nums">$176,760.00</span>
                             </div>
                         </div>
 

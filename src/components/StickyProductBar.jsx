@@ -21,16 +21,16 @@ const StickyProductBar = ({ productName = "TouchBoard Pro 75\"", price = "₪9,5
                     initial={{ y: -80, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -80, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                     className="fixed top-0 left-0 w-full glass-light z-40 py-3 px-6 md:px-12"
                 >
                     <div className="max-w-[1400px] mx-auto flex justify-between items-center">
                         {/* Right Side (RTL Start) - Product Info */}
                         <div className="flex items-center gap-4">
-                            <span className="font-bold text-brand-dark text-sm md:text-base truncate max-w-[200px] md:max-w-none">
+                            <span className="font-bold text-brand-dark text-sm md:text-base truncate max-w-[200px] md:max-w-none tracking-tight">
                                 {productName}
                             </span>
-                            <span className="font-black text-brand-blue text-sm md:text-base">
+                            <span className="font-black text-brand-blue text-sm md:text-base tracking-tighter">
                                 {price}
                             </span>
                         </div>

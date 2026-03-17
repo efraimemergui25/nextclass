@@ -10,13 +10,13 @@ const Hero = () => {
                 {/* Headline */}
                 <h1
                     id="hero-heading"
-                    className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#1D1D1F] tracking-tight mb-6 leading-tight"
+                    className="text-4xl md:text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter mb-6 leading-[1.1]"
                 >
                     Smarter IT Procurement <br className="hidden sm:block" /> for Institutions.
                 </h1>
 
                 {/* Sub-headline */}
-                <p className="text-lg md:text-xl text-gray-500 max-w-2xl mb-12">
+                <p className="text-lg md:text-xl font-normal text-gray-500 leading-relaxed max-w-2xl mb-12">
                     Access contracts, bulk pricing, and enterprise-grade hardware.
                 </p>
 
@@ -54,7 +54,7 @@ const Hero = () => {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="bg-[#007AFF] text-white px-8 font-medium text-base md:text-lg hover:bg-blue-600 focus:outline-none focus:bg-blue-700 transition-colors shrink-0"
+                            className="bg-[#007AFF] text-white px-8 font-bold tracking-wide text-base md:text-lg hover:bg-blue-600 focus:outline-none focus:bg-blue-700 transition-colors shrink-0"
                             aria-label="Submit search"
                         >
                             Search

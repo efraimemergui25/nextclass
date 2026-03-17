@@ -23,8 +23,8 @@ const FloatingWhatsApp = () => {
                     initial={{ opacity: 0, y: 20, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 250, damping: 25 }}
-                    className="fixed bottom-8 left-8 z-[90] flex items-center"
+                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+                    className="fixed bottom-[5.5rem] right-8 z-[90] flex items-center transform-gpu will-change-transform"
                 >
                     {/* WhatsApp Button */}
                     <a
@@ -46,7 +46,7 @@ const FloatingWhatsApp = () => {
                             </svg>
 
                             {/* Tooltip Bubble */}
-                            <div className="absolute top-1/2 -translate-y-1/2 left-full ml-4 whitespace-nowrap bg-white text-brand-dark px-4 py-2 rounded-2xl shadow-xl font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <div className="absolute top-1/2 -translate-y-1/2 right-full mr-4 whitespace-nowrap bg-white text-brand-dark px-4 py-2 rounded-2xl shadow-xl font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                 צריכים ייעוץ? אנחנו בוואטסאפ
                             </div>
                         </motion.div>

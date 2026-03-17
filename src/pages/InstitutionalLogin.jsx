@@ -27,10 +27,10 @@ const InstitutionalLogin = () => {
                         </span>
                     </div>
 
-                    <h1 className="text-4xl font-bold tracking-tight mb-4 text-[#1D1D1F]">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-[#1D1D1F] leading-tight">
                         nextclass Enterprise Portal
                     </h1>
-                    <p className="text-lg text-gray-500 font-medium">
+                    <p className="text-lg text-gray-500 font-normal">
                         Secure access to institutional pricing, tenders, and procurement management.
                     </p>
                 </div>
@@ -49,8 +49,8 @@ const InstitutionalLogin = () => {
                     </div>
 
                     <div className="text-center lg:text-left mb-10">
-                        <h2 className="text-3xl font-bold tracking-tight mb-2">Institutional Login</h2>
-                        <p className="text-gray-500">Enter your credentials to access the secure portal.</p>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-2 text-[#1D1D1F]">Institutional Login</h2>
+                        <p className="text-gray-500 font-normal">Enter your credentials to access the secure portal.</p>
                     </div>
 
                     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
@@ -100,7 +100,7 @@ const InstitutionalLogin = () => {
                         <div>
                             <button
                                 type="submit"
-                                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-[#007AFF] hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#007AFF] transition-colors"
+                                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-[0_10px_20px_rgba(0,122,255,0.2)] text-base font-bold text-white bg-[#007AFF] hover:bg-blue-600 hover:-translate-y-1 focus:outline-none transition-all duration-300"
                             >
                                 Secure Login
                             </button>

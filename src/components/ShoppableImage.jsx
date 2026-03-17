@@ -41,10 +41,10 @@ const ShoppableImage = () => {
 
                 {/* Section Header */}
                 <div className="text-center mb-16 max-w-3xl">
-                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-6">
+                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.1]">
                         למידה שיוצאת מהמסגרת
                     </h2>
-                    <p className="text-xl text-gray-400 font-medium">
+                    <p className="text-xl text-gray-400 font-normal leading-relaxed">
                         חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.
                     </p>
                 </div>
@@ -96,14 +96,14 @@ const ShoppableImage = () => {
                                         initial={{ opacity: 0, scale: 0.9, y: spot.direction === 'top' ? 10 : -10 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, y: spot.direction === 'top' ? 10 : -10 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                         className={`absolute left-1/2 -translate-x-1/2 ${spot.direction === 'top' ? 'bottom-full mb-4' : 'top-full mt-4'} w-72 bg-white/85 backdrop-blur-3xl p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] border border-white/40 z-50 flex flex-col`}
                                     >
                                         {/* CSS Triangle Pointer */}
                                         <div className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-white/85 backdrop-blur-3xl border-white/40 rotate-45 ${spot.direction === 'top' ? 'bottom-[-8px] border-b border-r' : 'top-[-8px] border-t border-l'}`} />
 
                                         <div className="relative z-10 text-right">
-                                            <h4 className="font-black text-xl text-[#1D1D1F] mb-1 leading-tight tracking-tight">
+                                            <h4 className="font-black text-xl text-[#1D1D1F] mb-1 leading-tight tracking-tighter">
                                                 {spot.title}
                                             </h4>
                                             <p className="text-sm font-medium text-gray-500 mb-4 leading-snug">

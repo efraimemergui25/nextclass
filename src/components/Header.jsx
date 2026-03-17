@@ -7,11 +7,11 @@ import CartDrawer from './CartDrawer';
 import { useCart } from '../context/CartContext';
 
 const CATEGORIES = [
-    { label: "מסכי מגע", slug: "מסכי מגע" },
-    { label: "מסכי מידע", slug: "מסכי מידע" },
-    { label: "מעבדות מדעים", slug: "מעבדות מדעים" },
-    { label: "ציוד קצה", slug: "ציוד קצה" },
-    { label: "תוכנה", slug: "תוכנה" },
+    { label: "מסכים אינטראקטיביים והקרנה", slug: "מסכים אינטראקטיביים והקרנה" },
+    { label: "מחשוב לצוות ותלמידים", slug: "מחשוב לצוות ותלמידים" },
+    { label: "מעבדות STEM ומרחבי חדשנות", slug: "מעבדות STEM ומרחבי חדשנות" },
+    { label: "אודיו ווידאו למרחבי למידה", slug: "אודיו ווידאו למרחבי למידה" },
+    { label: "תשתיות ועגלות טעינה", slug: "תשתיות ועגלות טעינה" },
 ];
 
 const Header = () => {
@@ -59,8 +59,8 @@ const Header = () => {
                     hidden: { y: "-150%", opacity: 0 }
                 }}
                 animate={hidden ? "hidden" : "visible"}
-                transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] w-[95%] max-w-6xl bg-white/80 backdrop-blur-3xl border border-white/60 shadow-[0_8px_32px_#00000010] rounded-full px-6 py-3 flex items-center justify-between pointer-events-auto"
+                transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl glass-light rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
             >
                 {/* ═══════════ RIGHT ZONE (RTL Anchor) — Logo ═══════════ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 pointer-events-auto z-[120]">
@@ -74,7 +74,7 @@ const Header = () => {
                 </Link>
 
                 {/* ═══════════ CENTER ZONE — Core Navigation (Desktop) ═══════════ */}
-                <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2 text-sm pointer-events-auto z-[120]">
+                <nav className="hidden md:flex items-center gap-7 absolute left-1/2 -translate-x-1/2 text-[13px] pointer-events-auto z-[120]">
                     {/* Link 1: Home */}
                     <Link
                         to="/"
@@ -110,11 +110,11 @@ const Header = () => {
                                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-64 bg-white/90 backdrop-blur-3xl border border-gray-100 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col gap-1 z-[9999] pointer-events-auto"
+                                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-80 glass-light rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col gap-1 z-[110] pointer-events-auto transform-gpu will-change-transform"
                                 >
                                     {/* Triangle pointer */}
-                                    <div className="absolute -top-2 right-1/2 translate-x-1/2 w-4 h-4 bg-white/90 border-t border-l border-gray-100 rotate-45 backdrop-blur-3xl pointer-events-none" />
+                                    <div className="absolute -top-2 right-1/2 translate-x-1/2 w-4 h-4 glass-light border-t border-l border-white/40 rotate-45 pointer-events-none" />
 
                                     {CATEGORIES.map((cat) => (
                                         <Link
@@ -150,18 +150,34 @@ const Header = () => {
                     >
                         השוואת דגמים
                     </Link>
+
+                    {/* Link 4: About */}
+                    <Link
+                        to="/about"
+                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
+                    >
+                        הסיפור שלנו
+                    </Link>
+
+                    {/* Link 5: Contact */}
+                    <Link
+                        to="/contact"
+                        className="text-[#1D1D1F] font-semibold hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
+                    >
+                        צור קשר
+                    </Link>
                 </nav>
 
                 {/* ═══════════ LEFT ZONE (RTL End) — Utilities ═══════════ */}
-                <div className="flex items-center gap-4 shrink-0 flex-row-reverse">
-                    {/* Reordered for RTL: Search -> Cart -> Hamburger -> Back Button */}
+                <div className="flex items-center gap-4 shrink-0">
+                    {/* Visual Order (R to L): Cart -> Back -> Hamburger */}
 
-                    {/* Shopping Cart */}
+                    {/* 1. Shopping Cart (Rightmost of group) */}
                     <motion.button
                         onClick={() => setIsCartOpen(true)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="relative cursor-pointer focus:outline-none p-2 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-colors duration-300 flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
+                        className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
                         aria-label="עגלת קניות"
                     >
                         <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -174,20 +190,7 @@ const Header = () => {
                         )}
                     </motion.button>
 
-                    {/* Hamburger Menu */}
-                    <motion.button
-                        onClick={() => setIsMenuOpen(true)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="cursor-pointer focus:outline-none p-2 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-colors duration-300 flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
-                        aria-label="תפריט"
-                    >
-                        <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
-                        </svg>
-                    </motion.button>
-
-                    {/* iOS Back Button (Safety Loop) */}
+                    {/* 2. iOS Back Button (Center of group) */}
                     <button
                         onClick={() => navigate(-1)}
                         className="w-10 h-10 md:w-11 md:h-11 cursor-pointer rounded-full bg-white/40 hover:bg-gray-100/80 backdrop-blur-md border border-gray-200 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
@@ -195,6 +198,19 @@ const Header = () => {
                     >
                         <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#1D1D1F] pointer-events-none" />
                     </button>
+
+                    {/* 3. Hamburger Menu (Extreme Left of screen) */}
+                    <motion.button
+                        onClick={() => setIsMenuOpen(true)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
+                        aria-label="תפריט"
+                    >
+                        <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+                        </svg>
+                    </motion.button>
                 </div>
             </motion.header>
 

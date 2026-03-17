@@ -41,10 +41,10 @@ const ContactPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center mb-16"
                     >
-                        <h1 className="text-4xl md:text-6xl font-black text-brand-dark tracking-tight mb-4">
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-brand-dark tracking-tighter mb-4 leading-[1.1]">
                             צור קשר
                         </h1>
-                        <p className="text-lg md:text-xl text-gray-500 font-light">
+                        <p className="text-lg md:text-xl text-gray-500 font-normal leading-relaxed max-w-2xl mx-auto">
                             נשמח לשמוע מכם ולהתאים את הפתרון המושלם למוסד שלכם.
                         </p>
                     </motion.div>
@@ -58,8 +58,8 @@ const ContactPage = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 }}
                         >
-                            <div className="bg-white p-8 md:p-12 rounded-3xl shadow-sm">
-                                <h2 className="text-3xl font-black text-brand-dark mb-8">שלחו לנו הודעה</h2>
+                            <div className="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100">
+                                <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-8 tracking-tighter">שלחו לנו הודעה</h2>
 
                                 <div className="flex flex-col gap-5">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -73,9 +73,10 @@ const ContactPage = () => {
                                     <FloatingInput label="מה נוכל לעזור?" id="message" isTextArea />
 
                                     <motion.button
-                                        whileHover={{ scale: 1.02 }}
+                                        whileHover={{ scale: 1.01, y: -2 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="w-full bg-brand-blue text-white py-5 rounded-2xl font-bold text-xl hover:bg-blue-600 hover:shadow-lg transition-all mt-2 focus:outline-none focus:ring-4 focus:ring-brand-blue/30"
+                                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                                        className="w-full bg-brand-blue text-white py-5 rounded-2xl font-bold tracking-wide text-xl hover:bg-blue-600 shadow-[0_10px_30px_rgba(0,122,255,0.2)] hover:shadow-[0_15px_40px_rgba(0,122,255,0.4)] transition-all mt-2 focus:outline-none"
                                     >
                                         שלח פנייה ליועץ פדגוגי
                                     </motion.button>

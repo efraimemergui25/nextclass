@@ -16,15 +16,24 @@
         background-color: #F5F5F7;
         color: #1D1D1F;
         -webkit-font-smoothing: antialiased;
-        @apply font-sans;
+        @apply font-sans leading-relaxed;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply tracking-tighter leading-[1.1] font-black text-[#1D1D1F];
     }
 }
 
 @layer components {
 
-    /* iOS Glassmorphism Standard */
+    /* Apple Glassmorphism Standard - exact formula */
     .glass-light {
-        @apply bg-white/70 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_#00000010];
+        @apply bg-white/75 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0, 0, 0, 0.06)];
     }
 
     .glass-dark {
@@ -33,32 +42,37 @@
 
     /* Gestalt Common Region (Premium Cards) */
     .card-premium {
-        @apply bg-white rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 ease-out border-none;
+        @apply bg-white rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 ease-[cubic-bezier(0.32, 0.72, 0, 1)] border-none transform-gpu will-change-transform;
+    }
+
+    /* Motion Standard */
+    .transition-apple-fluid {
+        @apply transition-all duration-400 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu will-change-transform;
     }
 
     /* Typography Enforcement */
     .text-hero {
-        @apply text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.1] text-[#1D1D1F];
+        @apply text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1] text-[#1D1D1F];
     }
 
     .text-section {
-        @apply text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.1] text-[#1D1D1F];
+        @apply text-3xl md:text-4xl font-black tracking-tight leading-[1.1] text-[#1D1D1F];
     }
 
     .text-body {
-        @apply text-base md:text-lg font-normal leading-relaxed text-gray-500;
+        @apply text-base md:text-lg font-normal leading-relaxed text-gray-600;
     }
 
     /* Standardized Button Hierarchy */
     .btn-primary {
-        @apply bg-[#007AFF] text-white font-bold rounded-full px-8 py-4 text-lg shadow-[0_8px_16px_#007AFF33] hover:shadow-[0_12px_24px_#007AFF66] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
+        @apply bg-[#007AFF] text-white font-bold rounded-full px-8 py-4 text-lg shadow-[0_8px_16px_#007AFF33] hover:shadow-[0_12px_24px_#007AFF66] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu min-h-[44px] flex items-center justify-center;
     }
 
     .btn-glass {
-        @apply bg-white/50 backdrop-blur-md border border-gray-200/50 text-[#1D1D1F] font-bold rounded-full px-8 py-4 text-lg hover:bg-white hover:shadow-md hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out;
+        @apply bg-white/50 backdrop-blur-md border border-gray-200/50 text-[#1D1D1F] font-bold rounded-full px-8 py-4 text-lg hover:bg-white hover:shadow-md hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu min-h-[44px] flex items-center justify-center;
     }
 
     .btn-ghost {
-        @apply text-gray-500 font-medium px-4 py-2 rounded-lg hover:text-[#007AFF] hover:bg-[#007AFF]/5 active:scale-[0.97] transition-all duration-300 ease-out;
+        @apply text-gray-500 font-medium px-4 py-2 rounded-lg hover:text-[#007AFF] hover:bg-[#007AFF]/5 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] min-h-[44px] min-w-[44px] flex items-center justify-center;
     }
 }
