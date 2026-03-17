@@ -182,9 +182,9 @@ const ProductDetailPage = () => {
                             <span className="text-gray-600 line-clamp-1">{product.title}</span>
                         </div>
 
-                        <div className="text-[#007AFF] font-bold text-sm uppercase tracking-widest mb-4">{product.category}</div>
-                        <h1 className="text-hero mb-4">{product.title}</h1>
-                        <div className="text-2xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter mb-12">{formattedPrice}</div>
+                        <div className="text-[#007AFF] font-bold text-xs uppercase tracking-widest mb-4">{product.category}</div>
+                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#1D1D1F] leading-[1.15] mb-4">{product.title}</h1>
+                        <div className="text-4xl font-black tracking-tighter text-[#1D1D1F] my-6">{formattedPrice}</div>
 
                         <section className="mb-12">
                             <h3 className="text-lg font-bold text-[#1D1D1F] mb-6">בחירת צבע</h3>
@@ -258,10 +258,10 @@ const ProductDetailPage = () => {
                                     transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
                                     className="max-w-md w-full"
                                 >
-                                    <h2 className="text-4xl md:text-6xl font-black text-[#1D1D1F] leading-tight mb-8 tracking-tighter">
+                                    <h2 className="text-3xl md:text-5xl font-black text-[#1D1D1F] leading-tight mb-4 tracking-tighter">
                                         {feature.title}
                                     </h2>
-                                    <p className="text-xl md:text-2xl text-gray-500 leading-relaxed font-medium">
+                                    <p className="text-xl font-normal text-[#86868B] leading-relaxed">
                                         {feature.description}
                                     </p>
                                 </motion.div>

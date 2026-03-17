@@ -64,17 +64,21 @@ const ProductCard = ({ product }) => {
 
                 {/* Typography (RTL Aligned) */}
                 <div className="flex flex-col flex-grow text-right p-6 pt-5">
-                    <span className="text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#007AFF] mb-2">
                         {category}
                     </span>
 
-                    {/* line-clamp-2 enforces consistent grid alignment (Law of Similarity) */}
-                    <h3 className="text-xl md:text-2xl font-black text-[#1D1D1F] tracking-tighter mb-3 leading-[1.1] line-clamp-2">
+                    <h3 className="text-lg md:text-xl font-bold text-[#1D1D1F] leading-snug line-clamp-2">
                         {title}
                     </h3>
 
+                    {/* Mini-description for Scannability (Law of Proximity) */}
+                    <p className="text-sm font-normal text-[#86868B] leading-relaxed line-clamp-2 mt-2">
+                        {product?.description || "חוויית למידה מתקדמת עם ביצועים עוצמתיים ועיצוב מלוטש."}
+                    </p>
+
                     <div className="mt-auto pt-5 flex flex-col sm:flex-row items-end sm:items-center justify-between border-t border-gray-100 gap-4">
-                        <span className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
+                        <span className="text-2xl font-black tracking-tighter text-[#1D1D1F]">
                             {formattedPrice}
                         </span>
 

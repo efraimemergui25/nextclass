@@ -18,7 +18,7 @@ const CatalogGrid = () => {
     return (
         <section className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-24 bg-[#F5F5F7]">
             <div className="mb-10 text-center">
-                <h2 className="text-4xl md:text-5xl font-black text-[#1D1D1F] mb-4 tracking-tight">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight text-[#1D1D1F] mb-4">
                     הכלים שמעצבים את המחר
                 </h2>
                 <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed">
