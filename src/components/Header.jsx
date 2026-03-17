@@ -240,7 +240,9 @@ const Header = () => {
 
             <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-            <SmartSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            <AnimatePresence>
+                <SmartSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            </AnimatePresence>
         </>
     );
 };
