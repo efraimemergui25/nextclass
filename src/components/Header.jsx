@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
+import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
+import { Search } from 'lucide-react';
 
 const CATEGORIES = [
     { label: "מסכים אינטראקטיביים והקרנה", slug: "מסכים אינטראקטיביים והקרנה" },
@@ -18,6 +20,7 @@ const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // Dynamic Cart
     const { cartItems } = useCart();
@@ -40,15 +43,27 @@ const Header = () => {
 
     const navigate = useNavigate();
 
-    // Prevent scrolling when menu/cart is open
+    // Keyboard Shortcuts (Spotlight style)
     useEffect(() => {
-        if (isMenuOpen || isCartOpen) {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsSearchOpen(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // Prevent scrolling when menu/cart/search is open
+    useEffect(() => {
+        if (isMenuOpen || isCartOpen || isSearchOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => { document.body.style.overflow = 'unset'; }
-    }, [isMenuOpen, isCartOpen]);
+    }, [isMenuOpen, isCartOpen, isSearchOpen]);
 
     return (
         <>
@@ -168,7 +183,7 @@ const Header = () => {
 
                 {/* ═══════════ LEFT ZONE (RTL End) — Utilities ═══════════ */}
                 <div className="flex items-center gap-4 shrink-0">
-                    {/* Visual Order (R to L): Cart -> Back -> Hamburger */}
+                    {/* Visual Order (R to L): Cart -> Search -> Back -> Hamburger */}
 
                     {/* 1. Shopping Cart (Rightmost of group) */}
                     <motion.button
@@ -188,7 +203,18 @@ const Header = () => {
                         )}
                     </motion.button>
 
-                    {/* 2. iOS Back Button (Center of group) */}
+                    {/* 2. Smart Search (New) */}
+                    <motion.button
+                        onClick={() => setIsSearchOpen(true)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
+                        aria-label="חיפוש"
+                    >
+                        <Search className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
+                    </motion.button>
+
+                    {/* 3. iOS Back Button */}
                     <button
                         onClick={() => navigate(-1)}
                         className="w-10 h-10 md:w-11 md:h-11 cursor-pointer rounded-full bg-white/50 hover:bg-white/80 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
@@ -214,6 +240,7 @@ const Header = () => {
 
             <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+            <SmartSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
         </>
     );
 };
