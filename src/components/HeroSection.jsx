@@ -29,6 +29,7 @@ const HeroSection = () => {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex flex-col items-center justify-center text-center w-full"
                 >
                     <h1 className="text-hero text-white mb-6 drop-shadow-2xl">
                         חדשנות חסרת פשרות.
