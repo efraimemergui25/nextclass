@@ -97,15 +97,22 @@ const ProductDetailPage = () => {
     const formattedPrice = `₪${totalPrice.toLocaleString()}`;
     const isProductSelectedForCompare = isSelected(product.id);
 
-    const handleAddToCart = () => {
-        addToCart({
-            ...product,
-            id: `${product.id}-${activeColor.id}`,
-            title: `${product.title} (${activeColor.name})`,
-            price: totalPrice,
-            selectedColor: activeColor,
-            accessories: Array.from(selectedAccessories).map(accId => ACCESSORIES.find(a => a.id === accId))
-        });
+    const cartItemId = `${product.id}-${activeColor.id}`;
+    const isInCart = cartItems.some(item => item.id === cartItemId);
+
+    const handleCartToggle = () => {
+        if (isInCart) {
+            removeFromCart(cartItemId);
+        } else {
+            addToCart({
+                ...product,
+                id: cartItemId,
+                title: `${product.title} (${activeColor.name})`,
+                price: totalPrice,
+                selectedColor: activeColor,
+                accessories: Array.from(selectedAccessories).map(accId => ACCESSORIES.find(a => a.id === accId))
+            });
+        }
     };
 
     const toggleAccessory = (accId) => {
@@ -135,14 +142,26 @@ const ProductDetailPage = () => {
                         </div>
                         <div className="flex items-center gap-6">
                             <span className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</span>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleAddToCart}
-                                className="bg-[#007AFF] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-apple-fluid"
+                            <button
+                                onClick={handleCartToggle}
+                                className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-apple-fluid flex items-center gap-1.5 group min-w-[130px] justify-center pointer-events-auto ${isInCart
+                                        ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
+                                        : 'bg-[#007AFF] text-white shadow-blue-500/20 hover:scale-[1.05]'
+                                    }`}
                             >
-                                הוסף לעגלה
-                            </motion.button>
+                                <AnimatePresence mode="wait">
+                                    {isInCart ? (
+                                        <motion.div key="in-cart" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="flex items-center gap-1.5">
+                                            <svg className="w-4 h-4 text-green-500 group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            <svg className="w-4 h-4 text-red-500 hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            <span className="group-hover:hidden">נוסף בהצלחה</span>
+                                            <span className="hidden group-hover:block text-red-500">הסר מהעגלה</span>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.span key="add" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}>הוסף לעגלה</motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </button>
                         </div>
                     </motion.div>
                 )}
@@ -162,7 +181,7 @@ const ProductDetailPage = () => {
                                 {imgError || !product.image ? (
                                     <div className="w-full aspect-square md:aspect-[4/3]"><ImageFallback /></div>
                                 ) : (
-                                    <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                                    <img onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
                                         src={product.image}
                                         alt={product.title}
                                         className="w-full aspect-square md:aspect-[4/3] object-cover"
@@ -224,14 +243,28 @@ const ProductDetailPage = () => {
                         </section>
 
                         <div className="flex flex-col gap-4">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handleAddToCart}
-                                className="btn-primary w-full py-5 rounded-full text-xl shadow-[0_12px_32px_rgba(0,122,255,0.25)]"
+                            <button
+                                onClick={handleCartToggle}
+                                className={`w-full py-5 rounded-full text-xl shadow-[0_12px_32px_rgba(0,122,255,0.25)] flex items-center justify-center gap-3 transition-apple-fluid group ${isInCart
+                                    ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
+                                    : 'btn-primary'
+                                    }`}
                             >
-                                {`הוסף לעגלה — ${formattedPrice}`}
-                            </motion.button>
+                                <AnimatePresence mode="wait">
+                                    {isInCart ? (
+                                        <motion.div key="in-cart" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2">
+                                            <svg className="w-6 h-6 text-green-500 group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            <svg className="w-6 h-6 text-red-500 hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            <span className="group-hover:hidden">{`נוסף בהצלחה — ${formattedPrice}`}</span>
+                                            <span className="hidden group-hover:block text-red-500">הסר מהעגלה</span>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.span key="add" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                                            {`הוסף לעגלה — ${formattedPrice}`}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </button>
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 bg-black text-white py-4 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg">קנה עכשיו</motion.button>
                                 <motion.button onClick={() => isProductSelectedForCompare ? removeFromCompare(product.id) : addToCompare(product)} className={`flex-1 border-2 py-4 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>

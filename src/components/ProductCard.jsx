@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
+import { useCart } from '../context/CartContext';
 
 // Premium Apple-style placeholder when image fails to load
 const ImageFallback = () => (
@@ -25,15 +26,29 @@ const ProductCard = ({ product }) => {
     const [imgError, setImgError] = useState(false);
     const formattedPrice = `₪${price.toLocaleString()}`;
 
-    const { addToCompare, removeFromCompare, isSelected } = useCompare();
-    const selected = isSelected(id);
+    const { addToCompare, removeFromCompare, isSelected: isSelectedCompare } = useCompare();
+    const { cartItems, addToCart, removeFromCart } = useCart();
+
+    const selected = isSelectedCompare(id);
+    const isInCart = cartItems.some(item => item.id === id);
 
     const handleCompareClick = (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (selected) {
             removeFromCompare(id);
         } else {
             addToCompare({ id, title, price: formattedPrice, imageUrl: image, category, specs: product?.specs });
+        }
+    };
+
+    const handleCartToggle = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isInCart) {
+            removeFromCart(id);
+        } else {
+            addToCart({ ...product, price });
         }
     };
 
@@ -50,7 +65,7 @@ const ProductCard = ({ product }) => {
                             <ImageFallback />
                         </div>
                     ) : (
-                        <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                        <img src={image} alt={title} className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-apple-fluid" onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} loading="lazy" /> { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
                             src={image}
                             alt={title}
                             className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-apple-fluid"
@@ -98,12 +113,40 @@ const ProductCard = ({ product }) => {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                 </svg>
                             </button>
-                            {/* CTA Pill */}
-                            <div
-                                className="bg-[#007AFF] text-white font-bold tracking-wide px-6 py-2.5 rounded-full hover:scale-[1.05] active:scale-[0.95] shadow-lg shadow-blue-500/20 transition-apple-fluid inline-block text-center text-sm min-h-[44px] flex items-center justify-center"
+                            {/* Smart Cart Toggle Pill */}
+                            <button
+                                onClick={handleCartToggle}
+                                className={`font-bold tracking-wide px-5 py-2.5 rounded-full shadow-lg transition-apple-fluid inline-block text-center text-sm min-h-[44px] flex items-center justify-center gap-2 group ${isInCart
+                                        ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
+                                        : 'bg-[#007AFF] text-white shadow-blue-500/20 hover:scale-[1.05]'
+                                    }`}
                             >
-                                הוסף לעגלה
-                            </div>
+                                <AnimatePresence mode="wait">
+                                    {isInCart ? (
+                                        <motion.div
+                                            key="in-cart"
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            className="flex items-center gap-1.5"
+                                        >
+                                            <svg className="w-4 h-4 text-green-500 group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            <svg className="w-4 h-4 text-red-500 hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            <span className="group-hover:hidden">נוסף בהצלחה</span>
+                                            <span className="hidden group-hover:block text-red-500">הסר מהעגלה</span>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.span
+                                            key="add"
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                        >
+                                            הוסף לעגלה
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </button>
                         </div>
                     </div>
                 </div>
