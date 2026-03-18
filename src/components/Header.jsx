@@ -75,7 +75,7 @@ const Header = () => {
                 }}
                 animate={hidden ? "hidden" : "visible"}
                 transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
+                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/65 backdrop-blur-2xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
             >
                 {/* ═══════════ RIGHT ZONE (RTL Anchor) — Logo ═══════════ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 pointer-events-auto z-[120]">

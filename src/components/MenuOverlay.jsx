@@ -64,19 +64,21 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     animate="show"
                     exit="exit"
                     variants={containerVariants}
-                    className="fixed inset-0 z-[200] w-full h-full bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] flex flex-col items-center justify-center pointer-events-auto"
+                    className="fixed inset-0 z-[200] flex flex-col w-full h-full bg-[#F5F5F7]/80 dark:bg-[#1D1D1F]/80 backdrop-blur-[50px] backdrop-saturate-[180%] pointer-events-auto"
                 >
-                    {/* Sleek Close Button (Top-Left for RTL context priority) */}
-                    <button
-                        onClick={onClose}
-                        className="absolute top-8 left-8 p-4 hover:bg-black/5 rounded-full transition-colors cursor-pointer group"
-                        aria-label="סגור תפריט"
-                    >
-                        <X className="w-8 h-8 text-[#1D1D1F] group-hover:rotate-90 transition-transform duration-500" />
-                    </button>
+                    {/* Top Area (Close Button) */}
+                    <div className="w-full p-8 flex justify-end">
+                        <button
+                            onClick={onClose}
+                            className="p-4 hover:bg-black/5 rounded-full transition-colors cursor-pointer group"
+                            aria-label="סגור תפריט"
+                        >
+                            <X className="w-8 h-8 text-[#1D1D1F] group-hover:rotate-90 transition-transform duration-500" />
+                        </button>
+                    </div>
 
-                    {/* Navigation Stack (Gestalt Proximity) */}
-                    <nav className="flex flex-col items-center justify-center gap-6 md:gap-10">
+                    {/* Center Area (Links) */}
+                    <nav className="flex-1 flex flex-col items-center justify-center gap-6 overflow-y-auto">
                         {navItems.map((item, index) => {
                             const isActive = location.pathname === item.path;
                             return (
@@ -84,9 +86,9 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className={`text-4xl md:text-6xl font-bold tracking-tighter transition-all duration-400 ease-out inline-block transform-gpu ${isActive
-                                                ? 'text-[#007AFF]'
-                                                : 'text-[#1D1D1F] hover:text-[#007AFF] hover:-translate-x-4'
+                                        className={`text-3xl md:text-5xl font-semibold tracking-tight transition-all duration-400 ease-out inline-block transform-gpu hover:scale-105 ${isActive
+                                            ? 'text-[#007AFF]'
+                                            : 'text-[#1D1D1F] hover:text-[#007AFF]'
                                             }`}
                                         style={{ fontFamily: "'Heebo', sans-serif" }}
                                     >
@@ -97,16 +99,18 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                         })}
                     </nav>
 
-                    {/* Branding / Footer info (Optional but adds polish) */}
+                    {/* Bottom Area (Logo) */}
                     <motion.div
                         variants={itemVariants}
-                        className="absolute bottom-12 flex flex-col items-center gap-2 opacity-20"
+                        className="w-full pb-12 pt-6 flex justify-center shrink-0 opacity-40"
                     >
-                        <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
-                            <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
-                            <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
-                        </svg>
-                        <span className="text-xs font-black tracking-widest uppercase">NextClass visionOS</span>
+                        <div className="flex flex-col items-center gap-2">
+                            <svg className="w-10 h-10" viewBox="0 0 32 32" fill="none">
+                                <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
+                                <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
+                            </svg>
+                            <span className="text-sm font-semibold tracking-widest uppercase text-[#1D1D1F]">NextClass</span>
+                        </div>
                     </motion.div>
                 </motion.div>
             )}

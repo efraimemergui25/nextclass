@@ -138,7 +138,7 @@ const CartPage = () => {
                                         >
                                             {/* Image Thumbnail */}
                                             <div className="w-full md:w-48 aspect-square rounded-[2.5rem] bg-[#F5F5F7] overflow-hidden flex-shrink-0 mb-8 md:mb-0 ml-0 md:ml-10 relative shadow-sm">
-                                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-6 mix-blend-multiply" />
+                                                <img onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }} src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-6 mix-blend-multiply" />
                                             </div>
 
                                             {/* Item Details */}
