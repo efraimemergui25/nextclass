@@ -8,12 +8,13 @@ const ProductDetail = () => {
             <section className="max-w-7xl mx-auto px-6 py-12 md:py-20 lg:px-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-center">
 
-                    {/* Left: Huge pristine image placeholder */}
-                    <div className="bg-[#F5F5F7] rounded-3xl aspect-square flex items-center justify-center p-12 transition-transform duration-500 hover:scale-[1.02]">
-                        {/* Minimalist Tech Outline SVG */}
-                        <svg className="w-48 h-48 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                        </svg>
+                    <div className="relative aspect-square overflow-hidden rounded-3xl group shadow-2xl transition-apple-fluid hover:scale-[1.02]">
+                        <img
+                            src="/path/to/pro-75-uhd-4k-image.png"
+                            alt="Pro 75"
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-3xl pointer-events-none" />
                     </div>
 
                     {/* Right: Product Info */}

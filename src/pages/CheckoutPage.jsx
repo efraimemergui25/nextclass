@@ -1,247 +1,308 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { Lock, CreditCard } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useCart } from '../context/CartContext';
 
-const FloatingInput = ({ label, type = "text", id, placeholder }) => (
-    <div className="relative w-full">
-        <input
-            type={type}
-            id={id}
-            placeholder={placeholder || " "}
-            className="peer w-full bg-[#F5F5F7] border border-transparent focus:border-[#007AFF] focus:bg-white rounded-xl px-5 py-4 text-[#1D1D1F] font-semibold text-lg transition-apple-fluid shadow-sm outline-none"
-        />
-        <label
-            htmlFor={id}
-            className="absolute right-5 top-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-placeholder-shown:font-medium peer-placeholder-shown:text-gray-400 peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-bold peer-focus:text-[#007AFF] pointer-events-none"
-        >
-            {label}
-        </label>
+const HyperGlassCard = ({ children, className = "" }) => (
+    <div className={`bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_40px_rgb(0_0_0/0.08)] rounded-[2rem] p-8 ${className}`}>
+        {children}
     </div>
 );
 
-const PaymentMethodCard = ({ id, title, icon, isSelected, onClick, children }) => (
-    <div className="flex flex-col gap-4">
-        <button
-            onClick={() => onClick(id)}
-            className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-apple-fluid transform-gpu ${isSelected
-                    ? 'border-[#007AFF] bg-white shadow-lg shadow-blue-500/5'
-                    : 'border-transparent bg-[#F5F5F7] hover:bg-white hover:border-gray-200'
-                }`}
-        >
-            <div className="flex items-center gap-4">
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-[#007AFF] bg-[#007AFF]' : 'border-gray-300'}`}>
-                    {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                </div>
-                <span className={`font-bold text-lg ${isSelected ? 'text-[#1D1D1F]' : 'text-gray-500'}`}>{title}</span>
-            </div>
-            <div className="text-2xl grayscale brightness-125 group-hover:grayscale-0 transition-apple-fluid">{icon}</div>
-        </button>
-
-        <AnimatePresence>
-            {isSelected && children && (
-                <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                >
-                    <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-inner mt-1">
-                        {children}
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+const GlassInput = ({ label, type = "text", id, value, onChange, placeholder = "" }) => (
+    <div className="space-y-2">
+        <label htmlFor={id} className="text-sm font-bold text-gray-500 pr-1">{label}</label>
+        <input
+            type={type}
+            id={id}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className="w-full bg-white/50 border border-white/80 focus:border-[#007AFF] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/10 rounded-xl px-5 py-4 text-[#1D1D1F] transition-all outline-none placeholder-gray-400 font-medium"
+            required
+        />
     </div>
 );
 
 const CheckoutPage = () => {
     const navigate = useNavigate();
-    const { cartItems } = useCart();
-    const [paymentMethod, setPaymentMethod] = useState('credit');
+    const { cartItems, clearCart } = useCart();
+    const [paymentMethod, setPaymentMethod] = useState('apple');
+    const [formData, setFormData] = useState({
+        firstName: '', lastName: '', city: '', street: '', phone: '', email: ''
+    });
 
-    useEffect(() => {
-        window.scrollTo(0, 0);
-        if (cartItems.length === 0) {
-            // Optional: navigate back if cart is empty
-            // navigate('/catalog');
-        }
-    }, [cartItems, navigate]);
+    const subtotal = useMemo(() => {
+        return cartItems.reduce((acc, item) => {
+            const price = typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price;
+            return acc + (price * item.qty);
+        }, 0);
+    }, [cartItems]);
 
-    const subtotal = cartItems.reduce((acc, item) => {
-        const price = typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) || 0 : item.price;
-        return acc + (price * (item.qty || 1));
-    }, 0);
+    const total = subtotal; // Assuming shipping is free as per requirements
 
-    const shipping = 0; // Free shipping
-    const total = subtotal + shipping;
+    const handleInputChange = (e) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
 
-    const parsePrice = (price) => {
-        const num = typeof price === 'string' ? parseInt(price.replace(/[^\d]/g, '')) || 0 : price;
-        return `₪${num.toLocaleString()}`;
+    const handleCheckout = (e) => {
+        e.preventDefault();
+        // In a real app, integrate Stripe/Payment provider here
+        alert('הזמנה התקבלה בהצלחה! תודה שקנית ב-NextClass');
+        clearCart();
+        navigate('/');
     };
 
     return (
         <PageTransition>
-            <div className="min-h-screen bg-[#F5F5F7] pt-24 pb-24 px-6 md:px-12">
-                <div className="max-w-6xl mx-auto">
+            <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-4 md:px-8 max-w-7xl mx-auto">
+                <form onSubmit={handleCheckout} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
 
-                    {/* Header Section */}
-                    <div className="mb-12 flex flex-col items-center text-center">
-                        <Link to="/" className="text-sm font-bold text-gray-400 hover:text-[#007AFF] transition-apple-fluid mb-4">חזרה לחנות</Link>
-                        <h1 className="text-4xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter">קופה ותשלום</h1>
+                    {/* RIGHT COLUMN: Shipping & Payment (7 cols) — order-2 on mobile */}
+                    <div className="col-span-12 lg:col-span-7 space-y-8 order-2 lg:order-1">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <h1 className="text-4xl lg:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-4 leading-tight">
+                                סיום קנייה
+                            </h1>
+                            <p className="text-gray-500 font-medium mb-8">בוא נסיים את ההזמנה שלך ונתחיל לעבוד.</p>
+                        </motion.div>
+
+                        {/* Step 1: Shipping Details */}
+                        <motion.section
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <HyperGlassCard>
+                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">פרטי משלוח</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <GlassInput label="שם פרטי" id="firstName" value={formData.firstName} onChange={handleInputChange} />
+                                    <GlassInput label="שם משפחה" id="lastName" value={formData.lastName} onChange={handleInputChange} />
+                                    <GlassInput label="עיר" id="city" value={formData.city} onChange={handleInputChange} />
+                                    <GlassInput label="רחוב ומספר בית" id="street" value={formData.street} onChange={handleInputChange} />
+                                    <GlassInput label="טלפון" id="phone" type="tel" value={formData.phone} onChange={handleInputChange} />
+                                    <GlassInput label="אימייל" id="email" type="email" value={formData.email} onChange={handleInputChange} />
+                                </div>
+                            </HyperGlassCard>
+                        </motion.section>
+
+                        {/* Step 2: Payment Methods */}
+                        <motion.section
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <HyperGlassCard>
+                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">אמצעי תשלום</h2>
+
+                                {/* Gestalt-Synchronized Payment Badges */}
+                                <div className="flex flex-wrap gap-4 mb-10">
+                                    {/* Apple Pay */}
+                                    <button
+                                        onClick={() => setPaymentMethod('apple')}
+                                        className={`bg-black text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-1 font-semibold text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'apple'
+                                            ? 'ring-4 ring-offset-2 ring-[#007AFF] scale-[1.05]'
+                                            : 'opacity-50 hover:opacity-100'
+                                            }`}
+                                    >
+                                        <span className="text-2xl"></span> Pay
+                                    </button>
+
+                                    {/* Bit */}
+                                    <button
+                                        onClick={() => setPaymentMethod('bit')}
+                                        className={`bg-white border-2 border-gray-100 text-[#00B4E6] px-6 py-3 rounded-2xl flex items-center justify-center font-black text-2xl tracking-tighter shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'bit'
+                                            ? 'ring-4 ring-offset-2 ring-[#00B4E6] scale-[1.05]'
+                                            : 'opacity-50 hover:opacity-100'
+                                            }`}
+                                    >
+                                        bit
+                                    </button>
+
+                                    {/* PayPal */}
+                                    <button
+                                        onClick={() => setPaymentMethod('paypal')}
+                                        className={`bg-[#00457C] text-white px-6 py-3 rounded-2xl flex items-center justify-center font-bold italic text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'paypal'
+                                            ? 'ring-4 ring-offset-2 ring-[#00457C] scale-[1.05]'
+                                            : 'opacity-50 hover:opacity-100'
+                                            }`}
+                                    >
+                                        PayPal
+                                    </button>
+
+                                    {/* Credit Card */}
+                                    <button
+                                        onClick={() => setPaymentMethod('credit')}
+                                        className={`bg-white border-2 border-gray-100 text-[#1D1D1F] px-6 py-3 rounded-2xl flex items-center justify-center gap-3 font-semibold text-lg shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'credit'
+                                            ? 'ring-4 ring-offset-2 ring-[#1D1D1F] scale-[1.05]'
+                                            : 'opacity-50 hover:opacity-100'
+                                            }`}
+                                    >
+                                        <CreditCard size={24} />
+                                        <span>אשראי</span>
+                                    </button>
+                                </div>
+
+                                <AnimatePresence mode="wait">
+                                    {paymentMethod === 'credit' && (
+                                        <motion.div
+                                            key="credit-form"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.4, ease: "circOut" }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="space-y-6 pt-6 border-t border-white/20">
+                                                <GlassInput label="מספר כרטיס" id="cc_number" placeholder="0000 0000 0000 0000" />
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <GlassInput label="תוקף" id="cc_expiry" placeholder="MM/YY" />
+                                                    <GlassInput label="CVV" id="cc_cvv" placeholder="123" />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                    {paymentMethod === 'apple' && (
+                                        <motion.div
+                                            key="apple-form"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="text-center py-10 border-t border-white/20"
+                                        >
+                                            <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-2xl animate-bounce"></div>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">Double Click to Pay</h4>
+                                            <p className="text-gray-400 font-medium">המשך לתשלום מהיר ומאובטח עם Apple Pay</p>
+                                        </motion.div>
+                                    )}
+                                    {paymentMethod === 'bit' && (
+                                        <motion.div
+                                            key="bit-form"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="text-center py-10 border-t border-white/20"
+                                        >
+                                            <div className="w-20 h-20 bg-white border-2 border-[#00B4E6] text-[#00B4E6] rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-xl">bit</div>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">בקשת תשלום תישלח לאפליקציה</h4>
+                                            <p className="text-gray-400 font-medium">הזן את מספר הטלפון המזוהה עם חשבון ה-bit שלך</p>
+                                            <div className="max-w-xs mx-auto mt-6">
+                                                <GlassInput label="מספר טלפון" id="bit_phone" placeholder="050-0000000" />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                    {paymentMethod === 'paypal' && (
+                                        <motion.div
+                                            key="paypal-form"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="text-center py-10 border-t border-white/20"
+                                        >
+                                            <div className="w-20 h-20 bg-[#00457C] text-white rounded-3xl flex items-center justify-center text-2xl font-black italic mx-auto mb-6 shadow-xl">PP</div>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">Redirecting to PayPal</h4>
+                                            <p className="text-gray-400 font-medium">לאחר הלחיצה על "שלם עכשיו", תועבר לאתר PayPal להשלמת הרכישה</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </HyperGlassCard>
+                        </motion.section>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                    {/* LEFT COLUMN: Order Summary (5 cols) — order-1 on mobile (shows ABOVE form) */}
+                    <div className="col-span-12 lg:col-span-5 lg:sticky lg:top-32 order-1 lg:order-2">
+                        <motion.section
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <HyperGlassCard className="!p-10 space-y-8">
+                                <h3 className="text-2xl font-black text-[#1D1D1F] tracking-tight">סיכום הזמנה</h3>
 
-                        {/* RIGHT COLUMN: Forms (col-span-12 on mobile, col-span-7 on desktop) */}
-                        <div className="lg:col-span-7 flex flex-col gap-10">
-
-                            {/* Shipping Information */}
-                            <section className="bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/60 shadow-sm">
-                                <div className="flex items-center gap-4 mb-8">
-                                    <div className="w-10 h-10 bg-[#007AFF]/10 rounded-full flex items-center justify-center text-[#007AFF]">
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-2xl font-black text-[#1D1D1F] tracking-tight">פרטי משלוח</h2>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="md:col-span-2">
-                                        <FloatingInput label="שם מלא" id="full-name" />
-                                    </div>
-                                    <FloatingInput label="דוא״ל" id="email" type="email" />
-                                    <FloatingInput label="טלפון" id="phone" type="tel" />
-                                    <FloatingInput label="עיר" id="city" />
-                                    <FloatingInput label="רחוב" id="street" />
-                                    <div className="md:col-span-2">
-                                        <FloatingInput label="דירה / קומה / הערות" id="apartment" />
-                                    </div>
-                                </div>
-                            </section>
-
-                            {/* Payment Method */}
-                            <section className="bg-white/70 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/60 shadow-sm">
-                                <div className="flex items-center gap-4 mb-8">
-                                    <div className="w-10 h-10 bg-[#007AFF]/10 rounded-full flex items-center justify-center text-[#007AFF]">
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-2xl font-black text-[#1D1D1F] tracking-tight">אמצעי תשלום</h2>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <PaymentMethodCard
-                                        id="credit"
-                                        title="כרטיס אשראי"
-                                        icon="💳"
-                                        isSelected={paymentMethod === 'credit'}
-                                        onClick={setPaymentMethod}
-                                    >
-                                        <div className="space-y-4">
-                                            <FloatingInput label="מספר כרטיס" id="card-num" />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <FloatingInput label="תוקף (MM/YY)" id="expiry" />
-                                                <FloatingInput label="CVV" id="cvv" />
-                                            </div>
-                                        </div>
-                                    </PaymentMethodCard>
-
-                                    <PaymentMethodCard
-                                        id="apple"
-                                        title="Apple Pay"
-                                        icon=" Pay"
-                                        isSelected={paymentMethod === 'apple'}
-                                        onClick={setPaymentMethod}
-                                    >
-                                        <button className="w-full bg-black text-white py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-900 transition-all font-bold">
-                                            <span>Pay with</span>
-                                            <span className="text-xl"> Pay</span>
-                                        </button>
-                                    </PaymentMethodCard>
-
-                                    <PaymentMethodCard
-                                        id="bank"
-                                        title="העברה בנקאית"
-                                        icon="🏦"
-                                        isSelected={paymentMethod === 'bank'}
-                                        onClick={setPaymentMethod}
-                                    >
-                                        <div className="bg-[#F5F5F7] p-4 rounded-xl text-sm leading-relaxed text-[#1D1D1F]">
-                                            <p className="font-bold mb-2">פרטי בנק להעברה:</p>
-                                            <p>בנק הפועלים (12)</p>
-                                            <p>סניף: 600</p>
-                                            <p>חשבון: 123456</p>
-                                            <p className="mt-2 text-gray-500 italic">שים לב: ההזמנה תטופל לאחר קבלת האישור מהבנק.</p>
-                                        </div>
-                                    </PaymentMethodCard>
-                                </div>
-                            </section>
-                        </div>
-
-                        {/* LEFT COLUMN: Summary (Sticky Sidebar) */}
-                        <div className="lg:col-span-5 lg:sticky lg:top-32">
-                            <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/60 shadow-xl overflow-hidden relative">
-                                <h3 className="text-2xl font-black text-[#1D1D1F] mb-8 tracking-tight">סיכום הזמנה</h3>
-
-                                <div className="max-h-[300px] overflow-y-auto mb-8 pr-2 space-y-6">
+                                {/* Items List */}
+                                <div className="space-y-6 max-h-[220px] lg:max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {cartItems.map((item) => (
-                                        <div key={item.id} className="flex gap-4 items-start">
-                                            <div className="w-16 h-16 bg-[#F5F5F7] rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-                                                <img onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                                        <div key={item.id} className="flex gap-4 items-center">
+                                            <div className="w-16 h-16 rounded-xl bg-white/40 overflow-hidden border border-white/60 shadow-sm shrink-0">
+                                                <img
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }}
+                                                    src={item.imageUrl}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover mix-blend-multiply"
+                                                />
                                             </div>
-                                            <div className="flex-1 flex flex-col justify-center">
-                                                <span className="font-bold text-[#1D1D1F] leading-tight line-clamp-2">{item.title}</span>
-                                                <span className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">כמות: {item.qty}</span>
+                                            <div className="flex-1 space-y-1">
+                                                <h4 className="text-sm font-bold text-[#1D1D1F] leading-tight line-clamp-2">{item.title}</h4>
+                                                <p className="text-xs font-bold text-gray-400">כמות: {item.qty}</p>
                                             </div>
-                                            <span className="font-black text-[#1D1D1F] whitespace-nowrap">{parsePrice(item.price)}</span>
+                                            <span className="text-sm font-black text-[#1D1D1F] tracking-tighter shrink-0">
+                                                ₪{(typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price).toLocaleString()}
+                                            </span>
                                         </div>
                                     ))}
+
+                                    {cartItems.length === 0 && (
+                                        <div className="text-center py-10">
+                                            <p className="text-gray-400 font-bold italic">העגלה שלך ריקה...</p>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="border-t border-gray-100 pt-6 space-y-4">
-                                    <div className="flex justify-between items-center text-gray-500 font-medium">
-                                        <span>סה״כ ביניים</span>
-                                        <span>₪{subtotal.toLocaleString()}</span>
+                                {/* Calculation Breakdown */}
+                                <div className="pt-8 border-t border-white/20 space-y-4">
+                                    <div className="flex justify-between items-center text-sm font-medium text-gray-500">
+                                        <span>סיכום ביניים</span>
+                                        <span className="text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-gray-500 font-medium">
+                                    <div className="flex justify-between items-center text-sm font-medium text-gray-500">
                                         <span>משלוח</span>
-                                        <span className="text-green-500 font-bold">חינם</span>
+                                        <span className="text-green-600 font-bold">חינם</span>
                                     </div>
-                                    <div className="border-t border-gray-100 pt-6 mt-2 flex justify-between items-end">
-                                        <span className="text-xl font-bold text-[#1D1D1F]">סה״כ לתשלום</span>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-4xl font-black text-[#007AFF] tracking-tighter">₪{total.toLocaleString()}</span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">כולל מע״מ</span>
+                                    <div className="flex justify-between items-center pt-4">
+                                        <span className="text-xl font-black text-[#1D1D1F]">סה״כ לתשלום</span>
+                                        <div className="text-right">
+                                            <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">
+                                                ₪{total.toLocaleString()}
+                                            </span>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">כולל מע״מ</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <motion.button
+                                    type="submit"
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl font-bold text-lg mt-10 hover:bg-black shadow-2xl shadow-black/10 flex items-center justify-center gap-3 transition-apple-fluid"
+                                    className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 mt-8 shadow-[0_20px_40px_rgb(29_29_31/0.2)] hover:bg-black transition-all duration-300 min-h-[56px] active:scale-[0.98]"
                                 >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                    <span>בצע תשלום מאובטח</span>
+                                    <Lock className="w-5 h-5" strokeWidth={2.5} />
+                                    <span>שלם עכשיו ₪{total.toLocaleString()}</span>
                                 </motion.button>
 
-                                <div className="mt-8 flex justify-center items-center gap-6 opacity-40 grayscale group-hover:grayscale-0 transition-apple-fluid">
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
-                                    <span className="text-xs font-black tracking-tighter"> Pay</span>
+                                {/* Secure Payment Section */}
+                                <div className="pt-6 mt-6 border-t border-white/20">
+                                    <div className="flex justify-center gap-4 mb-6">
+                                        <img src="/apple-pay-logo.svg" alt="Apple Pay" className="h-8 rounded-lg shadow-sm" />
+                                        <img src="/bit-logo.svg" alt="Bit" className="h-8 rounded-lg shadow-sm" />
+                                        <img src="/paypal-logo.svg" alt="PayPal" className="h-8 rounded-lg shadow-sm" />
+                                        <img src="/credit-card-logo.svg" alt="Credit Card" className="h-8 rounded-lg shadow-sm" />
+                                    </div>
+                                    <div className="flex items-center justify-center gap-2 text-[10px] font-black tracking-widest text-[#1D1D1F] opacity-40">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        חיבור מאובטח בתקן SSL 256-bit
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
+                            </HyperGlassCard>
+                        </motion.section>
                     </div>
-                </div>
+                </form>
             </div>
         </PageTransition>
     );

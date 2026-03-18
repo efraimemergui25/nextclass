@@ -31,6 +31,21 @@ const ComparePage = () => {
         return found ? found.value : null;
     };
 
+    const handleCartToggle = (product) => {
+        const isInCart = cartItems.some(item => item.id === product.id);
+        if (isInCart) {
+            removeFromCart(product.id);
+        } else {
+            // Re-normalize product for cart (the compare product might be simplified)
+            addToCart({
+                ...product,
+                image: product.imageUrl || product.image,
+                // Ensure price is a number if it came as a formatted string in CompareContext
+                price: typeof product.price === 'string' ? parseInt(product.price.replace(/[^\d]/g, '')) : product.price
+            });
+        }
+    };
+
     return (
         <PageTransition>
             <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full overflow-x-hidden">
@@ -103,7 +118,7 @@ const ComparePage = () => {
                                                         &times;
                                                     </button>
                                                     <div className="w-full aspect-[4/3] bg-white rounded-2xl mb-4 p-3 shadow-sm border border-gray-100 flex items-center justify-center overflow-hidden">
-                                                        <img onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                                                        <img onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }}
                                                             src={product.imageUrl || product.image}
                                                             alt={product.title}
                                                             className="max-h-full max-w-full object-contain"
@@ -116,43 +131,12 @@ const ComparePage = () => {
                                                         {product.price}
                                                     </div>
 
-                                                    <div className="w-full flex flex-col gap-2 mb-2">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                if (cartItems.some(item => item.id === product.id)) {
-                                                                    removeFromCart(product.id);
-                                                                } else {
-                                                                    const priceNum = typeof product.price === 'string' ? parseInt(product.price.replace(/[^\d]/g, '')) || 0 : product.price;
-                                                                    addToCart({ ...product, price: priceNum });
-                                                                }
-                                                            }}
-                                                            className={`w-full py-2.5 rounded-xl font-bold tracking-wide text-sm flex items-center justify-center gap-1.5 transition-apple-fluid group pointer-events-auto ${cartItems.some(item => item.id === product.id)
-                                                                    ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
-                                                                    : 'bg-[#007AFF] text-white hover:bg-blue-600'
-                                                                }`}
-                                                        >
-                                                            <AnimatePresence mode="wait">
-                                                                {cartItems.some(item => item.id === product.id) ? (
-                                                                    <motion.div key="in-cart" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="flex items-center gap-1.5">
-                                                                        <svg className="w-3.5 h-3.5 text-green-500 group-hover:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                                                        <svg className="w-3.5 h-3.5 text-red-500 hidden group-hover:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                                        <span className="group-hover:hidden">נוסף לעגלה</span>
-                                                                        <span className="hidden group-hover:block text-red-500">הסר</span>
-                                                                    </motion.div>
-                                                                ) : (
-                                                                    <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>הוסף לעגלה</motion.span>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </button>
-                                                    </div>
-
                                                     <Link to={`/catalog/${product.id}`} className="w-full">
                                                         <motion.div
                                                             whileHover={{ scale: 1.02, y: -1 }}
                                                             whileTap={{ scale: 0.97 }}
                                                             transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                                            className="w-full bg-[#1D1D1F] text-white py-3 rounded-xl font-bold tracking-wide text-sm hover:bg-black transition-all text-center"
+                                                            className="w-full bg-[#1D1D1F]/5 text-[#1D1D1F] py-3 rounded-xl font-bold tracking-wide text-xs hover:bg-[#1D1D1F] hover:text-white transition-all text-center mb-2"
                                                         >
                                                             למפרט המלא
                                                         </motion.div>
@@ -202,6 +186,59 @@ const ComparePage = () => {
                                                     })}
                                                 </div>
                                             ))}
+
+                                            {/* ACTION ROW (Smart Cart Toggle) */}
+                                            <div
+                                                className="grid py-12"
+                                                style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
+                                            >
+                                                <div className="flex items-center pr-4">
+                                                    <span className="text-xs font-bold uppercase tracking-widest text-[#007AFF]">רכישה מהירה</span>
+                                                </div>
+                                                {selectedForCompare.map((product) => {
+                                                    const isInCart = cartItems.some(item => item.id === product.id);
+                                                    return (
+                                                        <div key={product.id} className="flex items-center justify-center px-4">
+                                                            <motion.button
+                                                                onClick={() => handleCartToggle(product)}
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                className={`group relative h-[48px] w-full max-w-[180px] rounded-full font-bold text-sm transition-all duration-300 overflow-hidden flex items-center justify-center ${isInCart
+                                                                    ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200'
+                                                                    : 'bg-[#007AFF] text-white shadow-lg shadow-blue-500/20'
+                                                                    }`}
+                                                            >
+                                                                <AnimatePresence mode="wait">
+                                                                    {isInCart ? (
+                                                                        <motion.div
+                                                                            key="in-cart"
+                                                                            initial={{ opacity: 0, y: 10 }}
+                                                                            animate={{ opacity: 1, y: 0 }}
+                                                                            exit={{ opacity: 0, y: -10 }}
+                                                                            className="flex items-center gap-1.5"
+                                                                        >
+                                                                            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                            <span className="group-hover:hidden">נוסף</span>
+                                                                            <span className="hidden group-hover:inline">הסר</span>
+                                                                        </motion.div>
+                                                                    ) : (
+                                                                        <motion.span
+                                                                            key="add"
+                                                                            initial={{ opacity: 0, y: 10 }}
+                                                                            animate={{ opacity: 1, y: 0 }}
+                                                                            exit={{ opacity: 0, y: -10 }}
+                                                                        >
+                                                                            הוסף לסל
+                                                                        </motion.span>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </motion.button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
 
                                     </div>

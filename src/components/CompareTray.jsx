@@ -16,7 +16,7 @@ const CompareTray = () => {
                     exit={{ y: 100, opacity: 0, x: '-50%' }}
                     transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                     style={{ left: '50%' }}
-                    className="fixed bottom-8 z-[60] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_20px_40px_rgba(0,0,0,0.08)] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px] transform-gpu will-change-transform"
+                    className="fixed bottom-8 z-[60] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_20px_40px_rgb(0_0_0/0.08)] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px] transform-gpu will-change-transform"
                 >
                     {/* RTL Right: avatars and count */}
                     <div className="flex items-center gap-4">
@@ -24,7 +24,17 @@ const CompareTray = () => {
                             {selectedForCompare.map((item) => (
                                 <div key={item.id} className="relative group rounded-full">
                                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-[#F5F5F7]">
-                                        <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }} src={item.imageUrl || item.image} alt={item.title || item.name} className="w-full h-full object-cover mix-blend-multiply" />
+                                        <img
+                                            src={item.imageUrl || item.image}
+                                            alt={item.title || item.name}
+                                            className="w-full h-full object-cover mix-blend-multiply"
+                                            onError={(e) => {
+                                                if (!e.target.dataset.triedFallback) {
+                                                    e.target.dataset.triedFallback = 'true';
+                                                    e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                                }
+                                            }}
+                                        />
                                     </div>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); removeFromCompare(item.id); }}
@@ -55,7 +65,7 @@ const CompareTray = () => {
                         whileHover={{ scale: 1.08 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate('/compare')}
-                        className="bg-[#007AFF] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-[0_8px_16px_rgba(0,122,255,0.25)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.4)] transition-all duration-300 whitespace-nowrap"
+                        className="bg-[#007AFF] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-[0_8px_16px_rgb(0_122_255/0.25)] hover:shadow-[0_12px_24px_rgb(0_122_255/0.4)] transition-all duration-300 whitespace-nowrap"
                     >
                         השווה עכשיו
                     </motion.button>

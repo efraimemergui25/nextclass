@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
-import { Search } from 'lucide-react';
 
 const CATEGORIES = [
-    { label: "מסכים אינטראקטיביים והקרנה", slug: "מסכים אינטראקטיביים והקרנה" },
-    { label: "מחשוב לצוות ותלמידים", slug: "מחשוב לצוות ותלמידים" },
-    { label: "מעבדות STEM ומרחבי חדשנות", slug: "מעבדות STEM ומרחבי חדשנות" },
-    { label: "אודיו ווידאו למרחבי למידה", slug: "אודיו ווידאו למרחבי למידה" },
-    { label: "תשתיות ועגלות טעינה", slug: "תשתיות ועגלות טעינה" },
+    { label: 'מסכים אינטראקטיביים והקרנה', slug: 'מסכים אינטראקטיביים והקרנה' },
+    { label: 'מחשוב לצוות ותלמידים', slug: 'מחשוב לצוות ותלמידים' },
+    { label: 'מעבדות STEM ומרחבי חדשנות', slug: 'מעבדות STEM ומרחבי חדשנות' },
+    { label: 'אודיו ווידאו למרחבי למידה', slug: 'אודיו ווידאו למרחבי למידה' },
+    { label: 'תשתיות ועגלות טעינה', slug: 'תשתיות ועגלות טעינה' },
 ];
 
 const Header = () => {
@@ -21,49 +20,58 @@ const Header = () => {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-    // Dynamic Cart
-    const { cartItems } = useCart();
-    const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
-
-    // Hyper-Sensitive Scroll Logic (Smart Header)
     const [hidden, setHidden] = useState(false);
+
+    const { cartItems } = useCart();
+    const navigate = useNavigate();
+
+    // ─── Derived values ──────────────────────────────────────────────────────
+    const cartCount = useMemo(
+        () => (cartItems ?? []).reduce((acc, item) => acc + (item?.qty ?? 1), 0),
+        [cartItems]
+    );
+
+    // ─── Scroll hide/show logic ───────────────────────────────────────────────
     const { scrollY } = useScroll();
 
-    useMotionValueEvent(scrollY, "change", (latest) => {
-        const previous = scrollY.getPrevious();
+    useMotionValueEvent(scrollY, 'change', (latest) => {
+        const previous = scrollY.getPrevious() ?? 0;
         if (latest > previous && latest > 150) {
-            // Scrolling DOWN (and past initial hero area) -> Hide
             setHidden(true);
         } else {
-            // Scrolling UP (even 1px) or at top -> Show
             setHidden(false);
         }
     });
 
-    const navigate = useNavigate();
-
-    // Keyboard Shortcuts (Spotlight style)
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                setIsSearchOpen(prev => !prev);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+    // ─── Keyboard shortcut (Spotlight-style ⌘K) ──────────────────────────────
+    const handleKeyDown = useCallback((e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            setIsSearchOpen(prev => !prev);
+        }
     }, []);
 
-    // Prevent scrolling when menu/cart/search is open
     useEffect(() => {
-        if (isMenuOpen || isCartOpen || isSearchOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => { document.body.style.overflow = 'unset'; }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleKeyDown]);
+
+    // ─── Body scroll lock ─────────────────────────────────────────────────────
+    useEffect(() => {
+        document.body.style.overflow = (isMenuOpen || isCartOpen || isSearchOpen) ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
     }, [isMenuOpen, isCartOpen, isSearchOpen]);
+
+    // ─── Stable handlers ──────────────────────────────────────────────────────
+    const openMenu = useCallback(() => setIsMenuOpen(true), []);
+    const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+    const openCart = useCallback(() => setIsCartOpen(true), []);
+    const closeCart = useCallback(() => setIsCartOpen(false), []);
+    const openSearch = useCallback(() => setIsSearchOpen(true), []);
+    const closeSearch = useCallback(() => setIsSearchOpen(false), []);
+    const openMegaMenu = useCallback(() => setIsMegaMenuOpen(true), []);
+    const closeMegaMenu = useCallback(() => setIsMegaMenuOpen(false), []);
+    const goBack = useCallback(() => navigate(-1), [navigate]);
 
     return (
         <>
@@ -71,11 +79,11 @@ const Header = () => {
             <motion.header
                 variants={{
                     visible: { y: 0, opacity: 1 },
-                    hidden: { y: "-150%", opacity: 0 }
+                    hidden: { y: '-150%', opacity: 0 },
                 }}
-                animate={hidden ? "hidden" : "visible"}
+                animate={hidden ? 'hidden' : 'visible'}
                 transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/65 backdrop-blur-2xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-full px-7 py-3 flex items-center justify-between pointer-events-auto transition-apple-fluid"
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/45 backdrop-blur-3xl backdrop-saturate-[1.8] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-full px-5 py-2.5 flex items-center justify-between gap-4 pointer-events-auto will-change-transform transform-gpu"
             >
                 {/* ═══════════ RIGHT ZONE (RTL Anchor) — Logo ═══════════ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 pointer-events-auto z-[120]">
@@ -89,25 +97,16 @@ const Header = () => {
                 </Link>
 
                 {/* ═══════════ CENTER ZONE — Core Navigation (Desktop) ═══════════ */}
-                <nav className="hidden md:flex items-center gap-7 absolute left-1/2 -translate-x-1/2 text-[13px] pointer-events-auto z-[120]">
-                    {/* Link 1: Home */}
-                    <Link
-                        to="/"
-                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300"
-                    >
+                <nav className="hidden md:flex flex-1 items-center justify-center gap-6 text-[13px] pointer-events-auto overflow-hidden px-4">
+                    <Link to="/" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300">
                         דף הבית
                     </Link>
 
-                    {/* Link 2: Products — Hover Mega Menu */}
-                    <div
-                        className="relative"
-                        onMouseEnter={() => setIsMegaMenuOpen(true)}
-                        onMouseLeave={() => setIsMegaMenuOpen(false)}
-                    >
+                    {/* Products — Hover Mega Menu */}
+                    <div className="relative" onMouseEnter={openMegaMenu} onMouseLeave={closeMegaMenu}>
                         <Link
                             to="/catalog"
-                            className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'
-                                }`}
+                            className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
                         >
                             המוצרים שלנו
                             <svg
@@ -126,68 +125,64 @@ const Header = () => {
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-80 bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col gap-1 z-[110] pointer-events-auto transform-gpu will-change-transform"
+                                    className="absolute top-full mt-6 right-1/2 translate-x-1/2 w-[340px] bg-white/90 backdrop-blur-3xl backdrop-saturate-[1.8] border border-gray-200/70 rounded-[2rem] p-4 shadow-[0_30px_60px_rgb(0_0_0/0.16)] z-[110] pointer-events-auto will-change-transform overflow-hidden"
                                 >
-                                    {/* Triangle pointer */}
-                                    <div className="absolute -top-2 right-1/2 translate-x-1/2 w-4 h-4 bg-white/40 backdrop-blur-3xl border-t border-l border-white/60 rotate-45 pointer-events-none" />
+                                    <div className="flex flex-col gap-1">
+                                        {CATEGORIES.map((cat) => (
+                                            <Link
+                                                key={cat.slug}
+                                                to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
+                                                className="relative px-5 py-3.5 group cursor-pointer transition-apple-fluid"
+                                            >
+                                                {/* Hover Highlight */}
+                                                <motion.div
+                                                    layoutId="menu-highlight"
+                                                    className="absolute inset-0 bg-[#007AFF]/10 backdrop-blur-md rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                                />
+                                                <motion.div
+                                                    whileHover={{ x: 8 }}
+                                                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                                    className="relative z-10 flex justify-between items-center"
+                                                >
+                                                    <span className="text-[#1D1D1F] text-[15px] font-bold tracking-tight">{cat.label}</span>
+                                                    <ChevronRight className="w-4 h-4 text-[#007AFF] opacity-0 group-hover:opacity-100 transition-apple-fluid translate-x-1 group-hover:translate-x-0" />
+                                                </motion.div>
+                                            </Link>
+                                        ))}
 
-                                    {CATEGORIES.map((cat) => (
-                                        <Link
-                                            key={cat.slug}
-                                            to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
-                                            className="text-[#86868B] font-medium text-base py-2.5 px-3 rounded-xl hover:text-[#1D1D1F] hover:bg-black/5 hover:translate-x-[-8px] transition-all duration-300 pointer-events-auto"
-                                        >
-                                            {cat.label}
-                                        </Link>
-                                    ))}
-
-                                    {/* View All CTA */}
-                                    <div className="border-t border-gray-100 mt-2 pt-3">
-                                        <Link
-                                            to="/catalog"
-                                            className="text-[#007AFF] font-bold text-sm flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-[#007AFF]/5 transition-all duration-300 pointer-events-auto"
-                                        >
-                                            כל המוצרים
-                                            <svg className="w-4 h-4 rotate-180 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
-                                        </Link>
+                                        {/* Bottom Action: View All */}
+                                        <div className="mt-4 pt-4 border-t border-white/20">
+                                            <Link
+                                                to="/catalog"
+                                                className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-black text-sm tracking-tight flex items-center justify-center gap-2 hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] transition-all"
+                                            >
+                                                כל המוצרים
+                                                <ChevronRight className="w-4 h-4 rotate-180" />
+                                            </Link>
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
 
-                    {/* Link 3: Compare */}
-                    <Link
-                        to="/compare"
-                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
-                    >
+                    <Link to="/compare" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto">
                         השוואת דגמים
                     </Link>
-
-                    <Link
-                        to="/about"
-                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
-                    >
+                    <Link to="/about" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto">
                         הסיפור שלנו
                     </Link>
-
-                    <Link
-                        to="/contact"
-                        className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto"
-                    >
+                    <Link to="/contact" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300 pointer-events-auto">
                         צור קשר
                     </Link>
                 </nav>
 
                 {/* ═══════════ LEFT ZONE (RTL End) — Utilities ═══════════ */}
                 <div className="flex items-center gap-4 shrink-0">
-                    {/* Visual Order (R to L): Cart -> Search -> Back -> Hamburger */}
-
-                    {/* 1. Shopping Cart (Rightmost of group) */}
+                    {/* 1. Shopping Cart */}
                     <motion.button
-                        onClick={() => setIsCartOpen(true)}
+                        onClick={openCart}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
@@ -203,9 +198,9 @@ const Header = () => {
                         )}
                     </motion.button>
 
-                    {/* 2. Smart Search (New) */}
+                    {/* 2. Smart Search */}
                     <motion.button
-                        onClick={() => setIsSearchOpen(true)}
+                        onClick={openSearch}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
@@ -214,18 +209,18 @@ const Header = () => {
                         <Search className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
                     </motion.button>
 
-                    {/* 3. iOS Back Button */}
+                    {/* 3. iOS Back Button — mobile only */}
                     <button
-                        onClick={() => navigate(-1)}
-                        className="w-10 h-10 md:w-11 md:h-11 cursor-pointer rounded-full bg-white/50 hover:bg-white/80 backdrop-blur-md border border-white/60 shadow-sm flex items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
+                        onClick={goBack}
+                        className="flex md:hidden w-10 h-10 cursor-pointer rounded-full bg-white/50 hover:bg-white backdrop-blur-xl border border-white/80 shadow-[0_4px_12px_rgb(0_0_0/0.08)] items-center justify-center transition-all duration-300 active:scale-95 shrink-0 pointer-events-auto z-[120]"
                         aria-label="חזור אחורה"
                     >
                         <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#1D1D1F] pointer-events-none" />
                     </button>
 
-                    {/* 3. Hamburger Menu (Extreme Left of screen) */}
+                    {/* 4. Hamburger Menu */}
                     <motion.button
-                        onClick={() => setIsMenuOpen(true)}
+                        onClick={openMenu}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-apple-fluid flex items-center justify-center shrink-0 pointer-events-auto z-[120]"
@@ -238,13 +233,13 @@ const Header = () => {
                 </div>
             </motion.header>
 
-            <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
-            <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+            <MenuOverlay isOpen={isMenuOpen} onClose={closeMenu} />
+            <CartDrawer isOpen={isCartOpen} onClose={closeCart} />
             <AnimatePresence>
-                <SmartSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+                <SmartSearchModal isOpen={isSearchOpen} onClose={closeSearch} />
             </AnimatePresence>
         </>
     );
 };
 
-export default Header;
+export default memo(Header);

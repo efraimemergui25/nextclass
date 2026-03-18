@@ -6,6 +6,7 @@ import HeroSection from '../components/HeroSection';
 import SocialProofStrip from '../components/SocialProofStrip';
 import CatalogGrid from '../components/CatalogGrid';
 import ShoppableImage from '../components/ShoppableImage';
+import EcosystemVisualizer from '../components/EcosystemVisualizer';
 import ValueProps from '../components/ValueProps';
 import QuoteWizard from '../components/QuoteWizard';
 
@@ -18,6 +19,7 @@ const LandingPage = () => {
                 <HeroSection />
                 <SocialProofStrip />
                 <CatalogGrid />
+                <EcosystemVisualizer />
                 <ShoppableImage />
                 <QuoteWizard />
                 <ValueProps />

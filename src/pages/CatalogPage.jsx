@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
 import products from '../data/products';
+import SkeletonCard from '../components/SkeletonCard';
 
 const CatalogPage = () => {
     const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Simulate network latency — swap for real data fetch if needed
+    useEffect(() => {
+        const t = setTimeout(() => setIsLoading(false), 800);
+        return () => clearTimeout(t);
+    }, []);
 
     // Animation variants
     const container = {
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
-            transition: { staggerChildren: 0.1 }
+            transition: { staggerChildren: 0.05 }
         }
     };
 
@@ -49,40 +57,52 @@ const CatalogPage = () => {
 
                     {/* The Grid: 1 Col Mobile -> 2 Col iPad -> 3 Col Desktop */}
                     <motion.div
+                        key={isLoading ? 'skeleton' : 'loaded'}
                         variants={container}
                         initial="hidden"
                         animate="show"
                         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 lg:gap-16 xl:gap-24"
                     >
-                        {products.map((product) => (
-                            <Link to={`/catalog/${product.id}`} key={product.id} className="block group outline-none h-full">
-                                <motion.div
-                                    variants={itemObj}
-                                    whileHover={{ scale: 1.02, y: -5 }}
-                                    transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                    // Massive padding on desktop to soft touch on mobile `p-8 md:p-12`
-                                    className="flex flex-col bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 transition-all duration-500 hover:shadow-[0_30px_60px_rgba(0,0,0,0.06)] h-full relative overflow-hidden"
-                                >
-                                    {/* Image Area */}
-                                    <div className="relative aspect-square mb-8 md:mb-12 flex items-center justify-center p-4">
-                                        <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
-                                            src={product.image}
-                                            alt={product.title}
-                                            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
-                                        />
-                                    </div>
-
-                                    {/* Content Area */}
-                                    <div className="flex flex-col flex-1 items-center text-center justify-end">
-                                        <h3 className="text-xl md:text-2xl lg:text-3xl font-black text-[#1D1D1F] mb-3 md:mb-4 leading-snug lg:leading-tight tracking-tighter">{product.title}</h3>
-                                        <p className="text-sm md:text-base font-normal text-gray-500 mb-6 lg:mb-8 line-clamp-2 md:line-clamp-3 px-2 leading-relaxed">{product.description}</p>
-                                        <p className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1D1D1F] tracking-tighter mt-auto">
-                                            ₪{product.price.toLocaleString()}
-                                        </p>
-                                    </div>
+                        {isLoading
+                            ? Array.from({ length: 8 }).map((_, i) => (
+                                <motion.div key={i} variants={itemObj}>
+                                    <SkeletonCard />
                                 </motion.div>
-                            </Link>
-                        ))}
+                            ))
+                            : products.map((product) => (
+                                <Link to={`/catalog/${product.id}`} key={product.id} className="block group outline-none h-full">
+                                    <motion.div
+                                        variants={itemObj}
+                                        whileHover={{ scale: 1.025, y: -6 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+                                        className="flex flex-col bg-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 transition-shadow duration-300 hover:shadow-[0_30px_60px_rgb(0_0_0/0.06)] h-full relative overflow-hidden transform-gpu will-change-transform"
+                                    >
+                                        {/* Image Area */}
+                                        <div className="relative aspect-square mb-8 md:mb-12 flex items-center justify-center p-4">
+                                            <img
+                                                src={product.image}
+                                                alt={product.title}
+                                                className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
+                                                onError={(e) => {
+                                                    if (!e.target.dataset.triedFallback) {
+                                                        e.target.dataset.triedFallback = 'true';
+                                                        e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Content Area */}
+                                        <div className="flex flex-col flex-1 items-center text-center justify-end">
+                                            <h3 className="text-xl md:text-2xl lg:text-3xl font-black text-[#1D1D1F] mb-3 md:mb-4 leading-snug lg:leading-tight tracking-tighter">{product.title}</h3>
+                                            <p className="text-sm md:text-base font-normal text-gray-500 mb-6 lg:mb-8 line-clamp-2 md:line-clamp-3 px-2 leading-relaxed">{product.description}</p>
+                                            <p className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1D1D1F] tracking-tighter mt-auto">
+                                                ₪{product.price.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                </Link>
+                            ))}
                     </motion.div>
 
                 </div>
@@ -105,7 +125,7 @@ const CatalogPage = () => {
                                 initial={{ x: "100%" }}
                                 animate={{ x: 0 }}
                                 exit={{ x: "100%" }}
-                                transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
                                 className="fixed top-0 right-0 bottom-0 w-full md:max-w-md bg-white/95 backdrop-blur-3xl z-[80] shadow-2xl flex flex-col md:rounded-l-3xl overflow-hidden"
                             >
                                 <div className="p-6 md:p-8 flex justify-between items-center mb-4 md:mb-8 border-b border-gray-100 md:border-none">

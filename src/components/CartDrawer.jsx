@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { CreditCard } from 'lucide-react';
 
 const CartDrawer = ({ isOpen, onClose }) => {
     const { cartItems, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
@@ -49,8 +50,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
-                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white/50 backdrop-blur-3xl backdrop-saturate-[1.5] border-l border-white/50 shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[150] flex flex-col transition-apple-fluid"
+                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                        className="fixed inset-y-0 left-0 w-full md:w-[450px] bg-white/50 backdrop-blur-3xl backdrop-saturate-[1.5] border-l border-white/50 shadow-[-20px_0_50px_rgb(0_0_0/0.1)] z-[150] flex flex-col transform-gpu will-change-transform"
                     >
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex justify-between items-center">
@@ -77,11 +78,23 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                                        className="flex gap-4 bg-[#F5F5F7] rounded-2xl p-4 mb-4"
+                                        className="flex gap-4 bg-white/60 backdrop-blur-xl border border-white/50 shadow-sm rounded-2xl p-4 mb-4"
                                     >
                                         {/* Thumbnail */}
                                         <div className="w-20 h-20 rounded-xl bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                            <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }} src={item.imageUrl} alt={item.title} className="w-full h-full object-cover mix-blend-multiply" />
+                                            <img
+                                                onError={(e) => {
+                                                    if (!e.target.dataset.triedFallback) {
+                                                        e.target.dataset.triedFallback = 'true';
+                                                        e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                                    } else {
+                                                        e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
+                                                    }
+                                                }}
+                                                src={item.imageUrl}
+                                                alt={item.title}
+                                                className="w-full h-full object-cover mix-blend-multiply"
+                                            />
                                         </div>
 
                                         {/* Info */}
@@ -92,8 +105,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                 </h3>
                                                 <button
                                                     onClick={() => removeFromCart(item.id)}
-                                                    className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                                                    aria-label="Remove item"
+                                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all cursor-pointer rounded-full hover:bg-red-50 -mr-2"
+                                                    aria-label="הסר פריט"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -107,7 +120,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                     <motion.button
                                                         onClick={() => decreaseQuantity(item.id)}
                                                         whileTap={{ scale: 0.8 }}
-                                                        className="p-1 hover:text-[#007AFF] cursor-pointer"
+                                                        className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:text-[#007AFF] cursor-pointer text-lg font-bold"
                                                     >
                                                         -
                                                     </motion.button>
@@ -139,27 +152,39 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-semibold tracking-wide text-base hover:bg-blue-600 shadow-[0_8px_20px_rgba(0,122,255,0.2)] transition-all"
+                                    className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-bold tracking-wide text-base hover:bg-blue-600 shadow-[0_8px_24px_rgb(0_122_255/0.3)] hover:shadow-[0_12px_32px_rgb(0_122_255/0.4)] transition-all min-h-[52px]"
                                 >
                                     מעבר לתשלום מאובטח
                                 </motion.button>
                             </Link>
 
-                            {/* B2C Trust Badges */}
-                            <div className="flex items-center justify-center gap-4 mt-6 opacity-30 grayscale">
-                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
-                                    <rect width="38" height="24" rx="4" fill="#1D1D1F" />
-                                    <path d="M14 12V10H16V12H14ZM18 12V10H20V12H18ZM14 16V14H20V16H14Z" fill="white" />
-                                </svg>
-                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
-                                    <rect width="38" height="24" rx="4" fill="#007AFF" />
-                                    <circle cx="14" cy="12" r="5" fill="white" fillOpacity="0.8" />
-                                    <circle cx="24" cy="12" r="5" fill="white" fillOpacity="0.8" />
-                                </svg>
-                                <svg className="w-8 h-8" viewBox="0 0 38 24" fill="none">
-                                    <rect width="38" height="24" rx="4" fill="#1D1D1F" />
-                                    <text x="50%" y="65%" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">Pay</text>
-                                </svg>
+                            {/* CSS-Based Payment Badges (Crash-Proof) */}
+                            <div className="mt-8">
+                                <p className="text-center text-[10px] font-bold text-[#1D1D1F]/40 mb-4 tracking-widest uppercase">
+                                    תשלום מאובטח באמצעות:
+                                </p>
+                                <div className="flex flex-wrap justify-center gap-3 opacity-70 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    {/* Apple Pay */}
+                                    <div className="bg-black text-white px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 font-semibold text-sm shadow-sm">
+                                        <span className="text-lg"></span> Pay
+                                    </div>
+
+                                    {/* Bit */}
+                                    <div className="bg-white border border-gray-100 text-[#00B4E6] px-3 py-1.5 rounded-xl flex items-center justify-center font-black text-lg tracking-tighter shadow-sm">
+                                        bit
+                                    </div>
+
+                                    {/* PayPal */}
+                                    <div className="bg-[#00457C] text-white px-3 py-1.5 rounded-xl flex items-center justify-center font-bold italic text-sm shadow-sm">
+                                        PayPal
+                                    </div>
+
+                                    {/* Credit Card */}
+                                    <div className="bg-white border border-gray-100 text-[#1D1D1F] px-3 py-1.5 rounded-xl flex items-center justify-center gap-1.5 font-semibold text-sm shadow-sm">
+                                        <CreditCard size={14} />
+                                        <span>אשראי</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </motion.div>

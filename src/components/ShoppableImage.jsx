@@ -51,11 +51,19 @@ const ShoppableImage = () => {
 
                 {/* The Interactive Canvas */}
                 <div className="relative w-full aspect-[4/3] md:aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl bg-gray-900">
-                    <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                    <img
                         src="https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop"
                         alt="Smart Classroom Environment"
                         className="w-full h-full object-cover opacity-80"
                         onMouseEnter={() => setActiveHotspot(null)} // Clear active state if mouse leaves hotspots into plain image
+                        onError={(e) => {
+                            if (!e.target.dataset.triedFallback) {
+                                e.target.dataset.triedFallback = 'true';
+                                e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                            } else {
+                                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
+                            }
+                        }}
                     />
 
                     {/* Overlay Gradient for contrast */}
@@ -86,7 +94,7 @@ const ShoppableImage = () => {
                                     className="absolute inset-0 bg-[#007AFF] rounded-full"
                                 />
                                 {/* Solid Core */}
-                                <div className="w-4 h-4 bg-white rounded-full shadow-[0_0_0_8px_rgba(0,122,255,0.4)] group-hover:scale-125 transition-transform duration-300 z-10" />
+                                <div className="w-4 h-4 bg-white rounded-full shadow-[0_0_0_8px_rgb(0_122_255/0.4)] group-hover:scale-125 transition-transform duration-300 z-10" />
                             </div>
 
                             {/* The Tooltip (Glassmorphism) */}
@@ -97,7 +105,7 @@ const ShoppableImage = () => {
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, y: spot.direction === 'top' ? 10 : -10 }}
                                         transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                        className={`absolute left-1/2 -translate-x-1/2 ${spot.direction === 'top' ? 'bottom-full mb-4' : 'top-full mt-4'} w-72 bg-white/85 backdrop-blur-3xl p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.3)] border border-white/40 z-50 flex flex-col`}
+                                        className={`absolute left-1/2 -translate-x-1/2 ${spot.direction === 'top' ? 'bottom-full mb-4' : 'top-full mt-4'} w-72 bg-white/85 backdrop-blur-3xl p-5 rounded-2xl shadow-[0_20px_40px_rgb(0_0_0/0.3)] border border-white/40 z-50 flex flex-col`}
                                     >
                                         {/* CSS Triangle Pointer */}
                                         <div className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-white/85 backdrop-blur-3xl border-white/40 rotate-45 ${spot.direction === 'top' ? 'bottom-[-8px] border-b border-r' : 'top-[-8px] border-t border-l'}`} />

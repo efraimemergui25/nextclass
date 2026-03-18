@@ -16,7 +16,7 @@ export const MotionButton = ({
     const baseClasses = "relative inline-flex items-center justify-center font-bold rounded-full focus:outline-none transition-all duration-300";
 
     const variants = {
-        primary: "bg-[#007AFF] text-white hover:bg-blue-600 shadow-[0_8px_25px_rgba(0,122,255,0.3)] hover:shadow-[0_12px_35px_rgba(0,122,255,0.4)]",
+        primary: "bg-[#007AFF] text-white hover:bg-blue-600 shadow-[0_8px_25px_rgb(0_122_255/0.3)] hover:shadow-[0_12px_35px_rgb(0_122_255/0.4)]",
         ghost: "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-gray-200",
         outline: "bg-transparent text-[#007AFF] border-2 border-[#007AFF] hover:bg-blue-50"
     };
@@ -138,7 +138,17 @@ const CartPage = () => {
                                         >
                                             {/* Image Thumbnail */}
                                             <div className="w-full md:w-48 aspect-square rounded-[2.5rem] bg-[#F5F5F7] overflow-hidden flex-shrink-0 mb-8 md:mb-0 ml-0 md:ml-10 relative shadow-sm">
-                                                <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }} src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-6 mix-blend-multiply" />
+                                                <img
+                                                    src={item.imageUrl}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-contain p-6 mix-blend-multiply"
+                                                    onError={(e) => {
+                                                        if (!e.target.dataset.triedFallback) {
+                                                            e.target.dataset.triedFallback = 'true';
+                                                            e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                                        }
+                                                    }}
+                                                />
                                             </div>
 
                                             {/* Item Details */}
@@ -197,7 +207,7 @@ const CartPage = () => {
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
-                                className="bg-[#F5F5F7] rounded-[3rem] p-12 shadow-[0_40px_80px_rgba(0,0,0,0.05)]"
+                                className="bg-[#F5F5F7] rounded-[3rem] p-12 shadow-[0_40px_80px_rgb(0_0_0/0.05)]"
                             >
                                 <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tighter">סיכום הזמנה</h2>
 

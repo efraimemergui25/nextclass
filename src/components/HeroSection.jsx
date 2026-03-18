@@ -49,12 +49,12 @@ const HeroSection = () => {
                         className="mt-10 flex justify-center"
                     >
                         <motion.button
-                            onClick={() => navigate('/catalog')}
+                            onClick={() => navigate('/discover')}
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
-                            className="backdrop-blur-xl bg-white/10 border border-white/20 text-white font-bold tracking-wide rounded-full px-10 py-4 text-lg hover:bg-white hover:text-black transition-all duration-500 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                            className="backdrop-blur-xl bg-white/10 border border-white/20 text-white font-bold tracking-wide rounded-full px-10 py-4 text-lg hover:bg-white hover:text-black transition-all duration-500 hover:shadow-[0_0_40px_rgb(255_255_255/0.2)]"
                         >
-                            לכל הפתרונות
+                            קנה עכשיו
                         </motion.button>
                     </motion.div>
                 </motion.div>

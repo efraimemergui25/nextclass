@@ -16,8 +16,9 @@ import ContactPage from './pages/ContactPage';
 import VODCenterPage from './pages/VODCenterPage';
 import MagazinePage from './pages/MagazinePage';
 import ComparePage from './pages/ComparePage';
-import AIAssistantWidget from './components/AIAssistantWidget';
-import FloatingWhatsApp from './components/FloatingWhatsApp';
+import DiscoverPage from './pages/DiscoverPage';
+import DynamicIsland from './components/DynamicIsland';
+import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
@@ -40,6 +41,7 @@ function AnimatedRoutes() {
                 <Route path="/vod" element={<VODCenterPage />} />
                 <Route path="/magazine" element={<MagazinePage />} />
                 <Route path="/compare" element={<ComparePage />} />
+                <Route path="/discover" element={<DiscoverPage />} />
                 <Route path="*" element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -57,8 +59,8 @@ function App() {
                             <AnimatedRoutes />
                         </main>
                         <Footer />
-                        <AIAssistantWidget />
-                        <FloatingWhatsApp />
+                        <DynamicIsland />
+                        <SmartConcierge />
                         <CompareTray />
                     </div>
                 </Router>

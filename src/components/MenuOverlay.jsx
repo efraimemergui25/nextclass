@@ -12,37 +12,37 @@ const MenuOverlay = ({ isOpen, onClose }) => {
         show: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.08,
-                duration: 0.4,
+                staggerChildren: 0.05,
+                duration: 0.35,
                 ease: [0.32, 0.72, 0, 1]
             }
         },
         exit: {
             opacity: 0,
             transition: {
-                duration: 0.4,
+                duration: 0.3,
                 ease: [0.32, 0.72, 0, 1],
-                staggerChildren: 0.05,
+                staggerChildren: 0.04,
                 staggerDirection: -1
             }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 40 },
+        hidden: { opacity: 0, y: 36 },
         show: {
             opacity: 1,
             y: 0,
             transition: {
                 type: "spring",
-                damping: 25,
-                stiffness: 200
+                stiffness: 350,
+                damping: 25
             }
         },
         exit: {
             opacity: 0,
-            y: 20,
-            transition: { duration: 0.2 }
+            y: 16,
+            transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] }
         }
     };
 
@@ -64,7 +64,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     animate="show"
                     exit="exit"
                     variants={containerVariants}
-                    className="fixed inset-0 z-[200] flex flex-col w-full h-full bg-[#F5F5F7]/80 dark:bg-[#1D1D1F]/80 backdrop-blur-[50px] backdrop-saturate-[180%] pointer-events-auto"
+                    className="fixed inset-0 z-[250] flex flex-col w-full h-full bg-white/40 dark:bg-[#1D1D1F]/40 backdrop-blur-3xl backdrop-saturate-[1.8] border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.1)] pointer-events-auto"
                 >
                     {/* Top Area (Close Button) */}
                     <div className="w-full p-8 flex justify-end">
@@ -83,17 +83,21 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                             const isActive = location.pathname === item.path;
                             return (
                                 <motion.div key={index} variants={itemVariants}>
-                                    <Link
-                                        to={item.path}
-                                        onClick={onClose}
-                                        className={`text-3xl md:text-5xl font-semibold tracking-tight transition-all duration-400 ease-out inline-block transform-gpu hover:scale-105 ${isActive
-                                            ? 'text-[#007AFF]'
-                                            : 'text-[#1D1D1F] hover:text-[#007AFF]'
-                                            }`}
-                                        style={{ fontFamily: "'Heebo', sans-serif" }}
+                                    <motion.div
+                                        whileHover={{ y: -3, textShadow: '0px 4px 12px rgba(0, 122, 255, 0.3)' }}
+                                        whileTap={{ scale: 0.97 }}
+                                        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                                     >
-                                        {item.name}
-                                    </Link>
+                                        <Link
+                                            to={item.path}
+                                            onClick={onClose}
+                                            className={`text-3xl md:text-5xl font-semibold tracking-tight transition-colors duration-300 inline-block ${isActive ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'
+                                                }`}
+                                            style={{ fontFamily: "'Heebo', sans-serif" }}
+                                        >
+                                            {item.name}
+                                        </Link>
+                                    </motion.div>
                                 </motion.div>
                             );
                         })}

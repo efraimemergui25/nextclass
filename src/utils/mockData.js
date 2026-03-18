@@ -8,7 +8,7 @@ export const HardwareCatalog = [
         basePrice: 12000,
         contractPrice: 9500,
         stockStatus: "במלאי",
-        imageUrl: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&q=80&w=800",
+        imageUrl: "/path/to/pro-75-uhd-4k-image.png",
         specs: { size: "75 inch", resolution: "4K UHD", touch: "20-point multi-touch" }
     },
     {

@@ -1,27 +1,40 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-const SkeletonCard = () => {
-    return (
-        <div className="card-premium flex flex-col h-full animate-pulse transition-none hover:shadow-sm hover:scale-100 cursor-default transform-gpu will-change-transform">
-            {/* Image placeholder */}
-            <div className="aspect-video w-full bg-gray-200 rounded-2xl mb-12" />
+/**
+ * SkeletonCard — mirrors the exact layout of ProductCard.
+ * Uses a gradient shimmer animation for the loading state.
+ */
+const SkeletonCard = () => (
+    <div className="flex flex-col h-full bg-white rounded-3xl overflow-hidden border border-gray-100/80">
+        {/* Image placeholder — aspect-[4/3] matches ProductCard */}
+        <div className="w-full aspect-[16/9] md:aspect-[4/3] shimmer" />
 
-            {/* Category badge */}
-            <div className="h-3 w-24 bg-gray-200 rounded-full mb-4" />
+        {/* Content area */}
+        <div className="flex-1 flex flex-col px-5 pt-5 pb-5 gap-3">
+            {/* Category label */}
+            <div className="shimmer h-3 w-20 rounded-full" />
 
-            {/* Title */}
-            <div className="h-5 w-3/4 bg-gray-200 rounded-full mb-2" />
-            <div className="h-5 w-1/2 bg-gray-200 rounded-full mb-6" />
+            {/* Title lines */}
+            <div className="shimmer h-5 w-full rounded-lg" />
+            <div className="shimmer h-5 w-3/4 rounded-lg" />
+
+            {/* Description lines */}
+            <div className="shimmer h-3.5 w-full rounded-md mt-1" />
+            <div className="shimmer h-3.5 w-5/6 rounded-md" />
 
             {/* Spacer */}
-            <div className="mt-auto pt-4 flex items-end justify-between">
-                {/* Price */}
-                <div className="h-7 w-28 bg-gray-200 rounded-full" />
-                {/* Button */}
-                <div className="h-10 w-28 bg-gray-200 rounded-xl" />
+            <div className="flex-1 min-h-[16px]" />
+
+            {/* Footer — price + buttons */}
+            <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                <div className="shimmer h-7 w-24 rounded-lg" />
+                <div className="flex gap-2">
+                    <div className="shimmer h-9 w-9 rounded-full" />
+                    <div className="shimmer h-9 w-28 rounded-full" />
+                </div>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
-export default SkeletonCard;
+export default memo(SkeletonCard);

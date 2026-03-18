@@ -100,7 +100,7 @@ const InstitutionalLogin = () => {
                         <div>
                             <button
                                 type="submit"
-                                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-[0_10px_20px_rgba(0,122,255,0.2)] text-base font-bold text-white bg-[#007AFF] hover:bg-blue-600 hover:-translate-y-1 focus:outline-none transition-all duration-300"
+                                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-[0_10px_20px_rgb(0_122_255/0.2)] text-base font-bold text-white bg-[#007AFF] hover:bg-blue-600 hover:-translate-y-1 focus:outline-none transition-all duration-300"
                             >
                                 Secure Login
                             </button>

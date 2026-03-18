@@ -27,7 +27,7 @@ const Dashboard = () => {
                 <main className="flex-1 p-8 md:p-12">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-10">
                         <h1 className="text-3xl md:text-5xl font-black tracking-tighter mb-4 md:mb-0 text-[#1D1D1F]">Welcome back, Institution</h1>
-                        <button className="bg-[#007AFF] text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgba(0,122,255,0.2)] focus:outline-none">
+                        <button className="bg-[#007AFF] text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgb(0_122_255/0.2)] focus:outline-none">
                             New Procurement Request
                         </button>
                     </div>

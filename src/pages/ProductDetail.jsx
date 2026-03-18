@@ -107,12 +107,19 @@ const ProductDetail = () => {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                                className="relative w-full aspect-square bg-[#F5F5F7] rounded-[2rem] md:rounded-[3rem] overflow-hidden group shadow-[0_20px_40px_rgba(0,0,0,0.05)] md:shadow-[0_40px_80px_rgba(0,0,0,0.05)]"
+                                className="relative w-full aspect-square bg-[#F5F5F7] rounded-[2rem] md:rounded-[3rem] overflow-hidden group shadow-[0_20px_40px_rgb(0_0_0/0.05)] md:shadow-[0_40px_80px_rgb(0_0_0/0.05)]"
                             >
-                                <img onError={(e) => { e.target.onerror = null; e.target.src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                                <img
                                     src={product.imageUrl}
                                     alt={product.name}
-                                    className="absolute inset-0 w-full h-full object-contain mix-blend-multiply p-8 md:p-12 transition-transform duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+                                    className="absolute inset-0 w-full h-full object-contain mix-blend-multiply p-8 md:p-12 transition-transform duration-[1500ms] group-hover:scale-[1.03]"
+                                    style={{ transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)' }}
+                                    onError={(e) => {
+                                        if (!e.target.dataset.triedFallback) {
+                                            e.target.dataset.triedFallback = 'true';
+                                            e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                        }
+                                    }}
                                 />
 
                                 {/* Interactive Hotspots - hidden on extremely tight mobile heights but scale otherwise */}
@@ -143,7 +150,7 @@ const ProductDetail = () => {
                                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                                     exit={{ opacity: 0, scale: 0.9, y: 15, transition: { duration: 0.2 } }}
                                                     transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                                    className="absolute top-12 md:top-14 right-1/2 translate-x-1/2 w-48 md:w-64 bg-white/90 backdrop-blur-2xl p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.15)] z-30 transform-gpu cursor-default"
+                                                    className="absolute top-12 md:top-14 right-1/2 translate-x-1/2 w-48 md:w-64 bg-white/90 backdrop-blur-2xl p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-[0_20px_40px_rgb(0_0_0/0.15)] z-30 transform-gpu cursor-default"
                                                 >
                                                     <h4 className="text-[#1D1D1F] font-black text-sm md:text-lg mb-1 md:mb-2 leading-tight">{spot.title}</h4>
                                                     <p className="text-gray-500 font-medium text-xs md:text-sm leading-relaxed">{spot.desc}</p>
@@ -162,7 +169,7 @@ const ProductDetail = () => {
                 {/* Sticky Mobile/Desktop Action Bar for PDP */}
                 {/* On mobile: Sticky bottom fixed. On Desktop: relative within flow */}
                 <div className="fixed sm:relative bottom-0 sm:bottom-auto left-0 right-0 sm:mt-16 sm:max-w-[1500px] sm:mx-auto sm:px-6 md:px-12 xl:px-24 z-[55] sm:z-10">
-                    <div className="bg-white/90 sm:bg-transparent backdrop-blur-2xl sm:backdrop-blur-none border-t border-gray-100 sm:border-none p-4 sm:p-0 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 sm:gap-12 w-full shadow-[0_-10px_30px_rgba(0,0,0,0.05)] sm:shadow-none">
+                    <div className="bg-white/90 sm:bg-transparent backdrop-blur-2xl sm:backdrop-blur-none border-t border-gray-100 sm:border-none p-4 sm:p-0 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 sm:gap-12 w-full shadow-[0_-10px_30px_rgb(0_0_0/0.05)] sm:shadow-none">
 
                         {/* Price summary hidden on extreme mobile height, visible normally */}
                         <div className="hidden sm:block text-right w-full sm:w-auto">
@@ -177,7 +184,7 @@ const ProductDetail = () => {
                             <MotionButton variant="ghost" className="flex-1 sm:flex-none sm:w-48 px-2 sm:px-8 py-4 sm:py-6 text-sm sm:text-xl font-bold bg-[#F5F5F7] text-[#1D1D1F] hover:bg-gray-200 rounded-[1.5rem] sm:rounded-full whitespace-nowrap">
                                 מפרט חלופה
                             </MotionButton>
-                            <MotionButton variant="primary" className="flex-[2] sm:flex-none sm:w-80 px-4 sm:px-8 py-4 sm:py-6 text-base sm:text-xl font-black rounded-[1.5rem] sm:rounded-full shadow-[0_10px_30px_rgba(0,122,255,0.3)] hover:shadow-[0_15px_40px_rgba(0,122,255,0.4)]">
+                            <MotionButton variant="primary" className="flex-[2] sm:flex-none sm:w-80 px-4 sm:px-8 py-4 sm:py-6 text-base sm:text-xl font-black rounded-[1.5rem] sm:rounded-full shadow-[0_10px_30px_rgb(0_122_255/0.3)] hover:shadow-[0_15px_40px_rgb(0_122_255/0.4)]">
                                 <span className="hidden sm:inline">הוסף למרחב הלמידה</span>
                                 <span className="sm:hidden">הוסף ₪{product.contractPrice.toLocaleString()}</span>
                             </MotionButton>

@@ -197,7 +197,7 @@ const QuoteWizard = () => {
                                                 whileHover={{ scale: 1.03, y: -2 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => alert('הצעת המחיר נשלחה לכתובת המייל שלכם! \n\nנציג שלנו יחזור אליכם תוך 24 שעות.')}
-                                                className="flex-1 bg-[#007AFF] text-white py-4 rounded-2xl font-bold text-base shadow-[0_8px_16px_rgba(0,122,255,0.2)] hover:shadow-[0_12px_24px_rgba(0,122,255,0.4)] transition-all duration-300"
+                                                className="flex-1 bg-[#007AFF] text-white py-4 rounded-2xl font-bold text-base shadow-[0_8px_16px_rgb(0_122_255/0.2)] hover:shadow-[0_12px_24px_rgb(0_122_255/0.4)] transition-all duration-300"
                                             >
                                                 הורד הצעת מחיר
                                             </motion.button>

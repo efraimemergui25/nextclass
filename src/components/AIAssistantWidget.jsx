@@ -82,7 +82,7 @@ const AIAssistantWidget = () => {
                         exit={{ opacity: 0, scale: 0.5, y: 100, x: -50 }}
                         transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                         style={{ transformOrigin: 'bottom right' }}
-                        className="fixed bottom-24 right-8 w-[350px] h-[500px] bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-3xl overflow-hidden flex flex-col z-[150] transition-apple-fluid"
+                        className="fixed bottom-24 right-8 w-[350px] h-[500px] bg-white/40 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_50px_rgb(0_0_0/0.12)] rounded-3xl overflow-hidden flex flex-col z-[150] transition-apple-fluid"
                     >
                         {/* Header */}
                         <div className="bg-white/50 border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
