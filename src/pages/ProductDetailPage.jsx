@@ -145,8 +145,8 @@ const ProductDetailPage = () => {
                             <button
                                 onClick={handleCartToggle}
                                 className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-apple-fluid flex items-center gap-1.5 group min-w-[130px] justify-center pointer-events-auto ${isInCart
-                                        ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
-                                        : 'bg-[#007AFF] text-white shadow-blue-500/20 hover:scale-[1.05]'
+                                    ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:border-red-200 hover:shadow-red-500/10'
+                                    : 'bg-[#007AFF] text-white shadow-blue-500/20 hover:scale-[1.05]'
                                     }`}
                             >
                                 <AnimatePresence mode="wait">

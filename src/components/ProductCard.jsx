@@ -54,7 +54,7 @@ const ProductCard = ({ product }) => {
 
     return (
         <motion.div
-            className="flex flex-col h-full relative group cursor-pointer bg-white rounded-3xl overflow-hidden hover:-translate-y-2 hover:shadow-2xl transition-apple-fluid"
+            className="flex flex-col h-full relative group cursor-pointer bg-white rounded-3xl overflow-hidden hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-apple-fluid"
         >
             <Link to={`/catalog/${id}`} className="flex flex-col h-full flex-grow outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-3xl">
 
@@ -65,15 +65,12 @@ const ProductCard = ({ product }) => {
                             <ImageFallback />
                         </div>
                     ) : (
-                        <img
-                            src={image}
-                            alt={title}
-                            loading="lazy"
-                            className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-all duration-500"
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
-                            }}
+                        <img src={image} alt={title} className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-apple-fluid" onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} loading="lazy" /> {e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }} onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E"; }}
+                    src={image}
+                    alt={title}
+                    className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-apple-fluid"
+                    onError={() => setImgError(true)}
+                    loading="lazy"
                         />
                     )}
                     {/* Subtle inner shadow for hardware depth */}
