@@ -53,7 +53,7 @@ const CheckoutPage = () => {
     const total = subtotal + deliveryCost;
     const formatPrice = (n) => `₪${n.toLocaleString('he-IL')}`;
 
-    const GLASS_PANEL = "bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_40px_rgba(0,0,0,0.08)] rounded-[2rem] p-8";
+    const GLASS_PANEL = "bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-2xl rounded-[2rem] p-8";
 
     return (
         <PageTransition>

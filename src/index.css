@@ -33,7 +33,7 @@
 
     /* Apple Glassmorphism Standard - exact formula */
     .glass-light {
-        @apply bg-white/75 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0, 0, 0, 0.06)];
+        @apply bg-white/75 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_#00000010];
     }
 
     .glass-dark {
@@ -42,12 +42,12 @@
 
     /* Gestalt Common Region (Premium Cards) */
     .card-premium {
-        @apply bg-white rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 ease-[cubic-bezier(0.32, 0.72, 0, 1)] border-none transform-gpu will-change-transform;
+        @apply bg-white rounded-3xl p-8 shadow-sm hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 ease-out border-none transform-gpu will-change-transform;
     }
 
     /* Motion Standard */
     .transition-apple-fluid {
-        @apply transition-all duration-400 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu will-change-transform;
+        @apply transition-all duration-400 ease-out transform-gpu will-change-transform;
     }
 
     /* Typography Enforcement — Apple Scale */
@@ -69,14 +69,14 @@
 
     /* Standardized Button Hierarchy */
     .btn-primary {
-        @apply bg-[#007AFF] text-white font-semibold tracking-wide rounded-full px-8 py-4 text-base shadow-[0_8px_16px_#007AFF33] hover:shadow-[0_12px_24px_#007AFF66] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu min-h-[44px] flex items-center justify-center;
+        @apply bg-[#007AFF] text-white font-semibold tracking-wide rounded-full px-8 py-4 text-base shadow-[0_8px_16px_#007AFF33] hover:shadow-[0_12px_24px_#007AFF66] hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out transform-gpu min-h-[44px] flex items-center justify-center;
     }
 
     .btn-glass {
-        @apply bg-white/50 backdrop-blur-md border border-gray-200/50 text-[#1D1D1F] font-semibold tracking-wide rounded-full px-8 py-4 text-base hover:bg-white hover:shadow-md hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] transform-gpu min-h-[44px] flex items-center justify-center;
+        @apply bg-white/50 backdrop-blur-md border border-gray-200/50 text-[#1D1D1F] font-semibold tracking-wide rounded-full px-8 py-4 text-base hover:bg-white hover:shadow-md hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ease-out transform-gpu min-h-[44px] flex items-center justify-center;
     }
 
     .btn-ghost {
-        @apply text-gray-500 font-medium px-4 py-2 rounded-lg hover:text-[#007AFF] hover:bg-[#007AFF]/5 active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.32, 0.72, 0, 1)] min-h-[44px] min-w-[44px] flex items-center justify-center;
+        @apply text-gray-500 font-medium px-4 py-2 rounded-lg hover:text-[#007AFF] hover:bg-[#007AFF]/5 active:scale-[0.97] transition-all duration-300 ease-out min-h-[44px] min-w-[44px] flex items-center justify-center;
     }
 }
