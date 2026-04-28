@@ -53,7 +53,32 @@ function App() {
         <CartProvider>
             <CompareProvider>
                 <Router>
-                    <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased bg-[#F5F5F7] selection:bg-blue-100 pt-[73px] overflow-x-hidden">
+                    <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased bg-[#F5F5F7] selection:bg-blue-100 selection:text-blue-700 pt-[73px] overflow-x-hidden">
+
+                        {/* ── Global Ambient Atmosphere ── */}
+                        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+                            {/* Blue accent orb — top right */}
+                            <div
+                                className="absolute top-[-15%] right-[-10%] w-[700px] h-[700px] rounded-full opacity-[0.07]"
+                                style={{
+                                    background: 'radial-gradient(circle, #007AFF 0%, transparent 70%)',
+                                    filter: 'blur(80px)',
+                                    animation: 'orb-drift 18s ease-in-out infinite',
+                                }}
+                            />
+                            {/* Violet orb — bottom left */}
+                            <div
+                                className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.05]"
+                                style={{
+                                    background: 'radial-gradient(circle, #5856D6 0%, transparent 70%)',
+                                    filter: 'blur(80px)',
+                                    animation: 'orb-drift 24s ease-in-out infinite reverse',
+                                }}
+                            />
+                            {/* Subtle dot grid */}
+                            <div className="absolute inset-0 ambient-grid opacity-60" />
+                        </div>
+
                         <Header />
                         <main className="flex-1 w-full flex flex-col relative z-0">
                             <AnimatedRoutes />
@@ -66,6 +91,7 @@ function App() {
                 </Router>
             </CompareProvider>
         </CartProvider>
+
     );
 }
 

@@ -1,6 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
 
+/* ─── Ambient noise texture (subtle grain for luxury depth) ─────────────────── */
+@keyframes grain {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    10% {
+        transform: translate(-2%, -3%);
+    }
+
+    30% {
+        transform: translate(3%, -1%);
+    }
+
+    50% {
+        transform: translate(-1%, 4%);
+    }
+
+    70% {
+        transform: translate(4%, 2%);
+    }
+
+    90% {
+        transform: translate(-3%, 1%);
+    }
+}
+
 /* ─── Shimmer keyframe (used by SkeletonCard) ───────────────────────────────── */
 @keyframes shimmer {
     0% {
@@ -12,13 +41,86 @@
     }
 }
 
+/* ─── Ambient orb drift ──────────────────────────────────────────────────────── */
+@keyframes orb-drift {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(30px, -20px) scale(1.05);
+    }
+
+    66% {
+        transform: translate(-20px, 30px) scale(0.98);
+    }
+}
+
+/* ─── Glow pulse (used by CTA badges, icons) ─────────────────────────────────── */
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 122, 255, 0.15), 0 0 60px rgba(0, 122, 255, 0.05);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(0, 122, 255, 0.30), 0 0 80px rgba(0, 122, 255, 0.12);
+    }
+}
+
+/* ─── Text shimmer (premium labels) ─────────────────────────────────────────── */
+@keyframes text-shimmer {
+    0% {
+        background-position: 200% center;
+    }
+
+    100% {
+        background-position: -200% center;
+    }
+}
+
+/* ─── Float lift (subtle hover float) ───────────────────────────────────────── */
+@keyframes float-lift {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
 .shimmer {
-    background: linear-gradient(90deg,
-            #f0f0f0 25%,
-            #e4e4e7 50%,
-            #f0f0f0 75%);
+    background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e7 50%, #f0f0f0 75%);
     background-size: 400% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.text-shimmer {
+    background: linear-gradient(90deg,
+            #1D1D1F 0%,
+            #007AFF 30%,
+            #5856D6 50%,
+            #007AFF 70%,
+            #1D1D1F 100%);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: text-shimmer 4s linear infinite;
+}
+
+.glow-blue {
+    animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.float-animate {
+    animation: float-lift 4s ease-in-out infinite;
 }
 
 @theme {
@@ -39,6 +141,8 @@
         background-color: #F5F5F7;
         color: #1D1D1F;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
         @apply font-sans leading-relaxed;
     }
 
@@ -50,52 +154,130 @@
     h6 {
         @apply tracking-tighter leading-[1.05] font-black text-[#1D1D1F];
     }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Selection highlight */
+    ::selection {
+        background: rgba(0, 122, 255, 0.15);
+        color: #007AFF;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 122, 255, 0.4);
+    }
 }
 
 @layer components {
 
-    /* Apple Glassmorphism Standard - exact formula */
+    /* ─── Adaptive Liquid Glass — visionOS 2026 standard ─────────────────── */
     .glass-light {
-        background: rgb(255 255 255 / 0.75);
-        backdrop-filter: blur(64px) saturate(1.5);
-        border: 1px solid rgb(255 255 255 / 0.5);
-        box-shadow: 0 8px 32px rgb(0 0 0 / 0.06);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.70) 100%);
+        backdrop-filter: blur(64px) saturate(1.8) brightness(1.02);
+        -webkit-backdrop-filter: blur(64px) saturate(1.8) brightness(1.02);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.06),
+            0 1px 0 rgba(255, 255, 255, 0.9) inset,
+            /* top shine */
+            0 -1px 0 rgba(0, 0, 0, 0.04) inset;
+        /* bottom depth */
     }
 
-    .glass-dark {
-        @apply bg-[#1D1D1F]/75 backdrop-blur-3xl border border-white/10 shadow-2xl;
-    }
-
-    /* Gestalt Common Region (Premium Cards) */
-    .card-premium {
-        background: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        border: none;
-        transform: translateZ(0);
-        will-change: transform;
+    /* Floating glass with ambient glow */
+    .glass-float {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.72) 100%);
+        backdrop-filter: blur(48px) saturate(1.6);
+        -webkit-backdrop-filter: blur(48px) saturate(1.6);
+        border: 1px solid rgba(255, 255, 255, 0.70);
+        box-shadow:
+            0 16px 48px rgba(0, 0, 0, 0.08),
+            0 4px 8px rgba(0, 0, 0, 0.04),
+            0 1px 0 rgba(255, 255, 255, 0.95) inset;
         transition: box-shadow 500ms cubic-bezier(0.32, 0.72, 0, 1),
             transform 500ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
+    .glass-float:hover {
+        box-shadow:
+            0 28px 64px rgba(0, 0, 0, 0.12),
+            0 8px 16px rgba(0, 0, 0, 0.06),
+            0 0 0 1px rgba(0, 122, 255, 0.08),
+            0 1px 0 rgba(255, 255, 255, 0.95) inset;
+        transform: translateY(-4px);
+    }
+
+    .glass-dark {
+        background: linear-gradient(145deg, rgba(29, 29, 31, 0.85) 0%, rgba(29, 29, 31, 0.70) 100%);
+        backdrop-filter: blur(64px) saturate(1.8);
+        -webkit-backdrop-filter: blur(64px) saturate(1.8);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            0 1px 0 rgba(255, 255, 255, 0.08) inset;
+    }
+
+    /* ─── Gestalt Common Region (Premium Cards) ───────────────────────────── */
+    .card-premium {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transform: translateZ(0);
+        will-change: transform;
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.04),
+            0 1px 0 rgba(255, 255, 255, 1) inset;
+        transition:
+            box-shadow 500ms cubic-bezier(0.32, 0.72, 0, 1),
+            transform 500ms cubic-bezier(0.32, 0.72, 0, 1),
+            border-color 500ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
     .card-premium:hover {
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        transform: scale(1.02);
+        box-shadow:
+            0 28px 56px -12px rgba(0, 0, 0, 0.18),
+            0 8px 16px rgba(0, 0, 0, 0.06),
+            0 0 0 1px rgba(0, 122, 255, 0.08);
+        transform: translateY(-6px) scale(1.005);
+        border-color: rgba(0, 122, 255, 0.1);
     }
 
     .card-premium:active {
         transform: scale(0.98);
     }
 
-    /* Motion Standard — Apple fluid easing via plain CSS (no Tailwind arbitrary value) */
+    /* ─── Motion Standard — Apple fluid easing ──────────────────────────── */
     .transition-apple-fluid {
         transition-property: all;
         transition-duration: 400ms;
         transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
     }
 
-    /* Typography Enforcement — Apple Scale */
+    .transition-apple-spring {
+        transition-property: transform, opacity, box-shadow;
+        transition-duration: 500ms;
+        transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* ─── Typography Enforcement — Apple Scale ──────────────────────────── */
     .text-hero {
         @apply text-5xl md:text-[5.5rem] font-black tracking-tighter leading-[1.05] text-[#1D1D1F];
     }
@@ -112,40 +294,48 @@
         @apply text-base md:text-lg font-normal leading-relaxed text-gray-600;
     }
 
-    /* Standardized Button Hierarchy */
+    /* ─── Standardized Button Hierarchy ─────────────────────────────────── */
     .btn-primary {
-        background-color: #007AFF;
+        background: linear-gradient(180deg, #1A8FFF 0%, #007AFF 60%, #006EDB 100%);
         color: white;
-        font-weight: 600;
-        letter-spacing: 0.025em;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         border-radius: 9999px;
         padding: 1rem 2rem;
         font-size: 1rem;
-        box-shadow: 0 8px 16px #007AFF33;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.25) inset,
+            0 8px 20px rgba(0, 122, 255, 0.35),
+            0 2px 8px rgba(0, 122, 255, 0.2);
         min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         transform: translateZ(0);
-        transition: all 300ms cubic-bezier(0.32, 0.72, 0, 1);
+        transition: all 350ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .btn-primary:hover {
-        box-shadow: 0 12px 24px #007AFF66;
-        transform: translateY(-4px);
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.25) inset,
+            0 14px 32px rgba(0, 122, 255, 0.50),
+            0 4px 12px rgba(0, 122, 255, 0.3);
+        transform: translateY(-3px) scale(1.01);
     }
 
     .btn-primary:active {
-        transform: scale(0.97);
+        transform: scale(0.97) translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
     }
 
     .btn-glass {
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(209, 213, 219, 0.5);
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(20px) saturate(1.5);
+        -webkit-backdrop-filter: blur(20px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.80);
         color: #1D1D1F;
         font-weight: 600;
-        letter-spacing: 0.025em;
+        letter-spacing: 0.01em;
         border-radius: 9999px;
         padding: 1rem 2rem;
         font-size: 1rem;
@@ -153,18 +343,24 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.9) inset,
+            0 4px 12px rgba(0, 0, 0, 0.08);
         transform: translateZ(0);
-        transition: all 300ms cubic-bezier(0.32, 0.72, 0, 1);
+        transition: all 350ms cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .btn-glass:hover {
-        background: white;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transform: translateY(-4px);
+        background: rgba(255, 255, 255, 0.90);
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.95) inset,
+            0 12px 28px rgba(0, 0, 0, 0.12),
+            0 0 0 1px rgba(0, 122, 255, 0.12);
+        transform: translateY(-3px) scale(1.01);
     }
 
     .btn-glass:active {
-        transform: scale(0.97);
+        transform: scale(0.97) translateY(0);
     }
 
     .btn-ghost {
@@ -182,10 +378,34 @@
 
     .btn-ghost:hover {
         color: #007AFF;
-        background: rgba(0, 122, 255, 0.05);
+        background: rgba(0, 122, 255, 0.06);
     }
 
     .btn-ghost:active {
         transform: scale(0.97);
+    }
+
+    /* ─── Ambient background dot grid ────────────────────────────────────── */
+    .ambient-grid {
+        background-image:
+            radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0);
+        background-size: 32px 32px;
+    }
+
+    /* ─── Glow ring (for featured elements) ─────────────────────────────── */
+    .glow-ring {
+        box-shadow:
+            0 0 0 1px rgba(0, 122, 255, 0.15),
+            0 0 32px rgba(0, 122, 255, 0.12),
+            0 0 64px rgba(0, 122, 255, 0.06);
+    }
+
+    /* ─── Icon glass badge ───────────────────────────────────────────────── */
+    .icon-glass {
+        background: linear-gradient(145deg, rgba(0, 122, 255, 0.12) 0%, rgba(88, 86, 214, 0.08) 100%);
+        border: 1px solid rgba(0, 122, 255, 0.15);
+        box-shadow:
+            0 4px 12px rgba(0, 122, 255, 0.12),
+            0 1px 0 rgba(255, 255, 255, 0.8) inset;
     }
 }

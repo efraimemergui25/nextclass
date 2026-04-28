@@ -9,19 +9,22 @@ import products from '../data/products';
 const SWIMLANES = [
     {
         id: 'top-sellers',
-        label: '🔥 הנמכרים ביותר',
+        label: 'הנמכרים ביותר',
+        badge: 'trending',
         sub: 'המוצרים שמוסדות החינוך בוחרים שוב ושוב',
         items: products.slice(0, 4),
     },
     {
         id: 'new-arrivals',
-        label: '✨ חדש בחנות',
+        label: 'חדש בחנות',
+        badge: 'new',
         sub: 'טכנולוגיה חדישה שהגיעה ממש עכשיו',
         items: products.slice(10, 14),
     },
     {
         id: 'deals',
-        label: '🏷️ מבצעים מיוחדים',
+        label: 'מבצעים מיוחדים',
+        badge: 'deal',
         sub: 'הזדמנויות שלא כדאי לפספס',
         items: products.slice(20, 24),
     },
@@ -56,11 +59,38 @@ const Swimlane = memo(({ lane }) => (
     >
         {/* Section Header */}
         <div className="flex items-end justify-between mb-8 pb-4 border-b border-gray-100">
-            <div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-[#1D1D1F]">
-                    {lane.label}
-                </h2>
-                <p className="text-base text-[#86868B] mt-1">{lane.sub}</p>
+            <div className="flex items-center gap-3">
+                <div>
+                    <div className="flex items-center gap-2.5 mb-1">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-[#1D1D1F]">
+                            {lane.label}
+                        </h2>
+                        {/* Premium badge — replaces emoji */}
+                        {lane.badge === 'trending' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
+                                style={{ background: 'linear-gradient(135deg, #FF3B30 0%, #FF6B35 100%)', boxShadow: '0 4px 12px rgba(255,59,48,0.25)' }}>
+                                <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="currentColor">
+                                    <path d="M2 8 L5 2 L8 8" strokeWidth="0" />
+                                    <rect x="1.5" y="7.5" width="7" height="1.2" rx="0.6" />
+                                </svg>
+                                טרנד
+                            </span>
+                        )}
+                        {lane.badge === 'new' && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
+                                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 12px rgba(0,122,255,0.25)' }}>
+                                חדש
+                            </span>
+                        )}
+                        {lane.badge === 'deal' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
+                                style={{ background: 'linear-gradient(135deg, #34C759 0%, #30B855 100%)', boxShadow: '0 4px 12px rgba(52,199,89,0.25)' }}>
+                                מבצע
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-base text-[#86868B] mt-0.5">{lane.sub}</p>
+                </div>
             </div>
             <Link
                 to="/catalog"

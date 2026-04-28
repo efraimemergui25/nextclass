@@ -2,6 +2,14 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
+const glassCard = {
+    background: 'linear-gradient(145deg, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.75) 100%)',
+    backdropFilter: 'blur(32px) saturate(1.6)',
+    WebkitBackdropFilter: 'blur(32px) saturate(1.6)',
+    border: '1px solid rgba(255,255,255,0.80)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.95) inset',
+};
+
 const SuccessStoriesPage = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -54,10 +62,11 @@ const SuccessStoriesPage = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     className="text-center max-w-3xl mx-auto mb-20 px-6"
                 >
-                    <h1 className="text-5xl md:text-6xl font-black text-brand-dark mb-4 tracking-tight">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#007AFF] block mb-4">לקוחות מרוצים</span>
+                    <h1 className="text-5xl md:text-6xl font-black text-brand-dark mb-4 tracking-tighter">
                         ההצלחה שלהם, הגאווה שלנו.
                     </h1>
                     <p className="text-lg md:text-xl text-gray-500 font-light leading-relaxed">
@@ -65,39 +74,50 @@ const SuccessStoriesPage = () => {
                     </p>
                 </motion.div>
 
-                {/* Testimonials Grid */}
+                {/* Testimonials Grid — Liquid Glass Cards */}
                 <motion.div
                     initial="hidden"
                     whileInView="show"
                     viewport={{ once: true }}
                     variants={{
                         hidden: { opacity: 0 },
-                        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                        show: { opacity: 1, transition: { staggerChildren: 0.09 } }
                     }}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-[1400px] mx-auto px-6 md:px-12"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[1400px] mx-auto px-6 md:px-12"
                 >
                     {testimonials.map((t, idx) => (
                         <motion.div
                             key={idx}
                             variants={{
-                                hidden: { opacity: 0, y: 30 },
-                                show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+                                hidden: { opacity: 0, y: 30, scale: 0.97 },
+                                show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 200, damping: 22 } }
                             }}
-                            className="bg-white p-10 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 relative group"
+                            whileHover={{ y: -6, scale: 1.01 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                            className="p-8 rounded-3xl relative overflow-hidden group"
+                            style={glassCard}
                         >
+                            {/* Top inset shine */}
+                            <div className="absolute top-0 left-6 right-6 h-px"
+                                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
+
+                            {/* Ambient glow on hover */}
+                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-3xl"
+                                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(0,122,255,0.04) 0%, transparent 60%)' }} />
+
                             {/* Quote Icon */}
-                            <span className="text-6xl text-gray-100 absolute top-6 right-6 font-serif leading-none select-none pointer-events-none">
+                            <span className="text-7xl text-[#007AFF]/10 absolute top-4 right-6 font-serif leading-none select-none pointer-events-none">
                                 ״
                             </span>
 
                             {/* Quote Content */}
-                            <p className="text-lg italic text-gray-600 mb-8 leading-relaxed relative z-10">
+                            <p className="text-[17px] text-gray-600 mb-8 leading-[1.75] relative z-10 font-medium">
                                 {t.quote}
                             </p>
 
                             {/* Author Info */}
                             <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-12 h-12 rounded-full bg-brand-light overflow-hidden shrink-0 ring-2 ring-gray-100">
+                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-[#007AFF]/20 shadow-sm">
                                     <img
                                         src={t.avatar}
                                         alt={t.name}
@@ -111,8 +131,8 @@ const SuccessStoriesPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-brand-dark">{t.name}</div>
-                                    <div className="text-sm text-gray-400">{t.role}</div>
+                                    <div className="font-black text-[#1D1D1F] tracking-tight">{t.name}</div>
+                                    <div className="text-sm text-[#86868B] font-medium">{t.role}</div>
                                 </div>
                             </div>
                         </motion.div>

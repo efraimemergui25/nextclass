@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, memo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';

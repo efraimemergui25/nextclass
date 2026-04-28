@@ -1,5 +1,78 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Phone, Mail, MapPin } from 'lucide-react';
+import PageTransition from '../components/PageTransition';
 
+// ─── Floating label input ───────────────────────────────────────────────────────
+const FloatingInput = ({ label, id, type = 'text', isTextArea = false }) => {
+    const [focused, setFocused] = useState(false);
+    const [hasValue, setHasValue] = useState(false);
+
+    const isFloating = focused || hasValue;
+
+    const inputStyle = {
+        background: 'rgba(255,255,255,0.75)',
+        backdropFilter: 'blur(20px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+        border: focused ? '1.5px solid rgba(0,122,255,0.5)' : '1.5px solid rgba(255,255,255,0.9)',
+        boxShadow: focused
+            ? '0 0 0 3px rgba(0,122,255,0.08), 0 2px 8px rgba(0,0,0,0.06)'
+            : '0 2px 8px rgba(0,0,0,0.04)',
+        borderRadius: '1rem',
+        transition: 'all 250ms cubic-bezier(0.32,0.72,0,1)',
+    };
+
+    const sharedProps = {
+        id,
+        type,
+        onFocus: () => setFocused(true),
+        onBlur: (e) => { setFocused(false); setHasValue(e.target.value !== ''); },
+        onChange: (e) => setHasValue(e.target.value !== ''),
+        className: 'w-full bg-transparent px-4 outline-none text-[#1D1D1F] font-medium text-right placeholder-transparent',
+    };
+
+    return (
+        <div className="relative w-full">
+            <div style={inputStyle} className={`relative ${isTextArea ? 'pt-6 pb-2' : ''}`}>
+                {/* Floating label */}
+                <label
+                    htmlFor={id}
+                    className="absolute right-4 pointer-events-none font-medium text-right transition-all duration-200 z-10"
+                    style={{
+                        top: isTextArea
+                            ? isFloating ? '8px' : '50%'
+                            : isFloating ? '6px' : '50%',
+                        transform: isTextArea
+                            ? isFloating ? 'none' : 'translateY(-50%)'
+                            : isFloating ? 'none' : 'translateY(-50%)',
+                        fontSize: isFloating ? '10px' : '14px',
+                        color: isFloating ? '#007AFF' : '#86868B',
+                        fontWeight: isFloating ? '700' : '500',
+                        letterSpacing: isFloating ? '0.05em' : '0',
+                        textTransform: isFloating ? 'uppercase' : 'none',
+                    }}
+                >
+                    {label}
+                </label>
+
+                {isTextArea ? (
+                    <textarea
+                        {...sharedProps}
+                        rows={4}
+                        className={`${sharedProps.className} resize-none pt-2`}
+                    />
+                ) : (
+                    <input
+                        {...sharedProps}
+                        className={`${sharedProps.className} h-[56px]`}
+                    />
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── ContactPage ──────────────────────────────────────────────────────────────
 const ContactPage = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -16,6 +89,7 @@ const ContactPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center mb-16"
                     >
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] block mb-4">דברו איתנו</span>
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-brand-dark tracking-tighter mb-4 leading-[1.1]">
                             צור קשר
                         </h1>
@@ -34,7 +108,20 @@ const ContactPage = () => {
                             transition={{ delay: 0.1 }}
                             className="lg:col-span-7"
                         >
-                            <div className="bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 p-8 md:p-12 rounded-[2rem] shadow-[0_20px_40px_rgb(0_0_0/0.04)]">
+                            <div
+                                className="p-8 md:p-12 rounded-[2rem]"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.72) 100%)',
+                                    backdropFilter: 'blur(48px) saturate(1.6)',
+                                    WebkitBackdropFilter: 'blur(48px) saturate(1.6)',
+                                    border: '1px solid rgba(255,255,255,0.80)',
+                                    boxShadow: '0 20px 48px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.95) inset',
+                                }}
+                            >
+                                {/* Top inset shine */}
+                                <div className="absolute top-0 left-8 right-8 h-px"
+                                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
+
                                 <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-8 tracking-tighter">שלחו לנו הודעה</h2>
 
                                 <div className="flex flex-col gap-5">
@@ -51,8 +138,12 @@ const ContactPage = () => {
                                     <motion.button
                                         whileHover={{ scale: 1.01, y: -2 }}
                                         whileTap={{ scale: 0.98 }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                        className="w-full bg-brand-blue text-white py-5 rounded-2xl font-bold tracking-wide text-xl hover:bg-blue-600 shadow-[0_10px_30px_rgb(0_122_255/0.2)] hover:shadow-[0_15px_40px_rgb(0_122_255/0.4)] transition-all mt-2 focus:outline-none"
+                                        transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 0.8 }}
+                                        className="w-full text-white py-5 rounded-2xl font-bold tracking-wide text-xl mt-2 focus:outline-none"
+                                        style={{
+                                            background: 'linear-gradient(180deg, #1A8FFF 0%, #007AFF 60%, #006EDB 100%)',
+                                            boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 10px 30px rgba(0,122,255,0.3)',
+                                        }}
                                     >
                                         שלח פנייה ליועץ פדגוגי
                                     </motion.button>
@@ -67,7 +158,16 @@ const ContactPage = () => {
                             transition={{ delay: 0.2 }}
                             className="lg:col-span-5 flex flex-col gap-8"
                         >
-                            <div className="p-10 bg-white/40 backdrop-blur-2xl rounded-[3rem] border border-white/30 shadow-[0_20px_40px_rgb(0_0_0/0.06)]">
+                            <div
+                                className="p-10 rounded-[3rem]"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.55) 100%)',
+                                    backdropFilter: 'blur(40px) saturate(1.6)',
+                                    WebkitBackdropFilter: 'blur(40px) saturate(1.6)',
+                                    border: '1px solid rgba(255,255,255,0.70)',
+                                    boxShadow: '0 20px 40px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.9) inset',
+                                }}
+                            >
                                 <div className="space-y-10">
                                     {/* Address */}
                                     <div>
@@ -89,7 +189,7 @@ const ContactPage = () => {
 
                                         <div className="flex flex-col gap-6">
                                             <div className="flex items-center gap-5 group">
-                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors">
+                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors shrink-0">
                                                     <Phone className="w-6 h-6" />
                                                 </div>
                                                 <div className="flex flex-col">
@@ -107,7 +207,11 @@ const ContactPage = () => {
                                                 href="https://wa.me/972779991234"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#007AFF] text-white rounded-2xl font-black text-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 active:scale-[0.98] transition-all"
+                                                className="inline-flex items-center justify-center gap-3 px-8 py-4 text-white rounded-2xl font-black text-lg shadow-lg active:scale-[0.98] transition-all"
+                                                style={{
+                                                    background: 'linear-gradient(180deg, #1A8FFF 0%, #007AFF 60%, #006EDB 100%)',
+                                                    boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px rgba(0,122,255,0.3)',
+                                                }}
                                                 whileHover={{ scale: 1.02 }}
                                             >
                                                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png" alt="WhatsApp" className="w-6 h-6 brightness-0 invert" />
@@ -115,7 +219,7 @@ const ContactPage = () => {
                                             </motion.a>
 
                                             <div className="flex items-center gap-5 pt-4 border-t border-white/20 group">
-                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors">
+                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors shrink-0">
                                                     <Mail className="w-6 h-6" />
                                                 </div>
                                                 <div className="flex flex-col">
@@ -131,7 +235,12 @@ const ContactPage = () => {
                             </div>
 
                             {/* Map Area */}
-                            <div className="w-full aspect-video bg-white/40 backdrop-blur-2xl rounded-[3rem] border border-white/30 overflow-hidden shadow-lg relative group">
+                            <div className="w-full aspect-video rounded-[2rem] overflow-hidden shadow-lg relative group"
+                                style={{
+                                    background: 'rgba(255,255,255,0.40)',
+                                    backdropFilter: 'blur(20px)',
+                                    border: '1px solid rgba(255,255,255,0.60)',
+                                }}>
                                 <img
                                     src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1200"
                                     alt="Map Area - Nes Ziona Science Park"
