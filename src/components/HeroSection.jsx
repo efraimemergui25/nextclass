@@ -56,10 +56,10 @@ const HeroSection = () => {
                     {titleWords.map((word, i) => (
                         <motion.span
                             key={word}
-                            className="text-hero text-white drop-shadow-2xl"
-                            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+                            className="text-hero text-white tracking-tighter drop-shadow-2xl"
+                            initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
                             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                            transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                            transition={{ duration: 1.0, delay: 0.2 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
                         >
                             {word}
                         </motion.span>
@@ -71,10 +71,10 @@ const HeroSection = () => {
                     {subWords.map((word, i) => (
                         <motion.span
                             key={word}
-                            className="text-hero text-white/80 font-bold drop-shadow-2xl"
-                            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+                            className="text-hero text-white/80 font-bold tracking-tighter drop-shadow-2xl"
+                            initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
                             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                            transition={{ duration: 0.8, delay: 0.45 + i * 0.09, ease: [0.16, 1, 0.3, 1] }}
+                            transition={{ duration: 1.0, delay: 0.45 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
                         >
                             {word}
                         </motion.span>
@@ -101,9 +101,9 @@ const HeroSection = () => {
                     {/* Primary CTA */}
                     <motion.button
                         onClick={() => navigate('/discover')}
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                         className="relative overflow-hidden font-bold tracking-wide rounded-full px-12 py-4 text-lg text-white hover:text-[#1D1D1F] hover:bg-white transition-all duration-500"
                         style={{
                             background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)',

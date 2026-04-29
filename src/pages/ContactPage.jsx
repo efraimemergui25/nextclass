@@ -1,268 +1,251 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Phone, Mail, MapPin, MessageSquare, Clock, Send, Sparkles, CheckCircle2, ShieldCheck, Heart, User } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 
-// ─── Floating label input ───────────────────────────────────────────────────────
+const GLASS_CARD = "glass-apple gestalt-card p-10 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-sm transition-apple-fluid";
+
 const FloatingInput = ({ label, id, type = 'text', isTextArea = false }) => {
     const [focused, setFocused] = useState(false);
-    const [hasValue, setHasValue] = useState(false);
-
-    const isFloating = focused || hasValue;
-
-    const inputStyle = {
-        background: 'rgba(255,255,255,0.75)',
-        backdropFilter: 'blur(20px) saturate(1.5)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-        border: focused ? '1.5px solid rgba(0,122,255,0.5)' : '1.5px solid rgba(255,255,255,0.9)',
-        boxShadow: focused
-            ? '0 0 0 3px rgba(0,122,255,0.08), 0 2px 8px rgba(0,0,0,0.06)'
-            : '0 2px 8px rgba(0,0,0,0.04)',
-        borderRadius: '1rem',
-        transition: 'all 250ms cubic-bezier(0.32,0.72,0,1)',
-    };
-
-    const sharedProps = {
-        id,
-        type,
-        onFocus: () => setFocused(true),
-        onBlur: (e) => { setFocused(false); setHasValue(e.target.value !== ''); },
-        onChange: (e) => setHasValue(e.target.value !== ''),
-        className: 'w-full bg-transparent px-4 outline-none text-[#1D1D1F] font-medium text-right placeholder-transparent',
-    };
+    const [value, setValue] = useState('');
+    const isFloating = focused || value.length > 0;
 
     return (
-        <div className="relative w-full">
-            <div style={inputStyle} className={`relative ${isTextArea ? 'pt-6 pb-2' : ''}`}>
-                {/* Floating label */}
-                <label
-                    htmlFor={id}
-                    className="absolute right-4 pointer-events-none font-medium text-right transition-all duration-200 z-10"
-                    style={{
-                        top: isTextArea
-                            ? isFloating ? '8px' : '50%'
-                            : isFloating ? '6px' : '50%',
-                        transform: isTextArea
-                            ? isFloating ? 'none' : 'translateY(-50%)'
-                            : isFloating ? 'none' : 'translateY(-50%)',
-                        fontSize: isFloating ? '10px' : '14px',
-                        color: isFloating ? '#007AFF' : '#86868B',
-                        fontWeight: isFloating ? '700' : '500',
-                        letterSpacing: isFloating ? '0.05em' : '0',
-                        textTransform: isFloating ? 'uppercase' : 'none',
-                    }}
-                >
-                    {label}
-                </label>
-
-                {isTextArea ? (
-                    <textarea
-                        {...sharedProps}
-                        rows={4}
-                        className={`${sharedProps.className} resize-none pt-2`}
-                    />
-                ) : (
-                    <input
-                        {...sharedProps}
-                        className={`${sharedProps.className} h-[56px]`}
-                    />
-                )}
-            </div>
+        <div className="relative w-full mb-6">
+            <motion.label
+                htmlFor={id}
+                initial={false}
+                animate={{
+                    y: isFloating ? -24 : 0,
+                    x: isFloating ? 4 : 0,
+                    scale: isFloating ? 0.8 : 1,
+                    color: focused ? '#007AFF' : '#86868B'
+                }}
+                className="absolute right-4 top-4 font-bold pointer-events-none transition-colors origin-right z-10"
+            >
+                {label}
+            </motion.label>
+            {isTextArea ? (
+                <textarea
+                    id={id}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                    className="w-full bg-white/40 backdrop-blur-xl border border-gray-200/50 rounded-[2rem] p-4 pt-6 min-h-[140px] outline-none focus:ring-[6px] focus:ring-[#007AFF]/5 focus:border-[#007AFF]/30 transition-all text-right font-medium text-[#1D1D1F] resize-none"
+                />
+            ) : (
+                <input
+                    id={id}
+                    type={type}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                    className="w-full bg-white/40 backdrop-blur-xl border border-gray-200/50 rounded-full p-4 pt-6 outline-none focus:ring-[6px] focus:ring-[#007AFF]/5 focus:border-[#007AFF]/30 transition-all text-right font-medium text-[#1D1D1F]"
+                />
+            )}
         </div>
     );
 };
 
-// ─── ContactPage ──────────────────────────────────────────────────────────────
 const ContactPage = () => {
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [currentTime, setCurrentTime] = useState('');
+
     useEffect(() => {
-        window.scrollTo(0, 0);
+        const update = () => {
+            const now = new Date();
+            setCurrentTime(now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }));
+        };
+        update();
+        const timer = setInterval(update, 60000);
+        return () => clearInterval(timer);
     }, []);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setIsSubmitted(true);
+        setTimeout(() => setIsSubmitted(false), 8000);
+    };
 
     return (
         <PageTransition>
-            <div className="min-h-screen bg-brand-light pt-32 pb-24 px-6 w-full">
-                <div className="max-w-[1400px] mx-auto">
-
-                    {/* Page Title */}
+            <div className="min-h-screen bg-[#F5F5F7] pt-24 pb-20 w-full overflow-x-hidden">
+                
+                {/* ── Cinematic Hero ────────────────────────────────────── */}
+                <section className="max-w-5xl mx-auto px-6 text-center mb-24">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-center mb-16"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-10 border border-blue-100"
                     >
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] block mb-4">דברו איתנו</span>
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-brand-dark tracking-tighter mb-4 leading-[1.1]">
-                            צור קשר
-                        </h1>
-                        <p className="text-lg md:text-xl text-gray-500 font-normal leading-relaxed max-w-2xl mx-auto">
-                            נשמח לשמוע מכם ולהתאים את הפתרון המושלם למוסד שלכם.
-                        </p>
+                        <Clock size={10} className="animate-spin-slow" />
+                        <span>זמן נוכחי במטה בתל אביב: {currentTime}</span>
                     </motion.div>
+                    
+                    <h1 className="text-5xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tighter mb-6 leading-[0.95]">
+                        הכיתה שלכם מחכה.<br />
+                        <span className="text-[#007AFF]">בואו נתחיל.</span>
+                    </h1>
+                    <p className="text-xl md:text-2xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                        אנחנו כאן כדי להבטיח שהמעבר לטכנולוגיה חכמה יהיה פשוט, אנושי ומרגש. הצטרפו למוסדות המובילים בישראל.
+                    </p>
+                </section>
 
-                    {/* Split Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-
-                        {/* Right Column (Form - RTL Start) */}
-                        <motion.div
-                            initial={{ opacity: 0, x: 30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="lg:col-span-7"
-                        >
-                            <div
-                                className="p-8 md:p-12 rounded-[2rem]"
-                                style={{
-                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.72) 100%)',
-                                    backdropFilter: 'blur(48px) saturate(1.6)',
-                                    WebkitBackdropFilter: 'blur(48px) saturate(1.6)',
-                                    border: '1px solid rgba(255,255,255,0.80)',
-                                    boxShadow: '0 20px 48px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.95) inset',
-                                }}
+                <div className="max-w-[1400px] mx-auto px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                        
+                        {/* ── Left Side: Connection Hub ────── */}
+                        <div className="lg:col-span-5 flex flex-col gap-8">
+                            
+                            {/* Personal Concierge Card */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                className="glass-apple gestalt-card p-12 bg-white/80 border border-white/60 shadow-xl overflow-hidden relative"
                             >
-                                {/* Top inset shine */}
-                                <div className="absolute top-0 left-8 right-8 h-px"
-                                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
-
-                                <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-8 tracking-tighter">שלחו לנו הודעה</h2>
-
-                                <div className="flex flex-col gap-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <FloatingInput label="שם מלא" id="fullName" />
-                                        <FloatingInput label="שם המוסד / בית הספר" id="school" />
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+                                <div className="flex items-center justify-between mb-10">
+                                    <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-[#007AFF]">
+                                        <MessageSquare size={32} />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <FloatingInput label="תפקיד" id="role" />
-                                        <FloatingInput label="טלפון" id="phone" type="tel" />
+                                    <div className="text-left">
+                                        <div className="flex items-center gap-2 text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                            זמינים ב-WhatsApp
+                                        </div>
                                     </div>
-                                    <FloatingInput label="מה נוכל לעזור?" id="message" isTextArea />
+                                </div>
+                                <h3 className="text-3xl font-apple-display text-[#1D1D1F] mb-4">ייעוץ אישי ומיידי</h3>
+                                <p className="text-gray-500 text-lg font-medium mb-10 leading-relaxed">נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.</p>
+                                <motion.a 
+                                    href="https://wa.me/972500000000"
+                                    whileHover={{ scale: 1.02, y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="inline-flex w-full py-5 bg-[#25D366] text-white rounded-full items-center justify-center font-bold text-xl shadow-lg hover:bg-[#128C7E] transition-all"
+                                >
+                                    התחל שיחה עכשיו
+                                </motion.a>
+                            </motion.div>
 
-                                    <motion.button
-                                        whileHover={{ scale: 1.01, y: -2 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 0.8 }}
-                                        className="w-full text-white py-5 rounded-2xl font-bold tracking-wide text-xl mt-2 focus:outline-none"
-                                        style={{
-                                            background: 'linear-gradient(180deg, #1A8FFF 0%, #007AFF 60%, #006EDB 100%)',
-                                            boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 10px 30px rgba(0,122,255,0.3)',
-                                        }}
-                                    >
-                                        שלח פנייה ליועץ פדגוגי
-                                    </motion.button>
+                            {/* Human Touch: The Support Team */}
+                            <div className="glass-apple gestalt-card p-10 bg-white/40 border border-white/60">
+                                <div className="flex items-center gap-4 mb-8 text-right">
+                                    <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF]">
+                                        <Heart size={20} className="fill-[#007AFF]" />
+                                    </div>
+                                    <h4 className="text-xl font-bold text-[#1D1D1F]">אנחנו כאן בשבילך</h4>
+                                </div>
+                                <div className="space-y-6">
+                                    {[
+                                        { label: 'מוקד מכירות', val: '03-555-1234', icon: <Phone size={16} /> },
+                                        { label: 'תמיכה טכנית', val: 'concierge@nextclass.co.il', icon: <Mail size={16} /> },
+                                        { label: 'מטה החברה', val: 'מגדלי עזריאלי, תל אביב', icon: <MapPin size={16} /> }
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex items-center gap-5 group cursor-pointer">
+                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 group-hover:text-[#007AFF] shadow-sm transition-all">
+                                                {item.icon}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</p>
+                                                <p className="text-lg font-bold text-[#1D1D1F]">{item.val}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
 
-                        {/* Left Column (Glass Contact Card - RTL End) */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="lg:col-span-5 flex flex-col gap-8"
-                        >
-                            <div
-                                className="p-10 rounded-[3rem]"
-                                style={{
-                                    background: 'linear-gradient(145deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.55) 100%)',
-                                    backdropFilter: 'blur(40px) saturate(1.6)',
-                                    WebkitBackdropFilter: 'blur(40px) saturate(1.6)',
-                                    border: '1px solid rgba(255,255,255,0.70)',
-                                    boxShadow: '0 20px 40px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.9) inset',
-                                }}
+                        {/* ── Right Side: Interactive Hub Form ────── */}
+                        <div className="lg:col-span-7">
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                className="glass-apple gestalt-card p-12 md:p-16 relative bg-white/95 shadow-2xl border border-white/80"
                             >
-                                <div className="space-y-10">
-                                    {/* Address */}
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <MapPin className="w-5 h-5 text-[#007AFF]" />
-                                            <h3 className="text-[#007AFF] text-sm font-black uppercase tracking-widest">הכתובת שלנו</h3>
-                                        </div>
-                                        <p className="text-[#1D1D1F] text-2xl font-black tracking-tight mb-1">
-                                            עורק החדשנות, פארק המדע
-                                        </p>
-                                        <p className="text-[#1D1D1F] text-lg font-bold opacity-60">
-                                            נס ציונה, ישראל
-                                        </p>
-                                    </div>
-
-                                    {/* Direct Contact */}
-                                    <div>
-                                        <h3 className="text-[#007AFF] text-sm font-black uppercase tracking-widest mb-4">דברו איתנו</h3>
-
-                                        <div className="flex flex-col gap-6">
-                                            <div className="flex items-center gap-5 group">
-                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors shrink-0">
-                                                    <Phone className="w-6 h-6" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <a href="tel:077-999-1234" className="text-[#1D1D1F] text-2xl font-black tracking-tighter hover:text-[#007AFF] transition-colors">
-                                                        077-999-1234
-                                                    </a>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">זמינים עכשיו בוואטסאפ</span>
-                                                    </div>
-                                                </div>
+                                <AnimatePresence mode="wait">
+                                    {!isSubmitted ? (
+                                        <motion.form 
+                                            key="form"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0, scale: 0.98 }}
+                                            onSubmit={handleSubmit}
+                                            className="relative z-10 text-right"
+                                        >
+                                            <h2 className="text-4xl md:text-5xl font-apple-display text-[#1D1D1F] mb-4 tracking-tighter">בואו נצא לדרך.</h2>
+                                            <p className="text-xl text-gray-500 font-medium mb-12">השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.</p>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <FloatingInput label="שם מלא" id="name" />
+                                                <FloatingInput label="מוסד / חברה" id="inst" />
                                             </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <FloatingInput label="אימייל מוסדי" id="email" type="email" />
+                                                <FloatingInput label="טלפון" id="phone" type="tel" />
+                                            </div>
+                                            <FloatingInput label="איך נוכל לעזור?" id="msg" isTextArea />
 
-                                            <motion.a
-                                                href="https://wa.me/972779991234"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center gap-3 px-8 py-4 text-white rounded-2xl font-black text-lg shadow-lg active:scale-[0.98] transition-all"
-                                                style={{
-                                                    background: 'linear-gradient(180deg, #1A8FFF 0%, #007AFF 60%, #006EDB 100%)',
-                                                    boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px rgba(0,122,255,0.3)',
-                                                }}
-                                                whileHover={{ scale: 1.02 }}
+                                            <motion.button
+                                                whileHover={{ scale: 1.01, y: -2 }}
+                                                whileTap={{ scale: 0.99 }}
+                                                className="w-full py-5 bg-black text-white rounded-full font-bold text-xl flex items-center justify-center gap-4 shadow-xl hover:bg-[#1D1D1F] transition-all mt-6"
                                             >
-                                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/1200px-WhatsApp.svg.png" alt="WhatsApp" className="w-6 h-6 brightness-0 invert" />
-                                                שלח הודעה מהירה
-                                            </motion.a>
-
-                                            <div className="flex items-center gap-5 pt-4 border-t border-white/20 group">
-                                                <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-[#1D1D1F]/50 group-hover:text-[#007AFF] transition-colors shrink-0">
-                                                    <Mail className="w-6 h-6" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">דוא״ל רשמי</span>
-                                                    <a href="mailto:hello@nextclass.co.il" className="text-[#1D1D1F] text-lg font-bold hover:text-[#007AFF] transition-colors">
-                                                        hello@nextclass.co.il
-                                                    </a>
-                                                </div>
+                                                <span>שלח פנייה</span>
+                                                <Send size={20} />
+                                            </motion.button>
+                                        </motion.form>
+                                    ) : (
+                                        <motion.div 
+                                            key="success"
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="py-24 text-center flex flex-col items-center gap-8"
+                                        >
+                                            <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-2">
+                                                <CheckCircle2 size={56} className="animate-glow-pulse" />
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Map Area */}
-                            <div className="w-full aspect-video rounded-[2rem] overflow-hidden shadow-lg relative group"
-                                style={{
-                                    background: 'rgba(255,255,255,0.40)',
-                                    backdropFilter: 'blur(20px)',
-                                    border: '1px solid rgba(255,255,255,0.60)',
-                                }}>
-                                <img
-                                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1200"
-                                    alt="Map Area - Nes Ziona Science Park"
-                                    className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div className="bg-white/90 backdrop-blur-md px-8 py-4 rounded-3xl shadow-2xl scale-100 group-hover:scale-110 transition-transform duration-500">
-                                        <MapPin className="w-8 h-8 text-[#007AFF] mx-auto mb-2" />
-                                        <span className="font-black text-[#1D1D1F] block text-lg">פארק המדע, נס ציונה</span>
-                                        <span className="text-sm font-bold text-[#007AFF]">לחצו לניווט ב-Waze</span>
-                                    </div>
-                                </div>
-                                <a
-                                    href="https://www.google.com/maps/dir/?api=1&destination=31.9388,34.7892"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="absolute inset-0 z-10"
-                                />
-                            </div>
-                        </motion.div>
+                                            <h2 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">הפנייה התקבלה</h2>
+                                            <p className="text-xl text-gray-500 font-medium max-w-md">הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.</p>
+                                            <button 
+                                                onClick={() => setIsSubmitted(false)}
+                                                className="text-[#007AFF] font-bold hover:underline"
+                                            >
+                                                שלח הודעה נוספת
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        </div>
                     </div>
                 </div>
+
+                {/* ── Trust Section ────── */}
+                <section className="mt-32 max-w-4xl mx-auto px-6 text-center">
+                    <div className="inline-flex p-4 rounded-3xl bg-white shadow-sm border border-gray-100 mb-10">
+                        <ShieldCheck size={32} className="text-[#007AFF]" />
+                    </div>
+                    <h2 className="text-3xl font-apple-display text-[#1D1D1F] mb-6 tracking-tighter">שותפות ארוכת טווח</h2>
+                    <p className="text-xl text-gray-400 font-medium mb-12 leading-relaxed">
+                        אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[
+                            { label: 'ייעוץ טכנולוגי חינם', icon: <Sparkles size={18} /> },
+                            { label: 'ליווי פדגוגי מלא', icon: <User size={18} /> },
+                            { label: 'אחריות מוסדית מורחבת', icon: <ShieldCheck size={18} /> }
+                        ].map((v, i) => (
+                            <div key={i} className="flex items-center justify-center gap-3 text-[#1D1D1F] font-bold bg-white/60 py-4 rounded-2xl border border-white shadow-sm">
+                                <span className="text-[#007AFF]">{v.icon}</span>
+                                <span>{v.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
             </div>
         </PageTransition>
     );

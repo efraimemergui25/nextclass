@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import useCartPop from '../hooks/useCartPop';
+import { Sparkles } from 'lucide-react';
 
 // ─── Cart pop animation variants ─────────────────────────────────────────────
 const cartBtnVariants = {
@@ -61,16 +62,21 @@ const ProductCard = ({ product }) => {
     const lightY = useMotionValue(50);
 
     // Smooth springs for the rotation — prevents jitter
-    const springX = useSpring(mouseX, SPRING_TILT);
-    const springY = useSpring(mouseY, SPRING_TILT);
+    const springX = useSpring(mouseX, { stiffness: 200, damping: 20 });
+    const springY = useSpring(mouseY, { stiffness: 200, damping: 20 });
 
     // Map normalised [-0.5, 0.5] → rotation degrees
     const rotateX = useTransform(springY, [-0.5, 0.5], ['7deg', '-7deg']);
     const rotateY = useTransform(springX, [-0.5, 0.5], ['-7deg', '7deg']);
 
     // Map normalised position → gradient position (0–100%)
-    const glowX = useSpring(lightX, SPRING_TILT);
-    const glowY = useSpring(lightY, SPRING_TILT);
+    const glowX = useSpring(lightX, { stiffness: 200, damping: 20 });
+    const glowY = useSpring(lightY, { stiffness: 200, damping: 20 });
+
+    const glowBackground = useTransform(
+        [glowX, glowY],
+        ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.25) 0%, transparent 70%)`
+    );
 
     const handleMouseMove = useCallback((e) => {
         if (isTouchDevice.current) return; // no tilt on touch screens
@@ -136,14 +142,14 @@ const ProductCard = ({ product }) => {
                     rotateY,
                     transformStyle: 'preserve-3d',
                 }}
-                className="flex flex-col h-full bg-white rounded-3xl overflow-hidden border border-gray-100/80 shadow-sm hover:shadow-[0_20px_40px_rgb(0_0_0/0.10)] transition-shadow duration-500 relative transform-gpu will-change-transform"
+                className="flex flex-col h-full bg-white/60 backdrop-blur-3xl saturate-150 rounded-[2.5rem] overflow-hidden border border-white/80 transition-shadow duration-500 relative transform-gpu will-change-transform gestalt-card"
             >
                 <Link
                     to={`/catalog/${id}`}
-                    className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-3xl"
+                    className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-[2.5rem]"
                 >
                     {/* ── Image Container ─────────────────────────────────── */}
-                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-gray-50">
+                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-[#F5F5F7]/30">
                         {imgError || !image ? (
                             <ImageFallback />
                         ) : (
@@ -155,22 +161,31 @@ const ProductCard = ({ product }) => {
                                 loading="lazy"
                             />
                         )}
+                        
+                        {/* Adaptive "For You" Badge (Personalization) */}
+                        {id % 3 === 0 && (
+                            <div className="absolute top-4 right-4 z-10 glass-apple px-3 py-1.5 rounded-full flex items-center gap-1.5 animate-glow-pulse">
+                                <Sparkles size={12} className="text-[#007AFF]" />
+                                <span className="text-[10px] font-bold text-[#1D1D1F]">מותאם עבורך</span>
+                            </div>
+                        )}
+                        
                         <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none" />
                     </div>
 
                     {/* ── Text Content ─────────────────────────────────────── */}
-                    <div className="flex-1 flex flex-col text-right px-5 pt-5 pb-0">
+                    <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-0">
                         {category && (
                             <span className="text-[11px] font-bold uppercase tracking-widest text-[#007AFF] mb-2">{category}</span>
                         )}
-                        <h3 className="text-base md:text-lg font-bold text-[#1D1D1F] leading-snug line-clamp-2">{title}</h3>
+                        <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2">{title}</h3>
                         {description && (
-                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1.5">{description}</p>
+                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-2 font-medium">{description}</p>
                         )}
 
                         {/* ── Footer ───────────────────────────────────────── */}
-                        <div className="mt-4 pt-4 pb-5 border-t border-gray-100 flex items-center justify-between gap-3">
-                            <span className="text-xl font-black tracking-tighter text-[#1D1D1F] shrink-0">{formattedPrice}</span>
+                        <div className="mt-auto pt-4 pb-6 flex items-center justify-between gap-3">
+                            <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F] shrink-0">{formattedPrice}</span>
 
                             <div className="flex items-center gap-2 shrink-0">
                                 {/* Compare */}
@@ -252,13 +267,7 @@ const ProductCard = ({ product }) => {
                 {/* ── Specular light reflection — follows mouse ────────── */}
                 <motion.div
                     className="absolute inset-0 pointer-events-none rounded-3xl"
-                    style={{
-                        background: useTransform(
-                            [glowX, glowY],
-                            ([x, y]) =>
-                                `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.18) 0%, transparent 65%)`
-                        ),
-                    }}
+                    style={{ background: glowBackground }}
                 />
             </motion.div>
         </div>

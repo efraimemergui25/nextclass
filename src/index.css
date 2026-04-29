@@ -408,4 +408,79 @@
             0 4px 12px rgba(0, 122, 255, 0.12),
             0 1px 0 rgba(255, 255, 255, 0.8) inset;
     }
+
+    /* ─── Hyper-Glass: The Master Token ────────────────────────────────────────── */
+    .glass-apple {
+        background: rgba(255, 255, 255, 0.45);
+        backdrop-filter: blur(40px) saturate(2);
+        -webkit-backdrop-filter: blur(40px) saturate(2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 
+            0 8px 32px 0 rgba(31, 38, 135, 0.04),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .glass-dark {
+        background: rgba(29, 29, 31, 0.6);
+        backdrop-filter: blur(40px) saturate(1.5);
+        -webkit-backdrop-filter: blur(40px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ─── Gestalt-Core: Structural Integrity ───────────────────────────────────── */
+    .gestalt-card {
+        border-radius: 2.5rem;
+        transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 
+            0 10px 40px -10px rgba(0, 0, 0, 0.05),
+            0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    .gestalt-card:hover {
+        transform: translateY(-8px) scale(1.01);
+        box-shadow: 
+            0 30px 60px -15px rgba(0, 0, 0, 0.1),
+            0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ─── Typography: Apple Standard ────────────────────────────────────────────── */
+    .font-apple-display {
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+    }
+
+    .animate-glow-pulse {
+        animation: glow-pulse 3s ease-in-out infinite;
+    }
+
+    .animate-glow-pulse-heavy {
+        animation: glow-pulse-heavy 4s ease-in-out infinite;
+    }
+
+    .animate-spin-slow {
+        animation: spin 8s linear infinite;
+    }
+
+    .animate-magnetic {
+        animation: magnetic-pull 4s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes glow-pulse-heavy {
+        0%, 100% { opacity: 0.3; transform: scale(1); filter: blur(40px); }
+        50% { opacity: 0.6; transform: scale(1.1); filter: blur(60px); }
+    }
+
+    @keyframes magnetic-pull {
+        0%, 100% { transform: translate(0, 0); }
+        25% { transform: translate(2px, -2px); }
+        50% { transform: translate(-1px, 3px); }
+        75% { transform: translate(-3px, -1px); }
+    }
 }

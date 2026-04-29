@@ -1,270 +1,320 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValueEvent } from 'framer-motion';
+import { Sparkles, Heart, Zap, Award, Globe, ShieldCheck, ChevronDown, Compass, Users } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 
-const GLASS = {
-    background: 'linear-gradient(145deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.70) 100%)',
-    backdropFilter: 'blur(40px) saturate(1.7)',
-    WebkitBackdropFilter: 'blur(40px) saturate(1.7)',
-    border: '1px solid rgba(255,255,255,0.82)',
-    boxShadow: '0 16px 48px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.95) inset',
+const GLASS_CARD = "glass-apple gestalt-card p-10 md:p-14 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-2xl";
+
+const Counter = ({ value, label, suffix = "" }) => {
+    const [count, setCount] = useState(0);
+    const ref = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: ref,
+        offset: ["start end", "end start"]
+    });
+
+    useMotionValueEvent(scrollYProgress, "change", (latest) => {
+        if (latest > 0.1 && latest < 0.9) {
+            setCount(Math.floor(value * Math.min(1, (latest - 0.1) * 2.5)));
+        }
+    });
+
+    return (
+        <div ref={ref} className="text-right">
+            <div className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-1">
+                {count.toLocaleString()}{suffix}
+            </div>
+            <div className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.2em]">{label}</div>
+        </div>
+    );
 };
 
-const values = [
-    {
-        title: 'חדשנות', subtitle: 'פתרונות עתידיים היום',
-        icon: (
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-        )
-    },
-    {
-        title: 'אמינות', subtitle: 'הגנה מלאה לאורך זמן',
-        icon: (
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-        )
-    },
-    {
-        title: 'פדגוגיה', subtitle: 'מעוצב לחוויית הלמידה',
-        icon: (
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
-        )
-    },
-    {
-        title: 'שותפות', subtitle: 'ליווי אישי לאורך הדרך',
-        icon: (
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-        )
-    },
-];
-
-const stats = [
-    { number: '500+', label: 'מוסדות חינוך' },
-    { number: '12K+', label: 'כיתות חכמות' },
-    { number: '98%', label: 'שביעות רצון' },
-    { number: '10+', label: 'שנות ניסיון' },
-];
+const TimelineItem = ({ year, title, desc, icon: Icon, index }) => (
+    <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8, delay: index * 0.1 }}
+        className={`relative flex items-start gap-12 mb-24 w-full ${index % 2 === 0 ? 'flex-row' : 'md:flex-row-reverse flex-row'}`}
+    >
+        <div className="flex-1 hidden md:block" />
+        <div className="z-10 flex items-center justify-center w-14 h-14 rounded-full glass-apple border border-white/60 shadow-xl shrink-0">
+            <span className="text-sm font-black text-[#007AFF]">{year}</span>
+        </div>
+        <div className="flex-1 text-right">
+            <h3 className="text-2xl font-apple-display text-[#1D1D1F] mb-3 tracking-tight">{title}</h3>
+            <p className="text-gray-500 font-medium leading-relaxed text-lg">{desc}</p>
+        </div>
+    </motion.div>
+);
 
 const AboutPage = () => {
-    useEffect(() => { window.scrollTo(0, 0); }, []);
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end end"]
+    });
+
+    const smoothProgress = useSpring(scrollYProgress, { stiffness: 80, damping: 25 });
+    const heroScale = useTransform(smoothProgress, [0, 0.2], [1, 1.05]);
+    const heroOpacity = useTransform(smoothProgress, [0, 0.15], [1, 0]);
+
+    const timelineData = [
+        { year: '2012', title: 'החלום בתל אביב', desc: 'בחדר קטן בלב תל אביב, הבנו שהחינוך בישראל חייב זינוק קדימה. התחלנו עם המסך הראשון והמון תשוקה לשנות את חוקי המשחק.', icon: Zap },
+        { year: '2016', title: 'מהפכת המגע', desc: 'המסכים שלנו הפכו ללב הפועם של אלפי כיתות. ראינו איך פתאום, כל ילד רוצה לגעת בידע, ליצור ולשתף.', icon: Award },
+        { year: '2020', title: 'למידה ללא גבולות', desc: 'כשהעולם עצר, אנחנו לא. פיתחנו פתרונות היברידיים שחיברו מורים ותלמידים מכל מקום, ושמרנו על להבת הסקרנות בוערת.', icon: Globe },
+        { year: '2025', title: 'העתיד כבר כאן', desc: 'עם AI מובנה ומערכות חכמות, אנחנו לא רק מספקים ציוד – אנחנו מעצבים את דור המנהיגים הבא של ישראל.', icon: ShieldCheck },
+    ];
 
     return (
         <PageTransition>
-            <div className="bg-[#F5F5F7] w-full overflow-x-hidden">
+            <div ref={containerRef} className="bg-[#F5F5F7] w-full overflow-x-hidden">
 
-                {/* ── Hero Manifesto ──────────────────────────────────────────── */}
-                <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 pt-40 pb-24 overflow-hidden">
-                    {/* Ambient orbs */}
-                    <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full pointer-events-none"
-                        style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.08) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-                    <div className="absolute bottom-0 left-[-5%] w-[400px] h-[400px] rounded-full pointer-events-none"
-                        style={{ background: 'radial-gradient(circle, rgba(88,86,214,0.06) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-
-                    <motion.span
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#007AFF] mb-6 block"
+                {/* ── Cinematic Hero ────────────────────────────────────── */}
+                <section className="relative h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+                    <motion.div 
+                        style={{ scale: heroScale, opacity: heroOpacity }}
+                        className="absolute inset-0 z-0"
                     >
-                        הסיפור שלנו
-                    </motion.span>
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-[#F5F5F7] z-10" />
+                        <img 
+                            src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=2400" 
+                            className="w-full h-full object-cover"
+                            alt="The Vision"
+                        />
+                    </motion.div>
 
-                    <motion.h1
-                        initial={{ opacity: 0, y: 40, filter: 'blur(6px)' }}
-                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                        transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                        className="text-5xl md:text-7xl lg:text-8xl font-black text-[#1D1D1F] leading-[1.05] tracking-tighter max-w-5xl mx-auto mb-8"
-                    >
-                        אנחנו לא רק<br />
-                        <span className="text-transparent bg-clip-text"
-                            style={{ backgroundImage: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
-                            מוכרים טכנולוגיה.
-                        </span>
-                    </motion.h1>
+                    <div className="relative z-20 max-w-6xl">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="inline-flex items-center gap-2 glass-apple px-6 py-2 rounded-full mb-10 border border-white/30"
+                        >
+                            <Sparkles size={14} className="text-[#007AFF]" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">הסיפור של NextClass</span>
+                        </motion.div>
+                        
+                        <h1 className="text-6xl md:text-9xl font-apple-display text-white tracking-tighter leading-[0.9] mb-12">
+                            חינוך חכם.<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">מוגדר מחדש.</span>
+                        </h1>
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="text-xl md:text-3xl text-white/80 font-medium max-w-4xl mx-auto leading-relaxed"
+                        >
+                            אנחנו לא רק מעצבים כיתות חכמות. אנחנו בונים את התשתית שעליה יצמח דור המנהיגים הבא של ישראל.
+                        </motion.p>
+                    </div>
 
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4 }}
-                        className="text-xl md:text-2xl text-gray-500 font-normal max-w-3xl mx-auto leading-relaxed"
+                    <motion.div 
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 2.5, repeat: Infinity }}
+                        className="absolute bottom-12 text-white/40 flex flex-col items-center gap-2"
                     >
-                        אנחנו מעצבים את עתיד החינוך — חומרה, תוכנה, הדרכה ותמיכה. מהבנת האתגר של המורה בכיתה, ועד לפתרון שלם.
-                    </motion.p>
-
-                    {/* Stats strip */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.7 }}
-                        className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-3xl mx-auto w-full"
-                    >
-                        {stats.map((s, i) => (
-                            <div
-                                key={i}
-                                className="flex flex-col items-center justify-center py-6 px-4 rounded-3xl relative overflow-hidden"
-                                style={GLASS}
-                            >
-                                <div className="absolute top-0 left-4 right-4 h-px"
-                                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)' }} />
-                                <span className="text-3xl md:text-4xl font-black text-[#007AFF] tracking-tighter">{s.number}</span>
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">{s.label}</span>
-                            </div>
-                        ))}
+                        <span className="text-[9px] font-black uppercase tracking-widest">המסע שלנו מתחיל כאן</span>
+                        <ChevronDown size={20} />
                     </motion.div>
                 </section>
 
-                {/* ── Vision Section ──────────────────────────────────────────── */}
-                <section className="py-24 md:py-32 w-full">
-                    <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-
-                            {/* Image */}
+                {/* ── Deep Narrative: The Human Connection ──────────────────── */}
+                <section className="py-32 px-6 bg-white relative">
+                    <div className="max-w-[1400px] mx-auto">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                            
                             <motion.div
                                 initial={{ opacity: 0, x: 40 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                                className="relative"
+                                className="order-2 lg:order-1 text-right"
                             >
-                                <div className="rounded-[2.5rem] overflow-hidden aspect-[4/3] shadow-2xl relative">
-                                    <img
-                                        src="https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?auto=format&fit=crop&q=80&w=1200"
-                                        alt="Modern Learning Lab"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            if (!e.target.dataset.triedFallback) {
-                                                e.target.dataset.triedFallback = 'true';
-                                                e.target.src = "https://images.unsplash.com/photo-1588702547923-7093a6c3ba33?auto=format&fit=crop&q=80&w=1200";
-                                            }
-                                        }}
-                                    />
-                                    {/* Overlay badge */}
-                                    <div className="absolute bottom-5 right-5 px-5 py-3 rounded-2xl flex items-center gap-2"
-                                        style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.9)' }}>
-                                        <svg className="w-4 h-4 text-[#007AFF] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                        </svg>
-                                        <span className="text-[#1D1D1F] font-black text-sm">מעבדת חדשנות פעילה</span>
+                                <div className="inline-flex p-3 rounded-2xl bg-blue-50 mb-8">
+                                    <Heart size={24} className="text-[#007AFF] fill-[#007AFF]" />
+                                </div>
+                                <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-8 tracking-tighter leading-tight">
+                                    הכל התחיל ב-2012.<br />
+                                    <span className="text-gray-400">עם מסך אחד והרבה תסכול.</span>
+                                </h2>
+                                <div className="space-y-6 text-xl text-gray-500 font-medium leading-relaxed max-w-xl ml-auto">
+                                    <p>
+                                        עמדנו בכיתה ישראלית ממוצעת וראינו את הפער הבלתי נסבל: בחוץ העולם רץ קדימה עם סמארטפונים וטכנולוגיית ענן, ובפנים – לוח וגיר. הבנו שהילדים שלנו ראויים ליותר מסתם "ציוד". הם ראויים לחוויה שתאתגר אותם.
+                                    </p>
+                                    <p className="text-[#1D1D1F]">
+                                        הקמנו את NextClass כדי לנפץ את הפרדיגמה הזו. אנחנו לא כאן כדי למכור חומרה; אנחנו כאן כדי לבנות את הכלים שיהפכו כל שיעור לשיא של היום, וכל מורה למנהיג טכנולוגי. זה לא עתידני – זה קורה עכשיו.
+                                    </p>
+                                </div>
+                                
+                                <div className="mt-16 flex flex-wrap justify-end gap-12">
+                                    <Counter value={500} label="מרכזי חדשנות" suffix="+" />
+                                    <Counter value={250000} label="חלומות שהתגשמו" suffix="+" />
+                                    <Counter value={100} label="אחוז מחויבות" suffix="%" />
+                                </div>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                className="order-1 lg:order-2 relative group"
+                            >
+                                <div className="absolute inset-0 bg-[#007AFF] rounded-[4rem] blur-3xl opacity-10 group-hover:opacity-20 transition-opacity" />
+                                <img 
+                                    src="/assets/modern_classroom_israel_1777475880301.png" 
+                                    className="relative z-10 w-full aspect-[4/5] object-cover rounded-[4rem] shadow-2xl transition-transform duration-700 group-hover:scale-[1.02]"
+                                    alt="Modern Classroom"
+                                />
+                                <div className="absolute -bottom-6 -right-6 glass-apple p-6 rounded-3xl z-20 shadow-xl border border-white/50 hidden md:block">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                                            <Sparkles size={18} className="text-white" />
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-[#007AFF] uppercase tracking-widest">הטכנולוגיה שלנו</p>
+                                            <p className="text-sm font-bold text-[#1D1D1F]">מאושרת משרד החינוך</p>
+                                        </div>
                                     </div>
                                 </div>
-                                {/* Ambient glow */}
-                                <div className="absolute inset-0 -z-10 rounded-[2.5rem]"
-                                    style={{ background: 'radial-gradient(circle at 50% 50%, rgba(0,122,255,0.12) 0%, transparent 70%)', filter: 'blur(40px)', transform: 'scale(1.1)' }} />
                             </motion.div>
 
-                            {/* Text */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.8, delay: 0.15 }}
-                            >
-                                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#007AFF] block mb-4">החזון שלנו</span>
-                                <h2 className="text-3xl md:text-5xl font-black text-[#1D1D1F] mb-6 leading-tight tracking-tighter">
-                                    להביא את הסטנדרט<br />של הייטק לתוך<br />כיתות הלימוד.
-                                </h2>
-                                {[
-                                    'הקמנו את nextclass מתוך הבנה שהפער הטכנולוגי בחינוך הוא האתגר הגדול של דורנו. אנחנו כאן כדי לגשר עליו עם הכלים המתקדמים בעולם, בליווי צמוד ומקצועי.',
-                                    'הצוות שלנו מורכב ממהנדסים, פדגוגים ואנשי שטח שחיים ונושמים חינוך טכנולוגי. כל מוצר עבר בדיקות קפדניות ומותאם לסביבה הישראלית.',
-                                ].map((text, i) => (
-                                    <p key={i} className="text-lg text-gray-500 leading-relaxed mb-5">{text}</p>
-                                ))}
-                            </motion.div>
                         </div>
                     </div>
                 </section>
 
-                {/* ── Values Grid ─────────────────────────────────────────────── */}
-                <section className="py-24 bg-white/60 w-full">
-                    <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-                        <div className="text-center mb-16">
-                            <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#007AFF] block mb-3">מה מניע אותנו</span>
-                            <h2 className="text-3xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter">ארבעה עקרונות. מוצר אחד.</h2>
+                {/* ── Vertical Timeline ─────────────────────────────── */}
+                <section className="py-32 relative bg-[#F5F5F7]">
+                    <div className="max-w-5xl mx-auto px-6 relative">
+                        <div className="text-right mb-24">
+                            <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הדרך שעשינו</h2>
+                            <p className="text-xl text-gray-400 font-medium">עשור של פריצות דרך בחינוך הישראלי.</p>
                         </div>
 
-                        <motion.div
-                            initial="hidden"
-                            whileInView="show"
-                            viewport={{ once: true }}
-                            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } }}
-                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                        >
-                            {values.map((v, i) => (
-                                <motion.div
-                                    key={i}
-                                    variants={{
-                                        hidden: { opacity: 0, y: 24, scale: 0.97 },
-                                        show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 200, damping: 20 } }
-                                    }}
-                                    whileHover={{ y: -6, scale: 1.02 }}
-                                    transition={{ type: 'spring', stiffness: 380, damping: 24 }}
-                                    className="p-8 rounded-[2rem] flex flex-col gap-5 relative overflow-hidden group"
-                                    style={GLASS}
-                                >
-                                    <div className="absolute top-0 left-6 right-6 h-px"
-                                        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)' }} />
-                                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[2rem]"
-                                        style={{ background: 'radial-gradient(circle at 50% 0%, rgba(0,122,255,0.05) 0%, transparent 60%)' }} />
+                        <div className="relative">
+                            {timelineData.map((item, i) => (
+                                <TimelineItem key={i} {...item} index={i} />
+                            ))}
+                        </div>
+                    </div>
+                </section>
 
-                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-[#007AFF] relative z-10"
-                                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' }}>
-                                        {v.icon}
+                {/* ── Founder's Message: Heart of the Brand ──────────────────────────── */}
+                <section className="py-32 bg-white relative overflow-hidden">
+                    <div className="max-w-6xl mx-auto px-6">
+                        <div className={GLASS_CARD}>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                                <div className="text-right">
+                                    <div className="flex items-center justify-end gap-3 mb-8">
+                                        <span className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">מילה אישית מהמייסד</span>
+                                        <div className="w-8 h-px bg-[#007AFF]" />
                                     </div>
-                                    <div className="relative z-10">
-                                        <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight mb-1">{v.title}</h3>
-                                        <p className="text-sm font-medium text-gray-500">{v.subtitle}</p>
+                                    <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-10 tracking-tighter leading-tight">
+                                        "ההצלחה נמדדת בשטח.<br />לא בברושורים."
+                                    </h2>
+                                    <p className="text-xl text-gray-500 leading-relaxed font-medium mb-12">
+                                        כשבנינו את NextClass, החלטנו להפסיק לדבר על "פוטנציאל" ולהתחיל לדבר על תוצאות. ראינו יותר מדי בתי ספר עם ציוד שצובר אבק. אנחנו כאן כדי להבטיח שכל פיקסל שאנחנו מתקינים הופך לכלי עבודה אמיתי בידיים של המורים. זה המחויבות שלי אליכם.
+                                    </p>
+                                    <div className="flex items-center justify-end gap-4">
+                                        <div className="text-right">
+                                            <p className="font-bold text-[#1D1D1F] text-lg">אמיר כהן</p>
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">מייסד ומנכ"ל NextClass</p>
+                                        </div>
+                                        <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-md">
+                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200" alt="Amir Cohen" />
+                                        </div>
                                     </div>
+                                </div>
+                                <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
+                                    <img 
+                                        src="/assets/visionary_founder_israel_1777475864564.png" 
+                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                                        alt="Visionary Founder" 
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── Values: The NextClass DNA ──────────────────────────── */}
+                <section className="py-48 bg-[#F5F5F7] relative">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <div className="text-center mb-24">
+                            <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הערכים שמניעים אותנו</h2>
+                            <p className="text-xl text-gray-400 font-medium">הבסיס לכל החלטה, לכל מוצר ולכל קשר.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                            {[
+                                { 
+                                    title: 'מקצוענות ללא פשרות', 
+                                    desc: 'אנחנו לא מסתפקים ב"עובד". אנחנו מחפשים את השלמות בכל פיקסל ובכל קו קוד, כדי שהשיעור שלך יעבור ללא תקלות.', 
+                                    icon: ShieldCheck,
+                                    gradient: 'from-blue-500/10 to-transparent'
+                                },
+                                { 
+                                    title: 'חדשנות אנושית', 
+                                    desc: 'הטכנולוגיה היא רק הכלי. הלב הוא המורה. אנחנו מפתחים כלים שמעצימים את היכולת האנושית לחנך ולהעניק השראה.', 
+                                    icon: Compass,
+                                    gradient: 'from-purple-500/10 to-transparent'
+                                },
+                                { 
+                                    title: 'שותפות אמת', 
+                                    desc: 'כשאתה בוחר בנו, אתה מקבל שותף לחיים. אנחנו שם בשבילך ברגעי השיא ובאתגרים היומיומיים, עם פתרונות שבאמת עובדים.', 
+                                    icon: Users,
+                                    gradient: 'from-indigo-500/10 to-transparent'
+                                },
+                            ].map((v, i) => (
+                                <motion.div 
+                                    key={i} 
+                                    whileHover={{ y: -16, scale: 1.02 }}
+                                    className={`glass-apple p-12 rounded-[3rem] border border-white/60 text-right shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative overflow-hidden group bg-gradient-to-br ${v.gradient}`}
+                                >
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#007AFF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="w-16 h-16 rounded-[1.5rem] bg-white shadow-xl flex items-center justify-center mb-10 ml-auto transition-transform duration-500 group-hover:rotate-[10deg] group-hover:scale-110">
+                                        <v.icon size={32} className="text-[#007AFF]" />
+                                    </div>
+                                    <h3 className="text-3xl font-apple-display text-[#1D1D1F] mb-6 tracking-tight">{v.title}</h3>
+                                    <p className="text-lg text-gray-500 font-medium leading-relaxed">{v.desc}</p>
                                 </motion.div>
                             ))}
-                        </motion.div>
+                        </div>
                     </div>
                 </section>
 
-                {/* ── Team Callout ─────────────────────────────────────────────── */}
-                <section className="py-24 px-6 md:px-12 text-center">
-                    <div className="max-w-4xl mx-auto">
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.8 }}
-                            className="p-12 md:p-16 rounded-[3rem] relative overflow-hidden"
-                            style={{
-                                background: 'linear-gradient(145deg, #007AFF 0%, #5856D6 100%)',
-                                boxShadow: '0 40px 80px rgba(0,122,255,0.25)',
-                            }}
-                        >
-                            <div className="absolute inset-0 opacity-20 pointer-events-none"
-                                style={{ background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.3) 0%, transparent 60%)' }} />
-                            <div className="absolute top-0 left-12 right-12 h-px"
-                                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)' }} />
-
-                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter mb-4 relative z-10">
-                                מחפשים שותף אמיתי לדרך?
-                            </h2>
-                            <p className="text-lg text-white/80 mb-8 relative z-10 max-w-xl mx-auto">
-                                נשמח להכיר את המוסד שלכם ולהציג פתרון מותאם אישית.
-                            </p>
+                {/* ── Final Call to Action ──────────────────────────── */}
+                <section className="py-48 bg-[#1D1D1F] relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-20">
+                        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600 rounded-full blur-[150px] -mr-96 -mt-96" />
+                        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-violet-600 rounded-full blur-[150px] -ml-64 -mb-64" />
+                    </div>
+                    
+                    <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+                        <h2 className="text-5xl md:text-8xl font-apple-display text-white tracking-tighter mb-10 leading-[0.95]">
+                            בואו נצייר את<br />
+                            <span className="text-blue-500">המחר ביחד.</span>
+                        </h2>
+                        <p className="text-2xl text-gray-400 font-medium mb-16 max-w-2xl mx-auto">
+                            אנחנו מחפשים את השותפים שמאמינים שחינוך הוא המשאב היקר ביותר שלנו. בואו נבנה משהו בלתי נשכח.
+                        </p>
+                        
+                        <div className="flex flex-wrap justify-center gap-6">
                             <motion.a
                                 href="/contact"
-                                whileHover={{ scale: 1.04, y: -2 }}
-                                whileTap={{ scale: 0.97 }}
-                                className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-black text-[#007AFF] text-lg relative z-10"
-                                style={{
-                                    background: 'white',
-                                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-16 py-6 bg-white text-[#1D1D1F] rounded-full font-black text-xl shadow-2xl hover:bg-gray-50 transition-all"
                             >
-                                בואו נדבר
+                                דברו איתנו
                             </motion.a>
-                        </motion.div>
+                            <motion.a
+                                href="/catalog"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-16 py-6 bg-white/10 text-white backdrop-blur-xl border border-white/20 rounded-full font-black text-xl hover:bg-white/20 transition-all"
+                            >
+                                צפו בקטלוג
+                            </motion.a>
+                        </div>
                     </div>
                 </section>
             </div>

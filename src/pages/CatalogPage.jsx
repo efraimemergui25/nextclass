@@ -26,7 +26,7 @@ const CatalogPage = () => {
         categories.includes(initialCat) ? initialCat : 'הכל'
     );
 
-    useEffect(() => { window.scrollTo(0, 0); }, []);
+    useEffect(() => { }, []);
 
     // Keep URL in sync
     const handleCategorySelect = (cat) => {

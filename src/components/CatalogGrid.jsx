@@ -1,68 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutGrid, Filter, Sparkles } from 'lucide-react';
 import ProductCard from './ProductCard';
 import products from '../data/products';
 
 const CatalogGrid = () => {
-    // 1. State Management
     const [selectedCategory, setSelectedCategory] = useState("הכל");
 
-    // 2. Categories Array (Unique categories + "הכל")
-    const categories = ["הכל", ...new Set(products.map(p => p.category))];
+    const categories = useMemo(() => ["הכל", ...new Set(products.map(p => p.category))], []);
 
-    // 4. Filtering Logic
-    const filteredProducts = selectedCategory === "הכל"
-        ? products
-        : products.filter(p => p.category === selectedCategory);
+    const filteredProducts = useMemo(() => 
+        selectedCategory === "הכל"
+            ? products
+            : products.filter(p => p.category === selectedCategory),
+    [selectedCategory]);
 
     return (
-        <section className="w-full max-w-[1400px] mx-auto px-6 md:px-12 py-24 bg-[#F5F5F7]">
-            <div className="mb-10 text-center">
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight text-[#1D1D1F] mb-4">
-                    הכלים שמעצבים את המחר
+        <section className="w-full max-w-[1440px] mx-auto px-6 md:px-16 py-16 bg-[#F5F5F7] min-h-screen">
+            
+            {/* ── Header Spotlight ── */}
+            <div className="mb-14 text-center relative">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.2em] mb-6"
+                >
+                    <Sparkles size={10} className="animate-glow-pulse" />
+                    <span>הקטלוג המוסדי המלא</span>
+                </motion.div>
+                <h2 className="text-4xl md:text-6xl font-apple-display tracking-tighter leading-[1.0] text-[#1D1D1F] mb-4">
+                    הכלים שמעצבים את המחר.
                 </h2>
-                <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto font-medium leading-relaxed">
+                <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
                     פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.
                 </p>
             </div>
 
-            {/* 3. The Filter Bar (UI) */}
-            <div className="flex justify-center flex-wrap gap-3 md:gap-4 mb-16">
-                {categories.map((category) => {
-                    const isActive = selectedCategory === category;
-                    return (
-                        <button
-                            key={category}
-                            onClick={() => setSelectedCategory(category)}
-                            className={`
-                                px-6 py-2 rounded-full font-bold text-sm md:text-base transition-all duration-300 border backdrop-blur-md active:scale-[0.97]
-                                ${isActive
-                                    ? "bg-[#007AFF] text-white shadow-lg border-transparent scale-105"
-                                    : "bg-white/50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:text-[#1D1D1F]"}
-                            `}
-                        >
-                            {category}
-                        </button>
-                    )
-                })}
+            {/* ── Apple-Tier Filter Bar ── */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+                <div className="flex items-center gap-2 glass-apple px-4 py-2 rounded-full border border-gray-200/50 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+                    {categories.map((category) => {
+                        const isActive = selectedCategory === category;
+                        return (
+                            <button
+                                key={category}
+                                onClick={() => setSelectedCategory(category)}
+                                className={`
+                                    px-5 py-1.5 rounded-full font-bold text-[13px] transition-all duration-500 whitespace-nowrap
+                                    ${isActive
+                                        ? "bg-black text-white shadow-lg scale-105"
+                                        : "text-gray-500 hover:text-[#1D1D1F] hover:bg-gray-100/50"}
+                                `}
+                            >
+                                {category}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                        <Filter size={10} />
+                        <span>סינון</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[9px] font-black text-[#007AFF] uppercase tracking-widest px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 cursor-pointer">
+                        <LayoutGrid size={10} />
+                        <span>גריד</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Grid System: Gestalt Proximity & Generous Whitespace */}
-            {/* Animation: Apple Spring Physics for layout reflows */}
+            {/* ── Grid System ── */}
             <motion.div
                 layout
                 transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-14"
             >
                 <AnimatePresence mode='popLayout'>
-                    {filteredProducts.map((product) => (
+                    {filteredProducts.map((product, idx) => (
                         <motion.div
                             key={product.id}
                             layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 28, mass: 0.8, delay: idx * 0.04 }}
                         >
                             <ProductCard product={product} />
                         </motion.div>
@@ -70,10 +92,20 @@ const CatalogGrid = () => {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Empty State Fallback (Just in case) */}
+            {/* ── Empty State ── */}
             {filteredProducts.length === 0 && (
-                <div className="text-center py-20">
-                    <p className="text-2xl font-bold text-gray-400">לא נמצאו מוצרים בקטגוריה זו.</p>
+                <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-gray-200">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Filter size={24} className="text-gray-300" />
+                    </div>
+                    <h3 className="text-2xl font-apple-display text-[#1D1D1F] mb-2">לא מצאנו את מה שחיפשתם</h3>
+                    <p className="text-lg text-gray-400 font-medium mb-8">נסו לשנות את הקטגוריה או לחפש מוצר ספציפי.</p>
+                    <button 
+                        onClick={() => setSelectedCategory("הכל")}
+                        className="px-8 py-3 bg-[#007AFF] text-white rounded-full font-bold shadow-lg hover:shadow-blue-500/30 transition-all"
+                    >
+                        חזרה לכל המוצרים
+                    </button>
                 </div>
             )}
         </section>

@@ -54,7 +54,7 @@ const ValueProps = () => {
     };
 
     return (
-        <section className="bg-brand-light py-24 w-full border-t border-gray-200/50 relative overflow-hidden">
+        <section className="bg-brand-light py-16 w-full border-t border-gray-200/50 relative overflow-hidden">
             {/* Ambient background orbs */}
             <div className="absolute top-0 left-1/4 w-[600px] h-[400px] rounded-full opacity-30 pointer-events-none"
                 style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.12) 0%, transparent 70%)', filter: 'blur(60px)' }} />
@@ -66,7 +66,7 @@ const ValueProps = () => {
                 <div className="text-center mb-5">
                     <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF]">המסגרת שלנו</span>
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.1] text-[#1D1D1F] text-center mb-16">
+                <h2 className="text-3xl md:text-5xl font-apple-display font-bold tracking-tighter leading-[1.0] text-[#1D1D1F] text-center mb-10">
                     סטנדרט חדש של שירות למוסדות חינוך
                 </h2>
 

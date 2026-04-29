@@ -3,38 +3,37 @@ import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 
 /**
- * PageTransition — Apple-tier page transition with:
- *  • Vertical drift + subtle scale (feels like lifting a card)  
- *  • Spring physics instead of linear duration
- *  • Brightness flash on enter (mimics iOS page reveal)
+ * PageTransition — Ultra-Fast "Pop" Resolve
+ * Optimized for popLayout to eliminate white flashes and ensure instant response.
  */
 const pageVariants = {
     initial: {
         opacity: 0,
-        y: 16,
-        scale: 0.995,
-        filter: 'blur(4px)',
+        scale: 0.96,
+        y: 10,
+        filter: 'blur(12px)',
     },
     animate: {
         opacity: 1,
-        y: 0,
         scale: 1,
+        y: 0,
         filter: 'blur(0px)',
         transition: {
-            opacity: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-            y: { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 },
-            scale: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-            filter: { duration: 0.3, ease: 'easeOut' },
+            type: 'spring',
+            stiffness: 240,
+            damping: 30,
+            mass: 1,
+            staggerChildren: 0.05,
         }
     },
     exit: {
         opacity: 0,
+        scale: 1.02,
         y: -10,
-        scale: 1.003,
-        filter: 'blur(3px)',
+        filter: 'blur(8px)',
         transition: {
-            duration: 0.22,
-            ease: [0.32, 0, 0.67, 0],
+            duration: 0.2,
+            ease: "easeIn"
         }
     }
 };
@@ -49,7 +48,11 @@ const PageTransition = ({ children }) => {
             animate="animate"
             exit="exit"
             variants={pageVariants}
-            className="w-full flex-1 flex flex-col"
+            onAnimationStart={() => {
+                // Immediate scroll to top during popLayout switch
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
+            className="w-full flex-1 flex flex-col origin-center will-change-[transform,opacity,filter]"
         >
             {children}
         </motion.div>

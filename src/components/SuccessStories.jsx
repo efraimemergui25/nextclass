@@ -60,8 +60,10 @@ const SuccessStories = () => {
                     {SCROLL_ITEMS.map((story, idx) => (
                         <div
                             key={`${story.id}-${idx}`}
-                            className="w-[380px] md:w-[480px] flex-shrink-0 bg-white/50 backdrop-blur-2xl border border-white/80 p-10 rounded-[2.5rem] shadow-[0_12px_40px_rgb(0_0_0/0.06)] flex flex-col gap-8 cursor-default transition-all duration-500 relative group overflow-hidden"
+                            className="w-[380px] md:w-[480px] flex-shrink-0 bg-white/30 backdrop-blur-[48px] saturate-150 border border-white/60 p-10 rounded-[2.5rem] shadow-[0_4px_24px_rgb(0_0_0/0.04)] hover:shadow-[0_24px_48px_rgb(0_0_0/0.12)] hover:-translate-y-1 flex flex-col gap-8 cursor-default transition-all duration-500 relative group overflow-hidden"
                         >
+                            {/* Glass edge rim */}
+                            <div className="absolute inset-0 ring-1 ring-inset ring-white/60 rounded-[2.5rem] pointer-events-none mix-blend-overlay" />
                             <div className="absolute -top-10 -left-10 text-[#007AFF]/5 rotate-180 group-hover:scale-125 transition-transform duration-700 pointer-events-none">
                                 <Quote size={180} />
                             </div>

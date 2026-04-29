@@ -10,7 +10,7 @@ const ComparePage = () => {
     const { cartItems, addToCart, removeFromCart } = useCart();
 
     useEffect(() => {
-        window.scrollTo(0, 0);
+
     }, []);
 
     // Build a unified spec label list from ALL selected products' specs arrays

@@ -9,6 +9,7 @@ import products from '../data/products';
 import TrustBadges from '../components/TrustBadges';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
+import Magnetic from '../components/Magnetic';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 const SCROLLYTELLING_FEATURES = [
@@ -16,25 +17,25 @@ const SCROLLYTELLING_FEATURES = [
         id: 1,
         title: 'חוויית 4K קולנועית בכל כיתה',
         description: 'פאנל ה-OLED החדשני מעניק חדות בלתי מתפשרת וצבעים מדויקים, כדי שכל פרט בשיעור ייראה חי, ברור ובולט גם באור יום מלא.',
-        image: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1200&auto=format&fit=crop',
+        image: 'https://images.pexels.com/photos/5082567/pexels-photo-5082567.jpeg?auto=compress&cs=tinysrgb&w=1200',
     },
     {
         id: 2,
         title: 'חיבור מיידי, ללא כבלים',
         description: 'שתף בקלות מהסמארטפון או הלפטופ ישירות למסך הגדול. טכנולוגיית ה-AirPlay וה-Miracast המובנית מאפשרת לך להתחיל ללמד בשניות.',
-        image: 'https://images.unsplash.com/photo-1551703599-6b3e8379aa8b?q=80&w=1200&auto=format&fit=crop',
+        image: 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=1200',
     },
     {
         id: 3,
         title: 'אינטראקציה חכמה ואינטואיטיבית',
         description: 'ניהול אפליקציות וכלי למידה בלחיצה אחת. ממשק ה-NextTouch מותאם אישית לצרכים שלך, ומאפשר זרימה חופשית של תוכן ותקשורת.',
-        image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200&auto=format&fit=crop',
+        image: 'https://images.pexels.com/photos/4144096/pexels-photo-4144096.jpeg?auto=compress&cs=tinysrgb&w=1200',
     },
     {
         id: 4,
         title: 'עוצמה שדוחפת קדימה',
         description: 'עם מעבד ה-M2 Pro העוצמתי, הכל רץ מהר וחלק — מהפעלת סרטוני VR ועד עבודה על אפליקציות כבדות במקביל. ללא השהיות, ללא פשרות.',
-        image: 'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?q=80&w=1200&auto=format&fit=crop',
+        image: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200',
     },
 ];
 
@@ -49,7 +50,7 @@ const ACCESSORIES = [
         title: 'כבל HDMI פרימיים 2.1',
         description: '8K 60Hz סופר מהיר עם מגן אלקטרומגנטי',
         price: 150,
-        image: 'https://images.unsplash.com/photo-1601524909162-ae8725290836?w=200&q=80',
+        image: 'https://images.pexels.com/photos/4219860/pexels-photo-4219860.jpeg?auto=compress&cs=tinysrgb&w=200',
         category: 'קישוריות',
     },
     {
@@ -57,18 +58,18 @@ const ACCESSORIES = [
         title: 'מתקן תלייה מגנטי',
         description: 'התקנה בתוך דקות עם זרוע מתכוונן בשלושה צירים',
         price: 300,
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80',
+        image: 'https://images.pexels.com/photos/7214589/pexels-photo-7214589.jpeg?auto=compress&cs=tinysrgb&w=200',
         category: 'התקנה',
     },
 ];
 
 // ─── Memoised fallback component ─────────────────────────────────────────────
 const ImageFallback = memo(() => (
-    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-4 rounded-[2rem]">
-        <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-4 rounded-3xl md:rounded-[2rem]">
+        <svg className="w-12 h-12 md:w-16 md:h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <span className="text-sm font-bold text-gray-300 tracking-widest uppercase">nextclass</span>
+        <span className="text-xs md:text-sm font-bold text-gray-400 tracking-widest uppercase">nextclass visual</span>
     </div>
 ));
 ImageFallback.displayName = 'ImageFallback';
@@ -119,7 +120,7 @@ const ProductDetailPage = () => {
         setImgError(false);
         setActiveColor(COLORS[0]);
         setSelectedAccessories(new Set());
-        window.scrollTo(0, 0);
+
         trackView(id);
     }, [id, trackView]);
 
@@ -159,7 +160,8 @@ const ProductDetailPage = () => {
     const handleImgError = useCallback((e) => {
         if (!e.target.dataset.triedFallback) {
             e.target.dataset.triedFallback = 'true';
-            e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
+            // Use reliable Pexels fallback instead of Unsplash
+            e.target.src = 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=800';
         } else {
             setImgError(true);
         }
@@ -267,7 +269,8 @@ const ProductDetailPage = () => {
 
             <PageTransition>
                 {/* ─── Main Content ────────────────────────────────────────────── */}
-                <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full overflow-x-hidden">
+                {/* REMOVED overflow-x-hidden as it breaks position: sticky down the tree */}
+                <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20">
 
                         {/* ─── Left Column: Sticky Media Panel ─────────────────── */}
@@ -283,11 +286,7 @@ const ProductDetailPage = () => {
                             />
 
                             <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={activeColor.id}
-                                    initial={{ opacity: 0, scale: 0.98 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 1.02 }}
+                                <div
                                     className="w-full rounded-[2rem] shadow-xl overflow-hidden ring-1 ring-black/5 transition-apple-fluid relative"
                                 >
                                     {product.videoUrl ? (
@@ -348,12 +347,12 @@ const ProductDetailPage = () => {
                                             loading="eager"
                                         />
                                     )}
-                                </motion.div>
+                                </div>
                             </AnimatePresence>
                         </div>
 
                         {/* ─── Right Column: Product Info ────────────────────────── */}
-                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col">
+                        <div className="flex flex-col">
                             {/* Breadcrumb */}
                             <div className="text-sm font-medium text-gray-400 mb-8 flex items-center gap-2">
                                 <Link to="/" className="hover:text-[#007AFF] transition-apple-fluid">ראשי</Link>
@@ -468,198 +467,180 @@ const ProductDetailPage = () => {
 
                             {/* CTAs */}
                             <div className="flex flex-col gap-4">
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleCartToggle}
-                                    className={`group relative h-[64px] w-full py-5 rounded-full text-xl shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center ${isInCart
-                                        ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200'
-                                        : 'bg-[#007AFF] text-white shadow-[0_12px_32px_rgb(0_122_255/0.25)]'
-                                        }`}
-                                >
-                                    <AnimatePresence mode="wait">
-                                        {isInCart ? (
-                                            <motion.div
-                                                key="in-cart"
-                                                initial={{ opacity: 0, y: 15 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -15 }}
-                                                className="flex items-center gap-2"
-                                            >
-                                                <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                <span className="group-hover:hidden">נוסף לסל בהצלחה</span>
-                                                <span className="hidden group-hover:inline">הסר פריט מהעגלה</span>
-                                            </motion.div>
-                                        ) : (
-                                            <motion.span
-                                                key="add"
-                                                initial={{ opacity: 0, y: 15 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -15 }}
-                                            >
-                                                {`הוסף לעגלה — ${formattedPrice}`}
-                                            </motion.span>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.button>
+                                <Magnetic strength={0.2}>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={handleCartToggle}
+                                        className={`group relative h-[64px] w-full min-w-[320px] py-5 rounded-full text-xl shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center ${isInCart
+                                            ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200'
+                                            : 'bg-[#007AFF] text-white shadow-[0_12px_32px_rgb(0_122_255/0.25)]'
+                                            }`}
+                                    >
+                                        {/* Animated Shine Overlay */}
+                                        <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+
+                                        <AnimatePresence mode="wait">
+                                            {isInCart ? (
+                                                <motion.div
+                                                    key="in-cart"
+                                                    initial={{ opacity: 0, y: 15 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -15 }}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span className="group-hover:hidden">נוסף לסל בהצלחה</span>
+                                                    <span className="hidden group-hover:inline">הסר פריט מהעגלה</span>
+                                                </motion.div>
+                                            ) : (
+                                                <motion.span
+                                                    key="add"
+                                                    initial={{ opacity: 0, y: 15 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -15 }}
+                                                >
+                                                    {`הוסף לעגלה — ${formattedPrice}`}
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+                                </Magnetic>
 
                                 <TrustBadges />
 
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className="flex-1 bg-black text-white py-4 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg"
-                                    >
-                                        קנה עכשיו
-                                    </motion.button>
-                                    <motion.button
-                                        onClick={handleCompareToggle}
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className={`flex-1 border-2 py-4 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                        </svg>
-                                        <span>{isProductSelectedForCompare ? 'נבחר להשוואה' : 'השווה דגם'}</span>
-                                    </motion.button>
+                                    <Magnetic strength={0.15}>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
+                                        >
+                                            {/* Shine effect for black button */}
+                                            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                                            קנה עכשיו
+                                        </motion.button>
+                                    </Magnetic>
+                                    <Magnetic strength={0.15}>
+                                        <motion.button
+                                            onClick={handleCompareToggle}
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className={`flex-1 min-w-[200px] border-2 py-4 px-10 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                            </svg>
+                                            <span>{isProductSelectedForCompare ? 'נבחר להשוואה' : 'השווה דגם'}</span>
+                                        </motion.button>
+                                    </Magnetic>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
 
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
-                    <div ref={scrollytellingRef} className="relative min-h-[150vh] bg-[#F5F5F7] mt-40 rounded-[4rem] overflow-hidden shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
-                        <div className="max-w-7xl mx-auto h-full grid grid-cols-1 md:grid-cols-2">
+                    {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
+                    <div ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
+                        <div className="max-w-7xl mx-auto h-full flex flex-col md:grid md:grid-cols-2 relative">
 
-                            {/* Narrative Text */}
-                            <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-[50vh] pt-[30vh] pb-[30vh] px-12">
-                                {SCROLLYTELLING_FEATURES.map((feature) => (
+                            {/* Sticky Visual — order 1 on mobile, 2 on desktop */}
+                            <div className="order-1 md:order-2 sticky top-[100px] z-10 w-full h-[45vh] md:h-[calc(100vh-140px)] self-start flex items-center justify-center p-4 md:p-12 bg-[#F5F5F7]/80 backdrop-blur-md md:bg-transparent md:backdrop-blur-none rounded-2xl md:rounded-[3rem] transition-all">
+                                <motion.div
+                                    className="relative w-full aspect-video md:aspect-square lg:aspect-square rounded-2xl md:rounded-[3rem] overflow-hidden shadow-xl bg-[#EBEBEF]"
+                                >
+                                    <AnimatePresence>
+                                        <motion.div
+                                            key={activeFeatureIdx}
+                                            initial={{ opacity: 0, filter: 'blur(10px)', scale: 1.05 }}
+                                            animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
+                                            exit={{ opacity: 0, filter: 'blur(10px)', scale: 0.95 }}
+                                            transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+                                            className="absolute inset-0"
+                                        >
+                                            <img
+                                                src={SCROLLYTELLING_FEATURES[activeFeatureIdx].image}
+                                                alt={SCROLLYTELLING_FEATURES[activeFeatureIdx].title}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    // Immediately replace with local robust fallback if unsplash fails
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextElementSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                            {/* Hidden fallback container that shows if img errors */}
+                                            <div style={{ display: 'none', width: '100%', height: '100%' }}>
+                                                <ImageFallback />
+                                            </div>
+                                        </motion.div>
+                                    </AnimatePresence>
+
+                                    <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl md:rounded-[3rem] pointer-events-none" />
+                                </motion.div>
+                            </div>
+
+                            {/* Narrative Text — order 2 on mobile, 1 on desktop */}
+                            <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-0 md:gap-[30vh] px-6 md:px-12 pb-[15vh] md:pb-[20vh] md:pt-[20vh] z-0">
+                                {SCROLLYTELLING_FEATURES.map((feature, i) => (
                                     <motion.div
                                         key={feature.id}
-                                        initial={{ opacity: 0, y: 50 }}
+                                        initial={{ opacity: 0.15, y: 20 }}
                                         whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ margin: '-20%' }}
-                                        transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-                                        className="max-w-md w-full"
+                                        viewport={{ once: false, margin: '-25% 0px -25% 0px' }}
+                                        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                                        // On mobile, space items directly. On desktop, they are spaced by gap-[30vh]
+                                        className={`max-w-md w-full ${i > 0 ? 'mt-[25vh] md:mt-0' : 'mt-[5vh] md:mt-0'} py-12 md:py-0`}
                                     >
-                                        <h2 className="text-3xl md:text-5xl font-black text-[#1D1D1F] leading-tight mb-4 tracking-tighter">
+                                        <h2 className="text-2xl md:text-5xl font-black text-[#1D1D1F] leading-tight mb-4 tracking-tighter">
                                             {feature.title}
                                         </h2>
-                                        <p className="text-xl font-normal text-[#86868B] leading-relaxed">
+                                        <p className="text-lg md:text-xl font-normal text-[#86868B] leading-relaxed">
                                             {feature.description}
                                         </p>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            {/* Sticky Visual — driven by reactive activeFeatureIdx */}
-                            <div className="order-1 md:order-2 h-screen sticky top-24 flex items-center justify-center p-6 md:p-12 overflow-hidden">
-                                <motion.div
-                                    style={{ scale, opacity: imageOpacity }}
-                                    className="relative w-full aspect-square md:aspect-[4/5] lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl will-change-transform transform-gpu bg-[#F0F0F2]"
-                                >
-                                    <AnimatePresence mode="wait">
-                                        <motion.img
-                                            key={activeFeatureIdx}
-                                            src={SCROLLYTELLING_FEATURES[activeFeatureIdx].image}
-                                            alt={SCROLLYTELLING_FEATURES[activeFeatureIdx].title}
-                                            className="w-full h-full object-cover"
-                                            initial={{ opacity: 0, scale: 1.06 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.96 }}
-                                            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                                        />
-                                    </AnimatePresence>
-                                    {/* Glass caption badge */}
-                                    <motion.div
-                                        key={`caption-${activeFeatureIdx}`}
-                                        initial={{ opacity: 0, y: 12 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -8 }}
-                                        transition={{ duration: 0.4, delay: 0.15 }}
-                                        className="absolute bottom-5 left-5 right-5 px-5 py-3 rounded-2xl"
-                                        style={{
-                                            background: 'rgba(0,0,0,0.45)',
-                                            backdropFilter: 'blur(20px)',
-                                            WebkitBackdropFilter: 'blur(20px)',
-                                            border: '1px solid rgba(255,255,255,0.15)',
-                                        }}
-                                    >
-                                        <span className="text-white font-bold text-sm">{SCROLLYTELLING_FEATURES[activeFeatureIdx].title}</span>
-                                    </motion.div>
-                                    <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-[3rem] pointer-events-none" />
-                                </motion.div>
-                            </div>
                         </div>
                     </div>
 
-                    {/* ─── Technical Specs Grid ──────────────────────────────────── */}
+                    {/* ─── Technical Specs Grid (Gestalt Redesign) ──────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div
-                            id="specs"
-                            className="relative max-w-[1400px] mx-auto mt-24 py-16 md:py-24 lg:py-32 px-6 overflow-hidden"
-                        >
-                            {/* Dark cinematic background */}
+                        <div id="specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
                             <div
-                                className="absolute inset-0 rounded-[3rem] mx-4"
-                                style={{ background: 'linear-gradient(135deg, #09090f 0%, #111118 50%, #0d0d16 100%)' }}
-                            />
-                            {/* Ambient orbs */}
-                            <div className="absolute top-[-10%] right-[5%] w-[400px] h-[400px] rounded-full pointer-events-none"
-                                style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.18) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-                            <div className="absolute bottom-[-10%] left-[10%] w-[350px] h-[350px] rounded-full pointer-events-none"
-                                style={{ background: 'radial-gradient(circle, rgba(120,80,255,0.12) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-
-                            <div className="relative z-10">
-                                <div className="text-center mb-16 md:mb-24">
-                                    <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#007AFF] mb-3 block">מפרט טכני</span>
-                                    <h3 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight">מפרט טכני מלא</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 auto-rows-[220px] max-w-6xl mx-auto" dir="rtl">
-                                    {product.specs.map((spec, idx) => {
-                                        const isMain = idx === 0 || idx === 3;
-                                        return (
-                                            <motion.div
+                                className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] border border-white/60 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden relative"
+                            >
+                                {/* Ambient subtle glow for liveliness */}
+                                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#007AFF]/10 rounded-full blur-[100px] pointer-events-none -z-10 translate-x-1/3 -translate-y-1/3" />
+                                
+                                <div className="p-8 md:p-16 lg:p-24 relative z-10">
+                                    <div className="text-right mb-12 md:mb-20">
+                                        <h3 className="text-4xl md:text-6xl font-black tracking-tighter text-[#1D1D1F] mb-4">מפרט טכני</h3>
+                                        <div className="h-1.5 w-16 bg-[#007AFF] rounded-full mb-6"></div>
+                                        <p className="text-gray-500 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">הפרטים המדויקים שהופכים את המערכת הזו למובילה מסוגה.</p>
+                                    </div>
+                                    
+                                    <div className="flex flex-col w-full divide-y divide-gray-200/60">
+                                        {product.specs.map((spec, idx) => (
+                                            <motion.div 
                                                 key={idx}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                whileInView={{ opacity: 1, y: 0 }}
-                                                viewport={{ once: true, margin: '-40px' }}
-                                                transition={{ type: 'spring', stiffness: 300, damping: 28, delay: idx * 0.05 }}
-                                                whileHover={{ scale: 1.02, transition: { type: 'spring', stiffness: 400, damping: 28 } }}
-                                                className={`relative overflow-hidden rounded-[2rem] flex flex-col justify-between p-8 cursor-default group ${isMain ? 'md:col-span-2 md:row-span-2' : 'md:col-span-1 md:row-span-1'}`}
-                                                style={{
-                                                    background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)',
-                                                    backdropFilter: 'blur(40px) saturate(1.8)',
-                                                    WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
-                                                    border: '1px solid rgba(255,255,255,0.08)',
-                                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-                                                }}
+                                                initial={{ opacity: 0, x: 20 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
+                                                viewport={{ once: true, margin: "-50px" }}
+                                                transition={{ duration: 0.5, delay: idx * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                                                className="flex flex-col md:flex-row py-6 md:py-8 gap-3 md:gap-12 group hover:bg-black/[0.02] transition-colors duration-400 rounded-2xl px-6 -mx-6"
                                             >
-                                                <div
-                                                    className={`absolute pointer-events-none transition-transform duration-700 group-hover:scale-150 ${isMain ? '-bottom-16 -right-16 w-72 h-72' : '-bottom-10 -right-10 w-48 h-48'}`}
-                                                    style={{
-                                                        background: isMain
-                                                            ? 'radial-gradient(circle, rgba(0,122,255,0.2) 0%, rgba(120,80,255,0.1) 50%, transparent 70%)'
-                                                            : 'radial-gradient(circle, rgba(0,122,255,0.12) 0%, transparent 70%)',
-                                                        borderRadius: '50%',
-                                                        filter: 'blur(20px)',
-                                                    }}
-                                                />
-                                                <div className="absolute top-0 left-4 right-4 h-px"
-                                                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)' }} />
-                                                <div className="relative z-10">
-                                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#007AFF] mb-3 block">{spec?.label}</span>
-                                                    <span className={`font-black text-white block leading-[1.05] tracking-tighter ${isMain ? 'text-5xl md:text-7xl mt-2' : 'text-3xl md:text-4xl'}`}>
-                                                        {spec?.value}
-                                                    </span>
+                                                <div className="w-full md:w-1/3 text-right flex items-center">
+                                                    <span className="text-sm md:text-base font-bold text-gray-500 uppercase tracking-widest">{spec?.label}</span>
+                                                </div>
+                                                <div className="w-full md:w-2/3 text-right flex items-center">
+                                                    <span className="text-xl md:text-2xl font-black text-[#1D1D1F] tracking-tight">{spec?.value}</span>
                                                 </div>
                                             </motion.div>
-                                        );
-                                    })}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

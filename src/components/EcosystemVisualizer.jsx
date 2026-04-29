@@ -105,7 +105,7 @@ const Hotspot = memo(({ spot }) => {
                         className="absolute z-20 w-48"
                         style={tooltipStyle}
                     >
-                        <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-2xl shadow-[0_8px_32px_rgb(0_0_0/0.12)] overflow-hidden">
+                        <div className="bg-white/50 backdrop-blur-[48px] saturate-[1.8] border border-white/80 rounded-2xl shadow-[0_20px_60px_rgb(0,0,0/0.18)] overflow-hidden relative">
                             {/* Product thumbnail */}
                             <div className="w-full h-24 bg-gray-50 overflow-hidden">
                                 <img

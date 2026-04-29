@@ -107,7 +107,7 @@ const SpacesGallery = () => {
 
                 {/* Sticky Glass Pill-Menu for Navigation */}
                 <div className="absolute top-8 inset-x-0 z-50 flex justify-center px-4">
-                    <div className="bg-white/10 backdrop-blur-3xl border border-white/20 p-2 rounded-full flex gap-2 shadow-2xl">
+                    <div className="bg-white/10 backdrop-blur-[48px] saturate-[1.8] border border-white/30 p-2 rounded-full flex gap-2 shadow-[0_20px_60px_rgba(0,0,0,0.3)] ring-1 ring-inset ring-white/10">
                         {SPACES.map(space => (
                             <button
                                 key={space.id}
@@ -173,7 +173,7 @@ const SpacesGallery = () => {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                            className="absolute top-12 -right-[110px] md:right-auto md:-left-[120px] w-[320px] bg-white/40 dark:bg-[#1D1D1F]/40 backdrop-blur-3xl backdrop-saturate-[1.8] py-5 px-5 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-white/50 flex flex-row-reverse gap-4 z-50 pointer-events-auto items-center"
+                                            className="absolute top-12 -right-[110px] md:right-auto md:-left-[120px] w-[320px] bg-white/40 dark:bg-[#1D1D1F]/40 backdrop-blur-[48px] saturate-[1.8] py-5 px-5 rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.25)] border border-white/60 flex flex-row-reverse gap-4 z-50 pointer-events-auto items-center ring-1 ring-inset ring-white/40"
                                         >
                                             {/* Product Thumbnail (Right Side) */}
                                             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-white/40 bg-white/20 backdrop-blur-lg">

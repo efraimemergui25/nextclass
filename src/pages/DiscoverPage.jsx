@@ -1,11 +1,12 @@
 import React, { useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Sparkles, TrendingUp, Zap, Gift, ChevronLeft } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import ProductCard from '../components/ProductCard';
 import products from '../data/products';
 
-// ─── Swimlane data (memoised at module level — never changes) ────────────────
+// ─── Swimlane data ────────────────
 const SWIMLANES = [
     {
         id: 'top-sellers',
@@ -13,6 +14,7 @@ const SWIMLANES = [
         badge: 'trending',
         sub: 'המוצרים שמוסדות החינוך בוחרים שוב ושוב',
         items: products.slice(0, 4),
+        icon: <TrendingUp size={18} />
     },
     {
         id: 'new-arrivals',
@@ -20,6 +22,7 @@ const SWIMLANES = [
         badge: 'new',
         sub: 'טכנולוגיה חדישה שהגיעה ממש עכשיו',
         items: products.slice(10, 14),
+        icon: <Zap size={18} />
     },
     {
         id: 'deals',
@@ -27,207 +30,176 @@ const SWIMLANES = [
         badge: 'deal',
         sub: 'הזדמנויות שלא כדאי לפספס',
         items: products.slice(20, 24),
+        icon: <Gift size={18} />
     },
 ];
 
-// ─── Section header animation variants ───────────────────────────────────────
 const sectionVariants = {
-    hidden: { opacity: 0, y: 32 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.32, 0.72, 0, 1] } },
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
 };
 
-const cardContainerVariants = {
-    hidden: {},
-    visible: {
-        transition: { staggerChildren: 0.08 },
-    },
-};
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.32, 0.72, 0, 1] } },
-};
-
-// ─── Swimlane Component ───────────────────────────────────────────────────────
 const Swimlane = memo(({ lane }) => (
     <motion.section
         variants={sectionVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: '-80px' }}
-        className="mb-20"
+        viewport={{ once: true, margin: '-100px' }}
+        className="mb-32"
     >
-        {/* Section Header */}
-        <div className="flex items-end justify-between mb-8 pb-4 border-b border-gray-100">
-            <div className="flex items-center gap-3">
+        <div className="flex items-end justify-between mb-12 relative">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white shadow-sm text-[#007AFF]`}>
+                    {lane.icon}
+                </div>
                 <div>
-                    <div className="flex items-center gap-2.5 mb-1">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-[#1D1D1F]">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">
                             {lane.label}
                         </h2>
-                        {/* Premium badge — replaces emoji */}
-                        {lane.badge === 'trending' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
-                                style={{ background: 'linear-gradient(135deg, #FF3B30 0%, #FF6B35 100%)', boxShadow: '0 4px 12px rgba(255,59,48,0.25)' }}>
-                                <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="currentColor">
-                                    <path d="M2 8 L5 2 L8 8" strokeWidth="0" />
-                                    <rect x="1.5" y="7.5" width="7" height="1.2" rx="0.6" />
-                                </svg>
-                                טרנד
-                            </span>
-                        )}
-                        {lane.badge === 'new' && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
-                                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 12px rgba(0,122,255,0.25)' }}>
-                                חדש
-                            </span>
-                        )}
-                        {lane.badge === 'deal' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shrink-0"
-                                style={{ background: 'linear-gradient(135deg, #34C759 0%, #30B855 100%)', boxShadow: '0 4px 12px rgba(52,199,89,0.25)' }}>
-                                מבצע
-                            </span>
-                        )}
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg ${
+                            lane.badge === 'trending' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                            lane.badge === 'new' ? 'bg-gradient-to-r from-blue-500 to-indigo-500' :
+                            'bg-gradient-to-r from-green-500 to-emerald-500'
+                        }`}>
+                            {lane.badge === 'trending' ? 'Trending' : lane.badge === 'new' ? 'New' : 'Special'}
+                        </span>
                     </div>
-                    <p className="text-base text-[#86868B] mt-0.5">{lane.sub}</p>
+                    <p className="text-lg text-[#86868B] font-medium">{lane.sub}</p>
                 </div>
             </div>
             <Link
                 to="/catalog"
-                className="shrink-0 flex items-center gap-1.5 text-[#007AFF] font-semibold text-sm hover:underline transition-opacity hover:opacity-80"
+                className="group flex items-center gap-2 text-[#007AFF] font-bold text-sm hover:opacity-80 transition-all"
             >
-                הכל
-                <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                צפה בהכל
+                <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-[#007AFF] group-hover:text-white transition-all">
+                    <ChevronLeft size={16} />
+                </div>
             </Link>
         </div>
 
-        {/* Product Grid */}
-        <motion.div
-            variants={cardContainerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-60px' }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-            {(lane.items ?? []).map((product) => (
-                <motion.div key={product?.id ?? Math.random()} variants={cardVariants}>
-                    <ProductCard product={product} />
-                </motion.div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {lane.items.map((product) => (
+                <ProductCard key={product.id} product={product} />
             ))}
-        </motion.div>
+        </div>
     </motion.section>
 ));
-Swimlane.displayName = 'Swimlane';
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 const DiscoverPage = () => {
     return (
         <PageTransition>
-            <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24">
-                <div className="max-w-7xl mx-auto px-4 md:px-8">
+            <div className="min-h-screen bg-[#F5F5F7] pt-40 pb-32 w-full overflow-x-hidden">
+                <div className="max-w-[1400px] mx-auto px-6">
 
-                    {/* ─── Page Header ─────────────────────────────────── */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 24 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
-                        className="mb-16 text-right"
-                    >
-                        {/* Breadcrumb */}
-                        <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-                            <Link to="/" className="hover:text-[#007AFF] transition-colors">ראשי</Link>
-                            <span>/</span>
-                            <span className="text-gray-600 font-medium">גלה את המוצרים שלנו</span>
-                        </div>
-
-                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-[#1D1D1F] leading-[1.05] mb-4">
-                            גלה את המוצרים שלנו
-                        </h1>
-                        <p className="text-xl text-[#86868B] max-w-2xl leading-relaxed">
-                            חנות הטכנולוגיה המובילה לחינוך — ציוד פרמיום, מחירים הוגנים, ווחוויית קנייה ישראלית.
-                        </p>
-
-                        {/* Stats Strip */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 16 }}
+                    {/* ── Page Header ─────────────────────────────────── */}
+                    <div className="max-w-3xl mb-24">
+                        <motion.span
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.25, duration: 0.6 }}
-                            className="flex flex-wrap gap-8 mt-10"
+                            className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#007AFF] mb-6 block"
                         >
-                            {[
-                                { num: '50+', label: 'מוצרים בחנות' },
-                                { num: '500+', label: 'מוסדות לקוחות' },
-                                { num: '4.9★', label: 'דירוג לקוחות' },
-                            ].map(({ num, label }) => (
-                                <div key={label} className="flex flex-col">
-                                    <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">{num}</span>
-                                    <span className="text-sm text-[#86868B]">{label}</span>
-                                </div>
-                            ))}
-                        </motion.div>
-                    </motion.div>
+                            NextClass Discovery
+                        </motion.span>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-6xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tighter leading-[0.95] mb-8"
+                        >
+                            הטכנולוגיה שמעצבת<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
+                        </motion.h1>
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-2xl text-gray-400 font-medium leading-relaxed"
+                        >
+                            אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. כל מה שצריך כדי להפוך חזון למציאות.
+                        </motion.p>
+                    </div>
 
-                    {/* ─── Hero Banner ────────────────────────────────── */}
+                    {/* ── Hero Spotlight ────────────────────────────────── */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.15, duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
-                        className="relative mb-20 rounded-[2.5rem] overflow-hidden bg-[#1D1D1F] min-h-[220px] flex items-center px-10 md:px-16 py-12"
-                        style={{
-                            backgroundImage: "url('https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1600&auto=format&fit=crop')",
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                        }}
+                        transition={{ delay: 0.3, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative mb-32 rounded-[4rem] overflow-hidden group shadow-2xl h-[500px]"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/50 to-transparent rounded-[2.5rem]" />
-                        <div className="relative z-10 text-right max-w-lg">
-                            <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest mb-3 block">קולקציית הדגל 2025</span>
-                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight mb-4">
-                                NextBoard Pro 86"
+                        <img 
+                            src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1600&auto=format&fit=crop" 
+                            className="w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-105"
+                            alt="NextBoard Pro"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/20 to-transparent" />
+                        
+                        <div className="absolute inset-y-0 right-0 w-full md:w-1/2 flex flex-col justify-center p-16 md:p-24 text-right">
+                            <motion.div 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.6 }}
+                                className="glass-dark inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 self-end"
+                            >
+                                <Sparkles size={14} className="text-[#007AFF]" />
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">נבחרת העונה 2025</span>
+                            </motion.div>
+                            <h2 className="text-4xl md:text-6xl font-apple-display text-white tracking-tighter leading-tight mb-6">
+                                NextBoard Pro 86"<br />
+                                <span className="text-[#007AFF]">אינטליגנציה בחינוך.</span>
                             </h2>
-                            <p className="text-gray-300 text-base leading-relaxed mb-6">
-                                מסך OLED אינטראקטיבי עם AI מובנה ורזולוציית 4K. החוויה שמשנה את הכיתה.
+                            <p className="text-xl text-gray-300 font-medium mb-10 max-w-md ml-0 mr-auto lg:mr-0">
+                                מסך ה-OLED הראשון עם עיבוד AI מובנה לניתוח למידה אקטיבית בזמן אמת.
                             </p>
                             <Link
-                                to="/catalog"
-                                className="inline-flex items-center gap-2 bg-white text-[#1D1D1F] font-bold px-7 py-3.5 rounded-full hover:bg-[#007AFF] hover:text-white transition-all duration-300 hover:shadow-xl text-sm"
+                                to="/catalog/nextboard-pro-86"
+                                className="inline-flex items-center gap-3 bg-white text-black font-bold px-10 py-5 rounded-full hover:bg-[#007AFF] hover:text-white transition-all self-end shadow-xl"
                             >
-                                גלה עכשיו
-                                <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                </svg>
+                                <span>גלה את המפרט</span>
+                                <ChevronLeft size={20} />
                             </Link>
                         </div>
+
+                        {/* Ambient Glow */}
+                        <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-[#007AFF]/20 rounded-full blur-[100px] animate-glow-pulse-heavy" />
                     </motion.div>
 
-                    {/* ─── Swimlanes ───────────────────────────────────── */}
+                    {/* ── Swimlanes ───────────────────────────────────── */}
                     {SWIMLANES.map((lane) => (
                         <Swimlane key={lane.id} lane={lane} />
                     ))}
 
-                    {/* ─── Bottom CTA ──────────────────────────────────── */}
+                    {/* ── Final Callout ──────────────────────────────────── */}
                     <motion.div
-                        initial={{ opacity: 0, y: 24 }}
+                        initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.7 }}
-                        className="mt-8 text-center py-16 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm"
+                        className="glass-apple gestalt-card p-20 text-center relative overflow-hidden"
                     >
-                        <h3 className="text-3xl font-black tracking-tighter text-[#1D1D1F] mb-3">
-                            לא מצאת מה שחיפשת?
-                        </h3>
-                        <p className="text-[#86868B] mb-8">כל הקטלוג שלנו פתוח בפניך — חפש, סנן, השווה.</p>
-                        <Link
-                            to="/catalog"
-                            className="inline-flex items-center gap-2 bg-[#007AFF] text-white font-bold px-10 py-4 rounded-full text-base hover:bg-blue-600 transition-all duration-300 shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5"
-                        >
-                            לכל הקטלוג
-                            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </Link>
+                        <div className="relative z-10">
+                            <h3 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-6">
+                                לא מצאתם את מה שחיפשתם?
+                            </h3>
+                            <p className="text-2xl text-gray-400 font-medium mb-12 max-w-2xl mx-auto">
+                                היועצים המומחים שלנו כאן כדי לאפיין עבורכם את הפתרון המדויק למוסד שלכם.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-6">
+                                <Link
+                                    to="/catalog"
+                                    className="px-12 py-5 bg-black text-white rounded-full font-bold text-xl shadow-xl hover:scale-105 transition-transform"
+                                >
+                                    לכל הקטלוג
+                                </Link>
+                                <Link
+                                    to="/contact"
+                                    className="px-12 py-5 bg-white border border-gray-200 text-[#1D1D1F] rounded-full font-bold text-xl shadow-sm hover:bg-gray-50 transition-colors"
+                                >
+                                    דברו עם מומחה
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#007AFF]/5 blur-3xl rounded-full" />
+                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#AF52DE]/5 blur-3xl rounded-full" />
                     </motion.div>
                 </div>
             </div>

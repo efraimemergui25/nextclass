@@ -107,7 +107,7 @@ const Header = () => {
                 }}
                 animate={hidden ? 'hidden' : 'visible'}
                 transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/45 backdrop-blur-3xl backdrop-saturate-[1.8] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-full px-5 py-2.5 flex items-center justify-between gap-4 pointer-events-auto will-change-transform transform-gpu"
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/45 backdrop-blur-3xl backdrop-saturate-[1.8] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-full px-6 py-2 flex items-center justify-between gap-4 pointer-events-auto will-change-transform transform-gpu"
             >
                 {/* ═══ RIGHT ZONE — Logo ═══ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 z-[120]">
