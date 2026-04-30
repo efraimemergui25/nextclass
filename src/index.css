@@ -587,4 +587,13 @@
     .section-fade-top {
         background: linear-gradient(to bottom, rgba(242, 242, 245, 0) 0%, rgba(242, 242, 245, 1) 100%);
     }
+
+    /* Scrollbar hide — horizontal scroll strips */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
 }

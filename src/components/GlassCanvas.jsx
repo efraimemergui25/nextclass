@@ -1,102 +1,148 @@
 import React, { useRef, useEffect } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 /**
- * GlassCanvas — An Aurora atmosphere layer that renders:
- *  1. A living, organic noise field (WebGL-style via Canvas2D)
- *  2. 3 large soft aurora orbs that drift and breathe
- *  3. Mouse-reactive subtle glow that follows cursor
+ * GlassCanvas — Living Aurora atmosphere layer.
  *
- * This creates the "alive" sensation of Apple visionOS spatial interfaces.
+ * ARCHITECTURE NOTE:
+ * The mouse-reactive glow is intentionally implemented via direct DOM style
+ * manipulation (NOT Framer Motion useTransform/useSpring) to avoid triggering
+ * layout recalculation on every mousemove event, which caused full-page reflow/shake.
+ * We use CSS custom properties + requestAnimationFrame for butter-smooth, 
+ * zero-jank tracking.
  */
 export default function GlassCanvas({ mood }) {
-    const canvasRef = useRef(null);
-    const mouseX = useMotionValue(0.5);
-    const mouseY = useMotionValue(0.5);
+    const glowRef = useRef(null);
+    const rafRef = useRef(null);
+    const targetRef = useRef({ x: 50, y: 50 });
+    const currentRef = useRef({ x: 50, y: 50 });
 
-    const springX = useSpring(mouseX, { stiffness: 30, damping: 20 });
-    const springY = useSpring(mouseY, { stiffness: 30, damping: 20 });
-
-    // Track mouse for reactive glow
     useEffect(() => {
         const handleMove = (e) => {
-            mouseX.set(e.clientX / window.innerWidth);
-            mouseY.set(e.clientY / window.innerHeight);
+            // Store target — actual DOM update happens in rAF loop
+            targetRef.current = {
+                x: (e.clientX / window.innerWidth) * 100,
+                y: (e.clientY / window.innerHeight) * 100,
+            };
         };
+
+        // Lerp loop — smooth follow without Framer Motion overhead
+        const lerp = (a, b, t) => a + (b - a) * t;
+        const tick = () => {
+            const cur = currentRef.current;
+            const tgt = targetRef.current;
+            cur.x = lerp(cur.x, tgt.x, 0.06);
+            cur.y = lerp(cur.y, tgt.y, 0.06);
+
+            if (glowRef.current) {
+                // transform: translate is GPU-composited — no layout, no reflow
+                glowRef.current.style.left = `${cur.x}%`;
+                glowRef.current.style.top = `${cur.y}%`;
+            }
+            rafRef.current = requestAnimationFrame(tick);
+        };
+
         window.addEventListener('mousemove', handleMove, { passive: true });
-        return () => window.removeEventListener('mousemove', handleMove);
-    }, [mouseX, mouseY]);
+        rafRef.current = requestAnimationFrame(tick);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, []);
+
+    const primaryColor = mood?.primary ?? '#007AFF';
+    const secondaryColor = mood?.secondary ?? '#5856D6';
 
     return (
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-            {/* Base atmosphere */}
+        <div
+            className="fixed inset-0 overflow-hidden pointer-events-none"
+            style={{ zIndex: -10 }}
+            aria-hidden="true"
+        >
+            {/* Base */}
             <div className="absolute inset-0 bg-[#F2F2F5]" />
 
-            {/* Aurora Orb 1 — Primary brand color, top-right */}
+            {/* Aurora Orb 1 — Primary, top-right */}
             <motion.div
                 animate={{
-                    backgroundColor: mood?.primary ?? '#007AFF',
-                    x: [0, 60, -20, 0],
-                    y: [0, -40, 20, 0],
-                    scale: [1, 1.12, 0.94, 1],
+                    backgroundColor: primaryColor,
+                    x: [0, 55, -15, 0],
+                    y: [0, -35, 18, 0],
+                    scale: [1, 1.1, 0.95, 1],
                 }}
-                transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-                className="aurora-orb absolute top-[-8%] right-[-4%] w-[900px] h-[900px] opacity-[0.07]"
+                transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ willChange: 'transform', filter: 'blur(110px)' }}
+                className="absolute top-[-8%] right-[-4%] w-[850px] h-[850px] rounded-full opacity-[0.065]"
             />
 
-            {/* Aurora Orb 2 — Secondary color, bottom-left */}
+            {/* Aurora Orb 2 — Secondary, bottom-left */}
             <motion.div
                 animate={{
-                    backgroundColor: mood?.secondary ?? '#5856D6',
-                    x: [0, -50, 30, 0],
-                    y: [0, 50, -20, 0],
-                    scale: [1, 0.90, 1.08, 1],
+                    backgroundColor: secondaryColor,
+                    x: [0, -45, 25, 0],
+                    y: [0, 45, -18, 0],
+                    scale: [1, 0.92, 1.06, 1],
                 }}
-                transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
-                className="aurora-orb-alt absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] opacity-[0.055]"
+                transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+                style={{ willChange: 'transform', filter: 'blur(130px)' }}
+                className="absolute bottom-[-10%] left-[-5%] w-[750px] h-[750px] rounded-full opacity-[0.05]"
             />
 
-            {/* Aurora Orb 3 — Accent, center */}
+            {/* Aurora Orb 3 — Accent, mid */}
             <motion.div
                 animate={{
-                    x: [0, 30, -30, 0],
-                    y: [0, -20, 40, 0],
-                    scale: [1, 1.05, 0.97, 1],
+                    x: [0, 28, -28, 0],
+                    y: [0, -18, 36, 0],
+                    scale: [1, 1.04, 0.97, 1],
                 }}
-                transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut', delay: 6 }}
-                className="aurora-orb absolute top-[40%] left-[35%] w-[600px] h-[600px] opacity-[0.04]"
-                style={{ backgroundColor: '#34C759' }}
+                transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut', delay: 8 }}
+                style={{ willChange: 'transform', filter: 'blur(150px)', backgroundColor: '#30D158' }}
+                className="absolute top-[45%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.03]"
             />
 
-            {/* Mouse-reactive soft glow */}
-            <motion.div
-                className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
+            {/* Mouse-reactive glow — uses rAF + direct style, NOT Framer transforms */}
+            <div
+                ref={glowRef}
                 style={{
-                    x: useTransform(springX, [0, 1], ['-20%', '90%']),
-                    y: useTransform(springY, [0, 1], ['-20%', '90%']),
-                    background: `radial-gradient(circle, ${mood?.primary ?? '#007AFF'}18 0%, transparent 70%)`,
-                    filter: 'blur(60px)',
+                    position: 'absolute',
+                    width: '600px',
+                    height: '600px',
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${primaryColor}14 0%, transparent 65%)`,
+                    filter: 'blur(50px)',
                     transform: 'translate(-50%, -50%)',
+                    // Start at center
+                    left: '50%',
+                    top: '50%',
+                    willChange: 'left, top',
+                    pointerEvents: 'none',
                 }}
             />
 
-            {/* Ambient dot grid */}
-            <div className="absolute inset-0 ambient-grid opacity-25" />
+            {/* Dot grid */}
+            <div className="absolute inset-0 opacity-20"
+                style={{
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0)',
+                    backgroundSize: '28px 28px',
+                }}
+            />
 
-            {/* Top-to-bottom subtle vignette */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-white/[0.12] pointer-events-none" />
+            {/* Subtle vignette */}
+            <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.03) 0%, transparent 30%, rgba(255,255,255,0.08) 100%)' }}
+            />
 
-            {/* SVG Noise grain for tactile material feel */}
-            <svg className="absolute inset-0 w-full h-full opacity-[0.035] mix-blend-overlay pointer-events-none">
-                <filter id="noise-filter">
-                    <feTurbulence
-                        type="fractalNoise"
-                        baseFrequency="0.65"
-                        numOctaves="3"
-                        stitchTiles="stitch"
-                    />
+            {/* SVG Noise grain */}
+            <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ opacity: 0.03, mixBlendMode: 'overlay' }}
+            >
+                <filter id="nc-noise">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
                 </filter>
-                <rect width="100%" height="100%" filter="url(#noise-filter)" />
+                <rect width="100%" height="100%" filter="url(#nc-noise)" />
             </svg>
         </div>
     );
