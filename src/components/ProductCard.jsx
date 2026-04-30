@@ -27,6 +27,8 @@ const ImageFallback = memo(() => (
 ));
 ImageFallback.displayName = 'ImageFallback';
 
+import Magnetic from './Magnetic';
+
 // ─── ProductCard ──────────────────────────────────────────────────────────────
 const ProductCard = ({ product }) => {
     const {
@@ -75,7 +77,7 @@ const ProductCard = ({ product }) => {
 
     const glowBackground = useTransform(
         [glowX, glowY],
-        ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.25) 0%, transparent 70%)`
+        ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.3) 0%, transparent 60%)`
     );
 
     const handleMouseMove = useCallback((e) => {
@@ -131,7 +133,7 @@ const ProductCard = ({ product }) => {
         <div
             ref={cardRef}
             style={{ perspective: 1000 }}
-            className="h-full touch-manipulation"
+            className="h-full touch-manipulation group"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
         >
@@ -142,21 +144,21 @@ const ProductCard = ({ product }) => {
                     rotateY,
                     transformStyle: 'preserve-3d',
                 }}
-                className="flex flex-col h-full bg-white/60 backdrop-blur-3xl saturate-150 rounded-[2.5rem] overflow-hidden border border-white/80 transition-shadow duration-500 relative transform-gpu will-change-transform gestalt-card"
+                className="flex flex-col h-full glass-apple rounded-[2.5rem] relative transform-gpu will-change-transform shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)]"
             >
                 <Link
                     to={`/catalog/${id}`}
                     className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-[2.5rem]"
                 >
                     {/* ── Image Container ─────────────────────────────────── */}
-                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-[#F5F5F7]/30">
+                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-white/30">
                         {imgError || !image ? (
                             <ImageFallback />
                         ) : (
                             <img
                                 src={image}
                                 alt={title}
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] cubic-bezier(0.22, 1, 0.36, 1)"
                                 onError={handleImgError}
                                 loading="lazy"
                             />
@@ -176,11 +178,11 @@ const ProductCard = ({ product }) => {
                     {/* ── Text Content ─────────────────────────────────────── */}
                     <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-0">
                         {category && (
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-[#007AFF] mb-2">{category}</span>
+                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
                         )}
-                        <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2">{title}</h3>
+                        <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
                         {description && (
-                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-2 font-medium">{description}</p>
+                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
                         )}
 
                         {/* ── Footer ───────────────────────────────────────── */}
@@ -189,76 +191,74 @@ const ProductCard = ({ product }) => {
 
                             <div className="flex items-center gap-2 shrink-0">
                                 {/* Compare */}
-                                <motion.button
-                                    onClick={handleCompareClick}
-                                    whileHover={{ y: -2, scale: 1.08 }}
-                                    whileTap={{ scale: 0.92, filter: 'brightness(0.88)' }}
-                                    transition={SPRING_ACTION}
-                                    className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-colors duration-300 flex items-center justify-center ${selected
-                                        ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
-                                        : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-[#1D1D1F]'
-                                        }`}
-                                    aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                    </svg>
-                                </motion.button>
+                                <Magnetic strength={0.15}>
+                                    <motion.button
+                                        onClick={handleCompareClick}
+                                        whileTap={{ scale: 0.92 }}
+                                        className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-all duration-300 flex items-center justify-center ${selected
+                                            ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
+                                            : 'bg-white border-gray-100 text-gray-400 hover:border-[#007AFF]/20 hover:text-[#007AFF] hover:shadow-lg'
+                                            }`}
+                                        aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                        </svg>
+                                    </motion.button>
+                                </Magnetic>
 
                                 {/* Cart button */}
-                                {isInCart ? (
-                                    <motion.button
-                                        onClick={handleCartToggle}
-                                        whileHover={{ y: -2, scale: 1.03 }}
-                                        whileTap={{ scale: 0.94, filter: 'brightness(0.88)' }}
-                                        transition={SPRING_ACTION}
-                                        className="h-[38px] min-w-[110px] px-4 rounded-full font-bold text-xs tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center gap-1.5"
-                                    >
-                                        <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        נוסף לעגלה
-                                    </motion.button>
-                                ) : (
-                                    <motion.button
-                                        onClick={handleCartToggle}
-                                        animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
-                                        whileHover={popState === 'idle' ? { y: -2, scale: 1.05 } : undefined}
-                                        whileTap={popState === 'idle' ? { scale: 0.93, filter: 'brightness(0.88)' } : undefined}
-                                        transition={SPRING_ACTION}
-                                        className="h-[38px] min-w-[110px] px-4 rounded-full font-bold text-xs tracking-wide text-white overflow-hidden flex items-center justify-center gap-1.5 focus:outline-none"
-                                        style={{ backgroundColor: '#007AFF' }}
-                                        disabled={popState !== 'idle'}
-                                    >
-                                        <AnimatePresence mode="wait">
-                                            {popState === 'success' ? (
-                                                <motion.span
-                                                    key="check"
-                                                    initial={{ scale: 0, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    exit={{ scale: 0, opacity: 0 }}
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                                                    className="flex items-center gap-1"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    נוסף!
-                                                </motion.span>
-                                            ) : (
-                                                <motion.span
-                                                    key="add"
-                                                    initial={{ opacity: 0, y: 6 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -6 }}
-                                                    transition={{ duration: 0.15 }}
-                                                >
-                                                    {popState === 'loading' ? '...' : 'הוסף לעגלה'}
-                                                </motion.span>
-                                            )}
-                                        </AnimatePresence>
-                                    </motion.button>
-                                )}
+                                <Magnetic strength={0.1}>
+                                    {isInCart ? (
+                                        <motion.button
+                                            onClick={handleCartToggle}
+                                            whileTap={{ scale: 0.94 }}
+                                            className="h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                        >
+                                            <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            נוסף לעגלה
+                                        </motion.button>
+                                    ) : (
+                                        <motion.button
+                                            onClick={handleCartToggle}
+                                            animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
+                                            whileTap={popState === 'idle' ? { scale: 0.93 } : undefined}
+                                            className="h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide text-white flex items-center justify-center gap-1.5 focus:outline-none shadow-md hover:shadow-xl transition-shadow"
+                                            style={{ backgroundColor: '#007AFF' }}
+                                            disabled={popState !== 'idle'}
+                                        >
+                                            <AnimatePresence mode="wait">
+                                                {popState === 'success' ? (
+                                                    <motion.span
+                                                        key="check"
+                                                        initial={{ scale: 0, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        exit={{ scale: 0, opacity: 0 }}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                                                        className="flex items-center gap-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        נוסף!
+                                                    </motion.span>
+                                                ) : (
+                                                    <motion.span
+                                                        key="add"
+                                                        initial={{ opacity: 0, y: 6 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -6 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    >
+                                                        {popState === 'loading' ? '...' : 'הוסף לעגלה'}
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.button>
+                                    )}
+                                </Magnetic>
                             </div>
                         </div>
                     </div>
@@ -266,7 +266,7 @@ const ProductCard = ({ product }) => {
 
                 {/* ── Specular light reflection — follows mouse ────────── */}
                 <motion.div
-                    className="absolute inset-0 pointer-events-none rounded-3xl"
+                    className="absolute inset-0 pointer-events-none rounded-[2.5rem]"
                     style={{ background: glowBackground }}
                 />
             </motion.div>

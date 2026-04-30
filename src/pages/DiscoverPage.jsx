@@ -94,27 +94,45 @@ const DiscoverPage = () => {
                 <div className="max-w-[1400px] mx-auto px-6">
 
                     {/* ── Page Header ─────────────────────────────────── */}
-                    <div className="max-w-3xl mb-24">
+                    <div className="max-w-2xl pt-24 mb-64 relative z-10">
                         <motion.span
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#007AFF] mb-6 block"
+                            className="text-[9px] font-black uppercase tracking-[0.6em] text-[#007AFF]/60 mb-20 block"
                         >
                             NextClass Discovery
                         </motion.span>
-                        <motion.h1
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-6xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tighter leading-[0.95] mb-8"
-                        >
-                            הטכנולוגיה שמעצבת<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
-                        </motion.h1>
+                        <div className="space-y-4">
+                            <motion.h1
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                                className="text-6xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tight leading-none"
+                            >
+                                הטכנולוגיה
+                            </motion.h1>
+                            <motion.h1
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                                className="text-6xl md:text-8xl font-light text-gray-300 tracking-tight leading-none"
+                            >
+                                שמעצבת
+                            </motion.h1>
+                            <motion.h1
+                                initial={{ opacity: 0, y: 40 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                className="text-6xl md:text-8xl font-apple-display text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6] tracking-tight leading-none"
+                            >
+                                את המחר.
+                            </motion.h1>
+                        </div>
                         <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="text-2xl text-gray-400 font-medium leading-relaxed"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5, duration: 1 }}
+                            className="text-xl md:text-2xl text-gray-400 font-medium leading-[1.8] max-w-lg mt-24"
                         >
                             אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. כל מה שצריך כדי להפוך חזון למציאות.
                         </motion.p>

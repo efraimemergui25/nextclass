@@ -52,41 +52,31 @@ const HeroSection = () => {
                 </motion.span>
 
                 {/* Staggered headline */}
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-3">
-                    {titleWords.map((word, i) => (
-                        <motion.span
-                            key={word}
-                            className="text-hero text-white tracking-tighter drop-shadow-2xl"
-                            initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
-                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                            transition={{ duration: 1.0, delay: 0.2 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-                        >
-                            {word}
-                        </motion.span>
-                    ))}
-                </div>
-
-                {/* Second headline line */}
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-8">
-                    {subWords.map((word, i) => (
-                        <motion.span
-                            key={word}
-                            className="text-hero text-white/80 font-bold tracking-tighter drop-shadow-2xl"
-                            initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
-                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                            transition={{ duration: 1.0, delay: 0.45 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-                        >
-                            {word}
-                        </motion.span>
-                    ))}
+                <div className="flex flex-col items-center mb-16">
+                    <motion.h1 
+                        className="text-white text-6xl md:text-8xl font-apple-display tracking-tight leading-tight mb-4"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        חדשנות חסרת פשרות.
+                    </motion.h1>
+                    <motion.h2
+                        className="text-white/60 text-3xl md:text-5xl font-light tracking-tight leading-tight"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                        מקצוענות בכל מרחב למידה.
+                    </motion.h2>
                 </div>
 
                 {/* Subtitle */}
                 <motion.p
-                    className="text-hero-sub text-gray-300 mx-auto"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.85, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                    className="text-lg md:text-xl text-gray-400 font-medium leading-loose mx-auto max-w-2xl mb-16"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 1 }}
                 >
                     הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                 </motion.p>
