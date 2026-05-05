@@ -45,7 +45,7 @@ const Swimlane = memo(({ lane }) => (
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
-        className="mb-32"
+        className="mb-20"
     >
         <div className="flex items-end justify-between mb-12 relative">
             <div className="flex items-center gap-4">
@@ -90,51 +90,34 @@ const Swimlane = memo(({ lane }) => (
 const DiscoverPage = () => {
     return (
         <PageTransition>
-            <div className="min-h-screen bg-[#F5F5F7] pt-40 pb-32 w-full overflow-x-hidden">
+            <div className="min-h-screen bg-[#F5F5F7] pt-28 pb-24 w-full overflow-x-hidden">
                 <div className="max-w-[1400px] mx-auto px-6">
 
                     {/* ── Page Header ─────────────────────────────────── */}
-                    <div className="max-w-2xl pt-24 mb-64 relative z-10">
+                    <div className="max-w-2xl pt-16 mb-24 relative z-10">
                         <motion.span
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-[9px] font-black uppercase tracking-[0.6em] text-[#007AFF]/60 mb-20 block"
+                            className="text-[9px] font-black uppercase tracking-[0.6em] text-[#007AFF]/60 mb-10 block"
                         >
                             NextClass Discovery
                         </motion.span>
-                        <div className="space-y-4">
-                            <motion.h1
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                                className="text-6xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tight leading-none"
-                            >
-                                הטכנולוגיה
-                            </motion.h1>
-                            <motion.h1
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                                className="text-6xl md:text-8xl font-light text-gray-300 tracking-tight leading-none"
-                            >
-                                שמעצבת
-                            </motion.h1>
-                            <motion.h1
-                                initial={{ opacity: 0, y: 40 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                                className="text-6xl md:text-8xl font-apple-display text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6] tracking-tight leading-none"
-                            >
-                                את המחר.
-                            </motion.h1>
-                        </div>
+                        <motion.h1
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                            className="text-5xl md:text-[5.5rem] font-bold tracking-tight leading-[1.1] text-[#1D1D1F] whitespace-nowrap"
+                        >
+                            הטכנולוגיה <span className="font-light text-gray-300">שמעצבת</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
+                        </motion.h1>
                         <motion.p
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5, duration: 1 }}
-                            className="text-xl md:text-2xl text-gray-400 font-medium leading-[1.8] max-w-lg mt-24"
+                            transition={{ delay: 0.6, duration: 1 }}
+                            className="text-lg md:text-xl text-[#86868B] font-medium leading-relaxed max-w-2xl mt-8 tracking-tight"
                         >
-                            אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. כל מה שצריך כדי להפוך חזון למציאות.
+                            אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. <br className="hidden md:block" />
+                            כל מה שצריך כדי להפוך חזון למציאות.
                         </motion.p>
                     </div>
 
@@ -143,7 +126,7 @@ const DiscoverPage = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                        className="relative mb-32 rounded-[4rem] overflow-hidden group shadow-2xl h-[500px]"
+                        className="relative mb-24 rounded-[3.5rem] overflow-hidden group shadow-2xl h-[420px]"
                     >
                         <img 
                             src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1600&auto=format&fit=crop" 
@@ -152,29 +135,29 @@ const DiscoverPage = () => {
                         />
                         <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/20 to-transparent" />
                         
-                        <div className="absolute inset-y-0 right-0 w-full md:w-1/2 flex flex-col justify-center p-16 md:p-24 text-right">
+                        <div className="absolute inset-y-0 right-0 w-full md:w-1/2 flex flex-col justify-center p-12 md:p-16 text-right">
                             <motion.div 
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.6 }}
-                                className="glass-dark inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 self-end"
+                                className="glass-dark inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 self-end"
                             >
-                                <Sparkles size={14} className="text-[#007AFF]" />
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">נבחרת העונה 2025</span>
+                                <Sparkles size={12} className="text-[#007AFF]" />
+                                <span className="text-[9px] font-black text-white uppercase tracking-widest">נבחרת העונה 2025</span>
                             </motion.div>
-                            <h2 className="text-4xl md:text-6xl font-apple-display text-white tracking-tighter leading-tight mb-6">
+                            <h2 className="text-3xl md:text-5xl font-apple-display text-white tracking-tighter leading-tight mb-4">
                                 NextBoard Pro 86"<br />
                                 <span className="text-[#007AFF]">אינטליגנציה בחינוך.</span>
                             </h2>
-                            <p className="text-xl text-gray-300 font-medium mb-10 max-w-md ml-0 mr-auto lg:mr-0">
+                            <p className="text-lg text-gray-300 font-medium mb-8 max-w-sm ml-0 mr-auto lg:mr-0">
                                 מסך ה-OLED הראשון עם עיבוד AI מובנה לניתוח למידה אקטיבית בזמן אמת.
                             </p>
                             <Link
                                 to="/catalog/nextboard-pro-86"
-                                className="inline-flex items-center gap-3 bg-white text-black font-bold px-10 py-5 rounded-full hover:bg-[#007AFF] hover:text-white transition-all self-end shadow-xl"
+                                className="inline-flex items-center gap-3 bg-white text-black font-bold px-8 py-4 rounded-full hover:bg-[#007AFF] hover:text-white transition-all self-end shadow-xl text-sm"
                             >
                                 <span>גלה את המפרט</span>
-                                <ChevronLeft size={20} />
+                                <ChevronLeft size={18} />
                             </Link>
                         </div>
 

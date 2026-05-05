@@ -35,9 +35,8 @@ export default function GlassCanvas({ mood }) {
             cur.y = lerp(cur.y, tgt.y, 0.06);
 
             if (glowRef.current) {
-                // transform: translate is GPU-composited — no layout, no reflow
-                glowRef.current.style.left = `${cur.x}%`;
-                glowRef.current.style.top = `${cur.y}%`;
+                // transform: translate is GPU-composited — zero layout, zero reflow
+                glowRef.current.style.transform = `translate(calc(${cur.x}vw - 50%), calc(${cur.y}vh - 50%))`;
             }
             rafRef.current = requestAnimationFrame(tick);
         };
@@ -101,22 +100,20 @@ export default function GlassCanvas({ mood }) {
                 className="absolute top-[45%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.03]"
             />
 
-            {/* Mouse-reactive glow — uses rAF + direct style, NOT Framer transforms */}
             <div
                 ref={glowRef}
                 style={{
-                    position: 'absolute',
+                    position: 'fixed',
                     width: '600px',
                     height: '600px',
                     borderRadius: '50%',
                     background: `radial-gradient(circle, ${primaryColor}14 0%, transparent 65%)`,
                     filter: 'blur(50px)',
-                    transform: 'translate(-50%, -50%)',
-                    // Start at center
-                    left: '50%',
-                    top: '50%',
-                    willChange: 'left, top',
+                    top: 0,
+                    left: 0,
+                    willChange: 'transform',
                     pointerEvents: 'none',
+                    zIndex: -5,
                 }}
             />
 

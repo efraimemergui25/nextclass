@@ -62,7 +62,19 @@
 /* Glow pulse — breathing blue halo */
 @keyframes glow-pulse {
     0%, 100% { box-shadow: 0 0 20px rgba(0, 122, 255, 0.12), 0 0 60px rgba(0, 122, 255, 0.04); }
-    50% { box-shadow: 0 0 40px rgba(0, 122, 255, 0.28), 0 0 90px rgba(0, 122, 255, 0.10); }
+    50% { box-shadow: 0 0 40px rgba(0, 122, 255, 0.22), 0 0 90px rgba(0, 122, 255, 0.08); }
+}
+
+/* Breathing glass — subtle scale and shadow drift */
+@keyframes breathing-glass {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(0,0,0,0.04); }
+    50% { transform: scale(1.002); box-shadow: 0 12px 48px rgba(0,0,0,0.06); }
+}
+
+/* Specular glint — constant subtle light sweep */
+@keyframes specular-glint {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
 
 /* Heavy glow — for featured orbs */
@@ -209,19 +221,19 @@
     .glass-apple {
         background: linear-gradient(
             145deg,
-            rgba(255, 255, 255, 0.65) 0%,
-            rgba(255, 255, 255, 0.50) 100%
+            rgba(255, 255, 255, 0.70) 0%,
+            rgba(255, 255, 255, 0.55) 100%
         );
         backdrop-filter: blur(52px) saturate(2.0) contrast(1.06);
         -webkit-backdrop-filter: blur(52px) saturate(2.0) contrast(1.06);
-        border: 1px solid rgba(255, 255, 255, 0.50);
+        border: 1px solid rgba(255, 255, 255, 0.55);
         box-shadow:
-            0 1px 0 rgba(255, 255, 255, 0.75) inset,
+            0 1px 0 rgba(255, 255, 255, 0.80) inset,
             0 -1px 0 rgba(0, 0, 0, 0.03) inset,
-            0 12px 40px rgba(0, 0, 0, 0.055),
-            0 2px 8px rgba(0, 0, 0, 0.03);
+            0 12px 40px rgba(0, 0, 0, 0.05);
         position: relative;
         overflow: hidden;
+        animation: breathing-glass 8s ease-in-out infinite;
     }
 
     /* Glint sweep on hover — the "alive" refraction effect */

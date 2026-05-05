@@ -1,22 +1,20 @@
-/**
- * SmartConcierge — visionOS Hyper-Glass Chat Interface
- */
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, ArrowUp } from 'lucide-react';
+import { X, Sparkles, ArrowUp, MessageCircle, Send, Plus, Minus, Info } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import Magnetic from './Magnetic';
 
-const WHATSAPP_NUMBER = '972500000000';
-const SPRING = { type: 'spring', stiffness: 320, damping: 26 };
-const BUBBLE_SPRING = { type: 'spring', stiffness: 380, damping: 26 };
+const WHATSAPP_NUMBER = '972500000000'; 
+const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
+const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
 const AI_MAP = {
-    מחיר: 'המחירים מותאמים למוסדות חינוך. אשמח לשלוח לך הצעת מחיר מדויקת — באיזה ציוד מדובר?',
-    מסך: 'יש לנו מסכים אינטראקטיביים מ-65" עד 98" עם Android 13 מובנה. איזה גודל מתאים לכיתות שלכם?',
-    מחשב: 'אנחנו מציעים Chromebook לתלמידים ועד תחנות עבודה למורים. כמה יחידות דרושות?',
-    רובוט: 'ערכות הרובוטיקה שלנו מבוססות Arduino ומתאימות לגילאים 10+. האם מדובר במעבדת STEM חדשה?',
-    אחריות: 'כל הציוד מגיע עם אחריות יבואן מלאה + חוזי שירות עם תגובה תוך 4 שעות.',
-    default: 'תודה! הצוות שלנו ממתין גם בוואטסאפ לכל שאלה 👇',
+    מחיר: 'המחירים שלנו מותאמים אישית למוסדות חינוך. אשמח להכין לך הצעת מחיר רשמית למוסד שלך.',
+    מסך: 'המסכים האינטראקטיביים שלנו הם המתקדמים בשוק, עם 40 נקודות מגע ואיכות 4K. איזה גודל דרוש לכם?',
+    מחשב: 'מניידים ועד עמדות קצה - יש לנו פתרון לכל צורך לימודי. כמה עמדות אתם מתכננים?',
+    רובוט: 'ערכות ה-STEM שלנו מגיעות עם תמיכה מלאה למורים. זה מתאים ליסודי או לחטיבה?',
+    אחריות: 'השירות שלנו כולל הגעה לאתר הלקוח תוך זמן קצר מאוד. אנחנו כאן בשבילכם.',
+    default: 'נשמע מעניין! אני ממליץ לדבר איתנו ישירות בוואטסאפ לדיוק הצרכים 👇',
 };
 
 const getReply = (text) => {
@@ -34,17 +32,17 @@ const Bubble = memo(({ msg }) => {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={BUBBLE_SPRING}
-            className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
+            className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
         >
             {!isUser && (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#007AFF] to-violet-500 flex items-center justify-center shrink-0 shadow-md">
-                    <Sparkles size={12} className="text-white" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                    <Sparkles size={14} className="text-white" />
                 </div>
             )}
             <div
-                className={`px-4 py-3 text-sm font-medium leading-relaxed max-w-[80%] shadow-sm ${isUser
-                    ? 'bg-[#007AFF] text-white rounded-2xl rounded-br-sm'
-                    : 'bg-white/90 backdrop-blur-md border border-white/60 text-[#1D1D1F] rounded-2xl rounded-bl-sm'
+                className={`px-5 py-3 text-[14px] font-medium leading-[1.6] max-w-[85%] relative overflow-hidden ${isUser
+                    ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-none shadow-md'
+                    : 'bg-white/80 backdrop-blur-xl border border-white/60 text-[#1D1D1F] rounded-[1.25rem] rounded-bl-none shadow-sm'
                     }`}
             >
                 {msg.text}
@@ -54,17 +52,17 @@ const Bubble = memo(({ msg }) => {
 });
 
 const TypingDots = () => (
-    <div className="flex items-end gap-2 justify-start">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#007AFF] to-violet-500 flex items-center justify-center shrink-0">
-            <Sparkles size={12} className="text-white" />
+    <div className="flex items-end gap-3 justify-start">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shrink-0">
+            <Sparkles size={14} className="text-white" />
         </div>
-        <div className="bg-white/90 backdrop-blur-md border border-white/60 px-5 py-3.5 rounded-2xl rounded-bl-sm shadow-sm flex gap-1.5 items-center">
+        <div className="bg-white/80 backdrop-blur-xl border border-white/60 px-5 py-4 rounded-[1.25rem] rounded-bl-none flex gap-1.5 items-center">
             {[0, 1, 2].map(i => (
                 <motion.span
                     key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 0.65, delay: i * 0.14, repeat: Infinity }}
+                    className="w-1.5 h-1.5 rounded-full bg-[#007AFF]"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
                 />
             ))}
         </div>
@@ -74,12 +72,10 @@ const TypingDots = () => (
 const SmartConcierge = () => {
     const location = useLocation();
     const isProductPage = location.pathname.startsWith('/catalog/');
-    const isCartPage = location.pathname === '/cart';
-
+    
     const getInitialMessage = () => {
-        if (isProductPage) return 'שלום! אני רואה שאתה מתעניין בדגם הזה. יש משהו ספציפי לגבי המפרט שתרצה לדעת?';
-        if (isCartPage) return 'כמעט שם! האם תרצה עזרה עם אפשרויות המשלוח או ההתקנה במוסד שלך?';
-        return 'שלום! אני העוזר החכם של NextClass. איך אוכל לעזור לך היום?';
+        if (isProductPage) return 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?';
+        return 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?';
     };
 
     const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +93,7 @@ const SmartConcierge = () => {
     }, [location.pathname, isOpen]);
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
-    useEffect(() => { if (isOpen) setTimeout(() => inputRef.current?.focus(), 320); }, [isOpen]);
+    useEffect(() => { if (isOpen) setTimeout(() => inputRef.current?.focus(), 400); }, [isOpen]);
 
     const send = useCallback((text) => {
         const t = (text ?? input).trim();
@@ -108,68 +104,122 @@ const SmartConcierge = () => {
         setTimeout(() => {
             setIsTyping(false);
             setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: getReply(t) }]);
-        }, 1200);
+        }, 1000);
     }, [input]);
 
+    const openWhatsApp = () => {
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=היי, אשמח להתייעץ לגבי פתרונות NextClass`, '_blank');
+    };
+
     return (
-        <div ref={rootRef} className="fixed bottom-8 right-8 z-[260] flex flex-col items-end gap-3">
+        <div ref={rootRef} className="fixed bottom-8 right-8 z-[1000] flex flex-col items-end gap-5">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 30, scale: 0.95, filter: 'blur(20px)' }}
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, y: 20, scale: 0.98, filter: 'blur(20px)' }}
                         transition={SPRING}
-                        className="w-[360px] h-[580px] bg-white/70 backdrop-blur-[50px] backdrop-saturate-[2] border border-white/60 rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col"
+                        className="w-[380px] h-[620px] flex flex-col overflow-hidden glass-apple rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] border border-white/60 relative"
                     >
-                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white/40">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-violet-500 flex items-center justify-center shadow-lg">
-                                    <Sparkles size={18} className="text-white" />
+                        {/* Header Section — Refined & Correctly Padded */}
+                        <div className="relative z-20 px-8 pt-8 pb-6 flex items-center justify-between bg-white/40 backdrop-blur-md border-b border-white/40">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shadow-lg transform rotate-2">
+                                        <Sparkles size={22} className="text-white" />
+                                    </div>
+                                    <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-black text-[#1D1D1F] leading-none">העוזר החכם</p>
-                                    <p className="text-[10px] text-green-500 font-black mt-1 uppercase tracking-widest flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        מחובר
-                                    </p>
+                                    <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">NextClass AI</h3>
+                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">Institutional Concierge</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-black/5 transition-colors">
-                                <X size={18} className="text-[#1D1D1F]" />
-                            </button>
+                            <Magnetic strength={0.3}>
+                                <button 
+                                    onClick={() => setIsOpen(false)} 
+                                    className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all"
+                                >
+                                    <X size={18} className="text-[#1D1D1F]" />
+                                </button>
+                            </Magnetic>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 no-scrollbar" dir="rtl">
+                        {/* Chat History Area */}
+                        <div className="relative z-10 flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-5 custom-scrollbar bg-gradient-to-b from-transparent to-white/20" dir="rtl">
                             {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
                             {isTyping && <TypingDots />}
                             <div ref={bottomRef} />
                         </div>
 
-                        <div className="p-5 bg-white/60 border-t border-gray-100 flex items-center gap-2">
-                            <motion.button
-                                onClick={() => send()}
-                                whileTap={{ scale: 0.9 }}
-                                disabled={!input.trim()}
-                                className="w-12 h-12 bg-black disabled:opacity-20 text-white rounded-full flex items-center justify-center shadow-xl shrink-0"
+                        {/* WhatsApp Bridge — Simplified & More Elegant */}
+                        <div className="relative z-20 px-6 py-4">
+                            <motion.button 
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={openWhatsApp}
+                                className="w-full group flex items-center justify-between gap-3 px-5 py-4 rounded-2xl bg-white/60 hover:bg-white transition-all border border-white/80 shadow-sm backdrop-blur-sm"
                             >
-                                <ArrowUp size={20} />
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white shadow-md">
+                                        <MessageCircle size={20} fill="white" strokeWidth={1} />
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[13px] font-bold text-[#1D1D1F]">מענה אנושי בוואטסאפ</p>
+                                        <p className="text-[10px] text-gray-500">יועץ טכנולוגי זמין כעת ✅</p>
+                                    </div>
+                                </div>
+                                <ArrowUp className="rotate-90 text-[#007AFF] opacity-40 group-hover:opacity-100 transition-opacity" size={16} />
                             </motion.button>
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && send()}
-                                placeholder="כתבו הודעה..."
-                                dir="rtl"
-                                className="flex-1 bg-white border border-gray-100 rounded-full px-5 py-4 text-sm outline-none focus:ring-[4px] focus:ring-[#007AFF]/5 transition-all"
-                            />
                         </div>
+
+                        {/* Quick Action Chips — More Minimal */}
+                        <div className="relative z-20 px-6 pb-2 flex flex-wrap gap-2 justify-end" dir="rtl">
+                            {['הצעת מחיר', 'מפרט טכני', 'ייעוץ'].map(chip => (
+                                <button 
+                                    key={chip}
+                                    onClick={() => send(chip)}
+                                    className="px-3 py-1.5 rounded-full bg-white/40 hover:bg-white/80 border border-white/60 text-[11px] font-bold text-[#1D1D1F] transition-all"
+                                >
+                                    {chip}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Input Footer — Refined Proportions */}
+                        <div className="relative z-20 p-6 pt-2 bg-white/60 backdrop-blur-2xl border-t border-white/40">
+                            <div className="relative flex items-center gap-2 bg-[#F5F5F7] rounded-2xl px-2 py-1.5 border border-white shadow-inner">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && send()}
+                                    placeholder="מה תרצו לבדוק?"
+                                    dir="rtl"
+                                    className="flex-1 bg-transparent border-none px-3 py-2 text-[14px] font-medium outline-none placeholder:text-gray-400"
+                                />
+                                <Magnetic strength={0.2}>
+                                    <button
+                                        onClick={() => send()}
+                                        disabled={!input.trim()}
+                                        className="w-10 h-10 bg-[#1D1D1F] disabled:opacity-20 text-white rounded-xl flex items-center justify-center shadow-lg transition-all"
+                                    >
+                                        <ArrowUp size={18} strokeWidth={3} />
+                                    </button>
+                                </Magnetic>
+                            </div>
+                        </div>
+
+                        {/* Animated Glow in background */}
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-[#007AFF]/5 blur-3xl pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#5856D6]/5 blur-3xl pointer-events-none" />
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* Main Trigger Button — Refined */}
             <motion.button
                 layout
                 onMouseEnter={() => setIsHovered(true)}
@@ -177,24 +227,30 @@ const SmartConcierge = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="h-16 rounded-full bg-black text-white shadow-2xl flex items-center px-4 overflow-hidden relative group"
-                style={{ minWidth: '4rem' }}
+                className={`h-16 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.12)] flex items-center px-4 overflow-hidden relative group transition-all duration-500 ${isOpen ? 'bg-white' : 'bg-[#1D1D1F]'}`}
+                style={{ minWidth: '4.5rem' }}
             >
-                <div className="absolute inset-0 bg-[#007AFF] opacity-0 group-hover:opacity-10 transition-opacity" />
-                <div className="flex items-center gap-3">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#007AFF] to-[#5856D6] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative z-10 flex items-center gap-3 w-full justify-center">
                     <AnimatePresence mode="wait">
-                        {isOpen ? <X key="x" size={24} /> : <Sparkles key="s" size={24} className="animate-glow-pulse" />}
-                    </AnimatePresence>
-                    <AnimatePresence>
-                        {isHovered && !isOpen && (
-                            <motion.span
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 10 }}
-                                className="text-sm font-black whitespace-nowrap"
-                            >
-                                זקוקים לעזרה?
-                            </motion.span>
+                        {isOpen ? (
+                            <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+                                <X size={26} className="text-[#1D1D1F]" />
+                            </motion.div>
+                        ) : (
+                            <motion.div key="s" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="flex items-center gap-3">
+                                <Sparkles size={24} className="text-white group-hover:scale-110 transition-transform duration-500" />
+                                {isHovered && (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="flex flex-col items-end pr-1"
+                                    >
+                                        <span className="text-[12px] font-black text-white leading-none">העוזר החכם</span>
+                                        <span className="text-[8px] font-bold text-white/50 uppercase tracking-[0.1em] mt-1">Chat Support</span>
+                                    </motion.div>
+                                )}
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </div>

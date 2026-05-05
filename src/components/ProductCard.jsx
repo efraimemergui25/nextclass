@@ -213,12 +213,20 @@ const ProductCard = ({ product }) => {
                                         <motion.button
                                             onClick={handleCartToggle}
                                             whileTap={{ scale: 0.94 }}
-                                            className="h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                            className="group/cart h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                                         >
-                                            <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            נוסף לעגלה
+                                            <div className="flex items-center gap-1.5 group-hover/cart:hidden">
+                                                <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                נוסף לעגלה
+                                            </div>
+                                            <div className="hidden group-hover/cart:flex items-center gap-1.5 text-red-500">
+                                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                הסר
+                                            </div>
                                         </motion.button>
                                     ) : (
                                         <motion.button

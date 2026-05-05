@@ -51,17 +51,24 @@ const TOOLTIP_SPRING = { type: 'spring', stiffness: 380, damping: 26 };
 // ─── Individual Hotspot + Tooltip ─────────────────────────────────────────────
 const Hotspot = memo(({ spot }) => {
     const [open, setOpen] = useState(false);
-    const { addToCart } = useCart();
+    const { cartItems, addToCart, removeFromCart } = useCart();
 
     const toggle = useCallback(() => setOpen(v => !v), []);
     const close = useCallback(() => setOpen(false), []);
 
-    const handleAdd = useCallback((e) => {
+    const handleCartToggle = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
-        addToCart(spot.product);
-        setOpen(false);
-    }, [spot.product, addToCart]);
+        const isInCart = cartItems.some(item => item.id === spot.product.id);
+        if (isInCart) {
+            removeFromCart(spot.product.id);
+        } else {
+            addToCart(spot.product);
+        }
+        // Keep tooltip open so they can see the change, or close it? 
+        // Let's keep it open for feedback if removing, or close if adding (standard behavior)
+        if (!isInCart) setOpen(false);
+    }, [spot.product, addToCart, removeFromCart, cartItems]);
 
     // Tooltip anchor: right of dot if tooltipSide='right', else left
     const tooltipStyle = spot.tooltipSide === 'right'
@@ -129,13 +136,38 @@ const Hotspot = memo(({ spot }) => {
                                         ₪{(spot.product.price ?? 0).toLocaleString()}
                                     </span>
                                     <motion.button
-                                        onClick={handleAdd}
+                                        onClick={handleCartToggle}
                                         whileHover={{ scale: 1.06 }}
                                         whileTap={{ scale: 0.94, filter: 'brightness(0.88)' }}
                                         transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                                        className="text-[11px] font-bold bg-[#007AFF] text-white px-3 py-1.5 rounded-full hover:bg-blue-600 transition-colors"
+                                        className={`group relative text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors ${
+                                            cartItems.some(item => item.id === spot.product.id)
+                                            ? 'bg-gray-100 text-[#1D1D1F] hover:bg-red-50 hover:text-red-600'
+                                            : 'bg-[#007AFF] text-white hover:bg-blue-600'
+                                        }`}
                                     >
-                                        הוסף
+                                        {cartItems.some(item => item.id === spot.product.id) ? (
+                                            <motion.div
+                                                key="in-cart"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="flex items-center gap-1.5"
+                                            >
+                                                <div className="flex items-center gap-1.5 group-hover:hidden">
+                                                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span>נוסף</span>
+                                                </div>
+                                                <div className="hidden group-hover:flex items-center gap-1.5 text-red-500">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    <span>הסר מהעגלה</span>
+                                                </div>
+                                            </motion.div>
+                                        ) : 'הוסף'}
                                     </motion.button>
                                 </div>
                                 <Link

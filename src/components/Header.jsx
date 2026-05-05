@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from '
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Search } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
@@ -207,10 +207,10 @@ const Header = () => {
                 <AnimatePresence>
                     {isMegaMenuOpen && (
                         <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                            initial={{ opacity: 0, y: 8, scale: 0.98, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, y: 6, scale: 0.98, filter: 'blur(10px)' }}
+                            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                             onMouseEnter={cancelClose}
                             onMouseLeave={scheduledClose}
                             style={{
@@ -219,64 +219,62 @@ const Header = () => {
                                 left: dropdownPos.centerX,
                                 transform: 'translateX(-50%)',
                                 zIndex: 9999,
-                                width: '340px',
-                                background: 'linear-gradient(145deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.90) 100%)',
-                                backdropFilter: 'blur(48px) saturate(1.8)',
-                                WebkitBackdropFilter: 'blur(48px) saturate(1.8)',
-                                border: '1px solid rgba(255,255,255,0.80)',
-                                boxShadow: '0 32px 64px rgba(0,0,0,0.16), 0 1px 0 rgba(255,255,255,0.95) inset',
-                                borderRadius: '2rem',
-                                padding: '16px',
+                                width: '360px',
+                                background: 'rgba(255, 255, 255, 0.55)',
+                                backdropFilter: 'blur(54px) saturate(2)',
+                                WebkitBackdropFilter: 'blur(54px) saturate(2)',
+                                border: '1px solid rgba(255, 255, 255, 0.7)',
+                                boxShadow: '0 30px 70px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+                                borderRadius: '2.25rem',
+                                padding: '10px',
+                                overflow: 'hidden'
                             }}
                         >
-                            {/* Top inset shine */}
-                            <div style={{ position: 'absolute', top: 0, left: '24px', right: '24px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)' }} />
+                            {/* Ambient background glow inside the menu */}
+                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#007AFF]/10 blur-[60px] rounded-full pointer-events-none" />
+                            
+                            <div className="relative flex flex-col gap-1.5">
+                                {CATEGORIES.map((cat, idx) => {
+                                    const moods = [
+                                        { bg: 'bg-blue-500/10', icon: 'text-blue-600', glow: 'shadow-blue-500/20' },
+                                        { bg: 'bg-indigo-500/10', icon: 'text-indigo-600', glow: 'shadow-indigo-500/20' },
+                                        { bg: 'bg-emerald-500/10', icon: 'text-emerald-600', glow: 'shadow-emerald-500/20' },
+                                        { bg: 'bg-orange-500/10', icon: 'text-orange-600', glow: 'shadow-orange-500/20' },
+                                        { bg: 'bg-sky-500/10', icon: 'text-sky-600', glow: 'shadow-sky-500/20' }
+                                    ];
+                                    const mood = moods[idx % moods.length];
+                                    
+                                    return (
+                                        <Link
+                                            key={cat.slug}
+                                            to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
+                                            onClick={handleMegaMenuLinkClick}
+                                            className="group relative flex items-center gap-4 p-3.5 rounded-[1.5rem] transition-all duration-300 hover:bg-white/80 hover:shadow-lg hover:shadow-black/5"
+                                        >
+                                            <div className={`w-11 h-11 rounded-2xl ${mood.bg} flex items-center justify-center ${mood.icon} transition-all duration-500 group-hover:scale-110 group-hover:bg-white group-hover:shadow-lg ${mood.glow}`}>
+                                                {idx === 0 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
+                                                {idx === 1 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}
+                                                {idx === 2 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.691.34a2 2 0 00-1.136 1.435l-.133.665c-.066.331.02.67.236.926l.464.55c.3.358.41.85.291 1.32l-.164.653a2 2 0 001.076 2.24l.582.291a2 2 0 002.324-.316l.432-.432a2 2 0 011.831-.513l.635.159a2 2 0 002.263-1.127l.192-.48a2 2 0 00-.28-1.92l-.46-.575a2 2 0 01-.397-1.468l.112-.672a2 2 0 00-1.03-2.14l-1.01-.505a2 2 0 00-2.316.326l-.42.42a2 2 0 01-1.84.511l-.64-.16a2 2 0 00-2.28 1.138l-.18.448a2 2 0 00.286 1.933l.466.582c.21.261.291.604.22.934l-.14.657a2 2 0 001.082 2.222l.585.292a2 2 0 002.31-.322l.42-.42a2 2 0 011.841-.511l.64.16a2 2 0 002.28-1.138l.18-.448a2 2 0 00-.286-1.933l-.466-.582z" /></svg>}
+                                                {idx === 3 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>}
+                                                {idx === 4 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
+                                            </div>
+                                            <div className="flex flex-col text-right">
+                                                <span className="text-[14px] font-bold text-[#1D1D1F] leading-tight transition-colors group-hover:text-[#007AFF]">{cat.label}</span>
+                                                <span className="text-[10px] font-semibold text-gray-400 mt-0.5 tracking-tight">לחץ לצפייה בדגמים</span>
+                                            </div>
+                                            <ChevronLeft className="w-4 h-4 mr-auto opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 text-[#007AFF]" />
+                                        </Link>
+                                    );
+                                })}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                {CATEGORIES.map((cat) => (
-                                    <Link
-                                        key={cat.slug}
-                                        to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
-                                        onClick={handleMegaMenuLinkClick}
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '12px 18px',
-                                            borderRadius: '16px',
-                                            textDecoration: 'none',
-                                            transition: 'background 200ms',
-                                            color: '#1D1D1F',
-                                        }}
-                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,122,255,0.07)'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <span style={{ fontSize: '15px', fontWeight: 700 }}>{cat.label}</span>
-                                        <ChevronRight style={{ width: '16px', height: '16px', color: '#007AFF', flexShrink: 0 }} />
-                                    </Link>
-                                ))}
-
-                                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                <div className="mt-2 pt-2 border-t border-black/[0.03]">
                                     <Link
                                         to="/catalog"
                                         onClick={handleMegaMenuLinkClick}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            padding: '14px',
-                                            background: 'linear-gradient(180deg, #1A8FFF 0%, #007AFF 100%)',
-                                            color: 'white',
-                                            borderRadius: '18px',
-                                            fontWeight: 900,
-                                            fontSize: '14px',
-                                            textDecoration: 'none',
-                                            boxShadow: '0 8px 20px rgba(0,122,255,0.30)',
-                                        }}
+                                        className="flex items-center justify-between w-full p-4 bg-[#1D1D1F] text-white rounded-[1.5rem] font-bold text-[13px] tracking-tight shadow-xl hover:bg-black transition-all group"
                                     >
-                                        כל המוצרים
-                                        <ChevronRight style={{ width: '16px', height: '16px', transform: 'rotate(180deg)' }} />
+                                        <span>לכל קטלוג הפתרונות</span>
+                                        <ChevronLeft size={16} className="group-hover:translate-x-[-4px] transition-transform" />
                                     </Link>
                                 </div>
                             </div>

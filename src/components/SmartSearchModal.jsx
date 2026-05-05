@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import products from '../data/products';
+import { useCart } from '../context/CartContext';
+import { ShoppingCart, Check } from 'lucide-react';
 
 const SmartSearchModal = ({ isOpen, onClose }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const inputRef = useRef(null);
     const navigate = useNavigate();
+    const { cartItems, addToCart } = useCart();
 
     // Spotlight-style Auto Focus
     useEffect(() => {
@@ -123,10 +126,23 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                                                     {product.category}
                                                 </p>
                                             </div>
-                                            <div className="mr-auto pl-2">
+                                            <div className="mr-auto pl-2 flex items-center gap-4">
                                                 <span className="text-lg font-black tracking-tight text-[#007AFF]">
                                                     ₪{product.price.toLocaleString()}
                                                 </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        addToCart(product);
+                                                    }}
+                                                    className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                                        cartItems.some(item => item.id === product.id)
+                                                            ? 'bg-green-50 text-green-600'
+                                                            : 'bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF] hover:text-white'
+                                                    }`}
+                                                >
+                                                    {cartItems.some(item => item.id === product.id) ? <Check size={16} strokeWidth={3} /> : <ShoppingCart size={16} strokeWidth={2.5} />}
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
