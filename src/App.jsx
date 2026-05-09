@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -17,12 +17,39 @@ import VODCenterPage from './pages/VODCenterPage';
 import MagazinePage from './pages/MagazinePage';
 import ComparePage from './pages/ComparePage';
 import DiscoverPage from './pages/DiscoverPage';
+import AnnouncementBar from './components/AnnouncementBar';
 import DynamicIsland from './components/DynamicIsland';
 import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
+import { ProductsProvider } from './context/ProductsContext';
+import AdminApp from './admin/AdminApp';
+
+// ─── Analytics Tracker ──────────────────────────────────────────────────────
+function AnalyticsTracker() {
+    const location = useLocation();
+
+    useEffect(() => {
+        // Don't track admin pages
+        if (location.pathname.startsWith('/admin')) return;
+
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const savedVisits = localStorage.getItem('nextclass_visits');
+            const visits = savedVisits ? JSON.parse(savedVisits) : {};
+            
+            visits[today] = (visits[today] || 0) + 1;
+            localStorage.setItem('nextclass_visits', JSON.stringify(visits));
+        } catch (e) {
+            console.error('Analytics tracking failed', e);
+        }
+    }, [location]);
+
+    return null;
+}
+
 
 // Preserve manual scroll restoration for smooth route transitions
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
@@ -56,17 +83,54 @@ function AnimatedRoutes() {
 function App() {
     return (
         <CartProvider>
-            <CompareProvider>
-                <Router>
-                    <AppContent />
-                </Router>
-            </CompareProvider>
+            <ProductsProvider>
+                <CompareProvider>
+                    <Router>
+                        <AppContent />
+                    </Router>
+                </CompareProvider>
+            </ProductsProvider>
         </CartProvider>
     );
 }
 
 function AppContent() {
     const location = useLocation();
+    const [maintenance, setMaintenance] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').maintenance_mode === true; } catch { return false; }
+    });
+
+    useEffect(() => {
+        const onStorage = (e) => {
+            if (e.key === 'nextclass_content') {
+                try { setMaintenance(JSON.parse(localStorage.getItem('nextclass_content') || '{}').maintenance_mode === true); } catch {}
+            }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
+
+    // ─── Admin Route Isolation ────────────────────────────────────────────────
+    if (location.pathname.startsWith('/admin')) {
+        return <AdminApp />;
+    }
+
+    // ─── Maintenance Mode ──────────────────────────────────────────────────────
+    if (maintenance) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F7] text-center px-6">
+                <div className="w-20 h-20 rounded-3xl bg-[#1D1D1F] flex items-center justify-center mb-8 shadow-2xl">
+                    <span className="text-white text-3xl font-black">N</span>
+                </div>
+                <h1 className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-4">האתר בתחזוקה</h1>
+                <p className="text-[#6E6E73] text-lg font-medium max-w-md">אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.</p>
+                <div className="mt-8 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#FF9500] animate-pulse" />
+                    <span className="text-[#AEAEB2] text-sm font-bold uppercase tracking-widest">בקרוב</span>
+                </div>
+            </div>
+        );
+    }
 
     // ─── Adaptive Mood — unique color personality per page ──────────────────
     const getMood = () => {
@@ -89,9 +153,11 @@ function AppContent() {
             className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased pt-[73px]"
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
+            <AnalyticsTracker />
             {/* ── Living Aurora Atmosphere — reactive, always present ── */}
             <GlassCanvas mood={mood} />
 
+            <AnnouncementBar />
             <Header />
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
                 <AnimatedRoutes />
