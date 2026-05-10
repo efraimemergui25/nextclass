@@ -22,7 +22,7 @@ const A11Y_CSS = `
 
 export default function AccessibilityWidget() {
     const { getSetting, isVisible } = useSettings();
-    const enabled = isVisible('vis_accessibility_widget', true);
+    const enabled = isVisible('vis_a11y_widget', true);
     const [open, setOpen] = useState(false);
     const panelRef = useRef(null);
 

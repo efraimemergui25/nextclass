@@ -1,23 +1,4 @@
 import React, { useEffect, useState, Component } from 'react';
-
-class AppErrorBoundary extends Component {
-    state = { crashed: false, error: null };
-    static getDerivedStateFromError(error) { return { crashed: true, error }; }
-    componentDidCatch(error, info) { console.error('[AppErrorBoundary]', error, info); }
-    render() {
-        if (!this.state.crashed) return this.props.children;
-        return (
-            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F5F5F7', padding: '2rem', textAlign: 'center' }}>
-                <div style={{ width: 64, height: 64, borderRadius: 16, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 24 }}>N</span>
-                </div>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1D1D1F', marginBottom: 8 }}>אירעה שגיאה</h1>
-                <pre style={{ color: '#FF3B30', fontSize: 11, background: 'rgba(255,59,48,0.08)', padding: '8px 16px', borderRadius: 8, maxWidth: 600, overflow: 'auto', marginBottom: 16, textAlign: 'left', whiteSpace: 'pre-wrap' }}>{this.state.error?.message}</pre>
-                <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 12, background: '#007AFF', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>רענן</button>
-            </div>
-        );
-    }
-}
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -48,6 +29,25 @@ import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import WishlistPage from './pages/WishlistPage';
 import AccessibilityWidget from './components/AccessibilityWidget';
+
+class AppErrorBoundary extends Component {
+    state = { crashed: false, error: null };
+    static getDerivedStateFromError(error) { return { crashed: true, error }; }
+    componentDidCatch(error, info) { console.error('[AppErrorBoundary]', error, info); }
+    render() {
+        if (!this.state.crashed) return this.props.children;
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F5F5F7', padding: '2rem', textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 24 }}>N</span>
+                </div>
+                <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1D1D1F', marginBottom: 8 }}>אירעה שגיאה</h1>
+                <pre style={{ color: '#FF3B30', fontSize: 11, background: 'rgba(255,59,48,0.08)', padding: '8px 16px', borderRadius: 8, maxWidth: 600, overflow: 'auto', marginBottom: 16, textAlign: 'left', whiteSpace: 'pre-wrap' }}>{this.state.error?.message}</pre>
+                <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 12, background: '#007AFF', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>רענן</button>
+            </div>
+        );
+    }
+}
 import AdminApp from './admin/AdminApp';
 
 // ─── Analytics Tracker ──────────────────────────────────────────────────────
