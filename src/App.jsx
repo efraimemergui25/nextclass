@@ -114,8 +114,8 @@ function AppContent() {
                 <div className="w-20 h-20 rounded-3xl bg-[#1D1D1F] flex items-center justify-center mb-8 shadow-2xl">
                     <span className="text-white text-3xl font-black">N</span>
                 </div>
-                <h1 className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-4">האתר בתחזוקה</h1>
-                <p className="text-[#6E6E73] text-lg font-medium max-w-md">אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.</p>
+                <h1 className=\"text-4xl font-black text-[#1D1D1F] tracking-tighter mb-4\">{getSetting('maintenance_title', 'האתר בתחזוקה')}</h1>
+                <p className=\"text-[#6E6E73] text-lg font-medium max-w-md\">{getSetting('maintenance_msg', 'אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.')}</p>
                 <div className="mt-8 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#FF9500] animate-pulse" />
                     <span className="text-[#AEAEB2] text-sm font-bold uppercase tracking-widest">בקרוב</span>

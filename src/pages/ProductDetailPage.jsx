@@ -49,7 +49,6 @@ const ProductDetailPage = () => {
         addToCart:  getSetting('catalog_add_to_cart', 'הוסף לעגלה'),
         buyNow:     getSetting('pd_buy_now', 'קנה עכשיו'),
         quickInquiry: getSetting('pd_quick_inquiry', 'שלח פנייה מהירה'),
-        requestQuote: getSetting('catalog_request_quote', 'בקש הצעה'),
         requestQuoteInst: getSetting('pd_request_quote_inst', 'בקש הצעת מחיר מוסדית'),
         compareSelected: getSetting('pd_compare_selected', 'נבחר להשוואה'),
         compareBtn: getSetting('pd_compare_btn', 'השווה דגם'),
@@ -552,7 +551,7 @@ const ProductDetailPage = () => {
                                                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
-                                                            <span>{content.removeFromCart}</span>
+                                                        <span>{content.removeFromCart}</span>
                                                         </div>
                                                     </motion.div>
                                                 ) : (

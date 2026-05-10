@@ -281,10 +281,10 @@ const CatalogPage = () => {
                                         <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6 text-right">{getSetting('catalog_sort_label', 'מיון לפי')}</p>
                                         <div className="grid grid-cols-1 gap-3">
                                             {[
-                                                { id: 'default', label: 'רלוונטיות' },
-                                                { id: 'price-asc', label: 'מחיר: מהנמוך לגבוה' },
-                                                { id: 'price-desc', label: 'מחיר: מהגבוה לנמוך' },
-                                                { id: 'name', label: 'שם המוצר (א-ת)' },
+                                                { id: 'default', label: getSetting('catalog_sort_rel', 'רלוונטיות') },
+                                                { id: 'price-asc', label: getSetting('catalog_sort_pasc', 'מחיר: מהנמוך לגבוה') },
+                                                { id: 'price-desc', label: getSetting('catalog_sort_pdesc', 'מחיר: מהגבוה לנמוך') },
+                                                { id: 'name', label: getSetting('catalog_sort_name', 'שם המוצר (א-ת)') },
                                             ].map((opt) => (
                                                 <button
                                                     key={opt.id}
@@ -437,7 +437,7 @@ const ListCard = ({ product }) => {
                             {formattedPrice}
                         </div>
                         <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
-                            מחיר מוסדי
+                            {getSetting('catalog_inst_price', 'מחיר מוסדי')}
                         </div>
                     </div>
 

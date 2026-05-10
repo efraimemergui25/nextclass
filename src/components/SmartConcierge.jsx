@@ -63,14 +63,15 @@ const TypingDots = () => (
 );
 
 const SmartConcierge = () => {
+    const { getSetting } = useSettings();
     const location = useLocation();
     const isProductPage = location.pathname.startsWith('/catalog/');
     
     const { activeProducts } = useProducts();
 
     const getInitialMessage = () => {
-        if (isProductPage) return 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?';
-        return 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?';
+        if (isProductPage) return getSetting('ai_greeting_pd', 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?');
+        return getSetting('ai_greeting_home', 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?');
     };
 
     const [isOpen, setIsOpen] = useState(false);
@@ -85,7 +86,7 @@ const SmartConcierge = () => {
 
     useEffect(() => {
         if (!isOpen) setMessages([{ id: 0, role: 'ai', text: getInitialMessage() }]);
-    }, [location.pathname, isOpen]);
+    }, [location.pathname, isOpen, getSetting]);
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
     useEffect(() => { if (isOpen) setTimeout(() => inputRef.current?.focus(), 400); }, [isOpen]);
@@ -164,8 +165,8 @@ ${catalogInfo}`;
                                     <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
                                 </div>
                                 <div className="text-right">
-                                    <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">NextClass AI</h3>
-                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">Institutional Concierge</p>
+                                    <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_title', 'NextClass AI')}</h3>
+                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">{getSetting('ai_role', 'Institutional Concierge')}</p>
                                 </div>
                             </div>
                             <Magnetic strength={0.3}>
@@ -198,8 +199,8 @@ ${catalogInfo}`;
                                         <MessageCircle size={20} fill="white" strokeWidth={1} />
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[13px] font-bold text-[#1D1D1F]">מענה אנושי בוואטסאפ</p>
-                                        <p className="text-[10px] text-gray-500">יועץ טכנולוגי זמין כעת ✅</p>
+                                        <p className="text-[13px] font-bold text-[#1D1D1F]">{getSetting('ai_wa_label', 'מענה אנושי בוואטסאפ')}</p>
+                                        <p className="text-[10px] text-gray-500">{getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת ✅')}</p>
                                     </div>
                                 </div>
                                 <ArrowUp className="rotate-90 text-[#007AFF] opacity-40 group-hover:opacity-100 transition-opacity" size={16} />
@@ -208,7 +209,11 @@ ${catalogInfo}`;
 
                         {/* Quick Action Chips — More Minimal */}
                         <div className="relative z-20 px-6 pb-2 flex flex-wrap gap-2 justify-end" dir="rtl">
-                            {['הצעת מחיר', 'מפרט טכני', 'ייעוץ'].map(chip => (
+                            {[
+                                getSetting('ai_chip1', 'הצעת מחיר'),
+                                getSetting('ai_chip2', 'מפרט טכני'),
+                                getSetting('ai_chip3', 'ייעוץ')
+                            ].map(chip => (
                                 <button 
                                     key={chip}
                                     onClick={() => send(chip)}
@@ -228,7 +233,7 @@ ${catalogInfo}`;
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && send()}
-                                    placeholder="מה תרצו לבדוק?"
+                                    placeholder={getSetting('ai_placeholder', 'מה תרצו לבדוק?')}
                                     dir="rtl"
                                     className="flex-1 bg-transparent border-none px-3 py-2 text-[14px] font-medium outline-none placeholder:text-gray-400"
                                 />
@@ -278,7 +283,7 @@ ${catalogInfo}`;
                                         animate={{ opacity: 1, x: 0 }}
                                         className="flex flex-col items-end pr-1"
                                     >
-                                        <span className="text-[12px] font-black text-white leading-none">העוזר החכם</span>
+                                        <span className="text-[12px] font-black text-white leading-none">{getSetting('ai_fab_label', 'העוזר החכם')}</span>
                                         <span className="text-[8px] font-bold text-white/50 uppercase tracking-[0.1em] mt-1">Chat Support</span>
                                     </motion.div>
                                 )}
