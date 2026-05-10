@@ -1,0 +1,40 @@
+
+> temp-project@0.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 20 modules transformed.
+✗ Build failed in 222ms
+error during build:
+[vite:esbuild] Transform failed with 2 errors:
+/Users/efraimmac/nextclass/src/pages/ProductDetailPage.jsx:159:12: ERROR: The symbol "getProductById" has already been declared
+/Users/efraimmac/nextclass/src/pages/ProductDetailPage.jsx:607:34: ERROR: Unterminated regular expression
+file: /Users/efraimmac/nextclass/src/pages/ProductDetailPage.jsx:159:12
+
+The symbol "getProductById" has already been declared
+157 |  
+158 |      // ─── Derived values (memoised) ────────────────────────────────────────────
+159 |      const { getProductById } = useProducts();
+    |              ^
+160 |      const product = useMemo(
+161 |          () => getProductById(id) ?? {},
+
+Unterminated regular expression
+605 |                                      </Magnetic>
+606 |                                  </div>
+607 |                              </div>
+    |                                    ^
+608 |                          </div>
+609 |                      </div>
+
+    at failureErrorWithLog (/Users/efraimmac/nextclass/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/efraimmac/nextclass/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/efraimmac/nextclass/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/efraimmac/nextclass/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/efraimmac/nextclass/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:508:20)
+    at addChunk (node:internal/streams/readable:564:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:515:3)
+    at Readable.push (node:internal/streams/readable:395:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

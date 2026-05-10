@@ -1,29 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSettings } from '../context/SettingsContext';
+
+// Removed readAIContent helper
 
 const AIAssistantWidget = () => {
+    const { getSetting, isVisible } = useSettings();
+    
+    const aiContent = useMemo(() => ({
+        botName:      getSetting('ai_title', 'NextClass Assistant'),
+        greeting:     getSetting('ai_greeting', 'שלום! אני כאן כדי לעזור לך לאפיין את הכיתה החכמה המושלמת. מה תרצה לדעת?'),
+        roleDesc:     getSetting('ai_role', 'היועץ הטכנולוגי שלך'),
+        placeholder:  getSetting('ai_placeholder', 'שאל אותי על מסכי מגע, מעבדות או תשתיות...'),
+        thinkingMsg:  getSetting('ai_thinking', 'מעבד את הבקשה שלך...'),
+        suggest1:     getSetting('ai_suggestion_1', 'איך לבחור מסך מגע?'),
+        suggest2:     getSetting('ai_suggestion_2', 'תמליץ לי על מחשב מורה'),
+        fabLabel:     getSetting('ai_fab_label', 'AI Assistant'),
+        visible:      isVisible('vis_ai_assistant', true)
+    }), [getSetting, isVisible]);
+
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [isVisible, setIsVisible] = useState(false);
+    const [isVisibleState, setIsVisibleState] = useState(false);
     const scrollBottomRef = useRef(null);
 
-    // Initial mock messages
-    const [messages, setMessages] = useState([
-        {
-            role: 'ai',
-            text: 'שלום! אני כאן לעזור לך להתאים את הטכנולוגיה המושלמת לכיתה. מה הצרכים שלכם השנה?'
-        }
-    ]);
+    const [messages, setMessages] = useState([]);
+
+    useEffect(() => {
+        setMessages([{ role: 'ai', text: aiContent.greeting }]);
+    }, [aiContent.greeting]);
 
     // Show only after scrolling past 50% of the viewport (Synchronized with WhatsApp)
     useEffect(() => {
         const handleScroll = () => {
-            setIsVisible(window.scrollY > window.innerHeight * 0.5);
+            setIsVisibleState(window.scrollY > window.innerHeight * 0.5 && aiContent.visible);
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll();
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [aiContent.visible]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -44,7 +59,7 @@ const AIAssistantWidget = () => {
         setTimeout(() => {
             setMessages(prev => [...prev, {
                 role: 'ai',
-                text: 'הבנתי, אני בודק את הקטלוג שלנו עבור הפתרון המתאים ביותר...'
+                text: aiContent.thinkingMsg
             }]);
         }, 1000);
     };
@@ -56,11 +71,11 @@ const AIAssistantWidget = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className={`fixed bottom-8 right-8 z-[50] w-14 h-14 bg-[#007AFF] text-white rounded-full shadow-2xl flex items-center justify-center focus:outline-none transition-apple-fluid ${isVisible
+                className={`fixed bottom-8 right-8 z-[50] w-14 h-14 bg-[#007AFF] text-white rounded-full shadow-2xl flex items-center justify-center focus:outline-none transition-apple-fluid ${isVisibleState
                     ? 'opacity-100 translate-y-0 scale-100'
                     : 'opacity-0 translate-y-10 scale-50 pointer-events-none'
                     }`}
-                aria-label="פתח יועץ פדגוגי"
+                aria-label={aiContent.fabLabel}
             >
                 {isOpen ? (
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -88,7 +103,7 @@ const AIAssistantWidget = () => {
                         <div className="bg-white/50 border-b border-gray-100 p-4 flex justify-between items-center shrink-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-[#1D1D1F] font-bold tracking-tight">nextclass AI</span>
+                                <span className="text-[#1D1D1F] font-bold tracking-tight">{aiContent.botName}</span>
                             </div>
                             <button
                                 onClick={() => setIsOpen(false)}
@@ -125,6 +140,19 @@ const AIAssistantWidget = () => {
                             <div ref={scrollBottomRef} />
                         </div>
 
+                        {/* Suggested Questions */}
+                        <div className="px-4 pb-2 flex flex-wrap gap-2">
+                            {[aiContent.suggest1, aiContent.suggest2].filter(Boolean).map((s, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => { setInputValue(s); handleSend(); }}
+                                    className="bg-white/60 hover:bg-[#007AFF] hover:text-white border border-gray-100 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all"
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Input Area */}
                         <div className="p-3 bg-white/50 border-t border-gray-100 shrink-0">
                             <div className="relative flex items-center">
@@ -133,7 +161,7 @@ const AIAssistantWidget = () => {
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="כתוב הודעה... "
+                                    placeholder={aiContent.placeholder}
                                     className="w-full bg-[#F5F5F7] border-2 border-transparent focus:border-[#007AFF]/20 focus:ring-2 focus:ring-[#007AFF]/10 rounded-full px-4 py-3 text-sm transition-all outline-none pr-12 text-right"
                                     dir="rtl"
                                 />

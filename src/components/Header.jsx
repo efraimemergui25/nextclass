@@ -7,22 +7,38 @@ import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 
-const CATEGORIES = [
-    { label: 'מסכים אינטראקטיביים והקרנה', slug: 'מסכים אינטראקטיביים והקרנה' },
-    { label: 'מחשוב לצוות ותלמידים', slug: 'מחשוב לצוות ותלמידים' },
-    { label: 'מעבדות STEM ומרחבי חדשנות', slug: 'מעבדות STEM ומרחבי חדשנות' },
-    { label: 'אודיו ווידאו למרחבי למידה', slug: 'אודיו ווידאו למרחבי למידה' },
-    { label: 'תשתיות ועגלות טעינה', slug: 'תשתיות ועגלות טעינה' },
-];
+// Remove static helpers
 
 const Header = () => {
+    const { getSetting, isVisible } = useSettings();
+    const siteName = getSetting('site_name', 'NextClass');
+    const siteLogo = getSetting('site_logo_url', '');
+
+    const CATEGORIES = useMemo(() => {
+        const raw = getSetting('catalog_categories', 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה');
+        return raw.split(',').map(s => ({ label: s.trim(), slug: s.trim() }));
+    }, [getSetting]);
+
+    const navLinks = useMemo(() => {
+        const links = [
+            { path: '/', label: getSetting('nav_home', 'דף הבית') },
+            { path: '/catalog', label: getSetting('nav_catalog', 'המוצרים שלנו'), isMega: true },
+        ];
+        if (isVisible('vis_compare_page')) links.push({ path: '/compare', label: getSetting('nav_compare', 'השוואת דגמים') });
+        if (isVisible('vis_about_page'))   links.push({ path: '/story',   label: getSetting('nav_about', 'הסיפור שלנו') });
+        if (isVisible('vis_vod_page'))     links.push({ path: '/vod',     label: getSetting('nav_vod', 'מרכז הדרכה') });
+        if (isVisible('vis_magazine'))    links.push({ path: '/magazine', label: getSetting('nav_magazine', 'מגזין') });
+        links.push({ path: '/contact', label: getSetting('nav_contact', 'צור קשר') });
+        return links;
+    }, [isVisible, getSetting]);
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [hidden, setHidden] = useState(false);
-    // Position of the trigger button for portal placement
     const [dropdownPos, setDropdownPos] = useState({ top: 0, centerX: 0 });
 
     const productsRef = useRef(null);
@@ -111,47 +127,49 @@ const Header = () => {
             >
                 {/* ═══ RIGHT ZONE — Logo ═══ */}
                 <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 z-[120]">
-                    <svg className="w-7 h-7 md:w-8 md:h-8 shrink-0" viewBox="0 0 32 32" fill="none">
-                        <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
-                        <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
-                    </svg>
+                    {siteLogo ? (
+                        <img src={siteLogo} alt={siteName} className="h-8 md:h-10 object-contain" />
+                    ) : (
+                        <svg className="w-7 h-7 md:w-8 md:h-8 shrink-0" viewBox="0 0 32 32" fill="none">
+                            <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="2" />
+                            <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.1" />
+                        </svg>
+                    )}
                     <div className="text-xl md:text-2xl tracking-tighter hidden sm:block">
-                        <span className="font-black">next</span><span className="font-light text-[#007AFF]">class</span>
+                        <span className="font-black">{siteName}</span>
                     </div>
                 </Link>
 
                 {/* ═══ CENTER ZONE — Navigation ═══ */}
                 <nav className="hidden md:flex flex-1 items-center justify-center gap-6 text-[13px]">
-                    <Link to="/" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300">
-                        דף הבית
-                    </Link>
-
-                    {/* Products trigger — uses ref for portal positioning */}
-                    <button
-                        ref={productsRef}
-                        onMouseEnter={openMegaMenu}
-                        onMouseLeave={scheduledClose}
-                        onClick={() => { handleMegaMenuLinkClick(); navigate('/catalog'); }}
-                        className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
-                    >
-                        המוצרים שלנו
-                        <svg
-                            className={`w-3.5 h-3.5 transition-transform duration-300 pointer-events-none ${isMegaMenuOpen ? 'rotate-180' : ''}`}
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    <Link to="/compare" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300">
-                        השוואת דגמים
-                    </Link>
-                    <Link to="/story" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300">
-                        הסיפור שלנו
-                    </Link>
-                    <Link to="/contact" className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300">
-                        צור קשר
-                    </Link>
+                    {navLinks.map((link) => (
+                        link.isMega ? (
+                            <button
+                                key={link.path}
+                                ref={productsRef}
+                                onMouseEnter={openMegaMenu}
+                                onMouseLeave={scheduledClose}
+                                onClick={() => { handleMegaMenuLinkClick(); navigate(link.path); }}
+                                className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
+                            >
+                                {link.label}
+                                <svg
+                                    className={`w-3.5 h-3.5 transition-transform duration-300 pointer-events-none ${isMegaMenuOpen ? 'rotate-180' : ''}`}
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        ) : (
+                            <Link 
+                                key={link.path} 
+                                to={link.path} 
+                                className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300"
+                            >
+                                {link.label}
+                            </Link>
+                        )
+                    ))}
                 </nav>
 
                 {/* ═══ LEFT ZONE — Utilities ═══ */}
@@ -160,7 +178,7 @@ const Header = () => {
                         onClick={openCart}
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-all flex items-center justify-center shrink-0 z-[120]"
-                        aria-label="עגלת קניות"
+                        aria-label={getSetting('aria_cart', 'עגלת קניות')}
                     >
                         <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
@@ -176,7 +194,7 @@ const Header = () => {
                         onClick={openSearch}
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-all flex items-center justify-center shrink-0 z-[120]"
-                        aria-label="חיפוש"
+                        aria-label={getSetting('aria_search', 'חיפוש')}
                     >
                         <Search className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
                     </motion.button>
@@ -184,7 +202,7 @@ const Header = () => {
                     <button
                         onClick={goBack}
                         className="flex md:hidden w-10 h-10 cursor-pointer rounded-full bg-white/50 hover:bg-white backdrop-blur-xl border border-white/80 shadow-sm items-center justify-center transition-all active:scale-95 shrink-0 z-[120]"
-                        aria-label="חזור"
+                        aria-label={getSetting('aria_back', 'חזור')}
                     >
                         <ChevronRight className="w-5 h-5 text-[#1D1D1F] pointer-events-none" />
                     </button>
@@ -193,7 +211,7 @@ const Header = () => {
                         onClick={openMenu}
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         className="cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#007AFF] transition-all flex items-center justify-center shrink-0 z-[120]"
-                        aria-label="תפריט"
+                        aria-label={getSetting('aria_menu', 'תפריט')}
                     >
                         <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
@@ -260,7 +278,7 @@ const Header = () => {
                                             </div>
                                             <div className="flex flex-col text-right">
                                                 <span className="text-[14px] font-bold text-[#1D1D1F] leading-tight transition-colors group-hover:text-[#007AFF]">{cat.label}</span>
-                                                <span className="text-[10px] font-semibold text-gray-400 mt-0.5 tracking-tight">לחץ לצפייה בדגמים</span>
+                                                <span className="text-[10px] font-semibold text-gray-400 mt-0.5 tracking-tight">{getSetting('nav_mega_hint', 'לחץ לצפייה בדגמים')}</span>
                                             </div>
                                             <ChevronLeft className="w-4 h-4 mr-auto opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 text-[#007AFF]" />
                                         </Link>
@@ -273,7 +291,7 @@ const Header = () => {
                                         onClick={handleMegaMenuLinkClick}
                                         className="flex items-center justify-between w-full p-4 bg-[#1D1D1F] text-white rounded-[1.5rem] font-bold text-[13px] tracking-tight shadow-xl hover:bg-black transition-all group"
                                     >
-                                        <span>לכל קטלוג הפתרונות</span>
+                                        <span>{getSetting('nav_mega_all', 'לכל קטלוג הפתרונות')}</span>
                                         <ChevronLeft size={16} className="group-hover:translate-x-[-4px] transition-transform" />
                                     </Link>
                                 </div>

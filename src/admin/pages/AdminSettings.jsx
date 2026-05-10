@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
 
 const card = { border: '1px solid rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)' };
@@ -22,6 +23,8 @@ function SettingCard({ title, icon, accent = '#007AFF', children }) {
 
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
+    const { repairProductImages, reseedDatabase } = useAdminData();
+    const { showToast } = useToast();
 
     // PIN change
     const [currentPin, setCurrentPin] = useState('');
@@ -29,10 +32,16 @@ export default function AdminSettings() {
     const [confirmPin, setConfirmPin] = useState('');
     const [pinStatus, setPinStatus] = useState(null);
 
-    // Notifications
-    const [notifOrders, setNotifOrders] = useState(true);
-    const [notifLowStock, setNotifLowStock] = useState(true);
-    const [notifContacts, setNotifContacts] = useState(false);
+    // Notifications — persisted to localStorage
+    const [notifOrders, setNotifOrders] = useState(() => {
+        try { const v = JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifOrders; return v !== false; } catch { return true; }
+    });
+    const [notifLowStock, setNotifLowStock] = useState(() => {
+        try { const v = JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifLowStock; return v !== false; } catch { return true; }
+    });
+    const [notifContacts, setNotifContacts] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifContacts === true; } catch { return false; }
+    });
 
     // Site settings
     const [maintenanceMode, setMaintenanceMode] = useState(() => {
@@ -44,6 +53,17 @@ export default function AdminSettings() {
     const [allowOrders, setAllowOrders] = useState(() => {
         try { const v = JSON.parse(localStorage.getItem('nextclass_content') || '{}').allow_orders; return v !== false; } catch { return true; }
     });
+
+    const persistSettingsFlag = (key, value) => {
+        try {
+            const existing = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+            localStorage.setItem('nextclass_settings', JSON.stringify({ ...existing, [key]: value }));
+        } catch {}
+    };
+
+    useEffect(() => { persistSettingsFlag('notifOrders', notifOrders); }, [notifOrders]);
+    useEffect(() => { persistSettingsFlag('notifLowStock', notifLowStock); }, [notifLowStock]);
+    useEffect(() => { persistSettingsFlag('notifContacts', notifContacts); }, [notifContacts]);
 
     const persistSiteFlag = (key, value) => {
         try {
@@ -162,6 +182,28 @@ export default function AdminSettings() {
                             value={allowOrders}
                             onChange={setAllowOrders}
                         />
+                    </div>
+                </SettingCard>
+
+                {/* System Maintenance */}
+                <SettingCard title="תחזוקת מערכת" icon="🛠️" accent="#8E8E93">
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <AdminButton variant="outline" onClick={async () => {
+                                const count = await repairProductImages();
+                                showToast(count > 0 ? `תוקנו ${count} תמונות מוצרים` : 'כל התמונות תקינות', count > 0 ? 'success' : 'info');
+                            }}>תיקון תמונות שבורות</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">משווה את התמונות ב-Firebase לקובץ המקור ומתקן במקרה של שוני.</p>
+                        </div>
+                        <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                            <AdminButton variant="ghost" onClick={async () => {
+                                if (confirm('האם אתה בטוח? פעולה זו תעדכן את כל שדות המוצרים (למעט מלאי ומכירות) לפי קובץ המקור.')) {
+                                    await reseedDatabase();
+                                    showToast('בסיס הנתונים סונכרן מחדש בהצלחה', 'success');
+                                }
+                            }}>סנכרון מלא מחדש (Reseed)</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף של כל המוצרים מהמקור. שומר על נתוני מלאי ומכירות קיימים.</p>
+                        </div>
                     </div>
                 </SettingCard>
             </div>

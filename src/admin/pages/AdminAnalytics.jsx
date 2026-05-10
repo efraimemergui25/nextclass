@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminKPICard, AdminTabs, AreaChart, BarChart, DonutChart } from '../components/AdminComponents';
+import { AdminKPICard, AdminTabs, HeatGrid, DonutChart } from '../components/AdminComponents';
+import initialProducts from '../../data/products';
 
 // ─── Glass card ───────────────────────────────────────────────────────────────
 function Card({ title, subtitle, accent, action, children, className = '' }) {
@@ -124,12 +125,16 @@ export default function AdminAnalytics() {
     const topByCount = useMemo(() => {
         const map = {};
         orders.forEach(o => {
-            if (!map[o.productId]) map[o.productId] = { title: o.product, image: o.productImage, count: 0, revenue: 0 };
+            if (!map[o.productId]) {
+                const inv = inventory.find(p => String(p.id) === String(o.productId));
+                const backup = initialProducts.find(p => String(p.id) === String(o.productId));
+                map[o.productId] = { title: o.product, image: o.productImage || inv?.image || backup?.image, count: 0, revenue: 0 };
+            }
             map[o.productId].count += o.qty || 1;
             map[o.productId].revenue += o.total || 0;
         });
         return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 8);
-    }, [orders]);
+    }, [orders, inventory]);
 
     const maxCount = Math.max(...topByCount.map(p => p.count), 1);
 
@@ -170,13 +175,13 @@ export default function AdminAnalytics() {
             {/* ── KPI Row (always visible) ─────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <AdminKPICard title="כניסות ייחודיות" icon="👁️" value={totalVisits}
-                    trend={14} trendUp color="#007AFF" delay={0} sparkline={rangeData?.visits} />
+                    trend={14} trendUp color="#007AFF" delay={0} />
                 <AdminKPICard title="עסקאות מוצלחות" icon="🛒" value={totalSales}
-                    trend={8} trendUp color="#34C759" delay={0.05} sparkline={rangeData?.sales} />
+                    trend={8} trendUp color="#34C759" delay={0.05} />
                 <AdminKPICard title="יחס המרה" icon="📈" value={`${avgConv}%`}
                     trend={2} trendUp color="#5856D6" delay={0.1} />
                 <AdminKPICard title="הכנסות ברוטו" icon="💰" value={`₪${kpis.totalRevenue.toLocaleString()}`}
-                    trend={12} trendUp color="#FF9500" delay={0.15} sparkline={rangeData?.revenue} />
+                    trend={12} trendUp color="#FF9500" delay={0.15} />
             </div>
 
             <AnimatePresence mode="wait">
@@ -194,14 +199,14 @@ export default function AdminAnalytics() {
                                 accent="linear-gradient(90deg,#34C759,#30D158)"
                                 action={<span className="text-[#34C759] text-xs font-black">₪{totalRevenue.toLocaleString()}</span>}>
                                 {totalRevenue > 0
-                                    ? <AreaChart data={analytics.revenue} color="#34C759" height={110} />
+                                    ? <HeatGrid data={rangeData?.revenue || analytics.revenue} color="#34C759" labels={rangeData?.labels || analytics.labels} />
                                     : <EmptyChart />}
                             </Card>
                             <Card title="תנועת מבקרים (30 יום)" subtitle="כניסות ייחודיות"
                                 accent="linear-gradient(90deg,#007AFF,#5856D6)"
                                 action={<span className="text-[#007AFF] text-xs font-black">{totalVisits.toLocaleString()}</span>}>
                                 {totalVisits > 0
-                                    ? <AreaChart data={analytics.visits} color="#007AFF" height={110} />
+                                    ? <HeatGrid data={rangeData?.visits || analytics.visits} color="#007AFF" labels={rangeData?.labels || analytics.labels} />
                                     : <EmptyChart label="טרם הצטברו נתוני תנועה" />}
                             </Card>
                         </div>
@@ -241,18 +246,15 @@ export default function AdminAnalytics() {
                             accent="linear-gradient(90deg,#007AFF,#5856D6)"
                             action={<span className="text-[#007AFF] text-xs font-black">{totalVisits.toLocaleString()} סה״כ</span>}>
                             {totalVisits > 0 ? (
-                                <>
-                                    <AreaChart data={analytics.visits} color="#007AFF" height={140} />
-                                    <XLabels labels={analytics.labels} />
-                                </>
+                                <HeatGrid data={rangeData?.visits || analytics.visits} color="#007AFF" labels={rangeData?.labels || analytics.labels} />
                             ) : <EmptyChart label="טרם הצטברו נתוני תנועה" />}
                         </Card>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                            <Card title="כניסות ב-7 ימים אחרונים" subtitle="תצוגת בר יומית"
+                            <Card title="כניסות ב-7 ימים אחרונים" subtitle="תצוגת רשת אינטנסיביות"
                                 accent="linear-gradient(90deg,#5856D6,#007AFF)">
                                 {totalVisits > 0
-                                    ? <BarChart data={analytics.visits.slice(-7)} color="#5856D6" labels={analytics.labels.slice(-7)} height={110} />
+                                    ? <HeatGrid data={(rangeData?.visits || analytics.visits).slice(-7)} color="#5856D6" labels={(rangeData?.labels || analytics.labels).slice(-7)} />
                                     : <EmptyChart />}
                             </Card>
                             <Card title="מדדי תנועה" accent="linear-gradient(90deg,#007AFF,#5856D6)">
@@ -283,10 +285,7 @@ export default function AdminAnalytics() {
                             accent="linear-gradient(90deg,#34C759,#30D158)"
                             action={<span className="text-[#34C759] text-xs font-black">₪{totalRevenue.toLocaleString()}</span>}>
                             {totalRevenue > 0 ? (
-                                <>
-                                    <AreaChart data={analytics.revenue} color="#34C759" height={140} />
-                                    <XLabels labels={analytics.labels} />
-                                </>
+                                <HeatGrid data={rangeData?.revenue || analytics.revenue} color="#34C759" labels={rangeData?.labels || analytics.labels} />
                             ) : <EmptyChart label="טרם בוצעו עסקאות" />}
                         </Card>
 
@@ -429,10 +428,7 @@ export default function AdminAnalytics() {
                         <Card title="נפח עסקאות — 30 ימים" subtitle="כמות עסקאות לפי יום"
                             accent="linear-gradient(90deg,#5856D6,#007AFF)">
                             {totalSales > 0 ? (
-                                <>
-                                    <BarChart data={analytics.sales} color="#5856D6" labels={analytics.labels} height={110} />
-                                    <XLabels labels={analytics.labels} />
-                                </>
+                                <HeatGrid data={rangeData?.sales || analytics.sales} color="#5856D6" labels={rangeData?.labels || analytics.labels} />
                             ) : <EmptyChart label="טרם בוצעו עסקאות" />}
                         </Card>
                     </motion.div>
@@ -442,17 +438,6 @@ export default function AdminAnalytics() {
     );
 }
 
-function XLabels({ labels }) {
-    if (!labels?.length) return null;
-    const step = Math.ceil(labels.length / 6);
-    return (
-        <div className="flex justify-between mt-2 px-1">
-            {labels.filter((_, i) => i % step === 0).map((l, i) => (
-                <span key={i} className="text-[#AEAEB2] text-[10px] font-medium">{l}</span>
-            ))}
-        </div>
-    );
-}
 
 function EmptyChart({ label = 'אין נתונים להצגה' }) {
     return (

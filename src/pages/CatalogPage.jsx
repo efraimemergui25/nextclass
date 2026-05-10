@@ -49,13 +49,14 @@ const CatalogPage = () => {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const tabsRef = useRef(null);
 
-    // ── Live product catalog from central ProductsContext (admin-synced) ──
+    const { getSetting } = useSettings();
     const { activeProducts: products } = useProducts();
-    const categories = useMemo(() => ['הכל', ...new Set(products.map(p => p.category))], [products]);
+    const allLabel = getSetting('catalog_all_cat', 'הכל');
+    const categories = useMemo(() => [allLabel, ...new Set(products.map(p => p.category))], [products, allLabel]);
 
-    const initialCat = searchParams.get('category') ?? 'הכל';
+    const initialCat = searchParams.get('category') ?? allLabel;
     const [selectedCategory, setSelectedCategory] = useState(
-        categories.includes(initialCat) ? initialCat : 'הכל'
+        categories.includes(initialCat) ? initialCat : allLabel
     );
 
     const [sortBy, setSortBy] = useState('default');
@@ -64,12 +65,12 @@ const CatalogPage = () => {
     // Sync URL with category
     const handleCategorySelect = (cat) => {
         setSelectedCategory(cat);
-        setSearchParams(cat === 'הכל' ? {} : { category: cat });
+        setSearchParams(cat === allLabel ? {} : { category: cat });
         setIsFilterOpen(false);
     };
 
     const filtered = useMemo(() => {
-        let result = selectedCategory === 'הכל'
+        let result = selectedCategory === allLabel
             ? [...products]
             : products.filter(p => p.category === selectedCategory);
 
@@ -101,7 +102,7 @@ const CatalogPage = () => {
                             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] uppercase tracking-[0.2em] mb-8 shadow-sm border border-white/50"
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
-                            <span>הקטלוג המוסדי</span>
+                            <span>{getSetting('catalog_badge', 'הקטלוג המוסדי')}</span>
                         </motion.div>
                         <motion.h1
                             initial={{ opacity: 0, y: 20 }}
@@ -109,7 +110,7 @@ const CatalogPage = () => {
                             transition={{ delay: 0.05 }}
                             className="text-3xl sm:text-5xl md:text-8xl font-bold text-[#1D1D1F] tracking-tighter leading-[1.05] mb-5 sm:mb-8"
                         >
-                            הכלים שמעצבים <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
+                            {getSetting('catalog_title', 'הכלים שמעצבים את המחר.')}
                         </motion.h1>
                         <motion.p
                             initial={{ opacity: 0 }}
@@ -117,7 +118,7 @@ const CatalogPage = () => {
                             transition={{ delay: 0.15 }}
                             className="text-xl text-gray-400 font-medium max-w-xl leading-relaxed mr-0 ml-auto"
                         >
-                            פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.
+                            {getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.')}
                         </motion.p>
                     </div>
 
@@ -185,7 +186,7 @@ const CatalogPage = () => {
                                     <div className="relative flex items-center justify-center">
                                         <SlidersHorizontal size={18} strokeWidth={2.5} className="text-[#007AFF]" />
                                     </div>
-                                    <span>סינון מתקדם</span>
+                                    <span>{getSetting('catalog_filter_btn', 'סינון מתקדם')}</span>
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-liquid-glint" />
                                 </button>
                             </Magnetic>
@@ -226,8 +227,8 @@ const CatalogPage = () => {
 
                     {filtered.length === 0 && (
                         <div className="text-center py-32">
-                            <p className="text-3xl font-bold text-gray-300 mb-3">לא נמצאו מוצרים</p>
-                            <p className="text-gray-400">נסה קטגוריה אחרת</p>
+                            <p className="text-3xl font-bold text-gray-300 mb-3">{getSetting('catalog_empty_msg', 'לא נמצאו מוצרים')}</p>
+                            <p className="text-gray-400">{getSetting('catalog_empty_hint', 'נסה קטגוריה אחרת')}</p>
                         </div>
                     )}
                 </div>
@@ -264,7 +265,7 @@ const CatalogPage = () => {
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-12">
                                     <div className="text-right">
-                                        <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">סינון מתקדם</h2>
+                                        <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('catalog_filter_btn', 'סינון מתקדם')}</h2>
                                         <p className="text-sm text-gray-500 mt-2 font-medium">התאימו את הקטלוג לצרכים שלכם</p>
                                     </div>
                                     <Magnetic strength={0.2}>
@@ -277,7 +278,7 @@ const CatalogPage = () => {
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar" dir="rtl">
                                     {/* Sort Section */}
                                     <section className="mb-14">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6 text-right">מיון לפי</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6 text-right">{getSetting('catalog_sort_label', 'מיון לפי')}</p>
                                         <div className="grid grid-cols-1 gap-3">
                                             {[
                                                 { id: 'default', label: 'רלוונטיות' },
@@ -338,7 +339,7 @@ const CatalogPage = () => {
 
                                 <div className="mt-auto pt-10 flex gap-4 border-t border-black/5">
                                     <button 
-                                        onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory('הכל'); }}
+                                        onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory(allLabel); }}
                                         className="flex-1 py-5 rounded-2xl font-bold text-sm text-gray-400 hover:text-[#1D1D1F] transition-colors"
                                     >
                                         איפוס

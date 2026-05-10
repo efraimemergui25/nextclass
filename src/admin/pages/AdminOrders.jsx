@@ -3,8 +3,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminData } from '../context/AdminDataContext';
-import { useToast } from '../context/AdminToastContext';
+import { useAdminToast } from '../context/AdminToastContext';
 import { StatusBadge, AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate } from '../components/AdminComponents';
+import initialProducts from '../../data/products';
 
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
@@ -134,8 +135,8 @@ function CustomerAvatar({ name }) {
 }
 
 export default function AdminOrders() {
-    const { orders, updateOrderStatus } = useAdminData();
-    const { showToast } = useToast();
+    const { orders, updateOrderStatus, inventory } = useAdminData();
+    const { showToast } = useAdminToast();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('הכל');
     const [dateFilter, setDateFilter] = useState('all');
@@ -288,23 +289,36 @@ export default function AdminOrders() {
                         )}
 
                         {/* Info grid */}
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                ['לקוח', selectedOrder.customer],
-                                ['עיר', selectedOrder.city],
-                                ['טלפון', selectedOrder.phone],
-                                ['מייל', selectedOrder.email],
-                                ['מוצר', selectedOrder.product],
-                                ['כמות', selectedOrder.qty],
-                                ['תאריך', selectedOrder.date],
-                                ['סה״כ', `₪${(selectedOrder.total || 0).toLocaleString()}`],
-                            ].map(([l, v]) => (
-                                <div key={l} className="text-right p-3 rounded-xl"
-                                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                    <p className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-widest">{l}</p>
-                                    <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v || '—'}</p>
-                                </div>
-                            ))}
+                        <div className="flex gap-4">
+                            {/* Product Image */}
+                            <div className="w-32 h-32 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 border border-black/04 flex items-center justify-center">
+                                {(() => {
+                                    const inv = inventory.find(p => String(p.id) === String(selectedOrder.productId));
+                                    const backup = initialProducts.find(p => String(p.id) === String(selectedOrder.productId));
+                                    const img = selectedOrder.productImage || inv?.image || backup?.image;
+                                    return img 
+                                        ? <img src={img} alt={selectedOrder.product} className="w-full h-full object-cover" />
+                                        : <span className="text-4xl">📦</span>;
+                                })()}
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 flex-1">
+                                {[
+                                    ['לקוח', selectedOrder.customer],
+                                    ['עיר', selectedOrder.city],
+                                    ['טלפון', selectedOrder.phone],
+                                    ['מייל', selectedOrder.email],
+                                    ['מוצר', selectedOrder.product],
+                                    ['כמות', selectedOrder.qty],
+                                    ['תאריך', selectedOrder.date],
+                                    ['סה״כ', `₪${(selectedOrder.total || 0).toLocaleString()}`],
+                                ].map(([l, v]) => (
+                                    <div key={l} className="text-right p-3 rounded-xl"
+                                        style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                        <p className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-widest">{l}</p>
+                                        <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v || '—'}</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {selectedOrder.address && (

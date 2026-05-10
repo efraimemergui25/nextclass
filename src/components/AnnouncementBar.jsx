@@ -1,31 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-function loadAnnouncement() {
-    try {
-        const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-        return {
-            text: s.announcement_text || '',
-            color: s.announcement_color || '#007AFF',
-            visible: s.announcement_visible === true && !!s.announcement_text,
-        };
-    } catch { return { text: '', color: '#007AFF', visible: false }; }
-}
+import { useSettings } from '../context/SettingsContext';
 
 const AnnouncementBar = () => {
-    const [ann, setAnn] = useState(loadAnnouncement);
+    const { getSetting, isVisible } = useSettings();
     const [dismissed, setDismissed] = useState(false);
 
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') {
-                setAnn(loadAnnouncement());
-                setDismissed(false);
-            }
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
+    const ann = {
+        text: getSetting('announcement_text', ''),
+        color: getSetting('announcement_color', '#007AFF'),
+        visible: isVisible('vis_announcement_bar', true) && !!getSetting('announcement_text', ''),
+    };
 
     const show = ann.visible && ann.text && !dismissed;
 

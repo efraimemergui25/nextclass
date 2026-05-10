@@ -141,17 +141,11 @@ export default function AdminSidebar({ collapsed, onToggle }) {
                     const b = getBadge(item.badge);
                     return (
                         <NavLink key={item.path} to={item.path}
-                            className={({ isActive }) =>
-                                `flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all relative group ${
-                                    isActive
-                                        ? 'text-[#007AFF]'
-                                        : 'text-[#6E6E73] hover:text-[#1D1D1F]'
-                                }`
-                            }
+                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all relative group"
                         >
                             {({ isActive }) => (
                                 <>
-                                    {/* Active background with glass effect */}
+                                    {/* Active background */}
                                     {isActive && (
                                         <motion.div layoutId="nav-active"
                                             className="absolute inset-0 rounded-xl"
@@ -167,13 +161,13 @@ export default function AdminSidebar({ collapsed, onToggle }) {
                                         <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
                                             style={{ background: 'rgba(0,0,0,0.04)' }} />
                                     )}
-                                    <div className="relative z-10 shrink-0">
+                                    <div className={`relative z-10 shrink-0 ${isActive ? 'text-[#007AFF]' : 'text-[#6E6E73]'}`}>
                                         <NavIcon d={ICONS[item.icon]} />
                                     </div>
                                     <AnimatePresence>
                                         {!collapsed && (
                                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                                className="text-[13px] font-semibold whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1">
+                                                className={`text-[13px] font-semibold whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1 ${isActive ? 'text-[#007AFF]' : 'text-[#6E6E73]'}`}>
                                                 {item.label}
                                             </motion.span>
                                         )}
@@ -193,7 +187,26 @@ export default function AdminSidebar({ collapsed, onToggle }) {
             </nav>
 
             {/* Footer */}
-            <div className="p-2 border-t border-black/06">
+            <div className="p-2 border-t border-black/06 space-y-1">
+                {/* Back to main site */}
+                <a
+                    href="/"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#007AFF] hover:bg-[#007AFF]/06 transition-all group"
+                    title="חזרה לאתר הראשי"
+                >
+                    <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <AnimatePresence>
+                        {!collapsed && (
+                            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="text-[13px] font-bold whitespace-nowrap">
+                                לאתר הראשי
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </a>
+
                 <motion.button whileTap={{ scale: 0.94 }} onClick={() => { logout(); navigate('/admin'); }}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/06 transition-all group">
                     <NavIcon d={ICONS.logout} />

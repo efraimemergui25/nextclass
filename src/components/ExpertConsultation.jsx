@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Phone, Video, Users, Calendar, Clock, ChevronDown } from 'lucide-react';
 import GlassRippleButton from './GlassRippleButton';
+import { useSettings } from '../context/SettingsContext';
 
 const TYPES = [
     { id: 'phone', label: 'ייעוץ טלפוני', icon: Phone },
@@ -17,9 +18,18 @@ const glassField = {
 };
 
 const ExpertConsultation = () => {
+    const { getSetting } = useSettings();
     const [selectedType, setSelectedType] = useState('phone');
     const [date] = useState('היום');
     const [time] = useState('14:00');
+
+    const content = useMemo(() => ({
+        title: getSetting('expert_title', 'בואו נרכיב יחד את הפתרון המושלם למוסד שלכם.'),
+        desc:  getSetting('expert_desc', 'צוות המומחים שלנו זמין לייעוץ תכנוני ללא התחייבות.'),
+        formTitle: getSetting('expert_form_title', 'תיאום פגישת אפיון'),
+        cta:   getSetting('expert_cta', 'קבע פגישה עם מומחה'),
+        image: getSetting('expert_image', 'https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=1000&auto=format&fit=crop')
+    }), [getSetting]);
 
     return (
         <section
@@ -39,22 +49,22 @@ const ExpertConsultation = () => {
                 {/* Left Side: Visual / Trust */}
                 <div className="md:w-5/12 relative min-h-[300px] md:min-h-full">
                     <img
-                        src="https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=1000&auto=format&fit=crop"
+                        src={content.image}
                         alt="Consultant"
                         className="absolute inset-0 w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-10 flex flex-col justify-end">
                         <h3 className="text-3xl font-black text-white tracking-tighter leading-tight">
-                            בואו נרכיב יחד את הפתרון המושלם למוסד שלכם.
+                            {content.title}
                         </h3>
-                        <p className="text-white/80 font-medium mt-3 text-lg leading-relaxed">צוות המומחים שלנו זמין לייעוץ תכנוני ללא התחייבות.</p>
+                        <p className="text-white/80 font-medium mt-3 text-lg leading-relaxed">{content.desc}</p>
                     </div>
                 </div>
 
                 {/* Right Side: The Flow */}
                 <div className="md:w-7/12 p-8 md:p-12 flex flex-col justify-center"
                     style={{ background: 'rgba(255,255,255,0.3)' }}>
-                    <h4 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-10">תיאום פגישת אפיון</h4>
+                    <h4 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-10">{content.formTitle}</h4>
 
                     {/* Meeting type chips */}
                     <div className="mb-10">
@@ -112,7 +122,7 @@ const ExpertConsultation = () => {
 
                     {/* CTA */}
                     <GlassRippleButton className="w-full bg-[#007AFF] text-white hover:bg-blue-600 font-bold text-xl py-5 shadow-[0_8px_32px_rgba(0,122,255,0.3)]">
-                        <span className="block mt-0.5">קבע פגישה עם מומחה</span>
+                        <span className="block mt-0.5">{content.cta}</span>
                     </GlassRippleButton>
                 </div>
             </div>

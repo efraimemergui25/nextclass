@@ -25,6 +25,7 @@ import GlassCanvas from './components/GlassCanvas';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import AdminApp from './admin/AdminApp';
 
 // ─── Analytics Tracker ──────────────────────────────────────────────────────
@@ -82,33 +83,24 @@ function AnimatedRoutes() {
 
 function App() {
     return (
-        <CartProvider>
-            <ProductsProvider>
-                <CompareProvider>
-                    <Router>
-                        <AppContent />
-                    </Router>
-                </CompareProvider>
-            </ProductsProvider>
-        </CartProvider>
+        <SettingsProvider>
+            <CartProvider>
+                <ProductsProvider>
+                    <CompareProvider>
+                        <Router>
+                            <AppContent />
+                        </Router>
+                    </CompareProvider>
+                </ProductsProvider>
+            </CartProvider>
+        </SettingsProvider>
     );
 }
 
 function AppContent() {
     const location = useLocation();
-    const [maintenance, setMaintenance] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').maintenance_mode === true; } catch { return false; }
-    });
-
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') {
-                try { setMaintenance(JSON.parse(localStorage.getItem('nextclass_content') || '{}').maintenance_mode === true); } catch {}
-            }
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
+    const { getSetting } = useSettings();
+    const maintenance = getSetting('maintenance_mode', false);
 
     // ─── Admin Route Isolation ────────────────────────────────────────────────
     if (location.pathname.startsWith('/admin')) {

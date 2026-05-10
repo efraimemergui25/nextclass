@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, List, SlidersHorizontal, X, Sparkles, Check, ShoppingCart, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,6 +6,7 @@ import ProductCard from './ProductCard';
 import { useProducts } from '../context/ProductsContext';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import useCartPop from '../hooks/useCartPop';
 import Magnetic from './Magnetic';
 
@@ -24,14 +25,46 @@ const ImageFallback = React.memo(() => (
 ));
 
 const CatalogGrid = () => {
+    const { getSetting } = useSettings();
+    const content = useMemo(() => ({
+        eyebrow:   getSetting('catalog_hero_eyebrow', 'הקטלוג המוסדי'),
+        title:     getSetting('catalog_hero_title', 'הכלים שמעצבים את המחר.'),
+        subtitle:  getSetting('catalog_hero_subtitle', 'מצוינות טכנולוגית המותאמת אישית למוסדות חינוך, בממשק חכם המעניק לכם חופש ליצור וללמד.'),
+        filterBtn: getSetting('catalog_filter_btn', 'סינון מתקדם'),
+        filterDrawerTitle: getSetting('catalog_filter_drawer_title', 'סינון מתקדם'),
+        filterDrawerSub:   getSetting('catalog_filter_drawer_sub', 'התאימו את הקטלוג לצרכים שלכם'),
+        sortLabel:  getSetting('catalog_sort_label', 'מיון לפי'),
+        priceLabel: getSetting('catalog_price_label', 'טווח מחירים'),
+        tagsLabel:  getSetting('catalog_tags_label', 'מאפיינים מיוחדים'),
+        resetBtn:   getSetting('catalog_reset_btn', 'איפוס'),
+        applyBtn:   getSetting('catalog_apply_btn', 'הצג תוצאות'),
+        emptyMsg:   getSetting('catalog_empty_msg', 'לא נמצאו מוצרים'),
+        emptyDesc:  getSetting('catalog_empty_desc', 'נסה קטגוריה אחרת או אפס את המסננים'),
+        instPriceLabel: getSetting('catalog_inst_price_label', 'מחיר מוסדי'),
+        addToCart:  getSetting('catalog_add_to_cart', 'הוסף לעגלה'),
+        addedMsg:   getSetting('catalog_added_msg', 'נוסף לעגלה'),
+        removeMsg:  getSetting('catalog_remove_msg', 'הסר'),
+        requestQuote: getSetting('catalog_request_quote', 'בקש הצעה'),
+        categories: ['הכל', ...getSetting('catalog_categories', 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה').split(',').map(c => c.trim())],
+        tags:       getSetting('catalog_tags', 'תומך AI, מוקשח (Rugged), 4K UHD, אלחוטי, חיסכון בחשמל, Android 13, חינוך STEM').split(',').map(c => c.trim()),
+        priceMax:   parseInt(getSetting('catalog_price_max', '30000'), 10),
+        viewGrid:   getSetting('catalog_view_grid', 'תצוגת רשת'),
+        viewList:   getSetting('catalog_view_list', 'תצוגת רשימה'),
+        sortRel:    getSetting('sort_rel', 'רלוונטיות'),
+        sortAsc:    getSetting('sort_asc', 'מחיר: מהנמוך לגבוה'),
+        sortDesc:   getSetting('sort_desc', 'מחיר: מהגבוה לנמוך'),
+        sortName:   getSetting('sort_name', 'שם המוצר (א-ת)'),
+    }), [getSetting]);
+
     const [selectedCategory, setSelectedCategory] = useState("הכל");
     const [viewMode, setViewMode] = useState('grid');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [sortBy, setSortBy] = useState('default');
-    const [priceRange, setPriceRange] = useState([0, 30000]);
+    const [priceRange, setPriceRange] = useState([0, content.priceMax]);
 
     const { activeProducts: products } = useProducts();
-    const categories = useMemo(() => ["הכל", ...new Set(products.map(p => p.category))], [products]);
+
+    const categories = content.categories;
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
@@ -59,14 +92,13 @@ const CatalogGrid = () => {
                     className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] uppercase tracking-[0.2em] mb-8 shadow-sm border border-white/50"
                 >
                     <Sparkles size={11} strokeWidth={2.5} />
-                    <span>הקטלוג המוסדי</span>
+                    <span>{content.eyebrow}</span>
                 </motion.div>
-                <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-[#1D1D1F] mb-8 whitespace-nowrap">
-                    הכלים שמעצבים <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
+                <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-[#1D1D1F] mb-8">
+                    {content.title}
                 </h2>
-                <p className="text-lg md:text-xl text-[#86868B] font-medium max-w-2xl mx-auto leading-relaxed">
-                    מצוינות טכנולוגית המותאמת אישית למוסדות חינוך, <br className="hidden md:block" />
-                    בממשק חכם המעניק לכם חופש ליצור וללמד.
+                <p className="text-lg md:text-xl text-[#86868B] font-medium max-w-2xl mx-auto leading-relaxed whitespace-pre-wrap">
+                    {content.subtitle}
                 </p>
             </div>
 
@@ -139,11 +171,11 @@ const CatalogGrid = () => {
                         >
                             <div className="relative flex items-center justify-center">
                                 <SlidersHorizontal size={18} strokeWidth={2.5} className="text-[#007AFF]" />
-                                {(sortBy !== 'default' || priceRange[1] < 30000) && (
+                                {(sortBy !== 'default' || priceRange[1] < content.priceMax) && (
                                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#007AFF] rounded-full ring-2 ring-black animate-pulse" />
                                 )}
                             </div>
-                            <span>סינון מתקדם</span>
+                            <span>{content.filterBtn}</span>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-liquid-glint" />
                         </button>
                     </Magnetic>
@@ -207,8 +239,8 @@ const CatalogGrid = () => {
                             <div className="relative z-20 p-6 sm:p-12 flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-16">
                                     <div className="flex flex-col text-right w-full">
-                                        <h3 className="text-4xl font-black tracking-tight text-[#1D1D1F]">סינון מתקדם</h3>
-                                        <p className="text-sm text-gray-500 mt-2">התאימו את הקטלוג לצרכים שלכם</p>
+                                        <h3 className="text-4xl font-black tracking-tight text-[#1D1D1F]">{content.filterDrawerTitle}</h3>
+                                        <p className="text-sm text-gray-500 mt-2">{content.filterDrawerSub}</p>
                                     </div>
                                     <Magnetic strength={0.2}>
                                         <button onClick={() => setIsFilterOpen(false)} className="w-12 h-12 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-colors cursor-pointer shrink-0">
@@ -220,13 +252,13 @@ const CatalogGrid = () => {
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar" dir="rtl">
                                     {/* Sort Section */}
                                     <section className="mb-14">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">מיון לפי</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">{content.sortLabel}</p>
                                         <div className="grid grid-cols-1 gap-3">
                                             {[
-                                                { id: 'default', label: 'רלוונטיות' },
-                                                { id: 'price-asc', label: 'מחיר: מהנמוך לגבוה' },
-                                                { id: 'price-desc', label: 'מחיר: מהגבוה לנמוך' },
-                                                { id: 'name', label: 'שם המוצר (א-ת)' },
+                                                { id: 'default', label: content.sortRel },
+                                                { id: 'price-asc', label: content.sortAsc },
+                                                { id: 'price-desc', label: content.sortDesc },
+                                                { id: 'name', label: content.sortName },
                                             ].map((opt) => (
                                                 <button
                                                     key={opt.id}
@@ -242,14 +274,14 @@ const CatalogGrid = () => {
                                     {/* Price Range Section */}
                                     <section className="mb-14">
                                         <div className="flex justify-between items-center mb-6">
-                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">טווח מחירים</p>
+                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">{content.priceLabel}</p>
                                             <span className="text-base font-black text-[#1D1D1F]">עד ₪{priceRange[1].toLocaleString()}</span>
                                         </div>
                                         <div className="px-2">
                                             <input 
                                                 type="range" 
                                                 min="0" 
-                                                max="30000" 
+                                                max={content.priceMax}
                                                 step="500"
                                                 value={priceRange[1]}
                                                 onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
@@ -257,16 +289,16 @@ const CatalogGrid = () => {
                                             />
                                             <div className="flex justify-between mt-4 text-[11px] font-black text-gray-400">
                                                 <span>₪0</span>
-                                                <span>₪30,000+</span>
+                                                <span>₪{content.priceMax.toLocaleString()}+</span>
                                             </div>
                                         </div>
                                     </section>
 
                                     {/* Special Filters */}
                                     <section className="mb-14">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">מאפיינים מיוחדים</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">{content.tagsLabel}</p>
                                         <div className="flex flex-wrap gap-2.5">
-                                            {['תומך AI', 'מוקשח (Rugged)', '4K UHD', 'אלחוטי', 'חיסכון בחשמל', 'Android 13', 'חינוך STEM'].map(tag => (
+                                            {content.tags.map(tag => (
                                                 <button key={tag} className="px-5 py-2.5 rounded-full border border-black/5 bg-white/30 text-xs font-bold text-gray-600 hover:bg-white hover:border-black/20 transition-all">
                                                     {tag}
                                                 </button>
@@ -277,16 +309,16 @@ const CatalogGrid = () => {
 
                                 <div className="mt-auto pt-10 flex gap-4 border-t border-black/5">
                                     <button 
-                                        onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory('הכל'); }}
+                                        onClick={() => { setSortBy('default'); setPriceRange([0, content.priceMax]); setSelectedCategory('הכל'); }}
                                         className="flex-1 py-5 rounded-2xl font-bold text-sm text-gray-400 hover:text-[#1D1D1F] transition-colors"
                                     >
-                                        איפוס
+                                        {content.resetBtn}
                                     </button>
                                     <button 
                                         onClick={() => setIsFilterOpen(false)}
                                         className="flex-[2] py-5 rounded-2xl bg-[#007AFF] text-white font-black text-[15px] shadow-[0_12px_30px_rgba(0,122,255,0.4)] hover:scale-[1.02] active:scale-95 transition-all"
                                     >
-                                        הצג תוצאות
+                                        {content.applyBtn}
                                     </button>
                                 </div>
                             </div>
@@ -301,8 +333,8 @@ const CatalogGrid = () => {
                     <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
                         <SlidersHorizontal size={36} className="text-gray-300" />
                     </div>
-                    <h3 className="text-3xl font-bold text-[#1D1D1F] mb-3">לא נמצאו מוצרים</h3>
-                    <p className="text-gray-400 text-lg">נסה קטגוריה אחרת או אפס את המסננים</p>
+                    <h3 className="text-3xl font-bold text-[#1D1D1F] mb-3">{content.emptyMsg}</h3>
+                    <p className="text-gray-400 text-lg">{content.emptyDesc}</p>
                 </div>
             )}
         </section>
@@ -343,6 +375,34 @@ const ListCard = ({ product }) => {
         else trigger(() => addToCart(product))();
     }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
 
+    const [siteSettings, setSiteSettings] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
+            return {
+                showPrices: s.show_prices !== false,
+                allowOrders: s.allow_orders !== false
+            };
+        } catch { return { showPrices: true, allowOrders: true }; }
+    });
+
+    useEffect(() => {
+        const onStorage = (e) => {
+            if (e.key === 'nextclass_content') {
+                try {
+                    const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
+                    setSiteSettings({
+                        showPrices: s.show_prices !== false,
+                        allowOrders: s.allow_orders !== false
+                    });
+                } catch {}
+            }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
+
+    const { showPrices, allowOrders } = siteSettings;
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -381,14 +441,16 @@ const ListCard = ({ product }) => {
 
                 {/* Price & Actions Section */}
                 <div className="relative z-20 shrink-0 flex items-center gap-4 sm:gap-12 pl-4 sm:pl-6 mr-2 sm:mr-4 border-r border-gray-100">
-                    <div className="text-left hidden sm:block">
-                        <div className="text-xl sm:text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
-                            {formattedPrice}
+                    {showPrices && (
+                        <div className="text-left hidden sm:block">
+                            <div className="text-xl sm:text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
+                                {formattedPrice}
+                            </div>
+                            <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
+                                {getSetting('catalog_inst_price_label', 'מחיר מוסדי')}
+                            </div>
                         </div>
-                        <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
-                            מחיר מוסדי
-                        </div>
-                    </div>
+                    )}
 
                     <div className="flex items-center gap-3">
                         {/* Compare */}
@@ -402,34 +464,40 @@ const ListCard = ({ product }) => {
                             </motion.button>
                         </Magnetic>
 
-                        {/* Add to Cart */}
+                        {/* Add to Cart / Contact */}
                         <Magnetic strength={0.1}>
-                            <motion.button
-                                onClick={handleCartToggle}
-                                animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
-                                whileTap={{ scale: 0.95 }}
-                                className={`h-12 min-w-[100px] sm:min-w-[140px] px-4 sm:px-6 rounded-full font-bold text-[12px] sm:text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
-                            >
-                                <AnimatePresence mode="wait">
-                                    {isInCart ? (
-                                        <motion.span key="in-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                                            <Check size={16} strokeWidth={3} className="text-green-500 group-hover:hidden" />
-                                            <span className="group-hover:hidden">נוסף לעגלה</span>
-                                            <X size={16} strokeWidth={2.5} className="hidden group-hover:block text-red-500" />
-                                            <span className="hidden group-hover:block text-red-500">הסר</span>
-                                        </motion.span>
-                                    ) : (
-                                        <motion.span key="add-to-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                                            {popState === 'loading' ? '...' : (
-                                                <>
-                                                    <ShoppingCart size={16} strokeWidth={2.5} />
-                                                    הוסף לעגלה
-                                                </>
-                                            )}
-                                        </motion.span>
-                                    )}
-                                </AnimatePresence>
-                            </motion.button>
+                            {allowOrders ? (
+                                <motion.button
+                                    onClick={handleCartToggle}
+                                    animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`h-12 min-w-[100px] sm:min-w-[140px] px-4 sm:px-6 rounded-full font-bold text-[12px] sm:text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
+                                >
+                                    <AnimatePresence mode="wait">
+                                        {isInCart ? (
+                                            <motion.span key="in-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                                                <Check size={16} strokeWidth={3} className="text-green-500 group-hover:hidden" />
+                                                <span className="group-hover:hidden">{getSetting('catalog_added_msg', 'נוסף לעגלה')}</span>
+                                                <X size={16} strokeWidth={2.5} className="hidden group-hover:block text-red-500" />
+                                                <span className="hidden group-hover:block text-red-500">{getSetting('catalog_remove_msg', 'הסר')}</span>
+                                            </motion.span>
+                                        ) : (
+                                            <motion.span key="add-to-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                                                {popState === 'loading' ? '...' : (
+                                                    <>
+                                                        <ShoppingCart size={16} strokeWidth={2.5} />
+                                                        {getSetting('catalog_add_to_cart', 'הוסף לעגלה')}
+                                                    </>
+                                                )}
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.button>
+                            ) : (
+                                <Link to="/contact" className="h-12 px-6 rounded-full bg-[#007AFF] text-white font-bold text-[13px] flex items-center justify-center hover:bg-blue-600 transition-all shadow-md">
+                                    {getSetting('catalog_request_quote', 'בקש הצעה')}
+                                </Link>
+                            )}
                         </Magnetic>
                     </div>
                 </div>

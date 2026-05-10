@@ -90,8 +90,8 @@ export function AdminToastProvider({ children }) {
     );
 }
 
-export function useToast() {
+export function useAdminToast() {
     const ctx = useContext(ToastContext);
-    if (!ctx) throw new Error('useToast must be inside AdminToastProvider');
+    if (!ctx) throw new Error('useAdminToast must be inside AdminToastProvider');
     return ctx;
 }

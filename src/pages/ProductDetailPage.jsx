@@ -10,58 +10,10 @@ import TrustBadges from '../components/TrustBadges';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
 import Magnetic from '../components/Magnetic';
+import { useSettings } from '../context/SettingsContext';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
-const SCROLLYTELLING_FEATURES = [
-    {
-        id: 1,
-        title: 'חוויית 4K קולנועית בכל כיתה',
-        description: 'פאנל ה-OLED החדשני מעניק חדות בלתי מתפשרת וצבעים מדויקים, כדי שכל פרט בשיעור ייראה חי, ברור ובולט גם באור יום מלא.',
-        image: 'https://images.pexels.com/photos/5082567/pexels-photo-5082567.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 2,
-        title: 'חיבור מיידי, ללא כבלים',
-        description: 'שתף בקלות מהסמארטפון או הלפטופ ישירות למסך הגדול. טכנולוגיית ה-AirPlay וה-Miracast המובנית מאפשרת לך להתחיל ללמד בשניות.',
-        image: 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 3,
-        title: 'אינטראקציה חכמה ואינטואיטיבית',
-        description: 'ניהול אפליקציות וכלי למידה בלחיצה אחת. ממשק ה-NextTouch מותאם אישית לצרכים שלך, ומאפשר זרימה חופשית של תוכן ותקשורת.',
-        image: 'https://images.pexels.com/photos/4144096/pexels-photo-4144096.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-    {
-        id: 4,
-        title: 'עוצמה שדוחפת קדימה',
-        description: 'עם מעבד ה-M2 Pro העוצמתי, הכל רץ מהר וחלק — מהפעלת סרטוני VR ועד עבודה על אפליקציות כבדות במקביל. ללא השהיות, ללא פשרות.',
-        image: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    },
-];
-
-const COLORS = [
-    { id: 'space-gray', name: 'Space Gray', hex: '#3C3C3E' },
-    { id: 'silver', name: 'Silver', hex: '#E3E3E5' },
-];
-
-const ACCESSORIES = [
-    {
-        id: 'hdmi',
-        title: 'כבל HDMI פרימיים 2.1',
-        description: '8K 60Hz סופר מהיר עם מגן אלקטרומגנטי',
-        price: 150,
-        image: 'https://images.pexels.com/photos/4219860/pexels-photo-4219860.jpeg?auto=compress&cs=tinysrgb&w=200',
-        category: 'קישוריות',
-    },
-    {
-        id: 'mount',
-        title: 'מתקן תלייה מגנטי',
-        description: 'התקנה בתוך דקות עם זרוע מתכוונן בשלושה צירים',
-        price: 300,
-        image: 'https://images.pexels.com/photos/7214589/pexels-photo-7214589.jpeg?auto=compress&cs=tinysrgb&w=200',
-        category: 'התקנה',
-    },
-];
+// Moved constants into component useMemo for dynamic control
 
 // ─── Memoised fallback component ─────────────────────────────────────────────
 const ImageFallback = memo(() => (
@@ -76,8 +28,89 @@ ImageFallback.displayName = 'ImageFallback';
 
 const ProductDetailPage = () => {
     const { id } = useParams();
-    const { addToCompare, removeFromCompare, isSelected } = useCompare();
+    const { getSetting, isVisible } = useSettings();
     const { cartItems, addToCart, removeFromCart } = useCart();
+    const { getProductById } = useProducts();
+    const { addToCompare, removeFromCompare, isSelected } = useCompare();
+
+    const content = useMemo(() => ({
+        notFound:   getSetting('pd_not_found', 'המוצר לא נמצא.'),
+        liveDemo:   getSetting('pd_live_demo', 'LIVE DEMO'),
+        home:       getSetting('pd_home', 'ראשי'),
+        catalog:    getSetting('pd_catalog', 'קטלוג'),
+        contactForPrice: getSetting('pd_contact_for_price', 'צור קשר להצעת מחיר'),
+        colorLabel: getSetting('pd_color_label', 'בחירת צבע'),
+        accTitle:   getSetting('pd_acc_title', 'השלם את המערכת שלך'),
+        accOptional: getSetting('pd_acc_optional', 'אופציונלי'),
+        addedSuccess: getSetting('pd_added_success', 'נוסף לסל בהצלחה'),
+        added:      getSetting('pd_added', 'נוסף'),
+        remove:     getSetting('pd_remove', 'הסר'),
+        removeFromCart: getSetting('pd_remove_from_cart', 'הסר מהעגלה'),
+        addToCart:  getSetting('catalog_add_to_cart', 'הוסף לעגלה'),
+        buyNow:     getSetting('pd_buy_now', 'קנה עכשיו'),
+        quickInquiry: getSetting('pd_quick_inquiry', 'שלח פנייה מהירה'),
+        requestQuote: getSetting('catalog_request_quote', 'בקש הצעה'),
+        requestQuoteInst: getSetting('pd_request_quote_inst', 'בקש הצעת מחיר מוסדית'),
+        compareSelected: getSetting('pd_compare_selected', 'נבחר להשוואה'),
+        compareBtn: getSetting('pd_compare_btn', 'השווה דגם'),
+        specsTitle: getSetting('pd_specs_title', 'מפרט טכני'),
+        specsDesc:  getSetting('pd_specs_desc', 'הפרטים המדויקים שהופכים את המערכת הזו למובילה מסוגה.'),
+        moreInfo:   getSetting('pd_more_info', 'פרטים נוספים ←'),
+    }), [getSetting]);
+
+    const COLORS = useMemo(() => [
+        { id: 'space-gray', name: 'Space Gray', hex: '#3C3C3E' },
+        { id: 'silver', name: 'Silver', hex: '#E3E3E5' },
+    ], []);
+
+    const ACCESSORIES = useMemo(() => [
+        {
+            id: 'hdmi',
+            title: getSetting('acc_hdmi_title', 'כבל HDMI פרימיים 2.1'),
+            description: getSetting('acc_hdmi_desc', '8K 60Hz סופר מהיר עם מגן אלקטרומגנטי'),
+            price: parseInt(getSetting('acc_hdmi_price', '150')),
+            image: 'https://images.pexels.com/photos/4219860/pexels-photo-4219860.jpeg?auto=compress&cs=tinysrgb&w=200',
+            category: 'קישוריות',
+        },
+        {
+            id: 'mount',
+            title: getSetting('acc_mount_title', 'מתקן תלייה מגנטי'),
+            description: getSetting('acc_mount_desc', 'התקנה בתוך דקות עם זרוע מתכוונן בשלושה צירים'),
+            price: parseInt(getSetting('acc_mount_price', '300')),
+            image: 'https://images.pexels.com/photos/7214589/pexels-photo-7214589.jpeg?auto=compress&cs=tinysrgb&w=200',
+            category: 'התקנה',
+        },
+    ], [getSetting]);
+
+    const SCROLLYTELLING_FEATURES = useMemo(() => [
+        {
+            id: 1,
+            title: getSetting('feat1_title', 'חוויית 4K קולנועית בכל כיתה'),
+            description: getSetting('feat1_desc', 'פאנל ה-OLED החדשני מעניק חדות בלתי מתפשרת וצבעים מדויקים, כדי שכל פרט בשיעור ייראה חי, ברור ובולט גם באור יום מלא.'),
+            image: getSetting('feat1_img', 'https://images.pexels.com/photos/5082567/pexels-photo-5082567.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+        },
+        {
+            id: 2,
+            title: getSetting('feat2_title', 'חיבור מיידי, ללא כבלים'),
+            description: getSetting('feat2_desc', 'שתף בקלות מהסמארטפון או הלפטופ ישירות למסך הגדול. טכנולוגיית ה-AirPlay וה-Miracast המובנית מאפשרת לך להתחיל ללמד בשניות.'),
+            image: getSetting('feat2_img', 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+        },
+        {
+            id: 3,
+            title: getSetting('feat3_title', 'אינטראקציה חכמה ואינטואיטיבית'),
+            description: getSetting('feat3_desc', 'ניהול אפליקציות וכלי למידה בלחיצה אחת. ממשק ה-NextTouch מותאם אישית לצרכים שלך, ומאפשר זרימה חופשית של תוכן ותקשורת.'),
+            image: getSetting('feat3_img', 'https://images.pexels.com/photos/4144096/pexels-photo-4144096.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+        },
+        {
+            id: 4,
+            title: getSetting('feat4_title', 'עוצמה שדוחפת קדימה'),
+            description: getSetting('feat4_desc', 'עם מעבד ה-M2 Pro העוצמתי, הכל רץ מהר וחלק — מהפעלת סרטוני VR ועד עבודה על אפליקציות כבדות במקביל. ללא השהיות, ללא פשרות.'),
+            image: getSetting('feat4_img', 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+        },
+    ], [getSetting]);
+
+    const showPrices = isVisible('show_prices', true);
+    const allowOrders = isVisible('allow_orders', true);
 
     const [imgError, setImgError] = useState(false);
     const [activeColor, setActiveColor] = useState(COLORS[0]);
@@ -125,7 +158,6 @@ const ProductDetailPage = () => {
     }, [id, trackView]);
 
     // ─── Derived values (memoised) ────────────────────────────────────────────
-    const { getProductById } = useProducts();
     const product = useMemo(
         () => getProductById(id) ?? {},
         [id, getProductById]
@@ -136,10 +168,7 @@ const ProductDetailPage = () => {
         [product?.id, activeColor.id]
     );
 
-    const isInCart = useMemo(
-        () => (cartItems ?? []).some(item => item?.id === currentProductId),
-        [cartItems, currentProductId]
-    );
+    const isInCart = useMemo(() => cartItems.some(item => item.id === currentProductId), [cartItems, currentProductId]);
 
     const totalPrice = useMemo(() => {
         let total = product?.price ?? 0;
@@ -148,7 +177,7 @@ const ProductDetailPage = () => {
             if (acc) total += acc.price;
         });
         return total;
-    }, [product?.price, selectedAccessories]);
+    }, [product?.price, selectedAccessories, ACCESSORIES]);
 
     const formattedPrice = useMemo(() => `₪${totalPrice.toLocaleString()}`, [totalPrice]);
 
@@ -183,7 +212,7 @@ const ProductDetailPage = () => {
                     .filter(Boolean),
             });
         }
-    }, [isInCart, currentProductId, product, activeColor, totalPrice, selectedAccessories, addToCart, removeFromCart]);
+    }, [isInCart, currentProductId, product, activeColor, totalPrice, selectedAccessories, addToCart, removeFromCart, ACCESSORIES]);
 
     const handleCompareToggle = useCallback(() => {
         if (isProductSelectedForCompare) {
@@ -209,7 +238,7 @@ const ProductDetailPage = () => {
         return (
             <PageTransition>
                 <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
-                    <p className="text-gray-400 text-xl font-medium">המוצר לא נמצא.</p>
+                    <p className="text-gray-400 text-xl font-medium">{content.notFound}</p>
                 </div>
             </PageTransition>
         );
@@ -235,8 +264,11 @@ const ProductDetailPage = () => {
                                 </h2>
                             </div>
                             <div className="flex items-center gap-6">
-                                <span className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</span>
-                                <motion.button
+                                {showPrices && (
+                                    <span className="text-lg md:text-xl font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</span>
+                                )}
+                                {allowOrders ? (
+                                    <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={handleCartToggle}
@@ -268,6 +300,13 @@ const ProductDetailPage = () => {
                                         )}
                                     </AnimatePresence>
                                 </motion.button>
+                                ) : (
+                                    <Link to="/contact">
+                                        <button className="h-[44px] px-6 rounded-full bg-[#007AFF] text-white font-bold text-sm shadow-md">
+                                            {content.requestQuote}
+                                        </button>
+                                    </Link>
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -277,7 +316,6 @@ const ProductDetailPage = () => {
 
             <PageTransition>
                 {/* ─── Main Content ────────────────────────────────────────────── */}
-                {/* REMOVED overflow-x-hidden as it breaks position: sticky down the tree */}
                 <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20">
 
@@ -339,7 +377,7 @@ const ProductDetailPage = () => {
                                             {/* Cinematic badge */}
                                             <div className="absolute top-4 left-4 z-10 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 flex items-center gap-1.5">
                                                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                <span className="text-white text-[10px] font-bold uppercase tracking-wider">LIVE DEMO</span>
+                                                <span className="text-white text-[10px] font-bold uppercase tracking-wider">{content.liveDemo}</span>
                                             </div>
                                         </div>
                                     ) : imgError || !product.image ? (
@@ -363,20 +401,26 @@ const ProductDetailPage = () => {
                         <div className="flex flex-col">
                             {/* Breadcrumb */}
                             <div className="text-sm font-medium text-gray-400 mb-8 flex items-center gap-2">
-                                <Link to="/" className="hover:text-[#007AFF] transition-apple-fluid">ראשי</Link>
+                                <Link to="/" className="hover:text-[#007AFF] transition-apple-fluid">{content.home}</Link>
                                 <span>/</span>
-                                <Link to="/catalog" className="hover:text-[#007AFF] transition-apple-fluid">קטלוג</Link>
+                                <Link to="/catalog" className="hover:text-[#007AFF] transition-apple-fluid">{content.catalog}</Link>
                                 <span>/</span>
                                 <span className="text-gray-600 line-clamp-1">{product.title}</span>
                             </div>
 
                             <div className="text-[#007AFF] font-bold text-xs uppercase tracking-widest mb-4">{product.category}</div>
                             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#1D1D1F] leading-[1.15] mb-4">{product.title}</h1>
-                            <div className="text-4xl font-black tracking-tighter text-[#1D1D1F] my-6">{formattedPrice}</div>
+                            {showPrices ? (
+                                <div className="text-4xl font-black tracking-tighter text-[#1D1D1F] my-6">{formattedPrice}</div>
+                            ) : (
+                                <div className="my-6">
+                                    <span className="text-xl font-bold text-[#007AFF]">{content.contactForPrice}</span>
+                                </div>
+                            )}
 
                             {/* Color Selector */}
                             <section className="mb-12">
-                                <h3 className="text-lg font-bold text-[#1D1D1F] mb-6">בחירת צבע</h3>
+                                <h3 className="text-lg font-bold text-[#1D1D1F] mb-6">{content.colorLabel}</h3>
                                 <div className="flex gap-4">
                                     {COLORS.map((color) => (
                                         <button
@@ -393,8 +437,8 @@ const ProductDetailPage = () => {
                             {/* Accessories — Hyper-Glass RTL Cards */}
                             <section className="mb-12">
                                 <div className="flex items-center justify-between mb-5">
-                                    <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">השלם את המערכת שלך</h3>
-                                    <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">אופציונלי</span>
+                                    <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
+                                    <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">{content.accOptional}</span>
                                 </div>
                                 <div className="flex flex-col gap-3">
                                     {ACCESSORIES.map((acc) => {
@@ -475,58 +519,67 @@ const ProductDetailPage = () => {
 
                             {/* CTAs */}
                             <div className="flex flex-col gap-4">
-                                <Magnetic strength={0.2}>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={handleCartToggle}
-                                        className={`group relative h-[64px] w-full min-w-[320px] py-5 rounded-full text-xl shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center ${isInCart
-                                            ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200'
-                                            : 'bg-[#007AFF] text-white shadow-[0_12px_32px_rgb(0_122_255/0.25)]'
-                                            }`}
-                                    >
-                                        {/* Animated Shine Overlay */}
-                                        <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                                {allowOrders ? (
+                                    <Magnetic strength={0.2}>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={handleCartToggle}
+                                            className={`group relative h-[64px] w-full min-w-[320px] py-5 rounded-full text-xl shadow-lg transition-all duration-300 overflow-hidden flex items-center justify-center ${isInCart
+                                                ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200 hover:text-red-500 hover:border-red-200'
+                                                : 'bg-[#007AFF] text-white shadow-[0_12px_32px_rgb(0_122_255/0.25)]'
+                                                }`}
+                                        >
+                                            {/* Animated Shine Overlay */}
+                                            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
-                                        <AnimatePresence mode="wait">
-                                            {isInCart ? (
-                                                <motion.div
-                                                    key="in-cart"
-                                                    initial={{ opacity: 0, y: 15 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -15 }}
-                                                    className="flex items-center gap-2"
-                                                >
-                                                    <div className="flex items-center gap-2 group-hover:hidden">
-                                                        <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        <span>נוסף לסל בהצלחה</span>
-                                                    </div>
-                                                    <div className="hidden group-hover:flex items-center gap-2 text-red-500">
-                                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                        <span>הסר פריט מהעגלה</span>
-                                                    </div>
-                                                </motion.div>
-                                            ) : (
-                                                <motion.span
-                                                    key="add"
-                                                    initial={{ opacity: 0, y: 15 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -15 }}
-                                                >
-                                                    {`הוסף לעגלה — ${formattedPrice}`}
-                                                </motion.span>
-                                            )}
-                                        </AnimatePresence>
-                                    </motion.button>
-                                </Magnetic>
+                                            <AnimatePresence mode="wait">
+                                                {isInCart ? (
+                                                    <motion.div
+                                                        key="in-cart"
+                                                        initial={{ opacity: 0, y: 15 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -15 }}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        <div className="flex items-center gap-2 group-hover:hidden">
+                                                         <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            <span>{content.addedSuccess}</span>
+                                                        </div>
+                                                        <div className="hidden group-hover:flex items-center gap-2 text-red-500">
+                                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            <span>{content.removeFromCart}</span>
+                                                        </div>
+                                                    </motion.div>
+                                                ) : (
+                                                    <motion.span
+                                                        key="add"
+                                                        initial={{ opacity: 0, y: 15 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -15 }}
+                                                    >
+                                                        {`${content.addToCart} — ${showPrices ? formattedPrice : ''}`}
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.button>
+                                    </Magnetic>
+                                ) : (
+                                    <Link to="/contact">
+                                        <button className="h-[64px] w-full py-5 rounded-full bg-[#007AFF] text-white text-xl font-bold shadow-lg hover:bg-blue-600 transition-all">
+                                            {content.requestQuoteInst}
+                                        </button>
+                                    </Link>
+                                )}
 
                                 <TrustBadges />
 
-                                <div className="flex flex-col sm:flex-row gap-4">
+                                {allowOrders && (
+                                    <div className="flex flex-col sm:flex-row gap-4 mt-8">
                                     <Magnetic strength={0.15}>
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
@@ -535,7 +588,7 @@ const ProductDetailPage = () => {
                                         >
                                             {/* Shine effect for black button */}
                                             <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-                                            קנה עכשיו
+                                            {allowOrders ? content.buyNow : content.quickInquiry}
                                         </motion.button>
                                     </Magnetic>
                                     <Magnetic strength={0.15}>
@@ -548,10 +601,11 @@ const ProductDetailPage = () => {
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                             </svg>
-                                            <span>{isProductSelectedForCompare ? 'נבחר להשוואה' : 'השווה דגם'}</span>
+                                            <span>{isProductSelectedForCompare ? content.compareSelected : content.compareBtn}</span>
                                         </motion.button>
                                     </Magnetic>
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

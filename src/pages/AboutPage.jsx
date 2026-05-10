@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import { Sparkles, Heart, Zap, Award, Globe, ShieldCheck, ChevronDown, Compass, Users } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+import { useSettings } from '../context/SettingsContext';
 
 const GLASS_CARD = "glass-apple gestalt-card p-6 sm:p-10 md:p-14 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-2xl";
 
@@ -48,7 +49,46 @@ const TimelineItem = ({ year, title, desc, icon: Icon, index }) => (
     </motion.div>
 );
 
+// Removed readAboutContent helper
+
 const AboutPage = () => {
+    const { getSetting } = useSettings();
+    
+    const aboutContent = useMemo(() => ({
+        heroLabel:   getSetting('about_hero_label', 'הסיפור של NextClass'),
+        heroTitle:   getSetting('about_hero_title', 'חינוך חכם. מוגדר מחדש.'),
+        heroSub:     getSetting('about_hero_sub', 'אנחנו לא רק מעצבים כיתות חכמות. אנחנו בונים את התשתית שעליה יצמח דור המנהיגים הבא של ישראל.'),
+        heroImg:     getSetting('about_hero_img', 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=2400'),
+        storyTitle:  getSetting('about_story_title', 'הכל התחיל ב-2012. עם מסך אחד והרבה תסכול.'),
+        storyBody:   getSetting('about_story_body', 'NextClass מתמחה בפתרונות טכנולוגיים מובילים למוסדות חינוך ברחבי ישראל. אנחנו מאמינים שטכנולוגיה נכונה מעצימה מורים ומסייעת לכל תלמיד להגיע לפוטנציאל המלא שלו.'),
+        stat1Val:    getSetting('about_stat1_val', '1200'),
+        stat1Label:  getSetting('about_stat1_label', 'מוסדות חינוך'),
+        stat2Val:    getSetting('about_stat2_val', '14'),
+        stat2Label:  getSetting('about_stat2_label', 'שנות ניסיון'),
+        stat3Val:    getSetting('about_stat3_val', '98'),
+        stat3Label:  getSetting('about_stat3_label', '% שביעות רצון'),
+        founderTitle: getSetting('about_founder_title', 'ההצלחה נמדדת בשטח. לא בברושורים.'),
+        founderMsg:   getSetting('about_founder_message', 'כשבנינו את NextClass, החלטנו להפסיק לדבר על "פוטנציאל" ולהתחיל לדבר על תוצאות.'),
+        founderName:  getSetting('about_founder_name', 'אמיר כהן'),
+        founderRole:  getSetting('about_founder_role', 'מייסד ומנכ"ל NextClass'),
+        founderImg:   getSetting('about_founder_img', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200'),
+        ctaTitle:     getSetting('about_cta_title', 'בואו נצייר את המחר ביחד.'),
+        ctaDesc:      getSetting('about_cta_desc', 'אנחנו מחפשים את השותפים שמאמינים שחינוך הוא המשאב היקר ביותר שלנו. בואו נבנה משהו בלתי נשכח.'),
+        journeyHint:  getSetting('about_journey_hint', 'המסע שלנו מתחיל כאן'),
+        eduBadge:     getSetting('about_edu_badge', 'מאושרת משרד החינוך'),
+        wayTitle:     getSetting('about_way_title', 'הדרך שעשינו'),
+        wayDesc:      getSetting('about_way_desc', 'עשור של פריצות דרך בחינוך הישראלי.'),
+        founderLabel: getSetting('about_founder_label', 'מילה אישית מהמייסד'),
+        valuesTitle:  getSetting('about_values_title', 'הערכים שמניעים אותנו'),
+        valuesDesc:   getSetting('about_values_desc', 'הבסיס לכל החלטה, לכל מוצר ולכל קשר.'),
+        v1Title:      getSetting('about_v1_title', 'מקצוענות ללא פשרות'),
+        v1Desc:       getSetting('about_v1_desc', 'אנחנו לא מסתפקים ב"עובד". אנחנו מחפשים את השלמות בכל פיקסל ובכל קו קוד.'),
+        v2Title:      getSetting('about_v2_title', 'חדשנות אנושית'),
+        v2Desc:       getSetting('about_v2_desc', 'הטכנולוגיה היא רק הכלי. הלב הוא המורה. אנחנו מפתחים כלים שמעצימים את היכולת האנושית.'),
+        v3Title:      getSetting('about_v3_title', 'שותפות אמת'),
+        v3Desc:       getSetting('about_v3_desc', 'כשאתה בוחר בנו, אתה מקבל שותף לחיים. אנחנו שם בשבילך ברגעי השיא ובאתגרים.'),
+    }), [getSetting]);
+
     const containerRef = useRef(null);
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -59,12 +99,12 @@ const AboutPage = () => {
     const heroScale = useTransform(smoothProgress, [0, 0.2], [1, 1.05]);
     const heroOpacity = useTransform(smoothProgress, [0, 0.15], [1, 0]);
 
-    const timelineData = [
-        { year: '2012', title: 'החלום בתל אביב', desc: 'בחדר קטן בלב תל אביב, הבנו שהחינוך בישראל חייב זינוק קדימה. התחלנו עם המסך הראשון והמון תשוקה לשנות את חוקי המשחק.', icon: Zap },
-        { year: '2016', title: 'מהפכת המגע', desc: 'המסכים שלנו הפכו ללב הפועם של אלפי כיתות. ראינו איך פתאום, כל ילד רוצה לגעת בידע, ליצור ולשתף.', icon: Award },
-        { year: '2020', title: 'למידה ללא גבולות', desc: 'כשהעולם עצר, אנחנו לא. פיתחנו פתרונות היברידיים שחיברו מורים ותלמידים מכל מקום, ושמרנו על להבת הסקרנות בוערת.', icon: Globe },
-        { year: '2025', title: 'העתיד כבר כאן', desc: 'עם AI מובנה ומערכות חכמות, אנחנו לא רק מספקים ציוד – אנחנו מעצבים את דור המנהיגים הבא של ישראל.', icon: ShieldCheck },
-    ];
+    const timelineData = useMemo(() => [
+        { year: getSetting('about_tm1_year', '2012'), title: getSetting('about_tm1_title', 'החלום בתל אביב'), desc: getSetting('about_tm1_desc', 'בחדר קטן בלב תל אביב, הבנו שהחינוך בישראל חייב זינוק קדימה. התחלנו עם המסך הראשון והמון תשוקה לשנות את חוקי המשחק.'), icon: Zap },
+        { year: getSetting('about_tm2_year', '2016'), title: getSetting('about_tm2_title', 'מהפכת המגע'), desc: getSetting('about_tm2_desc', 'המסכים שלנו הפכו ללב הפועם של אלפי כיתות. ראינו איך פתאום, כל ילד רוצה לגעת בידע, ליצור ולשתף.'), icon: Award },
+        { year: getSetting('about_tm3_year', '2020'), title: getSetting('about_tm3_title', 'למידה ללא גבולות'), desc: getSetting('about_tm3_desc', 'כשהעולם עצר, אנחנו לא. פיתחנו פתרונות היברידיים שחיברו מורים ותלמידים מכל מקום, ושמרנו על להבת הסקרנות בוערת.'), icon: Globe },
+        { year: getSetting('about_tm4_year', '2025'), title: getSetting('about_tm4_title', 'העתיד כבר כאן'), desc: getSetting('about_tm4_desc', 'עם AI מובנה ומערכות חכמות, אנחנו לא רק מספקים ציוד – אנחנו מעצבים את דור המנהיגים הבא של ישראל.'), icon: ShieldCheck },
+    ], [getSetting]);
 
     return (
         <PageTransition>
@@ -78,7 +118,7 @@ const AboutPage = () => {
                     >
                         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-[#F5F5F7] z-10" />
                         <img 
-                            src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=2400" 
+                            src={aboutContent.heroImg} 
                             className="w-full h-full object-cover"
                             alt="The Vision"
                         />
@@ -91,12 +131,11 @@ const AboutPage = () => {
                             className="inline-flex items-center gap-2 glass-apple px-6 py-2 rounded-full mb-10 border border-white/30"
                         >
                             <Sparkles size={14} className="text-[#007AFF]" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">הסיפור של NextClass</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">{aboutContent.heroLabel}</span>
                         </motion.div>
                         
                         <h1 className="text-4xl sm:text-6xl md:text-9xl font-apple-display text-white tracking-tighter leading-[0.9] mb-8 sm:mb-12">
-                            חינוך חכם.<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">מוגדר מחדש.</span>
+                            {aboutContent.heroTitle.split('.').map((t,i) => <span key={i}>{t}{i===0 && <br/>}</span>)}
                         </h1>
                         <motion.p
                             initial={{ opacity: 0 }}
@@ -104,7 +143,7 @@ const AboutPage = () => {
                             transition={{ delay: 0.4 }}
                             className="text-base sm:text-xl md:text-3xl text-white/80 font-medium max-w-4xl mx-auto leading-relaxed px-2"
                         >
-                            אנחנו לא רק מעצבים כיתות חכמות. אנחנו בונים את התשתית שעליה יצמח דור המנהיגים הבא של ישראל.
+                            {aboutContent.heroSub}
                         </motion.p>
                     </div>
 
@@ -113,7 +152,7 @@ const AboutPage = () => {
                         transition={{ duration: 2.5, repeat: Infinity }}
                         className="absolute bottom-12 text-white/40 flex flex-col items-center gap-2"
                     >
-                        <span className="text-[9px] font-black uppercase tracking-widest">המסע שלנו מתחיל כאן</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{aboutContent.journeyHint}</span>
                         <ChevronDown size={20} />
                     </motion.div>
                 </section>
@@ -133,22 +172,22 @@ const AboutPage = () => {
                                     <Heart size={24} className="text-[#007AFF] fill-[#007AFF]" />
                                 </div>
                                 <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-6 sm:mb-8 tracking-tighter leading-tight">
-                                    הכל התחיל ב-2012.<br />
-                                    <span className="text-gray-400">עם מסך אחד והרבה תסכול.</span>
-                                </h2>
+                                     {aboutContent.storyTitle.split('.').map((t,i) => (
+                                         <span key={i} className={i % 2 !== 0 ? "text-gray-400" : ""}>
+                                             {t}{i === 0 && <br />}
+                                         </span>
+                                     ))}
+                                 </h2>
                                 <div className="space-y-6 text-xl text-gray-500 font-medium leading-relaxed max-w-xl ml-auto">
                                     <p>
-                                        עמדנו בכיתה ישראלית ממוצעת וראינו את הפער הבלתי נסבל: בחוץ העולם רץ קדימה עם סמארטפונים וטכנולוגיית ענן, ובפנים – לוח וגיר. הבנו שהילדים שלנו ראויים ליותר מסתם "ציוד". הם ראויים לחוויה שתאתגר אותם.
-                                    </p>
-                                    <p className="text-[#1D1D1F]">
-                                        הקמנו את NextClass כדי לנפץ את הפרדיגמה הזו. אנחנו לא כאן כדי למכור חומרה; אנחנו כאן כדי לבנות את הכלים שיהפכו כל שיעור לשיא של היום, וכל מורה למנהיג טכנולוגי. זה לא עתידני – זה קורה עכשיו.
+                                        {aboutContent.storyBody}
                                     </p>
                                 </div>
                                 
                                 <div className="mt-8 sm:mt-16 flex flex-wrap justify-end gap-6 sm:gap-12">
-                                    <Counter value={500} label="מרכזי חדשנות" suffix="+" />
-                                    <Counter value={250000} label="חלומות שהתגשמו" suffix="+" />
-                                    <Counter value={100} label="אחוז מחויבות" suffix="%" />
+                                    <Counter value={Number(aboutContent.stat1Val)} label={aboutContent.stat1Label} suffix="+" />
+                                    <Counter value={Number(aboutContent.stat2Val)} label={aboutContent.stat2Label} suffix="+" />
+                                    <Counter value={Number(aboutContent.stat3Val)} label={aboutContent.stat3Label} suffix="%" />
                                 </div>
                             </motion.div>
 
@@ -171,7 +210,7 @@ const AboutPage = () => {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[9px] font-black text-[#007AFF] uppercase tracking-widest">הטכנולוגיה שלנו</p>
-                                            <p className="text-sm font-bold text-[#1D1D1F]">מאושרת משרד החינוך</p>
+                                            <p className="text-sm font-bold text-[#1D1D1F]">{aboutContent.eduBadge}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -185,8 +224,8 @@ const AboutPage = () => {
                 <section className="py-16 sm:py-24 md:py-32 relative bg-[#F5F5F7]">
                     <div className="max-w-5xl mx-auto px-6 relative">
                         <div className="text-right mb-12 sm:mb-24">
-                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הדרך שעשינו</h2>
-                            <p className="text-xl text-gray-400 font-medium">עשור של פריצות דרך בחינוך הישראלי.</p>
+                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">{aboutContent.wayTitle}</h2>
+                            <p className="text-xl text-gray-400 font-medium">{aboutContent.wayDesc}</p>
                         </div>
 
                         <div className="relative">
@@ -204,24 +243,28 @@ const AboutPage = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-3 mb-8">
-                                        <span className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">מילה אישית מהמייסד</span>
+                                        <span className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">{aboutContent.founderLabel}</span>
                                         <div className="w-8 h-px bg-[#007AFF]" />
                                     </div>
                                     <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-6 sm:mb-10 tracking-tighter leading-tight">
-                                        "ההצלחה נמדדת בשטח.<br />לא בברושורים."
+                                        {aboutContent.founderTitle.split('.').map((t,i) => (
+                                            <span key={i} className={i % 2 !== 0 ? "text-gray-400" : ""}>
+                                                {t}{i === 0 && <br />}
+                                            </span>
+                                        ))}
                                     </h2>
                                     <p className="text-xl text-gray-500 leading-relaxed font-medium mb-12">
-                                        כשבנינו את NextClass, החלטנו להפסיק לדבר על "פוטנציאל" ולהתחיל לדבר על תוצאות. ראינו יותר מדי בתי ספר עם ציוד שצובר אבק. אנחנו כאן כדי להבטיח שכל פיקסל שאנחנו מתקינים הופך לכלי עבודה אמיתי בידיים של המורים. זה המחויבות שלי אליכם.
+                                        {aboutContent.founderMsg}
                                     </p>
                                     <div className="flex items-center justify-end gap-4">
-                                        <div className="text-right">
-                                            <p className="font-bold text-[#1D1D1F] text-lg">אמיר כהן</p>
-                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">מייסד ומנכ"ל NextClass</p>
-                                        </div>
-                                        <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-md">
-                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200" alt="Amir Cohen" />
-                                        </div>
-                                    </div>
+                                         <div className="text-right">
+                                             <p className="font-bold text-[#1D1D1F] text-lg">{aboutContent.founderName}</p>
+                                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{aboutContent.founderRole}</p>
+                                         </div>
+                                         <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-md">
+                                             <img src={aboutContent.founderImg} alt={aboutContent.founderName} className="w-full h-full object-cover" />
+                                         </div>
+                                     </div>
                                 </div>
                                 <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                                     <img 
@@ -240,26 +283,26 @@ const AboutPage = () => {
                 <section className="py-20 sm:py-32 md:py-48 bg-[#F5F5F7] relative">
                     <div className="max-w-7xl mx-auto px-6">
                         <div className="text-center mb-12 sm:mb-24">
-                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הערכים שמניעים אותנו</h2>
-                            <p className="text-xl text-gray-400 font-medium">הבסיס לכל החלטה, לכל מוצר ולכל קשר.</p>
+                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">{aboutContent.valuesTitle}</h2>
+                            <p className="text-xl text-gray-400 font-medium">{aboutContent.valuesDesc}</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                             {[
                                 { 
-                                    title: 'מקצוענות ללא פשרות', 
-                                    desc: 'אנחנו לא מסתפקים ב"עובד". אנחנו מחפשים את השלמות בכל פיקסל ובכל קו קוד, כדי שהשיעור שלך יעבור ללא תקלות.', 
+                                    title: aboutContent.v1Title, 
+                                    desc: aboutContent.v1Desc, 
                                     icon: ShieldCheck,
                                     gradient: 'from-blue-500/10 to-transparent'
                                 },
                                 { 
-                                    title: 'חדשנות אנושית', 
-                                    desc: 'הטכנולוגיה היא רק הכלי. הלב הוא המורה. אנחנו מפתחים כלים שמעצימים את היכולת האנושית לחנך ולהעניק השראה.', 
+                                    title: aboutContent.v2Title, 
+                                    desc: aboutContent.v2Desc, 
                                     icon: Compass,
                                     gradient: 'from-purple-500/10 to-transparent'
                                 },
                                 { 
-                                    title: 'שותפות אמת', 
-                                    desc: 'כשאתה בוחר בנו, אתה מקבל שותף לחיים. אנחנו שם בשבילך ברגעי השיא ובאתגרים היומיומיים, עם פתרונות שבאמת עובדים.', 
+                                    title: aboutContent.v3Title, 
+                                    desc: aboutContent.v3Desc, 
                                     icon: Users,
                                     gradient: 'from-indigo-500/10 to-transparent'
                                 },
@@ -290,11 +333,14 @@ const AboutPage = () => {
                     
                     <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
                         <h2 className="text-4xl sm:text-5xl md:text-8xl font-apple-display text-white tracking-tighter mb-6 sm:mb-10 leading-[0.95]">
-                            בואו נצייר את<br />
-                            <span className="text-blue-500">המחר ביחד.</span>
+                            {aboutContent.ctaTitle.split('.').map((t,i) => (
+                                <span key={i} className={i % 2 !== 0 ? "text-blue-500" : ""}>
+                                    {t}{i === 0 && <br />}
+                                </span>
+                            ))}
                         </h2>
                         <p className="text-lg sm:text-2xl text-gray-400 font-medium mb-10 sm:mb-16 max-w-2xl mx-auto">
-                            אנחנו מחפשים את השותפים שמאמינים שחינוך הוא המשאב היקר ביותר שלנו. בואו נבנה משהו בלתי נשכח.
+                            {aboutContent.ctaDesc}
                         </p>
                         
                         <div className="flex flex-wrap justify-center gap-6">
@@ -304,7 +350,7 @@ const AboutPage = () => {
                                 whileTap={{ scale: 0.95 }}
                                 className="px-16 py-6 bg-white text-[#1D1D1F] rounded-full font-black text-xl shadow-2xl hover:bg-gray-50 transition-all"
                             >
-                                דברו איתנו
+                                {getSetting('nav_contact', 'דברו איתנו')}
                             </motion.a>
                             <motion.a
                                 href="/catalog"
@@ -312,7 +358,7 @@ const AboutPage = () => {
                                 whileTap={{ scale: 0.95 }}
                                 className="px-16 py-6 bg-white/10 text-white backdrop-blur-xl border border-white/20 rounded-full font-black text-xl hover:bg-white/20 transition-all"
                             >
-                                צפו בקטלוג
+                                {getSetting('nav_catalog', 'צפו בקטלוג')}
                             </motion.a>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../context/SettingsContext';
 
 const hotspots = [
     {
@@ -32,7 +33,16 @@ const hotspots = [
     }
 ];
 
+// Remove readShoppableContent helper
+
 const ShoppableImage = () => {
+    const { getSetting } = useSettings();
+    const content = {
+        title:    getSetting('shop_title', 'לחץ על נקודה לגלות מוצר'),
+        subtitle: getSetting('shop_desc', 'כל פתרון במרחב הלמידה שלך — ניתן לרכישה מיידית.'),
+        eyebrow:  getSetting('shop_eyebrow', 'האקוסיסטם שלנו'),
+        bgImage:  getSetting('shop_bg_image', 'https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop')
+    };
     const [activeHotspot, setActiveHotspot] = useState(null);
 
     return (
@@ -41,18 +51,21 @@ const ShoppableImage = () => {
 
                 {/* Section Header */}
                 <div className="text-center mb-16 max-w-3xl">
+                    <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-4">
+                        {content.eyebrow}
+                    </span>
                     <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.1]">
-                        למידה שיוצאת מהמסגרת
+                        {content.title}
                     </h2>
                     <p className="text-xl text-gray-400 font-normal leading-relaxed">
-                        חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.
+                        {content.subtitle}
                     </p>
                 </div>
 
                 {/* The Interactive Canvas */}
                 <div className="relative w-full aspect-[4/3] md:aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl bg-gray-900">
                     <img
-                        src="https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop"
+                        src={content.bgImage}
                         alt="Smart Classroom Environment"
                         className="w-full h-full object-cover opacity-80"
                         onMouseEnter={() => setActiveHotspot(null)} // Clear active state if mouse leaves hotspots into plain image

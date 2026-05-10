@@ -1,9 +1,9 @@
 /* eslint-disable */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminData } from '../context/AdminDataContext';
-import { useToast } from '../context/AdminToastContext';
+import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminToggle } from '../components/AdminComponents';
 
 // ─── Shared glass ─────────────────────────────────────────────────────────────
@@ -33,9 +33,16 @@ function loadBanner() {
 
 // ─── Banner Manager ───────────────────────────────────────────────────────────
 function BannerManager() {
-    const { showToast } = useToast();
+    const { showToast } = useAdminToast();
     const [banner, setBanner] = useState(loadBanner);
     const [saved, setSaved] = useState(false);
+
+    // Stay in sync with changes made from AdminContent
+    useEffect(() => {
+        const handler = () => setBanner(loadBanner());
+        window.addEventListener('storage', handler);
+        return () => window.removeEventListener('storage', handler);
+    }, []);
 
     const saveBanner = () => {
         try {
@@ -146,7 +153,7 @@ function CouponCard({ coupon, onToggle, onDelete, delay }) {
                 <motion.div
                     animate={{ x: coupon.active ? 18 : 2 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-                    className="absolute top-[3px] rounded-full bg-white shadow-sm"
+                    className="absolute top-[3px] left-0 rounded-full bg-white shadow-sm"
                     style={{ width: 18, height: 18 }}
                 />
             </motion.button>

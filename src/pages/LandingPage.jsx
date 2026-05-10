@@ -10,12 +10,7 @@ import EcosystemVisualizer from '../components/EcosystemVisualizer';
 import ValueProps from '../components/ValueProps';
 import QuoteWizard from '../components/QuoteWizard';
 
-function loadVisibility() {
-    try {
-        const stored = localStorage.getItem('nextclass_content');
-        return stored ? JSON.parse(stored) : {};
-    } catch { return {}; }
-}
+import { useSettings } from '../context/SettingsContext';
 
 const SECTION_DEFS = [
     { key: 'vis_hero',         component: <HeroSection /> },
@@ -28,17 +23,8 @@ const SECTION_DEFS = [
 ];
 
 const LandingPage = () => {
-    const [vis, setVis] = useState(loadVisibility);
-
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') setVis(loadVisibility());
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
-
-    const visible = SECTION_DEFS.filter(s => vis[s.key] !== false);
+    const { isVisible } = useSettings();
+    const visibleSections = SECTION_DEFS.filter(s => isVisible(s.key, true));
 
     return (
         <PageTransition>
@@ -49,7 +35,7 @@ const LandingPage = () => {
                 variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
                 className="flex flex-col bg-white -mt-[56px] md:-mt-[68px] w-full overflow-x-hidden"
             >
-                {visible.map((s) => (
+                {visibleSections.map((s) => (
                     <motion.div
                         key={s.key}
                         variants={{

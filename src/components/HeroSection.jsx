@@ -1,35 +1,22 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSettings } from '../context/SettingsContext';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
-const DEFAULTS = {
-    hero_headline: 'חדשנות חסרת פשרות.',
-    hero_subline: 'מקצוענות בכל מרחב למידה.',
-    hero_cta: 'גלו את הפתרונות שלנו',
-};
-
-function readContent() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-        return {
-            hero_headline: stored.hero_headline || DEFAULTS.hero_headline,
-            hero_subline: stored.hero_subline || DEFAULTS.hero_subline,
-            hero_cta: stored.hero_cta || DEFAULTS.hero_cta,
-        };
-    } catch { return DEFAULTS; }
-}
+// Removed DEFAULTS and readContent helper
 
 const HeroSection = () => {
     const navigate = useNavigate();
-    const [content, setContent] = useState(readContent);
-
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') setContent(readContent());
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
+    const { getSetting } = useSettings();
+    
+    const content = useMemo(() => ({
+        hero_eyebrow:    getSetting('hero_eyebrow', 'הדור הבא של טכנולוגיה לחינוך'),
+        hero_headline:   getSetting('hero_headline', 'חדשנות חסרת פשרות.'),
+        hero_subline:    getSetting('hero_subline', 'מקצוענות בכל מרחב למידה.'),
+        hero_description: getSetting('hero_description', 'הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.'),
+        hero_cta:        getSetting('hero_cta', 'גלו את הפתרונות שלנו'),
+        hero_bg_image:   getSetting('hero_bg_image', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'),
+    }), [getSetting]);
 
     const handleScrollDown = () => {
         window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
@@ -48,7 +35,7 @@ const HeroSection = () => {
                 initial={{ scale: 1.08 }}
                 animate={{ scale: 1.0 }}
                 transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
-                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')" }}
+                style={{ backgroundImage: `url('${content.hero_bg_image}')` }}
             />
 
             {/* Multi-layer gradient overlay — deep cinema feel */}
@@ -74,7 +61,7 @@ const HeroSection = () => {
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                     className="inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-white/60 mb-6"
                 >
-                    הדור הבא של טכנולוגיה לחינוך
+                    {content.hero_eyebrow}
                 </motion.span>
 
                 {/* Staggered headline */}
@@ -114,7 +101,7 @@ const HeroSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.85, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
+                    {content.hero_description}
                 </motion.p>
 
                 {/* CTA Row — Single button */}

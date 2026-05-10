@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Mail, MapPin, MessageSquare, Clock, Send, Sparkles, CheckCircle2, ShieldCheck, Heart, User } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
+import { useSettings } from '../context/SettingsContext';
 
 const GLASS_CARD = "glass-apple gestalt-card p-10 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-sm transition-apple-fluid";
 
@@ -49,31 +50,37 @@ const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, on
     );
 };
 
-function readContactContent() {
-    try {
-        const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-        return {
-            title:    s.contact_page_title    || 'דברו איתנו',
-            subtitle: s.contact_page_subtitle || 'אנחנו כאן בשבילכם — מהייעוץ הראשון ועד אחרי ההתקנה.',
-            phone:    s.contact_phone         || '03-9999999',
-            email:    s.contact_email         || 'info@nextclass.co.il',
-            address:  s.contact_address       || 'תל אביב, ישראל',
-            hours:    s.contact_hours         || 'ראשון–חמישי 08:00–18:00',
-            formNote: s.contact_form_note     || 'נחזור אליכם תוך יום עסקים.',
-        };
-    } catch { return {}; }
-}
+// Removed readContactContent helper
 
 const ContactPage = () => {
+    const { getSetting } = useSettings();
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [currentTime, setCurrentTime] = useState('');
-    const [contactContent, setContactContent] = useState(readContactContent);
 
-    useEffect(() => {
-        const onStorage = (e) => { if (e.key === 'nextclass_content') setContactContent(readContactContent()); };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
+    const contactContent = useMemo(() => ({
+        title:    getSetting('contact_hero_title', 'הכיתה שלכם מחכה. בואו נתחיל.'),
+        subtitle: getSetting('contact_hero_subtitle', 'אנחנו כאן בשבילכם — מהייעוץ הראשון ועד אחרי ההתקנה.'),
+        conciergeTitle: getSetting('contact_concierge_title', 'ייעוץ אישי ומיידי'),
+        conciergeDesc:  getSetting('contact_concierge_desc', 'נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.'),
+        formTitle:      getSetting('contact_form_title', 'בואו נצא לדרך.'),
+        formDesc:       getSetting('contact_form_desc', 'השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.'),
+        trustTitle:     getSetting('contact_trust_title', 'שותפות ארוכת טווח'),
+        trustDesc:      getSetting('contact_trust_desc', 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.'),
+        phone:    getSetting('contact_phone', '03-9999999'),
+        email:    getSetting('contact_email', 'info@nextclass.co.il'),
+        address:  getSetting('contact_address', 'תל אביב, ישראל'),
+        hours:    getSetting('contact_hours', 'ראשון–חמישי 08:00–18:00'),
+        whatsapp: getSetting('whatsapp_number', '972500000000'),
+        waLabel:  getSetting('contact_wa_label', 'זמינים ב-WhatsApp'),
+        waBtn:    getSetting('contact_wa_btn', 'התחל שיחה עכשיו'),
+        timeHint: getSetting('contact_time_hint', 'זמן נוכחי במטה בתל אביב: '),
+        labelName: getSetting('contact_label_name', 'שם מלא'),
+        labelInst: getSetting('contact_label_inst', 'מוסד / חברה'),
+        labelMsg:  getSetting('contact_label_msg', 'איך נוכל לעזור?'),
+        successTitle: getSetting('contact_success_title', 'הפנייה התקבלה'),
+        successMsg:   getSetting('contact_success_msg', 'הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.'),
+        formBtn:      getSetting('contact_form_btn', 'שלח פנייה'),
+    }), [getSetting]);
 
     // Controlled form state
     const [formData, setFormData] = useState({
@@ -136,12 +143,15 @@ const ContactPage = () => {
                         className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-10 border border-blue-100"
                     >
                         <Clock size={10} className="animate-spin-slow" />
-                        <span>זמן נוכחי במטה בתל אביב: {currentTime}</span>
+                        <span>{contactContent.timeHint}{currentTime}</span>
                     </motion.div>
 
                     <h1 className="text-3xl sm:text-5xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4 sm:mb-6 leading-[0.95]">
-                        הכיתה שלכם מחכה.<br />
-                        <span className="text-[#007AFF]">בואו נתחיל.</span>
+                        {contactContent.title.split('.').map((t,i) => (
+                            <span key={i} className={i % 2 !== 0 ? "text-[#007AFF]" : ""}>
+                                {t}{i === 0 && <br />}
+                            </span>
+                        ))}
                     </h1>
                     <p className="text-base sm:text-xl md:text-2xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
                         {contactContent.subtitle}
@@ -169,19 +179,19 @@ const ContactPage = () => {
                                     <div className="text-left">
                                         <div className="flex items-center gap-2 text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full">
                                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                            זמינים ב-WhatsApp
+                                            {contactContent.waLabel}
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-3xl font-apple-display text-[#1D1D1F] mb-4">ייעוץ אישי ומיידי</h3>
-                                <p className="text-gray-500 text-lg font-medium mb-10 leading-relaxed">נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.</p>
+                                <h3 className="text-3xl font-apple-display text-[#1D1D1F] mb-4">{contactContent.conciergeTitle}</h3>
+                                <p className="text-gray-500 text-lg font-medium mb-10 leading-relaxed">{contactContent.conciergeDesc}</p>
                                 <motion.a
-                                    href="https://wa.me/972500000000"
+                                    href={`https://wa.me/${contactContent.whatsapp}`}
                                     whileHover={{ scale: 1.02, y: -2 }}
                                     whileTap={{ scale: 0.98 }}
                                     className="inline-flex w-full py-4 sm:py-5 bg-[#25D366] text-white rounded-full items-center justify-center font-bold text-base sm:text-xl shadow-lg hover:bg-[#128C7E] transition-all"
                                 >
-                                    התחל שיחה עכשיו
+                                    {contactContent.waBtn}
                                 </motion.a>
                             </motion.div>
 
@@ -191,7 +201,7 @@ const ContactPage = () => {
                                     <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF]">
                                         <Heart size={20} className="fill-[#007AFF]" />
                                     </div>
-                                    <h4 className="text-xl font-bold text-[#1D1D1F]">אנחנו כאן בשבילך</h4>
+                                    <h4 className="text-xl font-bold text-[#1D1D1F]">{getSetting('about_v3_desc', 'אנחנו כאן בשבילך')}</h4>
                                 </div>
                                 <div className="space-y-6">
                                     {[
@@ -232,18 +242,18 @@ const ContactPage = () => {
                                             onSubmit={handleSubmit}
                                             className="relative z-10 text-right"
                                         >
-                                            <h2 className="text-2xl sm:text-4xl md:text-5xl font-apple-display text-[#1D1D1F] mb-3 sm:mb-4 tracking-tighter">בואו נצא לדרך.</h2>
-                                            <p className="text-base sm:text-xl text-gray-500 font-medium mb-6 sm:mb-12">השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.</p>
+                                            <h2 className="text-2xl sm:text-4xl md:text-5xl font-apple-display text-[#1D1D1F] mb-3 sm:mb-4 tracking-tighter">{contactContent.formTitle}</h2>
+                                            <p className="text-base sm:text-xl text-gray-500 font-medium mb-6 sm:mb-12">{contactContent.formDesc}</p>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <FloatingInput label="שם מלא" id="name" value={formData.name} onChange={setField('name')} />
-                                                <FloatingInput label="מוסד / חברה" id="inst" value={formData.inst} onChange={setField('inst')} />
+                                                <FloatingInput label={contactContent.labelName} id="name" value={formData.name} onChange={setField('name')} />
+                                                <FloatingInput label={contactContent.labelInst} id="inst" value={formData.inst} onChange={setField('inst')} />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <FloatingInput label="אימייל מוסדי" id="email" type="email" value={formData.email} onChange={setField('email')} />
                                                 <FloatingInput label="טלפון" id="phone" type="tel" value={formData.phone} onChange={setField('phone')} />
                                             </div>
-                                            <FloatingInput label="איך נוכל לעזור?" id="msg" isTextArea value={formData.msg} onChange={setField('msg')} />
+                                            <FloatingInput label={contactContent.labelMsg} id="msg" isTextArea value={formData.msg} onChange={setField('msg')} />
 
                                             <motion.button
                                                 type="submit"
@@ -251,7 +261,7 @@ const ContactPage = () => {
                                                 whileTap={{ scale: 0.99 }}
                                                 className="w-full py-5 bg-black text-white rounded-full font-bold text-xl flex items-center justify-center gap-4 shadow-xl hover:bg-[#1D1D1F] transition-all mt-6"
                                             >
-                                                <span>שלח פנייה</span>
+                                                <span>{contactContent.formBtn}</span>
                                                 <Send size={20} />
                                             </motion.button>
                                         </motion.form>
@@ -265,8 +275,8 @@ const ContactPage = () => {
                                             <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-2">
                                                 <CheckCircle2 size={56} className="animate-glow-pulse" />
                                             </div>
-                                            <h2 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">הפנייה התקבלה</h2>
-                                            <p className="text-xl text-gray-500 font-medium max-w-md">הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.</p>
+                                            <h2 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">{contactContent.successTitle}</h2>
+                                            <p className="text-xl text-gray-500 font-medium max-w-md">{contactContent.successMsg}</p>
                                             <button
                                                 type="button"
                                                 onClick={() => setIsSubmitted(false)}
@@ -287,9 +297,9 @@ const ContactPage = () => {
                     <div className="inline-flex p-4 rounded-3xl bg-white shadow-sm border border-gray-100 mb-10">
                         <ShieldCheck size={32} className="text-[#007AFF]" />
                     </div>
-                    <h2 className="text-3xl font-apple-display text-[#1D1D1F] mb-6 tracking-tighter">שותפות ארוכת טווח</h2>
+                    <h2 className="text-3xl font-apple-display text-[#1D1D1F] mb-6 tracking-tighter">{contactContent.trustTitle}</h2>
                     <p className="text-xl text-gray-400 font-medium mb-12 leading-relaxed">
-                        אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.
+                        {contactContent.trustDesc}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[

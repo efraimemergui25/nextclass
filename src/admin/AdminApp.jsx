@@ -12,6 +12,7 @@ import { AdminToastProvider } from './context/AdminToastContext';
 // Components
 import AdminSidebar from './components/AdminSidebar';
 import AdminTopBar from './components/AdminTopBar';
+import AdminNotificationWatcher from './components/AdminNotificationWatcher';
 import AdminLogin from './AdminLogin';
 
 // Pages
@@ -35,10 +36,11 @@ function AdminShell() {
     if (!isAuthenticated) return <AdminLogin />;
 
     return (
-        <AdminDataProvider>
-            <AdminToastProvider>
+        <AdminToastProvider>
+            <AdminDataProvider>
+            <AdminNotificationWatcher />
             <div className="flex h-screen overflow-hidden" dir="rtl"
-            style={{ background: 'linear-gradient(135deg, #EEF4FF 0%, #F5F5F7 55%, #FFF5F0 100%)' }}>
+            style={{ background: 'linear-gradient(135deg, #EDF2FF 0%, #F0EAFF 28%, #FFF0F8 60%, #FFF5EE 100%)' }}>
                 {/* Sidebar */}
                 <div className="relative z-20">
                     <AdminSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(p => !p)} />
@@ -75,8 +77,8 @@ function AdminShell() {
                     </main>
                 </div>
             </div>
-            </AdminToastProvider>
-        </AdminDataProvider>
+            </AdminDataProvider>
+        </AdminToastProvider>
     );
 }
 

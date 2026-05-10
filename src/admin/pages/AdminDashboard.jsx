@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminKPICard, StatusBadge, AreaChart, BarChart } from '../components/AdminComponents';
+import { AdminKPICard, StatusBadge, HeatGrid } from '../components/AdminComponents';
+import initialProducts from '../../data/products';
 
 // ─── Activity icon per type ───────────────────────────────────────────────────
 const ACTIVITY_META = {
@@ -105,12 +106,18 @@ export default function AdminDashboard() {
     const topProducts = useMemo(() => {
         const map = {};
         orders.forEach(o => {
-            if (!map[o.productId]) map[o.productId] = { title: o.product, image: o.productImage, revenue: 0, count: 0 };
-            map[o.productId].revenue += o.total;
-            map[o.productId].count += o.qty || 1;
+            const pid = o.productId;
+            if (!pid) return;
+            if (!map[pid]) {
+                const inv = inventory.find(p => String(p.id) === String(pid));
+                const backup = initialProducts.find(p => String(p.id) === String(pid));
+                map[pid] = { id: pid, title: o.product, image: o.productImage || inv?.image || backup?.image, revenue: 0, count: 0 };
+            }
+            map[pid].revenue += o.total;
+            map[pid].count += o.qty || 1;
         });
         return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-    }, [orders]);
+    }, [orders, inventory]);
 
     const lowStock = inventory.filter(p => p.stock <= p.threshold).slice(0, 6);
 
@@ -129,7 +136,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-3">
                     {/* Live dot */}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                        style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.20)' }}>
+                        style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.25)' }}>
                         <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
                         <span className="text-[11px] font-black tracking-widest text-[#1D1D1F] uppercase">Live</span>
                     </div>
@@ -142,13 +149,11 @@ export default function AdminDashboard() {
                 <AdminKPICard title="הכנסות" icon="💰"
                     value={`₪${kpis.totalRevenue.toLocaleString()}`}
                     subtitle={`₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`}
-                    trend={12} trendUp color="#34C759" delay={0}
-                    sparkline={periodData?.revenue} />
+                    trend={12} trendUp color="#34C759" delay={0} />
                 <AdminKPICard title="עסקאות" icon="📦"
                     value={kpis.totalOrders}
                     subtitle={`${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`}
-                    trend={8} trendUp color="#007AFF" delay={0.05}
-                    sparkline={periodData?.sales} />
+                    trend={8} trendUp color="#007AFF" delay={0.05} />
                 <AdminKPICard title="יחס המרה" icon="📈"
                     value={`${kpis.conversionRate}%`}
                     subtitle="מכניסות ייחודיות"
@@ -167,7 +172,7 @@ export default function AdminDashboard() {
                     subtitle="ממתינות לטיפול" color="#FF9500" delay={0.25} />
                 <AdminKPICard title="כניסות" icon="👁️" value={periodVisits}
                     subtitle={period === '1' ? 'היום' : `${period} ימים`}
-                    color="#007AFF" delay={0.3} sparkline={periodData?.visits} />
+                    color="#007AFF" delay={0.3} />
                 <AdminKPICard title="קטלוג פעיל" icon="🛍️"
                     value={inventory.filter(p => p.isActive !== false).length}
                     subtitle={`מתוך ${inventory.length} מוצרים`} color="#5856D6" delay={0.35} />
@@ -189,16 +194,7 @@ export default function AdminDashboard() {
                     }
                 >
                     {periodData && periodData.visits.some(v => v > 0) ? (
-                        <>
-                            <AreaChart data={periodData.visits} color="#007AFF" height={110} />
-                            <div className="flex justify-between mt-2 px-1">
-                                {periodData.labels
-                                    .filter((_, i) => i % Math.ceil(periodData.labels.length / 5) === 0)
-                                    .map((l, i) => (
-                                        <span key={i} className="text-[#AEAEB2] text-[10px] font-medium">{l}</span>
-                                    ))}
-                            </div>
-                        </>
+                        <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
                     ) : (
                         <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
                             <span className="text-2xl">👁️</span>
@@ -218,15 +214,15 @@ export default function AdminDashboard() {
                             </div>
                         )}
                         {topProducts.map((p, i) => (
-                            <div key={i} className="flex items-center gap-3">
+                            <Link key={i} to={`/admin/inventory?search=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
                                 <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
                                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
                                     {p.image
-                                        ? <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                                        ? <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover/row:scale-110 transition-transform duration-500" />
                                         : <span className="text-[10px]">📦</span>}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[#1D1D1F] text-[11px] font-bold line-clamp-1 text-right">{p.title}</p>
+                                    <p className="text-[#1D1D1F] text-[11px] font-bold line-clamp-1 text-right group-hover/row:text-[#007AFF] transition-colors">{p.title}</p>
                                     <div className="w-full h-1.5 bg-[#F5F5F7] rounded-full mt-1.5 overflow-hidden">
                                         <motion.div
                                             initial={{ width: 0 }}
@@ -238,7 +234,7 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                                 <span className="text-[#6E6E73] text-[11px] font-bold shrink-0">₪{p.revenue.toLocaleString()}</span>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 </Card>
@@ -251,22 +247,13 @@ export default function AdminDashboard() {
                     subtitle={`${period === '1' ? 'היום' : `${period} ימים`} · ₪ ביחידה`}
                     accent="linear-gradient(90deg,#34C759,#30D158)"
                     action={
-                        <span className="text-[#34C759] text-xs font-black">
+                        <span className="text-xs font-black text-[#34C759]">
                             ₪{periodRevenue.toLocaleString()}
                         </span>
                     }
                 >
                     {periodData && periodData.revenue.some(v => v > 0) ? (
-                        <>
-                            <AreaChart data={periodData.revenue} color="#34C759" height={100} />
-                            <div className="flex justify-between mt-2 px-1">
-                                {periodData.labels
-                                    .filter((_, i) => i % Math.ceil(periodData.labels.length / 5) === 0)
-                                    .map((l, i) => (
-                                        <span key={i} className="text-[#AEAEB2] text-[10px] font-medium">{l}</span>
-                                    ))}
-                            </div>
-                        </>
+                        <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
                     ) : (
                         <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
                             טרם בוצעו עסקאות
@@ -279,11 +266,11 @@ export default function AdminDashboard() {
                     subtitle="כמות עסקאות לפי יום"
                     accent="linear-gradient(90deg,#FF9500,#FF3B30)"
                     action={
-                        <span className="text-[#FF9500] text-xs font-black">{periodSales} עסקאות</span>
+                        <span className="text-xs font-black text-[#FF9500]">{periodSales} עסקאות</span>
                     }
                 >
                     {periodData && periodData.sales.some(v => v > 0) ? (
-                        <BarChart data={periodData.sales} color="#FF9500" labels={periodData.labels} height={100} />
+                        <HeatGrid data={periodData.sales} color="#FF9500" labels={periodData.labels} />
                     ) : (
                         <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
                             טרם בוצעו עסקאות

@@ -1,23 +1,10 @@
-/* eslint-disable */
-
-// Simulated data context for the admin panel.
-// In a real production system, this would connect to a backend API / Firebase / Supabase.
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
 import initialProducts, { productMeta } from '../../data/products';
+import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
-
-// ─── Firebase Migration Helpers ──────────────────────────────────────────────
-const loadLocalData = (key, fallback) => {
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : fallback;
-    } catch {
-        return fallback;
-    }
-};
 
 // ─── Analytics Engine (Real-Time Computation) ──────────────────────────────
 function computeRealAnalytics(orders) {
@@ -55,6 +42,8 @@ function computeRealAnalytics(orders) {
 }
 
 export function AdminDataProvider({ children }) {
+    const { showToast } = useAdminToast();
+    
     // ─── Firebase State ────────────────────────────────────────────────────
     const [orders, setOrders] = useState([]);
     const [contacts, setContacts] = useState([]);
@@ -63,23 +52,57 @@ export function AdminDataProvider({ children }) {
     const [activityLog, setActivityLog] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const isInitialized = useRef({ orders: false, contacts: false, inventory: false });
+
     const analytics = React.useMemo(() => computeRealAnalytics(orders), [orders]);
     const products = inventory;
 
     // ─── Live Listeners (Firebase) ──────────────────────────────────────────
     useEffect(() => {
         const unsubOrders = onSnapshot(collection(db, 'orders'), (snap) => {
-            setOrders(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a,b) => b.dateTs - a.dateTs));
+            const newOrders = snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a,b) => b.dateTs - a.dateTs);
+            
+            // Notification logic
+            if (isInitialized.current.orders) {
+                snap.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const order = change.doc.data();
+                        const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+                        if (settings.notifOrders !== false) {
+                            showToast(`הזמנה חדשה מ${order.customer || 'לקוח'}`, 'info');
+                        }
+                    }
+                });
+            }
+            
+            setOrders(newOrders);
+            isInitialized.current.orders = true;
         });
+
         const unsubContacts = onSnapshot(collection(db, 'contacts'), (snap) => {
-            setContacts(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+            const newContacts = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            
+            if (isInitialized.current.contacts) {
+                snap.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const contact = change.doc.data();
+                        const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+                        if (settings.notifContacts === true) {
+                            showToast(`פנייה חדשה מ${contact.name || 'לקוח'}`, 'warning');
+                        }
+                    }
+                });
+            }
+
+            setContacts(newContacts);
+            isInitialized.current.contacts = true;
         });
+
         const unsubInventory = onSnapshot(collection(db, 'products'), async (snap) => {
             if (snap.empty) {
                 // Seed database if empty
                 console.log("Seeding Firebase with initial products...");
-                const localInv = loadLocalData('nextclass_inventory', null);
-                const toSeed = localInv || initialProducts.map(p => {
+                const toSeed = initialProducts.map(p => {
                     const meta = productMeta[p.id] || {};
                     return {
                         ...p,
@@ -95,13 +118,33 @@ export function AdminDataProvider({ children }) {
                     await setDoc(doc(db, 'products', prod.id.toString()), prod);
                 });
             } else {
-                setInventory(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                const newInv = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                
+                // Low stock notification
+                if (isInitialized.current.inventory) {
+                    snap.docChanges().forEach(change => {
+                        if (change.type === 'modified') {
+                            const p = change.doc.data();
+                            if (p.stock <= p.threshold && p.stock > 0) {
+                                const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+                                if (settings.notifLowStock !== false) {
+                                    showToast(`מלאי נמוך: ${p.title}`, 'warning');
+                                }
+                            }
+                        }
+                    });
+                }
+
+                setInventory(newInv);
                 setLoading(false);
+                isInitialized.current.inventory = true;
             }
         });
+
         const unsubCoupons = onSnapshot(collection(db, 'coupons'), (snap) => {
             setCoupons(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
         });
+
         const unsubActivity = onSnapshot(collection(db, 'activity'), (snap) => {
             setActivityLog(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a,b) => b.ts - a.ts));
         });
@@ -180,10 +223,49 @@ export function AdminDataProvider({ children }) {
         addActivity(`מוצר נמחק${product ? `: ${product.title}` : ''}`, 'product');
     };
 
+    // ─── Database Maintenance ───────────────────────────────────────────────
+    const repairProductImages = async () => {
+        const batch = writeBatch(db);
+        let count = 0;
+        inventory.forEach(p => {
+            const original = initialProducts.find(op => op.id === p.id);
+            if (original && original.image !== p.image) {
+                batch.update(doc(db, 'products', p.id.toString()), { image: original.image });
+                count++;
+            }
+        });
+        if (count > 0) {
+            await batch.commit();
+            addActivity(`בוצע תיקון של ${count} תמונות מוצרים`, 'info');
+        }
+        return count;
+    };
+
+    const reseedDatabase = async () => {
+        // This updates everything from initialProducts but keeps stock and sold
+        const batch = writeBatch(db);
+        initialProducts.forEach(p => {
+            const existing = inventory.find(ep => ep.id === p.id);
+            const meta = productMeta[p.id] || {};
+            const data = {
+                ...p,
+                ...meta,
+                stock: existing ? existing.stock : (Math.floor(Math.random() * 50) + 10),
+                sold: existing ? existing.sold : (meta.sold || 0),
+                threshold: existing ? existing.threshold : 5,
+                isActive: existing ? (existing.isActive !== false) : true,
+                sku: existing?.sku || p.sku || `SKU-${p.id}`,
+            };
+            batch.set(doc(db, 'products', p.id.toString()), data);
+        });
+        await batch.commit();
+        addActivity(`בוצע סנכרון מחדש של בסיס הנתונים`, 'info');
+    };
+
     // KPI calculations
     const kpis = React.useMemo(() => {
         const completedOrders = orders.filter(o => o.status === 'נמסר');
-        const totalRevenue = completedOrders.reduce((s, o) => s + o.total, 0);
+        const totalRevenue = completedOrders.reduce((s, o) => s + (o.total || 0), 0);
         const thisMonth = orders.filter(o => {
             const d = new Date(o.dateTs);
             const now = new Date();
@@ -197,7 +279,7 @@ export function AdminDataProvider({ children }) {
             completedOrders: completedOrders.length,
             pendingOrders: orders.filter(o => o.status === 'ממתין' || o.status === 'חדש').length,
             thisMonthOrders: thisMonth.length,
-            thisMonthRevenue: thisMonth.filter(o => o.status === 'נמסר').reduce((s, o) => s + o.total, 0),
+            thisMonthRevenue: thisMonth.filter(o => o.status === 'נמסר').reduce((s, o) => s + (o.total || 0), 0),
             lowStockCount: lowStock.length,
             contactsNew: contacts.filter(c => c.status === 'חדש').length,
             conversionRate: (analytics.sales.reduce((a, b) => a + b, 0) / Math.max(1, analytics.visits.reduce((a, b) => a + b, 0)) * 100).toFixed(1),
@@ -209,7 +291,8 @@ export function AdminDataProvider({ children }) {
         <AdminDataContext.Provider value={{
             orders, contacts, inventory, analytics, coupons, kpis, products, activityLog,
             updateOrderStatus, updateStock, updateProductDetails, addProduct, deleteProduct, updateContactStatus,
-            addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts
+            addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
+            repairProductImages, reseedDatabase
         }}>
             {children}
         </AdminDataContext.Provider>
@@ -221,3 +304,4 @@ export function useAdminData() {
     if (!ctx) throw new Error('useAdminData must be inside AdminDataProvider');
     return ctx;
 }
+

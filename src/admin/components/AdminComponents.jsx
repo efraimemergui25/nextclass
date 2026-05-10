@@ -1,14 +1,14 @@
 /* eslint-disable */
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Shared glass surface ─────────────────────────────────────────────────────
 const glassStyle = {
-    background: 'rgba(255, 255, 255, 0.65)',
-    backdropFilter: 'blur(40px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-    border: '1px solid rgba(255, 255, 255, 0.8)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+    background: 'rgba(255,255,255,0.80)',
+    backdropFilter: 'blur(40px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.82)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
 };
 
 // ─── Common SVGs to replace Emojis ──────────────────────────────────────────
@@ -22,42 +22,54 @@ const ICONS = {
 };
 
 // ─── Premium KPI Card ─────────────────────────────────────────────────────────
-export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, delay = 0, onClick }) {
+export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick }) {
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, type: 'spring', stiffness: 320, damping: 28 }}
-            whileHover={{ y: -2, scale: 1.01, boxShadow: '0 16px 40px rgba(0,0,0,0.08)' }}
+            whileHover={{ y: -3, scale: 1.015 }}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-[24px] p-6 transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-            style={glassStyle}
+            className={`relative overflow-hidden rounded-[24px] p-5 transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            style={{
+                background: `linear-gradient(145deg, ${color}14 0%, rgba(255,255,255,0.92) 55%)`,
+                backdropFilter: 'blur(40px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                border: `1px solid ${color}28`,
+                boxShadow: `0 4px 24px ${color}14, inset 0 1px 0 rgba(255,255,255,0.85)`,
+            }}
         >
-            <div className="flex items-start justify-between mb-4">
+            {/* Ambient radial glow */}
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${color}20 0%, transparent 70%)` }} />
+
+            <div className="flex items-start justify-between mb-3">
                 <div className="flex flex-col">
-                    <p className="text-[#86868B] text-[12px] font-bold tracking-widest mb-1.5">{title}</p>
-                    <CountUp value={value} />
+                    <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] uppercase mb-1.5">{title}</p>
+                    <CountUp value={value} color={color} />
                 </div>
-                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 bg-white/60 shadow-sm border border-white text-[#1D1D1F]">
+                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 shadow-sm"
+                    style={{ background: `${color}18`, border: `1px solid ${color}28` }}>
                     {typeof icon === 'string' && ICONS[icon] ? (
-                        <svg className="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
+                        <svg className="w-5 h-5" style={{ color }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
                     ) : (
-                        <span className="text-lg opacity-80">{icon}</span>
+                        <span className="text-lg">{icon}</span>
                     )}
                 </div>
             </div>
 
-            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+            <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${color}12` }}>
                 {subtitle ? (
-                    <p className="text-[#86868B] text-xs font-medium">{subtitle}</p>
+                    <p className="text-[#86868B] text-[11px] font-medium">{subtitle}</p>
                 ) : <div />}
-                
+
                 {trend !== undefined && (
-                    <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg ${trendUp ? 'bg-[#34C759]/10 text-[#248A3D]' : 'bg-[#FF3B30]/10 text-[#D12B22]'}`}>
+                    <div className={`flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg ${trendUp ? 'bg-[#34C759]/12 text-[#248A3D]' : 'bg-[#FF3B30]/10 text-[#D12B22]'}`}>
                         {trendUp ? (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>
                         ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-7-7m7 7l7-7" /></svg>
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-7-7m7 7l7-7" /></svg>
                         )}
                         <span>{trend}%</span>
                     </div>
@@ -185,7 +197,7 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
                 className="w-full rounded-xl pr-10 pl-4 py-2.5 text-sm text-[#1D1D1F] placeholder-[#AEAEB2] outline-none transition-all"
                 style={{ ...glassStyle, boxShadow: 'none' }}
                 onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.50)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.08)'; }}
-                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.75)'; e.target.style.boxShadow = 'none'; }}
+                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.82)'; e.target.style.boxShadow = 'none'; }}
             />
         </div>
     );
@@ -317,6 +329,11 @@ export function AdminInput({ label, value, onChange, type = 'text', placeholder,
     );
 }
 
+export function AdminTextArea(props) {
+    return <AdminInput {...props} rows={props.rows || 4} />;
+}
+
+
 // ─── Filter Pills ─────────────────────────────────────────────────────────────
 export function AdminFilterPills({ options, active, onChange }) {
     return (
@@ -416,84 +433,358 @@ export function GlassPanel({ children, className = '', padding = 'p-6' }) {
     );
 }
 
-// ─── Area Chart (smooth curves + grid) ───────────────────────────────────────
-export function AreaChart({ data, color, height = 90 }) {
-    if (!data?.length) return null;
-    const max = Math.max(...data, 1);
-    const w = 100, h = height;
-    const PT = 8, PB = 4;
-    const chartH = h - PT - PB;
+// ─── Calendar Month Grid — one Gregorian month at a time, with nav ───────────
+const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    const pts = data.map((v, i, arr) => ({
-        x: arr.length === 1 ? 50 : (i / (arr.length - 1)) * w,
-        y: PT + chartH - (v / max) * chartH,
-    }));
+export function HeatGrid({ data = [], color, labels = [] }) {
+    const rr = parseInt(color.slice(1, 3), 16);
+    const gg = parseInt(color.slice(3, 5), 16);
+    const bb = parseInt(color.slice(5, 7), 16);
+    const rgb = `${rr},${gg},${bb}`;
+    const fmt = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
 
-    let line = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length; i++) {
-        const cpx = (pts[i-1].x + pts[i].x) / 2;
-        line += ` C ${cpx.toFixed(1)} ${pts[i-1].y.toFixed(1)} ${cpx.toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
-    }
-    const area = `${line} L ${w} ${h - PB} L 0 ${h - PB} Z`;
-    const uid = `ac${color.replace('#', '')}`;
+    // Parse labels ("11/4") → group by calendar month
+    const monthGroups = useMemo(() => {
+        if (!labels.length) return [];
+        const groups = [];
+        let cur = null;
+        let year = new Date().getFullYear();
+        let prevMonth = null;
+        labels.forEach((lbl, idx) => {
+            const parts = lbl.split('/');
+            if (parts.length < 2) return;
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            if (prevMonth !== null && month < prevMonth) year++;
+            const key = `${month}/${year}`;
+            if (!cur || cur.key !== key) {
+                cur = { key, month, year, entries: [] };
+                groups.push(cur);
+            }
+            cur.entries.push({ day, value: data[idx] || 0 });
+            prevMonth = month;
+        });
+        return groups;
+    }, [labels, data]);
 
-    // 4 horizontal grid levels
-    const grids = [0.25, 0.5, 0.75, 1].map(p => PT + chartH * (1 - p));
+    const [monthIdx, setMonthIdx] = useState(() => Math.max(0, monthGroups.length - 1));
+    useEffect(() => { setMonthIdx(Math.max(0, monthGroups.length - 1)); }, [monthGroups.length]);
+
+    if (!monthGroups.length || !data?.length) return null;
+
+    const group = monthGroups[Math.min(monthIdx, monthGroups.length - 1)];
+    if (!group) return null;
+    const { month, year, entries } = group;
+
+    const dayMap = {};
+    entries.forEach(e => { dayMap[e.day] = e.value; });
+    const maxDay = Math.max(...entries.map(e => e.day));
+    const max = Math.max(...entries.map(e => e.value), 1);
+    const total = entries.reduce((s, e) => s + e.value, 0);
+    const peakEntry = entries.reduce((b, e) => e.value > b.value ? e : b, entries[0]);
+
+    // All days 1..maxDay
+    const allDays = Array.from({ length: maxDay }, (_, i) => ({ day: i + 1, value: dayMap[i + 1] || 0 }));
+    const rows = [];
+    for (let i = 0; i < allDays.length; i += 7) rows.push(allDays.slice(i, i + 7));
 
     return (
-        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full" style={{ height }}>
-            <defs>
-                <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.20" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0.00" />
-                </linearGradient>
-            </defs>
-            {grids.map((y, i) => (
-                <line key={i} x1="0" y1={y.toFixed(1)} x2={w} y2={y.toFixed(1)}
-                    stroke="rgba(0,0,0,0.05)" strokeWidth="0.6" />
+        <div style={{ direction: 'ltr' }}>
+            {/* Month navigation */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={() => setMonthIdx(i => Math.max(0, i - 1))}
+                        disabled={monthIdx === 0}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all disabled:opacity-25 hover:opacity-70"
+                        style={{ background: `rgba(${rgb},0.10)`, color }}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <span className="text-[13px] font-black text-[#1D1D1F] min-w-[130px] text-center">
+                        {EN_MONTHS[month - 1]} {year}
+                    </span>
+                    <button
+                        onClick={() => setMonthIdx(i => Math.min(monthGroups.length - 1, i + 1))}
+                        disabled={monthIdx === monthGroups.length - 1}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all disabled:opacity-25 hover:opacity-70"
+                        style={{ background: `rgba(${rgb},0.10)`, color }}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+                {total > 0 && (
+                    <div className="text-right">
+                        <span className="text-[12px] font-black" style={{ color }}>{fmt(total)}</span>
+                        <span className="text-[11px] text-[#86868B] ml-1">total</span>
+                        {peakEntry && peakEntry.value > 0 && (
+                            <span className="text-[10px] text-[#AEAEB2] ml-2">· peak <span className="font-bold" style={{ color: `rgba(${rgb},0.75)` }}>{fmt(peakEntry.value)}</span> on {month}/{peakEntry.day}</span>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Day-of-week header */}
+            <div className="flex gap-1 mb-1">
+                {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                    <div key={d} className="flex-1 text-center text-[8px] font-bold text-[#AEAEB2] uppercase tracking-wider py-1">{d}</div>
+                ))}
+            </div>
+
+            {/* Calendar rows */}
+            {rows.map((row, ri) => (
+                <div key={ri} className="flex gap-1 mb-1">
+                    {row.map(({ day, value }) => {
+                        const pct = value / max;
+                        const fmtVal = fmt(value);
+                        const charLen = fmtVal.length;
+                        const fsByPct = 11 + pct * 15;
+                        const fsByLen = charLen <= 2 ? 24 : charLen <= 3 ? 18 : charLen <= 4 ? 15 : 12;
+                        const fontSize = value === 0 ? 0 : Math.round(Math.min(fsByPct, fsByLen));
+                        const bgAlpha = value === 0 ? 0.025 : 0.06 + pct * 0.11;
+                        const textAlpha = value === 0 ? 0 : 0.62 + pct * 0.35;
+                        const isPeak = peakEntry && day === peakEntry.day && value > 0;
+                        return (
+                            <div key={day}
+                                className="flex-1 relative flex flex-col items-center justify-center rounded-xl cursor-default group overflow-hidden"
+                                style={{ height: 66, background: `rgba(${rgb},${bgAlpha})` }}
+                                title={`${day}/${month}/${year}: ${fmtVal}`}
+                            >
+                                {/* Day number */}
+                                <span className="text-[9px] font-bold leading-none mb-1 tabular-nums"
+                                    style={{ color: value > 0 ? `rgba(${rgb},0.70)` : '#8E8E93' }}>
+                                    {day}
+                                </span>
+
+                                {/* Value */}
+                                {value === 0 ? (
+                                    <span style={{ fontSize: 11, color: '#C7C7CC', fontWeight: 500 }}>—</span>
+                                ) : (
+                                    <span className="font-black leading-none tabular-nums text-center w-full px-0.5 truncate"
+                                        style={{
+                                            fontSize,
+                                            color: `rgba(${rgb},${textAlpha})`,
+                                            filter: isPeak ? `drop-shadow(0 0 6px rgba(${rgb},0.40))` : 'none',
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        {fmtVal}
+                                    </span>
+                                )}
+
+                                {/* Bottom accent */}
+                                {value > 0 && (
+                                    <div className="absolute bottom-0 left-0 right-0"
+                                        style={{ height: Math.round(2 + pct * 3), background: `rgba(${rgb},${0.28 + pct * 0.52})` }} />
+                                )}
+
+                                {/* Tooltip */}
+                                <div className="absolute -top-9 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-30 whitespace-nowrap">
+                                    <div className="bg-[#1D1D1F] text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-2xl">
+                                        <span className="opacity-50 ml-1">{day}/{month}</span>
+                                        <span style={{ color }}>{fmtVal}</span>
+                                    </div>
+                                    <div className="w-2 h-2 bg-[#1D1D1F] rotate-45 mx-auto -mt-1" />
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {row.length < 7 && Array.from({ length: 7 - row.length }).map((_, pi) => (
+                        <div key={`p${pi}`} className="flex-1" />
+                    ))}
+                </div>
             ))}
-            <path fill={`url(#${uid})`} d={area} />
-            <path fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d={line} />
-            {pts.length > 0 && (
-                <>
-                    <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="3" fill="white" stroke={color} strokeWidth="2" />
-                    <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="1.5" fill={color} />
-                </>
-            )}
-        </svg>
+        </div>
     );
 }
 
-// ─── Bar Chart (rounded tops) ─────────────────────────────────────────────────
-export function BarChart({ data, color, labels, height = 80 }) {
+// ─── Area Chart — premium with Y-axis labels + X-axis dates ──────────────────
+export function AreaChart({ data = [], color, height = 120, labels = [], formatY, compact = false }) {
+    if (!data?.length) return null;
     const max = Math.max(...data, 1);
+    const nonZero = data.filter(v => v > 0);
+    const avg = nonZero.length ? nonZero.reduce((a, b) => a + b, 0) / nonZero.length : 0;
+
+    const svgH = compact ? height : height - 20;
+    const PT = 6, PB = 4;
+    const chartH = svgH - PT - PB;
+    const uid = `area_${color.replace('#', '')}_${data.length}`;
+
+    const pts = data.map((v, i, a) => ({
+        x: a.length === 1 ? 50 : (i / (a.length - 1)) * 100,
+        y: PT + chartH - (v / max) * chartH,
+    }));
+
+    let pathD = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+        const mx = (pts[i - 1].x + pts[i].x) / 2;
+        pathD += ` C ${mx.toFixed(1)},${pts[i - 1].y.toFixed(1)} ${mx.toFixed(1)},${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`;
+    }
+    const areaD = `${pathD} L 100,${svgH - PB} L 0,${svgH - PB} Z`;
+
+    const gridPcts = [0.25, 0.5, 0.75, 1];
+    const gridLines = gridPcts.map(p => ({ y: PT + chartH * (1 - p), val: Math.round(p * max) }));
+
+    const fmt = v => formatY ? formatY(v) : v >= 10000 ? `${(v / 1000).toFixed(0)}k` : v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
+
+    // X-axis: show ~5 evenly spaced
+    const xStep = Math.max(1, Math.floor((data.length - 1) / 4));
+    const xIdxs = [];
+    for (let i = 0; i < data.length; i += xStep) xIdxs.push(i);
+    if (xIdxs[xIdxs.length - 1] !== data.length - 1) xIdxs.push(data.length - 1);
+
     return (
-        <div className="relative">
-            {/* Grid lines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0 pt-0">
-                {[0, 1, 2, 3].map(i => (
-                    <div key={i} className="w-full border-t border-black/04" />
-                ))}
+        <div style={{ direction: 'ltr' }}>
+            <div className="flex items-stretch">
+                {/* Chart */}
+                <div className="flex-1 relative min-w-0">
+                    <svg viewBox={`0 0 100 ${svgH}`} preserveAspectRatio="none" className="w-full block" style={{ height: svgH }}>
+                        <defs>
+                            <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+                                <stop offset="60%" stopColor={color} stopOpacity="0.06" />
+                                <stop offset="100%" stopColor={color} stopOpacity="0" />
+                            </linearGradient>
+                            <filter id={`gw_${uid}`} x="-5%" y="-40%" width="110%" height="180%">
+                                <feGaussianBlur stdDeviation="1.0" result="b" />
+                                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                            </filter>
+                        </defs>
+                        {/* Grid lines */}
+                        {gridLines.map((g, i) => (
+                            <line key={i} x1="0" y1={g.y.toFixed(1)} x2="100" y2={g.y.toFixed(1)}
+                                stroke={i === 3 ? `${color}20` : 'rgba(0,0,0,0.05)'}
+                                strokeWidth={i === 3 ? '0.7' : '0.5'}
+                                strokeDasharray={i === 3 ? '0' : '2,3'} />
+                        ))}
+                        {/* Average dashed */}
+                        {avg > 0 && (
+                            <line x1="0" x2="100"
+                                y1={(PT + chartH - (avg / max) * chartH).toFixed(1)}
+                                y2={(PT + chartH - (avg / max) * chartH).toFixed(1)}
+                                stroke={`${color}30`} strokeWidth="0.6" strokeDasharray="3,2" />
+                        )}
+                        {/* Area fill */}
+                        <path fill={`url(#${uid})`} d={areaD} />
+                        {/* Glow */}
+                        <path fill="none" stroke={`${color}50`} strokeWidth="3.5" strokeLinecap="round" d={pathD} filter={`url(#gw_${uid})`} />
+                        {/* Line */}
+                        <path fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" d={pathD} />
+                        {/* Endpoint */}
+                        {pts.length > 0 && <>
+                            <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="3.5" fill={color} opacity="0.15" />
+                            <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="2" fill="white" stroke={color} strokeWidth="1.5" />
+                        </>}
+                    </svg>
+                    {/* X-axis labels */}
+                    {!compact && labels.length > 0 && (
+                        <div className="relative mt-1.5" style={{ height: 14 }}>
+                            {xIdxs.map(i => (
+                                <span key={i} className="absolute text-[9px] font-medium"
+                                    style={{
+                                        left: `${(i / (data.length - 1)) * 100}%`,
+                                        transform: 'translateX(-50%)',
+                                        color: 'rgba(0,0,0,0.32)',
+                                        top: 0, whiteSpace: 'nowrap',
+                                    }}>
+                                    {labels[i]}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {/* Y-axis labels */}
+                <div className="flex flex-col justify-between items-end pl-2 shrink-0"
+                    style={{ width: 38, height: svgH, paddingTop: PT - 3, paddingBottom: PB }}>
+                    {[...gridLines].reverse().map((g, i) => (
+                        <span key={i} className="text-[9px] font-mono leading-none"
+                            style={{ color: `${color}75` }}>
+                            {fmt(g.val)}
+                        </span>
+                    ))}
+                </div>
             </div>
-            <div className="flex items-end gap-px relative z-10" style={{ height }}>
-                {data.map((v, i) => (
-                    <motion.div
-                        key={i}
-                        className="flex-1 min-h-[3px] relative group cursor-default"
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{ delay: i * 0.015, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                        style={{
-                            height: `${Math.max((v / max) * 100, 2)}%`,
-                            background: `linear-gradient(180deg, ${color}, ${color}55)`,
-                            borderRadius: '3px 3px 1px 1px',
-                            transformOrigin: 'bottom',
-                        }}
-                        title={labels ? `${labels[i]}: ${v}` : `${v}`}
-                    >
-                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-[3px]" />
-                    </motion.div>
-                ))}
+        </div>
+    );
+}
+
+// ─── Bar Chart — premium with Y-axis + X-axis labels ─────────────────────────
+export function BarChart({ data = [], color, labels = [], height = 80 }) {
+    const max = Math.max(...data, 1);
+    const gridPcts = [0.25, 0.5, 0.75, 1];
+
+    const xStep = Math.max(1, Math.floor((data.length - 1) / 6));
+    const xIdxs = [];
+    for (let i = 0; i < data.length; i += xStep) xIdxs.push(i);
+    if (xIdxs[xIdxs.length - 1] !== data.length - 1) xIdxs.push(data.length - 1);
+
+    const fmt = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+
+    return (
+        <div style={{ direction: 'ltr' }}>
+            <div className="flex items-stretch">
+                {/* Bars area */}
+                <div className="flex-1 min-w-0">
+                    <div className="relative" style={{ height }}>
+                        {/* Grid lines */}
+                        {gridPcts.map((p, i) => (
+                            <div key={i} className="absolute w-full pointer-events-none"
+                                style={{
+                                    bottom: `${p * 100}%`,
+                                    borderTop: `${i === 3 ? '0.7px solid' : '0.5px dashed'} ${i === 3 ? `${color}18` : 'rgba(0,0,0,0.06)'}`,
+                                }} />
+                        ))}
+                        {/* Bars */}
+                        <div className="absolute inset-0 flex items-end" style={{ gap: '1.5px' }}>
+                            {data.map((v, i) => (
+                                <motion.div key={i} className="flex-1 relative group cursor-default"
+                                    initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+                                    transition={{ delay: i * 0.012, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                                    style={{
+                                        height: `${Math.max((v / max) * 100, 1.5)}%`,
+                                        background: `linear-gradient(180deg, ${color}EE, ${color}77)`,
+                                        borderRadius: '3px 3px 1px 1px',
+                                        transformOrigin: 'bottom',
+                                        filter: v > 0 ? `drop-shadow(0 0 3px ${color}35)` : 'none',
+                                    }}
+                                    title={labels[i] ? `${labels[i]}: ${v}` : String(v)}
+                                >
+                                    <div className="absolute inset-0 bg-white/25 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm" />
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* X labels */}
+                    {labels.length > 0 && (
+                        <div className="relative mt-1.5" style={{ height: 14 }}>
+                            {xIdxs.map(i => (
+                                <span key={i} className="absolute text-[9px] font-medium"
+                                    style={{
+                                        left: `${(i / Math.max(data.length - 1, 1)) * 100}%`,
+                                        transform: 'translateX(-50%)',
+                                        color: 'rgba(0,0,0,0.32)',
+                                        top: 0, whiteSpace: 'nowrap',
+                                    }}>
+                                    {labels[i]}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {/* Y-axis */}
+                <div className="flex flex-col-reverse justify-between items-end pl-2 shrink-0"
+                    style={{ width: 38, height, paddingTop: 2, paddingBottom: 2 }}>
+                    {gridPcts.map((p, i) => (
+                        <span key={i} className="text-[9px] font-mono leading-none"
+                            style={{ color: `${color}75` }}>
+                            {fmt(Math.round(p * max))}
+                        </span>
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -560,10 +851,10 @@ export function AdminToggle({ label, sub, value, onChange }) {
     return (
         <div className="flex items-center justify-between py-0.5">
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => onChange(!value)}
-                className="w-11 h-6 rounded-full transition-colors relative shrink-0"
+                className="w-11 h-6 rounded-full relative shrink-0"
                 style={{ background: value ? '#34C759' : 'rgba(0,0,0,0.14)' }}>
                 <motion.div animate={{ x: value ? 22 : 3 }} transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-                    className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md" />
+                    className="absolute top-1 left-0 w-4 h-4 rounded-full bg-white shadow-md" />
             </motion.button>
             <div className="text-right flex-1 mr-4">
                 <p className="text-[#1D1D1F] text-sm font-bold leading-tight">{label}</p>

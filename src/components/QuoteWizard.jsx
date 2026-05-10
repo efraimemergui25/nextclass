@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSettings } from '../context/SettingsContext';
 
 // ─── SVG Icons replacing emojis ────────────────────────────────────────────────
 const IconSchool = () => (
@@ -58,11 +59,26 @@ const SelectionCard = ({ title, icon, isSelected, onClick }) => (
 );
 
 const QuoteWizard = () => {
+    const { getSetting } = useSettings();
     const [step, setStep] = useState(1);
     const [institution, setInstitution] = useState('');
     const [need, setNeed] = useState('');
     const [isCalculating, setIsCalculating] = useState(false);
     const totalSteps = 3;
+
+    const content = useMemo(() => ({
+        eyebrow: getSetting('quote_eyebrow', 'כלי חינמי'),
+        title:   getSetting('quote_title', 'בונים לכם הצעת מחיר בדקה'),
+        desc:    getSetting('quote_desc', 'ענו על שתי שאלות קצרות ונתאים לכם חבילה מושלמת.'),
+        step1Title: getSetting('quote_step1_title', 'איזה מוסד אתם מייצגים?'),
+        step2Title: getSetting('quote_step2_title', 'מה הצורך המרכזי?'),
+        thinkingMsg: getSetting('quote_thinking_msg', 'מחשבים את החבילה המושלמת עבורכם...'),
+        successTitle: getSetting('quote_success_title', 'החבילה המומלצת עבורכם'),
+        successDesc: getSetting('quote_success_desc', 'על סמך הבחירות שלכם, הכנו הצעה ראשונית עם הציוד והתוכנה המתאימים ביותר למוסד שלכם.'),
+        priceLabel: getSetting('quote_price_label', 'הצעת מחיר ראשונית'),
+        priceValue: getSetting('quote_price_value', '28,500'),
+        priceNote: getSetting('quote_price_note', '*לפני מע״מ, כולל התקנה והדרכה'),
+    }), [getSetting]);
 
     const handleNext = () => {
         if (step === 2) {
@@ -92,12 +108,12 @@ const QuoteWizard = () => {
 
                 {/* Section Title */}
                 <div className="text-center mb-12">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#007AFF] block mb-3">כלי חינמי</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#007AFF] block mb-3">{content.eyebrow}</span>
                     <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-4 tracking-tighter leading-[1.1]">
-                        בונים לכם הצעת מחיר בדקה
+                        {content.title}
                     </h2>
                     <p className="text-body font-normal">
-                        ענו על שתי שאלות קצרות ונתאים לכם חבילה מושלמת.
+                        {content.desc}
                     </p>
                 </div>
 
@@ -124,7 +140,7 @@ const QuoteWizard = () => {
                                 className="w-full"
                             >
                                 <h3 className="text-2xl md:text-3xl font-black text-brand-dark text-center mb-8 tracking-tighter">
-                                    איזה מוסד אתם מייצגים?
+                                    {content.step1Title}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                                     <SelectionCard title="יסודי" icon={<IconSchool />} isSelected={institution === 'elementary'} onClick={() => setInstitution('elementary')} />
@@ -144,7 +160,7 @@ const QuoteWizard = () => {
                                 className="w-full"
                             >
                                 <h3 className="text-2xl md:text-3xl font-black text-brand-dark text-center mb-8 tracking-tighter">
-                                    מה הצורך המרכזי?
+                                    {content.step2Title}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                                     <SelectionCard title="מסכים חכמים" icon={<IconScreen />} isSelected={need === 'screens'} onClick={() => setNeed('screens')} />
@@ -170,7 +186,7 @@ const QuoteWizard = () => {
                                             transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
                                             className="w-14 h-14 border-4 border-gray-200 border-t-brand-blue rounded-full"
                                         />
-                                        <p className="text-lg text-gray-500 font-medium">מחשבים את החבילה המושלמת עבורכם...</p>
+                                        <p className="text-lg text-gray-500 font-medium">{content.thinkingMsg}</p>
                                     </div>
                                 ) : (
                                     <motion.div
@@ -194,15 +210,15 @@ const QuoteWizard = () => {
                                         </motion.div>
 
                                         <h3 className="text-2xl md:text-3xl font-black text-brand-dark mb-3">
-                                            החבילה המומלצת עבורכם
+                                            {content.successTitle}
                                         </h3>
                                         <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
-                                            על סמך הבחירות שלכם, הכנו הצעה ראשונית עם הציוד והתוכנה המתאימים ביותר למוסד שלכם.
+                                            {content.successDesc}
                                         </p>
                                         <div className="bg-white rounded-3xl p-8 shadow-sm w-full max-w-sm mx-auto mb-8 border border-gray-50">
-                                            <div className="text-sm font-bold text-brand-blue uppercase tracking-widest mb-2">הצעת מחיר ראשונית</div>
-                                            <div className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-1">₪28,500</div>
-                                            <div className="text-sm text-gray-400 font-medium mt-2">*לפני מע״מ, כולל התקנה והדרכה</div>
+                                            <div className="text-sm font-bold text-brand-blue uppercase tracking-widest mb-2">{content.priceLabel}</div>
+                                            <div className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-1">₪{content.priceValue}</div>
+                                            <div className="text-sm text-gray-400 font-medium mt-2">{content.priceNote}</div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mx-auto">
                                             <motion.button

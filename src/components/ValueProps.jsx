@@ -1,13 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useSettings } from '../context/SettingsContext';
+
+// Removed readContent helper
 
 const ValueProps = () => {
+    const { getSetting } = useSettings();
+    
+    const content = useMemo(() => ({
+        label: getSetting('vp_label', 'המסגרת שלנו'),
+        title: getSetting('vp_title', 'סטנדרט חדש של שירות למוסדות חינוך'),
+        props: [
+            {
+                title: getSetting('vp_prop1_title', "אחריות מוסדית מורחבת"),
+                description: getSetting('vp_prop1_desc', "שקט נפשי לשנים עם שירות טכנאי עד לכיתת הלימוד."),
+                gradient: "from-blue-500 to-blue-600",
+                glow: "rgba(0,122,255,0.15)",
+            },
+            {
+                title: getSetting('vp_prop2_title', "ליווי והטמעה פדגוגית"),
+                description: getSetting('vp_prop2_desc', "הדרכות לצוותי ההוראה כדי להפיק את המקסימום מהטכנולוגיה."),
+                gradient: "from-violet-500 to-purple-600",
+                glow: "rgba(139,92,246,0.15)",
+            },
+            {
+                title: getSetting('vp_prop3_title', "מאושר משרד החינוך"),
+                description: getSetting('vp_prop3_desc', "עמידה מלאה בתקנים המחמירים ביותר לבטיחות ואיכות."),
+                gradient: "from-emerald-500 to-teal-500",
+                glow: "rgba(16,185,129,0.15)",
+            }
+        ]
+    }), [getSetting]);
+
     const props = [
         {
-            title: "אחריות מוסדית מורחבת",
-            description: "שקט נפשי לשנים עם שירות טכנאי עד לכיתת הלימוד.",
-            gradient: "from-blue-500 to-blue-600",
-            glow: "rgba(0,122,255,0.15)",
+            ...content.props[0],
             icon: (
                 <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -15,10 +42,7 @@ const ValueProps = () => {
             )
         },
         {
-            title: "ליווי והטמעה פדגוגית",
-            description: "הדרכות לצוותי ההוראה כדי להפיק את המקסימום מהטכנולוגיה.",
-            gradient: "from-violet-500 to-purple-600",
-            glow: "rgba(139,92,246,0.15)",
+            ...content.props[1],
             icon: (
                 <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
@@ -28,10 +52,7 @@ const ValueProps = () => {
             )
         },
         {
-            title: "מאושר משרד החינוך",
-            description: "עמידה מלאה בתקנים המחמירים ביותר לבטיחות ואיכות.",
-            gradient: "from-emerald-500 to-teal-500",
-            glow: "rgba(16,185,129,0.15)",
+            ...content.props[2],
             icon: (
                 <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -64,10 +85,10 @@ const ValueProps = () => {
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 w-full relative z-10">
                 {/* Section label */}
                 <div className="text-center mb-5">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF]">המסגרת שלנו</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF]">{content.label}</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-apple-display font-bold tracking-tighter leading-[1.0] text-[#1D1D1F] text-center mb-10">
-                    סטנדרט חדש של שירות למוסדות חינוך
+                    {content.title}
                 </h2>
 
                 <motion.div

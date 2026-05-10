@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
+import { useSettings } from '../context/SettingsContext';
 import { HardwareCatalog } from '../utils/mockData';
 
 // Reusable Apple-Grade Motion Button Component
@@ -36,11 +37,28 @@ export const MotionButton = ({
 };
 
 const CartPage = () => {
+    const { getSetting } = useSettings();
     // Simulate initial cart state with 2 items from our mock data
     const [cartItems, setCartItems] = useState([
         { ...HardwareCatalog[0], quantity: 2 },
         { ...HardwareCatalog[2], quantity: 1 }
     ]);
+
+    const content = {
+        title:        getSetting('cart_title', 'עגלת הרכש שלך'),
+        emptyTitle:   getSetting('cart_empty_title', 'העגלה שלך ריקה'),
+        emptyDesc:    getSetting('cart_empty_desc', 'נראה שעוד לא בחרת ציוד לפרויקט הנוכחי. הקטלוג שלנו מחכה לך.'),
+        backCatalog:  getSetting('cart_back_catalog', 'חזרה לקטלוג'),
+        removeAria:   getSetting('cart_remove_aria', 'הסר פריט'),
+        skuLabel:     getSetting('cart_sku_label', 'מק"ט: '),
+        summaryTitle: getSetting('cart_summary_title', 'סיכום הזמנה'),
+        subtotalLabel: getSetting('cart_subtotal_label', 'סיכום ביניים'),
+        vatLabel:     getSetting('cart_vat_label', 'מע"מ (17%)'),
+        totalLabel:   getSetting('cart_total_label', 'סה"כ לתשלום'),
+        taxNote:      getSetting('cart_tax_note', 'כולל מיסים, לא כולל משלוח'),
+        checkoutBtn:  getSetting('cart_checkout_btn', 'המשך לקופה / הפק טופס רכש'),
+        warrantyNote: getSetting('cart_warranty_note', 'אחריות מוסדית מלאה מובטחת'),
+    };
 
     const handleQuantityChange = (id, change) => {
         setCartItems(prev => prev.map(item => {
@@ -91,11 +109,11 @@ const CartPage = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                             </svg>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#1D1D1F] mb-6 tracking-tighter">העגלה שלך ריקה</h2>
-                        <p className="text-gray-500 mb-12 text-xl font-normal leading-relaxed px-4">נראה שעוד לא בחרת ציוד לפרויקט הנוכחי. הקטלוג שלנו מחכה לך.</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#1D1D1F] mb-6 tracking-tighter">{content.emptyTitle}</h2>
+                        <p className="text-gray-500 mb-12 text-xl font-normal leading-relaxed px-4">{content.emptyDesc}</p>
                         <Link to="/catalog" className="inline-block">
                             <MotionButton variant="primary" className="px-12 py-5 text-xl font-black w-full sm:w-auto">
-                                חזרה לקטלוג
+                                {content.backCatalog}
                             </MotionButton>
                         </Link>
                     </motion.div>
@@ -115,7 +133,7 @@ const CartPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-16"
                     >
-                        <h1 className="text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter">עגלת הרכש שלך</h1>
+                        <h1 className="text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter">{content.title}</h1>
                     </motion.div>
 
                     <div className="flex flex-col xl:flex-row gap-16 xl:gap-24 items-start">
@@ -155,17 +173,17 @@ const CartPage = () => {
                                             <div className="flex-1 w-full pl-0 md:pl-4 flex flex-col justify-center h-full pt-2">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.name}</h3>
-                                                    <button
+                                                     <button
                                                         onClick={() => handleRemove(item.id)}
                                                         className="text-gray-400 hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"
-                                                        aria-label="הסר פריט"
+                                                        aria-label={content.removeAria}
                                                     >
                                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mb-8">מק"ט: {item.sku}</p>
+                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mb-8">{content.skuLabel}{item.sku}</p>
 
                                                 <div className="flex items-center justify-between w-full mt-auto">
                                                     {/* Quantity Controls */}
@@ -209,39 +227,39 @@ const CartPage = () => {
                                 transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
                                 className="bg-[#F5F5F7] rounded-[3rem] p-12 shadow-[0_40px_80px_rgb(0_0_0/0.05)]"
                             >
-                                <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tighter">סיכום הזמנה</h2>
+                                <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tighter">{content.summaryTitle}</h2>
 
                                 <div className="space-y-6 mb-10">
                                     <div className="flex justify-between items-center text-gray-500 font-medium">
-                                        <span className="text-lg">סיכום ביניים ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} פריטים)</span>
+                                        <span className="text-lg">{content.subtotalLabel} ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} פריטים)</span>
                                         <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-gray-500 font-normal">
-                                        <span className="text-lg">מע"מ (17%)</span>
+                                        <span className="text-lg">{content.vatLabel}</span>
                                         <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
 
-                                <div className="border-t-0 pt-6 mb-12"> {/* Replaced border with whitespace via mb/pt */}
-                                    <div className="flex justify-between items-end">
-                                        <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">סה"כ לתשלום</span>
+                                <div className="border-t-0 pt-6 mb-12">
+                                     <div className="flex justify-between items-end">
+                                        <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{content.totalLabel}</span>
                                         <div className="text-left">
                                             <span className="block text-5xl font-black text-[#1D1D1F] tracking-tighter">₪{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            <span className="text-sm font-bold text-gray-400 mt-2 block tracking-wide">כולל מיסים, לא כולל משלוח</span>
+                                            <span className="text-sm font-bold text-gray-400 mt-2 block tracking-wide">{content.taxNote}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <Link to="/checkout" className="block w-full">
+                                 <Link to="/checkout" className="block w-full">
                                     <MotionButton variant="primary" className="w-full py-6 text-xl font-black">
-                                        המשך לקופה / הפק טופס רכש
+                                        {content.checkoutBtn}
                                     </MotionButton>
                                 </Link>
 
                                 {/* Trust indicator */}
                                 <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-400 font-bold">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                    <span>אחריות מוסדית מלאה מובטחת</span>
+                                    <span>{content.warrantyNote}</span>
                                 </div>
                             </motion.div>
                         </div>

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, CreditCard } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import { doc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -31,16 +32,42 @@ const GlassInput = ({ label, type = "text", id, value, onChange, placeholder = "
 );
 
 const CheckoutPage = () => {
-    const navigate = useNavigate();
-    const { cartItems, clearCart } = useCart();
-    const [paymentMethod, setPaymentMethod] = useState('apple');
-    const [formData, setFormData] = useState({
-        firstName: '', lastName: '', city: '', street: '', phone: '', email: ''
-    });
+    const { getSetting } = useSettings();
+    const allowOrders = getSetting('allow_orders', true);
 
-    const allowOrders = (() => {
-        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').allow_orders !== false; } catch { return true; }
-    })();
+    const content = useMemo(() => ({
+        title:        getSetting('check_title', 'סיום קנייה'),
+        subtitle:     getSetting('check_subtitle', 'בוא נסיים את ההזמנה שלך ונתחיל לעבוד.'),
+        shipTitle:    getSetting('check_shipping_title', 'פרטי משלוח'),
+        fname:        getSetting('check_fname', 'שם פרטי'),
+        lname:        getSetting('check_lname', 'שם משפחה'),
+        city:         getSetting('check_city', 'עיר'),
+        street:       getSetting('check_street', 'רחוב ומספר בית'),
+        phone:        getSetting('check_phone_label', 'טלפון'),
+        email:        getSetting('check_email_label', 'אימייל'),
+        payTitle:     getSetting('check_payment_title', 'אמצעי תשלום'),
+        credit:       getSetting('check_credit_card', 'אשראי'),
+        ccNum:        getSetting('check_cc_num', 'מספר כרטיס'),
+        ccExp:        getSetting('check_cc_exp', 'תוקף'),
+        ccCvv:        getSetting('check_cc_cvv', 'CVV'),
+        applePay:     getSetting('check_apple_pay', 'Double Click to Pay'),
+        appleSub:     getSetting('check_apple_sub', 'המשך לתשלום מהיר ומאובטח עם Apple Pay'),
+        bitPay:       getSetting('check_bit_pay', 'בקשת תשלום תישלח לאפליקציה'),
+        bitSub:       getSetting('check_bit_sub', 'הזן את מספר הטלפון המזוהה עם חשבון ה-bit שלך'),
+        paypalPay:    getSetting('check_paypal_pay', 'Redirecting to PayPal'),
+        paypalSub:    getSetting('check_paypal_sub', 'לאחר הלחיצה על "שלם עכשיו", תועבר לאתר PayPal להשלמת הרכישה'),
+        summary:      getSetting('cart_summary_title', 'סיכום הזמנה'),
+        qtyLabel:     getSetting('check_qty_label', 'כמות: '),
+        empty:        getSetting('check_empty', 'העגלה שלך ריקה...'),
+        subtotal:     getSetting('cart_subtotal_label', 'סיכום ביניים'),
+        shipping:     getSetting('check_shipping_cost', 'משלוח'),
+        free:         getSetting('check_free', 'חינם'),
+        total:        getSetting('cart_total_label', 'סה״כ לתשלום'),
+        taxInc:       getSetting('check_tax_inc', 'כולל מע״מ'),
+        payNow:       getSetting('check_pay_now', 'שלח פנייה ושלם'),
+        sslNote:      getSetting('check_ssl_note', 'חיבור מאובטח בתקן SSL 256-bit'),
+        disabledMsg:  getSetting('check_orders_disabled', 'קבלת הזמנות מושהית כרגע. אנא נסו שוב מאוחר יותר.'),
+    }), [getSetting]);
 
     const subtotal = useMemo(() => {
         return cartItems.reduce((acc, item) => {
@@ -119,9 +146,9 @@ const CheckoutPage = () => {
                             transition={{ duration: 0.5 }}
                         >
                             <h1 className="text-4xl lg:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-4 leading-tight">
-                                סיום קנייה
+                                {content.title}
                             </h1>
-                            <p className="text-gray-500 font-medium mb-8">בוא נסיים את ההזמנה שלך ונתחיל לעבוד.</p>
+                            <p className="text-gray-500 font-medium mb-8">{content.subtitle}</p>
                         </motion.div>
 
                         {/* Step 1: Shipping Details */}
@@ -131,14 +158,14 @@ const CheckoutPage = () => {
                             transition={{ delay: 0.1 }}
                         >
                             <HyperGlassCard>
-                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">פרטי משלוח</h2>
+                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">{content.shipTitle}</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <GlassInput label="שם פרטי" id="firstName" value={formData.firstName} onChange={handleInputChange} />
-                                    <GlassInput label="שם משפחה" id="lastName" value={formData.lastName} onChange={handleInputChange} />
-                                    <GlassInput label="עיר" id="city" value={formData.city} onChange={handleInputChange} />
-                                    <GlassInput label="רחוב ומספר בית" id="street" value={formData.street} onChange={handleInputChange} />
-                                    <GlassInput label="טלפון" id="phone" type="tel" value={formData.phone} onChange={handleInputChange} />
-                                    <GlassInput label="אימייל" id="email" type="email" value={formData.email} onChange={handleInputChange} />
+                                    <GlassInput label={content.fname} id="firstName" value={formData.firstName} onChange={handleInputChange} />
+                                    <GlassInput label={content.lname} id="lastName" value={formData.lastName} onChange={handleInputChange} />
+                                    <GlassInput label={content.city} id="city" value={formData.city} onChange={handleInputChange} />
+                                    <GlassInput label={content.street} id="street" value={formData.street} onChange={handleInputChange} />
+                                    <GlassInput label={content.phone} id="phone" type="tel" value={formData.phone} onChange={handleInputChange} />
+                                    <GlassInput label={content.email} id="email" type="email" value={formData.email} onChange={handleInputChange} />
                                 </div>
                             </HyperGlassCard>
                         </motion.section>
@@ -150,7 +177,7 @@ const CheckoutPage = () => {
                             transition={{ delay: 0.2 }}
                         >
                             <HyperGlassCard>
-                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">אמצעי תשלום</h2>
+                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">{content.payTitle}</h2>
 
                                 {/* Gestalt-Synchronized Payment Badges */}
                                 <div className="flex flex-wrap gap-4 mb-10">
@@ -200,7 +227,7 @@ const CheckoutPage = () => {
                                             }`}
                                     >
                                         <CreditCard size={24} />
-                                        <span>אשראי</span>
+                                        <span>{content.credit}</span>
                                     </button>
                                 </div>
 
@@ -215,10 +242,10 @@ const CheckoutPage = () => {
                                             className="overflow-hidden"
                                         >
                                             <div className="space-y-6 pt-6 border-t border-white/20">
-                                                <GlassInput label="מספר כרטיס" id="cc_number" placeholder="0000 0000 0000 0000" />
+                                                <GlassInput label={content.ccNum} id="cc_number" placeholder="0000 0000 0000 0000" />
                                                 <div className="grid grid-cols-2 gap-6">
-                                                    <GlassInput label="תוקף" id="cc_expiry" placeholder="MM/YY" />
-                                                    <GlassInput label="CVV" id="cc_cvv" placeholder="123" />
+                                                    <GlassInput label={content.ccExp} id="cc_expiry" placeholder="MM/YY" />
+                                                    <GlassInput label={content.ccCvv} id="cc_cvv" placeholder="123" />
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -232,8 +259,8 @@ const CheckoutPage = () => {
                                             className="text-center py-10 border-t border-white/20"
                                         >
                                             <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-2xl animate-bounce"></div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">Double Click to Pay</h4>
-                                            <p className="text-gray-400 font-medium">המשך לתשלום מהיר ומאובטח עם Apple Pay</p>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.applePay}</h4>
+                                            <p className="text-gray-400 font-medium">{content.appleSub}</p>
                                         </motion.div>
                                     )}
                                     {paymentMethod === 'bit' && (
@@ -245,10 +272,10 @@ const CheckoutPage = () => {
                                             className="text-center py-10 border-t border-white/20"
                                         >
                                             <div className="w-20 h-20 bg-white border-2 border-[#00B4E6] text-[#00B4E6] rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-xl">bit</div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">בקשת תשלום תישלח לאפליקציה</h4>
-                                            <p className="text-gray-400 font-medium">הזן את מספר הטלפון המזוהה עם חשבון ה-bit שלך</p>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.bitPay}</h4>
+                                            <p className="text-gray-400 font-medium">{content.bitSub}</p>
                                             <div className="max-w-xs mx-auto mt-6">
-                                                <GlassInput label="מספר טלפון" id="bit_phone" placeholder="050-0000000" />
+                                                <GlassInput label={content.phone} id="bit_phone" placeholder="050-0000000" />
                                             </div>
                                         </motion.div>
                                     )}
@@ -261,8 +288,8 @@ const CheckoutPage = () => {
                                             className="text-center py-10 border-t border-white/20"
                                         >
                                             <div className="w-20 h-20 bg-[#00457C] text-white rounded-3xl flex items-center justify-center text-2xl font-black italic mx-auto mb-6 shadow-xl">PP</div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">Redirecting to PayPal</h4>
-                                            <p className="text-gray-400 font-medium">לאחר הלחיצה על "שלם עכשיו", תועבר לאתר PayPal להשלמת הרכישה</p>
+                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.paypalPay}</h4>
+                                            <p className="text-gray-400 font-medium">{content.paypalSub}</p>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -278,7 +305,7 @@ const CheckoutPage = () => {
                             transition={{ delay: 0.3 }}
                         >
                             <HyperGlassCard className="!p-10 space-y-8">
-                                <h3 className="text-2xl font-black text-[#1D1D1F] tracking-tight">סיכום הזמנה</h3>
+                                <h3 className="text-2xl font-black text-[#1D1D1F] tracking-tight">{content.summary}</h3>
 
                                 {/* Items List */}
                                 <div className="space-y-6 max-h-[220px] lg:max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -294,7 +321,7 @@ const CheckoutPage = () => {
                                             </div>
                                             <div className="flex-1 space-y-1">
                                                 <h4 className="text-sm font-bold text-[#1D1D1F] leading-tight line-clamp-2">{item.title}</h4>
-                                                <p className="text-xs font-bold text-gray-400">כמות: {item.qty}</p>
+                                                <p className="text-xs font-bold text-gray-400">{content.qtyLabel}{item.qty}</p>
                                             </div>
                                             <span className="text-sm font-black text-[#1D1D1F] tracking-tighter shrink-0">
                                                 ₪{(typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price).toLocaleString()}
@@ -304,7 +331,7 @@ const CheckoutPage = () => {
 
                                     {cartItems.length === 0 && (
                                         <div className="text-center py-10">
-                                            <p className="text-gray-400 font-bold italic">העגלה שלך ריקה...</p>
+                                            <p className="text-gray-400 font-bold italic">{content.empty}</p>
                                         </div>
                                     )}
                                 </div>
@@ -312,27 +339,27 @@ const CheckoutPage = () => {
                                 {/* Calculation Breakdown */}
                                 <div className="pt-8 border-t border-white/20 space-y-4">
                                     <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                                        <span>סיכום ביניים</span>
+                                        <span>{content.subtotal}</span>
                                         <span className="text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                                        <span>משלוח</span>
-                                        <span className="text-green-600 font-bold">חינם</span>
+                                        <span>{content.shipping}</span>
+                                        <span className="text-green-600 font-bold">{content.free}</span>
                                     </div>
                                     <div className="flex justify-between items-center pt-4">
-                                        <span className="text-xl font-black text-[#1D1D1F]">סה״כ לתשלום</span>
+                                        <span className="text-xl font-black text-[#1D1D1F]">{content.total}</span>
                                         <div className="text-right">
                                             <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">
                                                 ₪{total.toLocaleString()}
                                             </span>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">כולל מע״מ</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{content.taxInc}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {!allowOrders && (
                                     <div className="mt-6 bg-[#FF3B30]/08 border border-[#FF3B30]/20 rounded-2xl px-4 py-3 text-right">
-                                        <p className="text-[#FF3B30] text-sm font-bold">קבלת הזמנות מושהית כרגע. אנא נסו שוב מאוחר יותר.</p>
+                                        <p className="text-[#FF3B30] text-sm font-bold">{content.disabledMsg}</p>
                                     </div>
                                 )}
                                 <motion.button
@@ -343,7 +370,7 @@ const CheckoutPage = () => {
                                     className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 mt-4 shadow-[0_20px_40px_rgb(29_29_31/0.2)] hover:bg-black transition-all duration-300 min-h-[56px] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                                 >
                                     <Lock className="w-5 h-5" strokeWidth={2.5} />
-                                    <span>שלם עכשיו ₪{total.toLocaleString()}</span>
+                                    <span>{content.payNow} ₪{total.toLocaleString()}</span>
                                 </motion.button>
 
                                 {/* Secure Payment Section */}
@@ -356,7 +383,7 @@ const CheckoutPage = () => {
                                     </div>
                                     <div className="flex items-center justify-center gap-2 text-[10px] font-black tracking-widest text-[#1D1D1F] opacity-40">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        חיבור מאובטח בתקן SSL 256-bit
+                                        {content.sslNote}
                                     </div>
                                 </div>
                             </HyperGlassCard>

@@ -1,7 +1,8 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 
 // ─── Hotspot data ─────────────────────────────────────────────────────────────
 const HOTSPOTS = [
@@ -52,6 +53,14 @@ const TOOLTIP_SPRING = { type: 'spring', stiffness: 380, damping: 26 };
 const Hotspot = memo(({ spot }) => {
     const [open, setOpen] = useState(false);
     const { cartItems, addToCart, removeFromCart } = useCart();
+    const { getSetting } = useSettings();
+
+    const content = {
+        added:    getSetting('eco_added', 'נוסף'),
+        remove:   getSetting('eco_remove', 'הסר מהעגלה'),
+        add:      getSetting('eco_add', 'הוסף'),
+        moreInfo: getSetting('eco_more_info', 'פרטים נוספים ←'),
+    };
 
     const toggle = useCallback(() => setOpen(v => !v), []);
     const close = useCallback(() => setOpen(false), []);
@@ -154,20 +163,20 @@ const Hotspot = memo(({ spot }) => {
                                                 exit={{ opacity: 0, y: -10 }}
                                                 className="flex items-center gap-1.5"
                                             >
-                                                <div className="flex items-center gap-1.5 group-hover:hidden">
+                                                 <div className="flex items-center gap-1.5 group-hover:hidden">
                                                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    <span>נוסף</span>
+                                                    <span>{content.added}</span>
                                                 </div>
                                                 <div className="hidden group-hover:flex items-center gap-1.5 text-red-500">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
-                                                    <span>הסר מהעגלה</span>
+                                                    <span>{content.remove}</span>
                                                 </div>
                                             </motion.div>
-                                        ) : 'הוסף'}
+                                        ) : content.add}
                                     </motion.button>
                                 </div>
                                 <Link
@@ -175,7 +184,7 @@ const Hotspot = memo(({ spot }) => {
                                     className="block text-center text-[10px] text-[#86868B] hover:text-[#007AFF] mt-2 transition-colors"
                                     onClick={close}
                                 >
-                                    פרטים נוספים →
+                                    {content.moreInfo}
                                 </Link>
                             </div>
                         </div>
@@ -188,26 +197,37 @@ const Hotspot = memo(({ spot }) => {
 Hotspot.displayName = 'Hotspot';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const EcosystemVisualizer = () => (
-    <section className="max-w-7xl mx-auto px-6 md:px-12 py-24">
-        {/* Header */}
-        <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
-            className="text-right mb-12"
-        >
-            <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-3">
-                האקוסיסטם שלנו
-            </span>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[#1D1D1F] mb-3">
-                לחץ על נקודה לגלות מוצר
-            </h2>
-            <p className="text-[#86868B] text-lg">
-                כל פתרון במרחב הלמידה שלך — ניתן לרכישה מיידית.
-            </p>
-        </motion.div>
+const EcosystemVisualizer = () => {
+    const { getSetting } = useSettings();
+    
+    const content = {
+        title:    getSetting('eco_title', 'למידה שיוצאת מהמסגרת'),
+        subtitle: getSetting('eco_desc', 'חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.'),
+        badge:    getSetting('eco_eyebrow', 'האקוסיסטם שלנו'),
+        hint:     getSetting('eco_hint', 'לחץ על הנקודות הכחולות'),
+        bgImage:  getSetting('eco_bg_image', 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=85&w=1600')
+    };
+
+    return (
+        <section className="max-w-7xl mx-auto px-6 md:px-12 py-24">
+            {/* Header */}
+            <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+                className="text-right mb-12"
+            >
+                <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-3">
+                    {content.badge}
+                </span>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[#1D1D1F] mb-3">
+                    {content.title}
+                </h2>
+                <p className="text-[#86868B] text-lg">
+                    {content.subtitle}
+                </p>
+            </motion.div>
 
         {/* Image canvas with hotspots */}
         <motion.div
@@ -219,7 +239,7 @@ const EcosystemVisualizer = () => (
         >
             {/* Background image — modern classroom/tech desk */}
             <img
-                src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=85&w=1600"
+                src={content.bgImage}
                 alt="מרחב למידה חכם"
                 className="absolute inset-0 w-full h-full object-cover"
                 draggable={false}
@@ -236,10 +256,11 @@ const EcosystemVisualizer = () => (
             {/* Legend badge */}
             <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#007AFF] animate-pulse" />
-                <span className="text-white text-xs font-bold">לחץ על הנקודות הכחולות</span>
+                <span className="text-white text-xs font-bold">{content.hint}</span>
             </div>
         </motion.div>
     </section>
-);
+    );
+};
 
 export default memo(EcosystemVisualizer);

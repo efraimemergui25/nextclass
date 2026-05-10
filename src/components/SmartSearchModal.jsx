@@ -4,14 +4,23 @@ import { Search, X, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductsContext';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import { ShoppingCart, Check } from 'lucide-react';
 
 const SmartSearchModal = ({ isOpen, onClose }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const inputRef = useRef(null);
     const navigate = useNavigate();
+    const { getSetting } = useSettings();
     const { cartItems, addToCart } = useCart();
     const { activeProducts: products } = useProducts();
+
+    const searchContent = useMemo(() => ({
+        placeholder: getSetting('search_placeholder', 'חפש מוצר, קטגוריה או פתרון...'),
+        popularLabel: getSetting('search_popular_label', 'חיפושים נפוצים'),
+        popularTerms: getSetting('search_popular_terms', 'מסכי מגע, לפטופ, עגלות טעינה').split(',').map(t => t.trim()),
+        noResults: getSetting('search_no_results', 'לא נמצאו תוצאות עבור "{term}"')
+    }), [getSetting]);
 
     // Spotlight-style Auto Focus
     useEffect(() => {
@@ -63,7 +72,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="חפש מוצר, קטגוריה או פתרון..."
+                                placeholder={searchContent.placeholder}
                                 className="w-full bg-transparent text-2xl text-[#1D1D1F] placeholder-gray-500 p-6 pr-16 outline-none font-medium text-right"
                                 dir="rtl"
                             />
@@ -82,11 +91,11 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                             {searchTerm.trim() === '' ? (
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 text-[#86868B] mb-5 justify-end">
-                                        <span className="text-xs font-bold uppercase tracking-widest">חיפושים נפוצים</span>
+                                        <span className="text-xs font-bold uppercase tracking-widest">{searchContent.popularLabel}</span>
                                         <TrendingUp className="w-4 h-4" />
                                     </div>
                                     <div className="flex flex-wrap gap-2.5 justify-end">
-                                        {["מסכי מגע", "לפטופ", "עגלות טעינה"].map(term => (
+                                        {searchContent.popularTerms.map(term => (
                                             <button
                                                 key={term}
                                                 onClick={() => setSearchTerm(term)}
@@ -150,7 +159,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                                 </div>
                             ) : (
                                 <div className="p-12 text-center">
-                                    <p className="text-[#86868B] text-lg font-medium">לא נמצאו תוצאות עבור "{searchTerm}"</p>
+                                    <p className="text-[#86868B] text-lg font-medium">{searchContent.noResults.replace('{term}', searchTerm)}</p>
                                 </div>
                             )}
                         </div>

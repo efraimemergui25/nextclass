@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminData } from '../context/AdminDataContext';
-import { useToast } from '../context/AdminToastContext';
+import { useAdminToast } from '../context/AdminToastContext';
+import initialProducts from '../../data/products';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminFilterPills, AdminToggle, StatusBadge } from '../components/AdminComponents';
 
 const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנה', 'מחשוב וטאבלטים', 'תשתיות רשת ואודיו-ויזואל', 'מעבדות STEM וחינוך STEAM', 'ריהוט חינוכי ואחסון', 'בטיחות ומעקב'];
@@ -55,6 +56,12 @@ function ProductCard({ product, onEdit }) {
             <div className="relative h-40 bg-[#F5F5F7] overflow-hidden">
                 {product.image ? (
                     <img src={product.image} alt={product.title}
+                        onError={(e) => {
+                            const original = initialProducts.find(ip => String(ip.id) === String(product.id));
+                            if (original && e.target.src !== original.image) {
+                                e.target.src = original.image;
+                            }
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">🛍️</div>
@@ -120,7 +127,17 @@ function ProductRow({ product, onEdit }) {
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image
-                    ? <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ? <img 
+                        src={product.image} 
+                        alt={product.title} 
+                        onError={(e) => {
+                            const original = initialProducts.find(ip => String(ip.id) === String(product.id));
+                            if (original && e.target.src !== original.image) {
+                                e.target.src = original.image;
+                            }
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
                     : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🛍️</div>}
             </div>
             <div className="flex-1 min-w-0 text-right">
@@ -166,7 +183,7 @@ function SpecRow({ spec, onChange, onRemove }) {
 
 export default function AdminProducts() {
     const { products, updateProductDetails, addProduct, deleteProduct } = useAdminData();
-    const { showToast } = useToast();
+    const { showToast } = useAdminToast();
     const [search, setSearch] = useState('');
     const [catFilter, setCatFilter] = useState('הכל');
     const [statusFilter, setStatusFilter] = useState('הכל');
@@ -406,7 +423,17 @@ export default function AdminProducts() {
                     <AdminInput label="כתובת תמונה (URL)" value={editForm.image} onChange={v => setField('image', v)} placeholder="https://..." dir="ltr" />
                     {editForm.image && (
                         <div className="w-full h-40 rounded-xl overflow-hidden bg-[#F5F5F7]">
-                            <img src={editForm.image} alt="תצוגה מקדימה" className="w-full h-full object-cover" />
+                            <img 
+                                src={editForm.image} 
+                                alt="תצוגה מקדימה" 
+                                onError={(e) => {
+                                    const original = initialProducts.find(ip => String(ip.id) === String(editingProduct?.id));
+                                    if (original && e.target.src !== original.image) {
+                                        e.target.src = original.image;
+                                    }
+                                }}
+                                className="w-full h-full object-cover" 
+                            />
                         </div>
                     )}
                     <AdminInput label="תיאור מוצר" value={editForm.description} onChange={v => setField('description', v)} rows={3} placeholder="תאר את המוצר..." />

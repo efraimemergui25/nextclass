@@ -1,10 +1,11 @@
-import { useMemo, memo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Sparkles, TrendingUp, Zap, Gift, ChevronLeft } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import ProductCard from '../components/ProductCard';
 import { useProducts } from '../context/ProductsContext';
+import { useSettings } from '../context/SettingsContext';
 
 const sectionVariants = {
     hidden: { opacity: 0, y: 40 },
@@ -61,6 +62,7 @@ const Swimlane = memo(({ lane }) => (
 Swimlane.displayName = 'Swimlane';
 
 const DiscoverPage = () => {
+    const { getSetting } = useSettings();
     const { activeProducts, bestSellers, newArrivals, dealProducts, featuredProduct } = useProducts();
 
     const SWIMLANES = useMemo(() => {
@@ -70,7 +72,7 @@ const DiscoverPage = () => {
         if (bestSellers.length > 0) {
             lanes.push({
                 id: 'top-sellers',
-                label: 'הנמכרים ביותר',
+                label: getSetting('discover_best_label', 'הנמכרים ביותר'),
                 badge: 'trending',
                 sub: `המוצרים שמוסדות החינוך בוחרים שוב ושוב · ${bestSellers[0]?.sold || 0}+ יחידות נמכרו`,
                 items: bestSellers,
@@ -83,7 +85,7 @@ const DiscoverPage = () => {
         if (newItems.length > 0) {
             lanes.push({
                 id: 'new-arrivals',
-                label: 'חדש בחנות',
+                label: getSetting('discover_new_label', 'חדש בחנות'),
                 badge: 'new',
                 sub: 'טכנולוגיה חדישה שהגיעה ממש עכשיו',
                 items: newItems,
@@ -96,7 +98,7 @@ const DiscoverPage = () => {
         if (dealItems.length > 0) {
             lanes.push({
                 id: 'deals',
-                label: 'מבצעים מיוחדים',
+                label: getSetting('discover_deals_label', 'מבצעים מיוחדים'),
                 badge: 'deal',
                 sub: 'הזדמנויות שלא כדאי לפספס',
                 items: dealItems,
@@ -105,7 +107,7 @@ const DiscoverPage = () => {
         }
 
         return lanes;
-    }, [bestSellers, newArrivals, dealProducts, activeProducts]);
+    }, [bestSellers, newArrivals, dealProducts, activeProducts, getSetting]);
 
     // Hero spotlight — admin-controlled featured product
     const hero = featuredProduct;
@@ -130,7 +132,7 @@ const DiscoverPage = () => {
                             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
                             className="text-5xl md:text-[5.5rem] font-bold tracking-tight leading-[1.1] text-[#1D1D1F] whitespace-nowrap"
                         >
-                            הטכנולוגיה <span className="font-light text-gray-300">שמעצבת</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
+                            {getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.')}
                         </motion.h1>
                         <motion.p
                             initial={{ opacity: 0, y: 20 }}
@@ -138,8 +140,7 @@ const DiscoverPage = () => {
                             transition={{ delay: 0.6, duration: 1 }}
                             className="text-lg md:text-xl text-[#86868B] font-medium leading-relaxed max-w-2xl mt-8 tracking-tight"
                         >
-                            אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. <br className="hidden md:block" />
-                            כל מה שצריך כדי להפוך חזון למציאות.
+                            {getSetting('discover_desc', 'אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. כל מה שצריך כדי להפוך חזון למציאות.')}
                         </motion.p>
                     </div>
 
@@ -167,7 +168,7 @@ const DiscoverPage = () => {
                                 >
                                     <Sparkles size={12} className="text-[#007AFF]" />
                                     <span className="text-[9px] font-black text-white uppercase tracking-widest">
-                                        {hero.isFeatured ? 'נבחרת העונה' : 'מוצר מומלץ'} · {hero.sold ? `${hero.sold}+ נמכרו` : 'טכנולוגיה מובילה'}
+                                        {getSetting('discover_hero_badge', 'נבחרת העונה')} · {hero.sold ? `${hero.sold}+ נמכרו` : 'טכנולוגיה מובילה'}
                                     </span>
                                 </motion.div>
                                 <h2 className="text-3xl md:text-5xl font-apple-display text-white tracking-tighter leading-tight mb-4">
@@ -180,7 +181,7 @@ const DiscoverPage = () => {
                                     to={`/catalog/${hero.id}`}
                                     className="inline-flex items-center gap-3 bg-white text-black font-bold px-8 py-4 rounded-full hover:bg-[#007AFF] hover:text-white transition-all self-end shadow-xl text-sm"
                                 >
-                                    <span>גלה את המפרט</span>
+                                    <span>{getSetting('discover_hero_cta', 'גלה את המפרט')}</span>
                                     <ChevronLeft size={18} />
                                 </Link>
                             </div>
@@ -203,10 +204,10 @@ const DiscoverPage = () => {
                     >
                         <div className="relative z-10">
                             <h3 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-6">
-                                לא מצאתם את מה שחיפשתם?
+                                {getSetting('discover_callout_title', 'לא מצאתם את מה שחיפשתם?')}
                             </h3>
                             <p className="text-2xl text-gray-400 font-medium mb-12 max-w-2xl mx-auto">
-                                היועצים המומחים שלנו כאן כדי לאפיין עבורכם את הפתרון המדויק למוסד שלכם.
+                                {getSetting('discover_callout_desc', 'היועצים המומחים שלנו כאן כדי לאפיין עבורכם את הפתרון המדויק למוסד שלכם.')}
                             </p>
                             <div className="flex flex-wrap justify-center gap-6">
                                 <Link
