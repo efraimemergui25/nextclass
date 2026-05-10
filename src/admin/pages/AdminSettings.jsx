@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
+import { useAdminToast } from '../context/AdminToastContext';
+import { useSettings } from '../../context/SettingsContext';
 
 const card = { border: '1px solid rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)' };
 
@@ -24,7 +26,8 @@ function SettingCard({ title, icon, accent = '#007AFF', children }) {
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
     const { repairProductImages, reseedDatabase } = useAdminData();
-    const { showToast } = useToast();
+    const { showToast } = useAdminToast();
+    const { getSetting, updateGlobalSettings, settings: globalSettings } = useSettings();
 
     // PIN change
     const [currentPin, setCurrentPin] = useState('');
