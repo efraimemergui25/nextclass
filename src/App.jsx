@@ -152,7 +152,7 @@ function AppContent() {
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
             <AnalyticsTracker />
-            <GlassCanvas mood={mood} />
+            {/* <GlassCanvas mood={mood} /> */}
             <AnnouncementBar />
             <Header />
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
@@ -160,7 +160,7 @@ function AppContent() {
             </main>
             <Footer />
             <DynamicIsland />
-            <SmartConcierge />
+            {/* <SmartConcierge /> */}
             <CompareTray />
             {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
         </div>
