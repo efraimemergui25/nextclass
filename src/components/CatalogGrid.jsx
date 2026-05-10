@@ -375,33 +375,9 @@ const ListCard = ({ product }) => {
         else trigger(() => addToCart(product))();
     }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
 
-    const [siteSettings, setSiteSettings] = useState(() => {
-        try {
-            const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            return {
-                showPrices: s.show_prices !== false,
-                allowOrders: s.allow_orders !== false
-            };
-        } catch { return { showPrices: true, allowOrders: true }; }
-    });
-
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') {
-                try {
-                    const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-                    setSiteSettings({
-                        showPrices: s.show_prices !== false,
-                        allowOrders: s.allow_orders !== false
-                    });
-                } catch {}
-            }
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
-
-    const { showPrices, allowOrders } = siteSettings;
+    const { getSetting, isVisible } = useSettings();
+    const showPrices = isVisible('show_prices', true);
+    const allowOrders = isVisible('allow_orders', true);
 
     return (
         <motion.div

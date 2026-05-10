@@ -175,6 +175,7 @@ const ProductDetailPage = () => {
         addToCart:  getSetting('catalog_add_to_cart', 'הוסף לעגלה'),
         buyNow:     getSetting('pd_buy_now', 'קנה עכשיו'),
         quickInquiry: getSetting('pd_quick_inquiry', 'שלח פנייה מהירה'),
+        requestQuote: getSetting('pd_request_quote', 'בקש הצעה'),
         requestQuoteInst: getSetting('pd_request_quote_inst', 'בקש הצעת מחיר מוסדית'),
         compareSelected: getSetting('pd_compare_selected', 'נבחר להשוואה'),
         compareBtn: getSetting('pd_compare_btn', 'השווה דגם'),

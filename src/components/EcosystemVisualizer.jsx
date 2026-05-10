@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductsContext';
 
 // ─── Hotspot data ─────────────────────────────────────────────────────────────
 const HOTSPOTS = [
@@ -54,6 +55,9 @@ const Hotspot = memo(({ spot }) => {
     const [open, setOpen] = useState(false);
     const { cartItems, addToCart, removeFromCart } = useCart();
     const { getSetting } = useSettings();
+    const { getProductById } = useProducts();
+
+    const liveProduct = useMemo(() => getProductById(spot.product.id) || spot.product, [spot.product, getProductById]);
 
     const content = {
         added:    getSetting('eco_added', 'נוסף'),
@@ -68,16 +72,16 @@ const Hotspot = memo(({ spot }) => {
     const handleCartToggle = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
-        const isInCart = cartItems.some(item => item.id === spot.product.id);
+        const isInCart = cartItems.some(item => item.id === liveProduct.id);
         if (isInCart) {
-            removeFromCart(spot.product.id);
+            removeFromCart(liveProduct.id);
         } else {
-            addToCart(spot.product);
+            addToCart(liveProduct);
         }
         // Keep tooltip open so they can see the change, or close it? 
         // Let's keep it open for feedback if removing, or close if adding (standard behavior)
         if (!isInCart) setOpen(false);
-    }, [spot.product, addToCart, removeFromCart, cartItems]);
+    }, [liveProduct, addToCart, removeFromCart, cartItems]);
 
     // Tooltip anchor: right of dot if tooltipSide='right', else left
     const tooltipStyle = spot.tooltipSide === 'right'
@@ -98,7 +102,7 @@ const Hotspot = memo(({ spot }) => {
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 whileTap={{ scale: 0.9 }}
                 className="relative w-11 h-11 sm:w-6 sm:h-6 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]"
-                aria-label={`הצג מידע על ${spot.product.title}`}
+                aria-label={`הצג מידע על ${liveProduct.title}`}
             >
                 {/* Outer ring pulse */}
                 <motion.span
@@ -125,8 +129,8 @@ const Hotspot = memo(({ spot }) => {
                             {/* Product thumbnail */}
                             <div className="w-full h-24 bg-gray-50 overflow-hidden">
                                 <img
-                                    src={spot.product.image}
-                                    alt={spot.product.title}
+                                    src={liveProduct.image}
+                                    alt={liveProduct.title}
                                     className="w-full h-full object-cover"
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
@@ -135,14 +139,14 @@ const Hotspot = memo(({ spot }) => {
                             {/* Info */}
                             <div className="p-3 text-right">
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#007AFF] block mb-0.5">
-                                    {spot.product.category}
+                                    {liveProduct.category}
                                 </span>
                                 <p className="text-xs font-bold text-[#1D1D1F] leading-snug line-clamp-2 mb-2">
-                                    {spot.product.title}
+                                    {liveProduct.title}
                                 </p>
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-sm font-black text-[#1D1D1F] tracking-tighter">
-                                        ₪{(spot.product.price ?? 0).toLocaleString()}
+                                        ₪{(liveProduct.price ?? 0).toLocaleString()}
                                     </span>
                                     <motion.button
                                         onClick={handleCartToggle}
@@ -150,12 +154,12 @@ const Hotspot = memo(({ spot }) => {
                                         whileTap={{ scale: 0.94, filter: 'brightness(0.88)' }}
                                         transition={{ type: 'spring', stiffness: 420, damping: 22 }}
                                         className={`group relative text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors ${
-                                            cartItems.some(item => item.id === spot.product.id)
+                                            cartItems.some(item => item.id === liveProduct.id)
                                             ? 'bg-gray-100 text-[#1D1D1F] hover:bg-red-50 hover:text-red-600'
                                             : 'bg-[#007AFF] text-white hover:bg-blue-600'
                                         }`}
                                     >
-                                        {cartItems.some(item => item.id === spot.product.id) ? (
+                                        {cartItems.some(item => item.id === liveProduct.id) ? (
                                             <motion.div
                                                 key="in-cart"
                                                 initial={{ opacity: 0, y: 10 }}
@@ -180,7 +184,7 @@ const Hotspot = memo(({ spot }) => {
                                     </motion.button>
                                 </div>
                                 <Link
-                                    to={`/catalog/${spot.product.id}`}
+                                    to={`/catalog/${liveProduct.id}`}
                                     className="block text-center text-[10px] text-[#86868B] hover:text-[#007AFF] mt-2 transition-colors"
                                     onClick={close}
                                 >

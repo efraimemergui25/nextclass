@@ -103,7 +103,7 @@ function AnimatedRoutes() {
 
 function AppContent() {
     const location = useLocation();
-    const { getSetting } = useSettings();
+    const { getSetting, isVisible } = useSettings();
     const maintenance = getSetting('maintenance_mode', false);
 
     if (location.pathname.startsWith('/admin')) {
@@ -152,7 +152,7 @@ function AppContent() {
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
             <AnalyticsTracker />
-            {/* <GlassCanvas mood={mood} /> */}
+            <GlassCanvas mood={mood} />
             <AnnouncementBar />
             <Header />
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
@@ -160,9 +160,9 @@ function AppContent() {
             </main>
             <Footer />
             <DynamicIsland />
-            {/* <SmartConcierge /> */}
+            {isVisible('vis_ai_assistant', true) && <SmartConcierge />}
             <CompareTray />
-            {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
+            {isVisible('vis_a11y_widget', true) && <AccessibilityWidget />}
         </div>
     );
 }
