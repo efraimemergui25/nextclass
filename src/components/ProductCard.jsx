@@ -36,9 +36,12 @@ const ProductCard = ({ product }) => {
         category = '',
         title = 'מוצר NextClass',
         price = 0,
+        salePrice = null,
         image = '',
         description = '',
         specs,
+        isNew = false,
+        _isBestSeller = false,
     } = product ?? {};
 
     const [imgError, setImgError] = useState(false);
@@ -100,9 +103,13 @@ const ProductCard = ({ product }) => {
     }, [mouseX, mouseY, lightX, lightY]);
 
     // ─── Derived values ───────────────────────────────────────────────────────
-    const formattedPrice = useMemo(() => `₪${(price ?? 0).toLocaleString()}`, [price]);
+    const effectivePrice = salePrice ? Number(salePrice) : (price ?? 0);
+    const formattedPrice = useMemo(() => `₪${effectivePrice.toLocaleString()}`, [effectivePrice]);
     const selected = useMemo(() => isSelected(id), [isSelected, id]);
     const isInCart = useMemo(() => (cartItems ?? []).some(item => item?.id === id), [cartItems, id]);
+    const showPrices = (() => {
+        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').show_prices !== false; } catch { return true; }
+    })();
 
     // ─── Stable handlers ──────────────────────────────────────────────────────
     const handleImgError = useCallback((e) => {
@@ -164,11 +171,17 @@ const ProductCard = ({ product }) => {
                             />
                         )}
                         
-                        {/* Adaptive "For You" Badge (Personalization) */}
-                        {id % 3 === 0 && (
-                            <div className="absolute top-4 right-4 z-10 glass-apple px-3 py-1.5 rounded-full flex items-center gap-1.5 animate-glow-pulse">
-                                <Sparkles size={12} className="text-[#007AFF]" />
-                                <span className="text-[10px] font-bold text-[#1D1D1F]">מותאם עבורך</span>
+                        {/* Product badges — data-driven */}
+                        {(_isBestSeller || isNew) && (
+                            <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
+                                _isBestSeller
+                                    ? 'bg-gradient-to-r from-orange-500 to-red-500'
+                                    : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                            }`}>
+                                <Sparkles size={11} className="text-white" />
+                                <span className="text-[10px] font-black text-white tracking-wide">
+                                    {_isBestSeller ? 'נמכר ביותר 🔥' : 'חדש ✨'}
+                                </span>
                             </div>
                         )}
                         
@@ -187,7 +200,19 @@ const ProductCard = ({ product }) => {
 
                         {/* ── Footer ───────────────────────────────────────── */}
                         <div className="mt-auto pt-4 pb-6 flex items-center justify-between gap-3">
-                            <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F] shrink-0">{formattedPrice}</span>
+                            <div className="shrink-0">
+                                {showPrices && (salePrice ? (
+                                    <div className="flex flex-col items-start gap-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
+                                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">מבצע</span>
+                                        </div>
+                                        <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
+                                ))}
+                            </div>
 
                             <div className="flex items-center gap-2 shrink-0">
                                 {/* Compare */}
@@ -213,7 +238,7 @@ const ProductCard = ({ product }) => {
                                         <motion.button
                                             onClick={handleCartToggle}
                                             whileTap={{ scale: 0.94 }}
-                                            className="group/cart h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                            className="group/cart h-[44px] min-w-[90px] sm:min-w-[120px] px-3 sm:px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                                         >
                                             <div className="flex items-center gap-1.5 group-hover/cart:hidden">
                                                 <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -233,7 +258,7 @@ const ProductCard = ({ product }) => {
                                             onClick={handleCartToggle}
                                             animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
                                             whileTap={popState === 'idle' ? { scale: 0.93 } : undefined}
-                                            className="h-[44px] min-w-[120px] px-4 rounded-full font-bold text-[11px] tracking-wide text-white flex items-center justify-center gap-1.5 focus:outline-none shadow-md hover:shadow-xl transition-shadow"
+                                            className="h-[44px] min-w-[90px] sm:min-w-[120px] px-3 sm:px-4 rounded-full font-bold text-[11px] tracking-wide text-white flex items-center justify-center gap-1.5 focus:outline-none shadow-md hover:shadow-xl transition-shadow"
                                             style={{ backgroundColor: '#007AFF' }}
                                             disabled={popState !== 'idle'}
                                         >

@@ -406,11 +406,11 @@
     }
 
     .text-hero {
-        @apply text-5xl md:text-[5rem] font-bold tracking-tight leading-[1.1] text-[#1D1D1F];
+        @apply text-[2.25rem] sm:text-5xl md:text-[5rem] font-bold tracking-tight leading-[1.1] text-[#1D1D1F];
     }
 
     .text-hero-sub {
-        @apply text-xl md:text-2xl font-normal leading-relaxed text-[#86868B] max-w-2xl;
+        @apply text-base sm:text-xl md:text-2xl font-normal leading-relaxed text-[#86868B] max-w-2xl;
     }
 
     .text-section {
@@ -608,4 +608,14 @@
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
     }
+
+    /* Custom slim scrollbar — admin panel & content areas */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.10);
+        border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 122, 255, 0.30); }
+    .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.10) transparent; }
 }

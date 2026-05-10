@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "@stripe/react-stripe-js": "^6.3.0",
+    "@stripe/stripe-js": "^9.4.0",
     "@tailwindcss/vite": "^4.2.1",
+    "firebase": "^12.13.0",
     "framer-motion": "^12.34.5",
     "lucide-react": "^0.577.0",
     "ngrok": "^5.0.0-beta.2",

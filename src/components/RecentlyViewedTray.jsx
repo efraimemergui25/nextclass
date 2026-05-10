@@ -1,6 +1,6 @@
 import React, { useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
-import products from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import ProductCard from './ProductCard';
 
 const containerVariants = {
@@ -9,14 +9,15 @@ const containerVariants = {
 };
 
 const RecentlyViewedTray = ({ recentIds = [], currentId }) => {
+    const { getProductById } = useProducts();
     // Resolve IDs → full product objects, exclude current product
     const recentProducts = useMemo(
         () =>
             (recentIds ?? [])
                 .filter(id => id !== currentId)
-                .map(id => products.find(p => p.id === id))
+                .map(id => getProductById(id))
                 .filter(Boolean),
-        [recentIds, currentId]
+        [recentIds, currentId, getProductById]
     );
 
     if (recentProducts.length === 0) return null;

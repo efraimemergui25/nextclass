@@ -1,4 +1,4 @@
-const products = [
+const defaultProducts = [
     // Category 1: מסכים אינטראקטיביים והקרנה (10 items)
     {
         id: "display-pro-75-uhd",
@@ -712,5 +712,78 @@ const products = [
         ]
     }
 ];
+
+// ─── Product Metadata ────────────────────────────────────────────────────────
+// sold: historical units sold (seed data — incremented in real-time by orders)
+// isNew: show "חדש" badge in storefront
+// isFeatured: show in DiscoverPage hero spotlight (only one at a time)
+// salePrice: promotional price — admin can override via AdminProducts
+export const productMeta = {
+    // Category 1: מסכים
+    "display-pro-75-uhd":           { sold: 52 },
+    "display-max-86-uhd":           { sold: 38, isFeatured: true },
+    "projector-laser-5000":         { sold: 31 },
+    "display-ultra-98-4k":          { sold: 11 },
+    "projector-short-throw":        { sold: 44 },
+    "display-flex-65-mobile":       { sold: 27 },
+    "projector-laser-7000":         { sold: 8 },
+    "display-zero-75":              { sold: 35, isNew: true },
+    "projector-led-mobile":         { sold: 61, salePrice: 1250 },
+    "display-ai-86":                { sold: 19, isNew: true },
+    // Category 2: מחשוב
+    "student-chromebook-rugged":    { sold: 89 },
+    "teacher-laptop-pro":           { sold: 42 },
+    "mini-pc-ops-modular":          { sold: 28 },
+    "tablet-rugged-stem":           { sold: 55 },
+    "laptop-media-edit":            { sold: 14 },
+    "mini-pc-zero-client":          { sold: 76 },
+    "chromebook-touch-flip":        { sold: 47, isNew: true },
+    "workstation-it-mobile":        { sold: 18 },
+    "laptop-hybrid-student":        { sold: 33 },
+    "teacher-laptop-slim":          { sold: 39 },
+    // Category 3: STEM
+    "3d-printer-pro-grade":         { sold: 22 },
+    "robotics-kit-advanced":        { sold: 48 },
+    "smart-lab-table-power":        { sold: 31 },
+    "3d-scanner-mobile-model":      { sold: 17 },
+    "robotic-arm-6-axis-edu":       { sold: 12 },
+    "science-sensors-lab-pkg":      { sold: 53 },
+    "3d-printer-industrial-size":   { sold: 4 },
+    "engineering-construction-pkg": { sold: 67, salePrice: 890 },
+    "vr-headset-classroom-set":     { sold: 29, isNew: true },
+    "laser-cutter-desktop-safe":    { sold: 9 },
+    // Category 4: אודיו/וידאו
+    "ptz-camera-tracking-4k":       { sold: 24 },
+    "voice-amp-teacher-wireless":   { sold: 78 },
+    "soundbar-classroom-120w":      { sold: 83, salePrice: 680 },
+    "videobar-aio-conference":      { sold: 36 },
+    "ceiling-array-mic-noise-cancel":{ sold: 15 },
+    "av-control-lecturer-sys":      { sold: 22 },
+    "visualizer-4k-doc-cam":        { sold: 41 },
+    "anc-headset-student-lab":      { sold: 94, salePrice: 380 },
+    "pa-portable-school-events":    { sold: 19 },
+    "ceiling-spk-sound-array":      { sold: 33 },
+    // Category 5: תשתיות
+    "charging-cart-36-devices":     { sold: 45 },
+    "smart-podium-21-touch":        { sold: 16 },
+    "charging-cart-uv-24-tab":      { sold: 37 },
+    "av-rack-secure-server":        { sold: 28 },
+    "teacher-workstation-mobile-hyd":{ sold: 52 },
+    "charging-cart-12-laptop":      { sold: 61 },
+    "motorized-wall-mount-heavy":   { sold: 24 },
+    "cable-management-pkg-av":      { sold: 88, salePrice: 549 },
+    "mobile-stand-heavy-110":       { sold: 19 },
+    "ups-institutional-guard":      { sold: 43 },
+};
+
+let products = defaultProducts;
+try {
+    const saved = localStorage.getItem('nextclass_inventory');
+    if (saved) {
+        products = JSON.parse(saved);
+    }
+} catch (e) {
+    console.error("Could not load products from local storage", e);
+}
 
 export default products;

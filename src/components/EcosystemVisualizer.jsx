@@ -88,7 +88,7 @@ const Hotspot = memo(({ spot }) => {
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 whileTap={{ scale: 0.9 }}
-                className="relative w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]"
+                className="relative w-11 h-11 sm:w-6 sm:h-6 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]"
                 aria-label={`הצג מידע על ${spot.product.title}`}
             >
                 {/* Outer ring pulse */}

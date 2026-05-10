@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import products from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Check } from 'lucide-react';
 
@@ -11,6 +11,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
     const inputRef = useRef(null);
     const navigate = useNavigate();
     const { cartItems, addToCart } = useCart();
+    const { activeProducts: products } = useProducts();
 
     // Spotlight-style Auto Focus
     useEffect(() => {
@@ -23,7 +24,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
         }
     }, [isOpen]);
 
-    // Live Filtering Logic (Source of Truth: products.js)
+    // Live Filtering Logic (Source of Truth: ProductsContext)
     const filteredProducts = useMemo(() => {
         if (!searchTerm.trim()) return [];
         const lowerTerm = searchTerm.toLowerCase();
@@ -31,7 +32,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
             p.title.toLowerCase().includes(lowerTerm) ||
             p.category.toLowerCase().includes(lowerTerm)
         );
-    }, [searchTerm]);
+    }, [searchTerm, products]);
 
     const handleResultClick = (id) => {
         navigate(`/catalog/${id}`);

@@ -5,7 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
-import products from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import TrustBadges from '../components/TrustBadges';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
@@ -125,9 +125,10 @@ const ProductDetailPage = () => {
     }, [id, trackView]);
 
     // ─── Derived values (memoised) ────────────────────────────────────────────
+    const { getProductById } = useProducts();
     const product = useMemo(
-        () => (products ?? []).find(p => p?.id === id) ?? products?.[0] ?? {},
-        [id]
+        () => getProductById(id) ?? {},
+        [id, getProductById]
     );
 
     const currentProductId = useMemo(

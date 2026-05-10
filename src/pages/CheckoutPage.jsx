@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from 'react';
+/* eslint-disable no-unused-vars */
+
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Lock, CreditCard } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useCart } from '../context/CartContext';
+import { doc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const HyperGlassCard = ({ children, className = "" }) => (
     <div className={`bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_40px_rgb(0_0_0/0.08)] rounded-[2rem] p-8 ${className}`}>
@@ -34,6 +38,10 @@ const CheckoutPage = () => {
         firstName: '', lastName: '', city: '', street: '', phone: '', email: ''
     });
 
+    const allowOrders = (() => {
+        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').allow_orders !== false; } catch { return true; }
+    })();
+
     const subtotal = useMemo(() => {
         return cartItems.reduce((acc, item) => {
             const price = typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price;
@@ -48,10 +56,52 @@ const CheckoutPage = () => {
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleCheckout = (e) => {
+    const handleCheckout = async (e) => {
         e.preventDefault();
-        // In a real app, integrate Stripe/Payment provider here
-        alert('הזמנה התקבלה בהצלחה! תודה שקנית ב-NextClass');
+        
+        try {
+            // Generate order ID
+            const orderId = `NC-${Math.floor(10000 + Math.random() * 90000)}`;
+            
+            // Create a structured order matching the Admin's schema
+            const newOrder = {
+                id: orderId,
+                date: new Date().toLocaleDateString('he-IL'),
+                dateTs: Date.now(),
+                customer: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: formData.phone,
+                city: formData.city,
+                address: formData.street,
+                product: cartItems.map(i => i.title).join(', '),
+                productId: cartItems[0]?.id || 'unknown',
+                productImage: cartItems[0]?.imageUrl || cartItems[0]?.image,
+                qty: cartItems.reduce((acc, i) => acc + i.qty, 0),
+                total: total,
+                status: 'חדש',
+                notes: `שולם באמצעות: ${paymentMethod}`,
+                history: [
+                    { status: 'חדש', date: new Date().toLocaleDateString('he-IL'), time: new Date().toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'}) }
+                ],
+                items: cartItems 
+            };
+            
+            // Save order to Firebase
+            await setDoc(doc(db, 'orders', orderId), newOrder);
+            
+            // Decrement Inventory Stock in Firebase
+            for (const item of cartItems) {
+                if (item.id) {
+                    await updateDoc(doc(db, 'products', item.id.toString()), {
+                        stock: increment(-item.qty),
+                        sold: increment(item.qty)
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Failed to save order to Firebase database', err);
+        }
+
         clearCart();
         navigate('/');
     };
@@ -106,6 +156,7 @@ const CheckoutPage = () => {
                                 <div className="flex flex-wrap gap-4 mb-10">
                                     {/* Apple Pay */}
                                     <button
+                                        type="button"
                                         onClick={() => setPaymentMethod('apple')}
                                         className={`bg-black text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-1 font-semibold text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'apple'
                                             ? 'ring-4 ring-offset-2 ring-[#007AFF] scale-[1.05]'
@@ -117,6 +168,7 @@ const CheckoutPage = () => {
 
                                     {/* Bit */}
                                     <button
+                                        type="button"
                                         onClick={() => setPaymentMethod('bit')}
                                         className={`bg-white border-2 border-gray-100 text-[#00B4E6] px-6 py-3 rounded-2xl flex items-center justify-center font-black text-2xl tracking-tighter shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'bit'
                                             ? 'ring-4 ring-offset-2 ring-[#00B4E6] scale-[1.05]'
@@ -128,6 +180,7 @@ const CheckoutPage = () => {
 
                                     {/* PayPal */}
                                     <button
+                                        type="button"
                                         onClick={() => setPaymentMethod('paypal')}
                                         className={`bg-[#00457C] text-white px-6 py-3 rounded-2xl flex items-center justify-center font-bold italic text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'paypal'
                                             ? 'ring-4 ring-offset-2 ring-[#00457C] scale-[1.05]'
@@ -139,6 +192,7 @@ const CheckoutPage = () => {
 
                                     {/* Credit Card */}
                                     <button
+                                        type="button"
                                         onClick={() => setPaymentMethod('credit')}
                                         className={`bg-white border-2 border-gray-100 text-[#1D1D1F] px-6 py-3 rounded-2xl flex items-center justify-center gap-3 font-semibold text-lg shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'credit'
                                             ? 'ring-4 ring-offset-2 ring-[#1D1D1F] scale-[1.05]'
@@ -276,11 +330,17 @@ const CheckoutPage = () => {
                                     </div>
                                 </div>
 
+                                {!allowOrders && (
+                                    <div className="mt-6 bg-[#FF3B30]/08 border border-[#FF3B30]/20 rounded-2xl px-4 py-3 text-right">
+                                        <p className="text-[#FF3B30] text-sm font-bold">קבלת הזמנות מושהית כרגע. אנא נסו שוב מאוחר יותר.</p>
+                                    </div>
+                                )}
                                 <motion.button
                                     type="submit"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 mt-8 shadow-[0_20px_40px_rgb(29_29_31/0.2)] hover:bg-black transition-all duration-300 min-h-[56px] active:scale-[0.98]"
+                                    disabled={!allowOrders}
+                                    whileHover={allowOrders ? { scale: 1.02 } : {}}
+                                    whileTap={allowOrders ? { scale: 0.98 } : {}}
+                                    className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 mt-4 shadow-[0_20px_40px_rgb(29_29_31/0.2)] hover:bg-black transition-all duration-300 min-h-[56px] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                                 >
                                     <Lock className="w-5 h-5" strokeWidth={2.5} />
                                     <span>שלם עכשיו ₪{total.toLocaleString()}</span>

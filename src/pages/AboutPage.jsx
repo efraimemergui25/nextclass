@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionV
 import { Sparkles, Heart, Zap, Award, Globe, ShieldCheck, ChevronDown, Compass, Users } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 
-const GLASS_CARD = "glass-apple gestalt-card p-10 md:p-14 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-2xl";
+const GLASS_CARD = "glass-apple gestalt-card p-6 sm:p-10 md:p-14 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-2xl";
 
 const Counter = ({ value, label, suffix = "" }) => {
     const [count, setCount] = useState(0);
@@ -21,7 +21,7 @@ const Counter = ({ value, label, suffix = "" }) => {
 
     return (
         <div ref={ref} className="text-right">
-            <div className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-1">
+            <div className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-1">
                 {count.toLocaleString()}{suffix}
             </div>
             <div className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.2em]">{label}</div>
@@ -94,7 +94,7 @@ const AboutPage = () => {
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">הסיפור של NextClass</span>
                         </motion.div>
                         
-                        <h1 className="text-6xl md:text-9xl font-apple-display text-white tracking-tighter leading-[0.9] mb-12">
+                        <h1 className="text-4xl sm:text-6xl md:text-9xl font-apple-display text-white tracking-tighter leading-[0.9] mb-8 sm:mb-12">
                             חינוך חכם.<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">מוגדר מחדש.</span>
                         </h1>
@@ -102,7 +102,7 @@ const AboutPage = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.4 }}
-                            className="text-xl md:text-3xl text-white/80 font-medium max-w-4xl mx-auto leading-relaxed"
+                            className="text-base sm:text-xl md:text-3xl text-white/80 font-medium max-w-4xl mx-auto leading-relaxed px-2"
                         >
                             אנחנו לא רק מעצבים כיתות חכמות. אנחנו בונים את התשתית שעליה יצמח דור המנהיגים הבא של ישראל.
                         </motion.p>
@@ -119,7 +119,7 @@ const AboutPage = () => {
                 </section>
 
                 {/* ── Deep Narrative: The Human Connection ──────────────────── */}
-                <section className="py-32 px-6 bg-white relative">
+                <section className="py-16 sm:py-24 md:py-32 px-6 bg-white relative">
                     <div className="max-w-[1400px] mx-auto">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
                             
@@ -132,7 +132,7 @@ const AboutPage = () => {
                                 <div className="inline-flex p-3 rounded-2xl bg-blue-50 mb-8">
                                     <Heart size={24} className="text-[#007AFF] fill-[#007AFF]" />
                                 </div>
-                                <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-8 tracking-tighter leading-tight">
+                                <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-6 sm:mb-8 tracking-tighter leading-tight">
                                     הכל התחיל ב-2012.<br />
                                     <span className="text-gray-400">עם מסך אחד והרבה תסכול.</span>
                                 </h2>
@@ -145,7 +145,7 @@ const AboutPage = () => {
                                     </p>
                                 </div>
                                 
-                                <div className="mt-16 flex flex-wrap justify-end gap-12">
+                                <div className="mt-8 sm:mt-16 flex flex-wrap justify-end gap-6 sm:gap-12">
                                     <Counter value={500} label="מרכזי חדשנות" suffix="+" />
                                     <Counter value={250000} label="חלומות שהתגשמו" suffix="+" />
                                     <Counter value={100} label="אחוז מחויבות" suffix="%" />
@@ -182,10 +182,10 @@ const AboutPage = () => {
                 </section>
 
                 {/* ── Vertical Timeline ─────────────────────────────── */}
-                <section className="py-32 relative bg-[#F5F5F7]">
+                <section className="py-16 sm:py-24 md:py-32 relative bg-[#F5F5F7]">
                     <div className="max-w-5xl mx-auto px-6 relative">
-                        <div className="text-right mb-24">
-                            <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הדרך שעשינו</h2>
+                        <div className="text-right mb-12 sm:mb-24">
+                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הדרך שעשינו</h2>
                             <p className="text-xl text-gray-400 font-medium">עשור של פריצות דרך בחינוך הישראלי.</p>
                         </div>
 
@@ -198,7 +198,7 @@ const AboutPage = () => {
                 </section>
 
                 {/* ── Founder's Message: Heart of the Brand ──────────────────────────── */}
-                <section className="py-32 bg-white relative overflow-hidden">
+                <section className="py-16 sm:py-24 md:py-32 bg-white relative overflow-hidden">
                     <div className="max-w-6xl mx-auto px-6">
                         <div className={GLASS_CARD}>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -207,7 +207,7 @@ const AboutPage = () => {
                                         <span className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">מילה אישית מהמייסד</span>
                                         <div className="w-8 h-px bg-[#007AFF]" />
                                     </div>
-                                    <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-10 tracking-tighter leading-tight">
+                                    <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] mb-6 sm:mb-10 tracking-tighter leading-tight">
                                         "ההצלחה נמדדת בשטח.<br />לא בברושורים."
                                     </h2>
                                     <p className="text-xl text-gray-500 leading-relaxed font-medium mb-12">
@@ -237,10 +237,10 @@ const AboutPage = () => {
                 </section>
 
                 {/* ── Values: The NextClass DNA ──────────────────────────── */}
-                <section className="py-48 bg-[#F5F5F7] relative">
+                <section className="py-20 sm:py-32 md:py-48 bg-[#F5F5F7] relative">
                     <div className="max-w-7xl mx-auto px-6">
-                        <div className="text-center mb-24">
-                            <h2 className="text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הערכים שמניעים אותנו</h2>
+                        <div className="text-center mb-12 sm:mb-24">
+                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4">הערכים שמניעים אותנו</h2>
                             <p className="text-xl text-gray-400 font-medium">הבסיס לכל החלטה, לכל מוצר ולכל קשר.</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -267,7 +267,7 @@ const AboutPage = () => {
                                 <motion.div 
                                     key={i} 
                                     whileHover={{ y: -16, scale: 1.02 }}
-                                    className={`glass-apple p-12 rounded-[3rem] border border-white/60 text-right shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative overflow-hidden group bg-gradient-to-br ${v.gradient}`}
+                                    className={`glass-apple p-6 sm:p-10 md:p-12 rounded-[2rem] sm:rounded-[3rem] border border-white/60 text-right shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative overflow-hidden group bg-gradient-to-br ${v.gradient}`}
                                 >
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#007AFF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="w-16 h-16 rounded-[1.5rem] bg-white shadow-xl flex items-center justify-center mb-10 ml-auto transition-transform duration-500 group-hover:rotate-[10deg] group-hover:scale-110">
@@ -282,18 +282,18 @@ const AboutPage = () => {
                 </section>
 
                 {/* ── Final Call to Action ──────────────────────────── */}
-                <section className="py-48 bg-[#1D1D1F] relative overflow-hidden">
+                <section className="py-20 sm:py-32 md:py-48 bg-[#1D1D1F] relative overflow-hidden">
                     <div className="absolute inset-0 opacity-20">
                         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600 rounded-full blur-[150px] -mr-96 -mt-96" />
                         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-violet-600 rounded-full blur-[150px] -ml-64 -mb-64" />
                     </div>
                     
                     <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-                        <h2 className="text-5xl md:text-8xl font-apple-display text-white tracking-tighter mb-10 leading-[0.95]">
+                        <h2 className="text-4xl sm:text-5xl md:text-8xl font-apple-display text-white tracking-tighter mb-6 sm:mb-10 leading-[0.95]">
                             בואו נצייר את<br />
                             <span className="text-blue-500">המחר ביחד.</span>
                         </h2>
-                        <p className="text-2xl text-gray-400 font-medium mb-16 max-w-2xl mx-auto">
+                        <p className="text-lg sm:text-2xl text-gray-400 font-medium mb-10 sm:mb-16 max-w-2xl mx-auto">
                             אנחנו מחפשים את השותפים שמאמינים שחינוך הוא המשאב היקר ביותר שלנו. בואו נבנה משהו בלתי נשכח.
                         </p>
                         

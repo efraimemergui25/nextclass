@@ -3,27 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, ArrowUp, MessageCircle, Send, Plus, Minus, Info } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import Magnetic from './Magnetic';
+import { useProducts } from '../context/ProductsContext';
+import Anthropic from '@anthropic-ai/sdk';
 
 const WHATSAPP_NUMBER = '972500000000'; 
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
-const AI_MAP = {
-    מחיר: 'המחירים שלנו מותאמים אישית למוסדות חינוך. אשמח להכין לך הצעת מחיר רשמית למוסד שלך.',
-    מסך: 'המסכים האינטראקטיביים שלנו הם המתקדמים בשוק, עם 40 נקודות מגע ואיכות 4K. איזה גודל דרוש לכם?',
-    מחשב: 'מניידים ועד עמדות קצה - יש לנו פתרון לכל צורך לימודי. כמה עמדות אתם מתכננים?',
-    רובוט: 'ערכות ה-STEM שלנו מגיעות עם תמיכה מלאה למורים. זה מתאים ליסודי או לחטיבה?',
-    אחריות: 'השירות שלנו כולל הגעה לאתר הלקוח תוך זמן קצר מאוד. אנחנו כאן בשבילכם.',
-    default: 'נשמע מעניין! אני ממליץ לדבר איתנו ישירות בוואטסאפ לדיוק הצרכים 👇',
-};
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY || 'sk-ant-dummy-key',
+    dangerouslyAllowBrowser: true // For development only! Will move to Cloud Functions later.
+});
 
-const getReply = (text) => {
-    const lower = text.toLowerCase();
-    for (const [k, v] of Object.entries(AI_MAP)) {
-        if (k !== 'default' && lower.includes(k)) return v;
-    }
-    return AI_MAP.default;
-};
+
 
 const Bubble = memo(({ msg }) => {
     const isUser = msg.role === 'user';
@@ -73,6 +66,8 @@ const SmartConcierge = () => {
     const location = useLocation();
     const isProductPage = location.pathname.startsWith('/catalog/');
     
+    const { activeProducts } = useProducts();
+
     const getInitialMessage = () => {
         if (isProductPage) return 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?';
         return 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?';
@@ -95,17 +90,54 @@ const SmartConcierge = () => {
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
     useEffect(() => { if (isOpen) setTimeout(() => inputRef.current?.focus(), 400); }, [isOpen]);
 
-    const send = useCallback((text) => {
+    const send = useCallback(async (text) => {
         const t = (text ?? input).trim();
         if (!t) return;
-        setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: t }]);
+        
+        const newMessages = [...messages, { id: Date.now(), role: 'user', text: t }];
+        setMessages(newMessages);
         setInput('');
         setIsTyping(true);
-        setTimeout(() => {
+        
+        try {
+            // Check if API key exists
+            if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+                setTimeout(() => {
+                    setIsTyping(false);
+                    setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'סליחה, אני לא מחובר לענן כרגע. יש להזין מפתח API של Claude למערכת.' }]);
+                }, 1000);
+                return;
+            }
+
+            // Prepare catalog context for Claude
+            const catalogInfo = activeProducts.map(p => `- ${p.title} (${p.category}): ₪${p.price}. במלאי: ${p.stock > 0 ? 'כן' : 'לא'}. תיאור: ${p.description}`).join('\n');
+            const systemPrompt = `You are the official Smart Concierge for "NextClass", a premium Israeli B2B company selling tech equipment to educational institutions. 
+Respond in friendly, professional, sales-oriented Hebrew. Keep answers relatively brief.
+Here is the live catalog data you should refer to:
+${catalogInfo}`;
+
+            // Format history for Anthropic API
+            const history = newMessages
+                .filter(m => m.id !== 0) // exclude initial hardcoded msg to save context length if needed, or include it
+                .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+
+            const response = await anthropic.messages.create({
+                model: "claude-sonnet-4-6",
+                max_tokens: 300,
+                system: systemPrompt,
+                messages: history
+            });
+
+            const replyText = response.content[0].text;
             setIsTyping(false);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: getReply(t) }]);
-        }, 1000);
-    }, [input]);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: replyText }]);
+        } catch (error) {
+            console.error('Claude API Error Details:', error);
+            const errorMessage = error.message || JSON.stringify(error);
+            setIsTyping(false);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: `שגיאת שרת: ${errorMessage}` }]);
+        }
+    }, [input, messages, activeProducts]);
 
     const openWhatsApp = () => {
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=היי, אשמח להתייעץ לגבי פתרונות NextClass`, '_blank');

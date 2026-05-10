@@ -4,134 +4,66 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 
 // ─── Shared glass surface ─────────────────────────────────────────────────────
 const glassStyle = {
-    background: 'rgba(255,255,255,0.88)',
-    backdropFilter: 'blur(28px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.75)',
-    boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+    background: 'rgba(255, 255, 255, 0.65)',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+    border: '1px solid rgba(255, 255, 255, 0.8)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
 };
 
-// ─── Internal: glow overlay (needs hook context) ──────────────────────────────
-function GlowOverlay({ glowX, glowY, color }) {
-    const bg = useTransform(
-        [glowX, glowY],
-        ([x, y]) => `radial-gradient(circle at ${x * 100}% ${y * 100}%, ${color}22 0%, transparent 60%)`
-    );
+// ─── Common SVGs to replace Emojis ──────────────────────────────────────────
+const ICONS = {
+    revenue: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
+    orders: <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />,
+    traffic: <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />,
+    products: <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />,
+    alert: <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />,
+    empty: <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />,
+};
+
+// ─── Premium KPI Card ─────────────────────────────────────────────────────────
+export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, delay = 0, onClick }) {
     return (
         <motion.div
-            className="absolute inset-0 pointer-events-none rounded-[22px]"
-            style={{ background: bg }}
-        />
-    );
-}
-
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, sparkline, onClick }) {
-    const cardRef = useRef(null);
-    const mouseX = useMotionValue(0.5);
-    const mouseY = useMotionValue(0.5);
-    const glowX = useSpring(mouseX, { stiffness: 200, damping: 20 });
-    const glowY = useSpring(mouseY, { stiffness: 200, damping: 20 });
-
-    const handleMouseMove = useCallback((e) => {
-        const r = cardRef.current?.getBoundingClientRect();
-        if (!r) return;
-        mouseX.set((e.clientX - r.left) / r.width);
-        mouseY.set((e.clientY - r.top) / r.height);
-    }, [mouseX, mouseY]);
-
-    const handleMouseLeave = useCallback(() => {
-        mouseX.set(0.5);
-        mouseY.set(0.5);
-    }, [mouseX, mouseY]);
-
-    return (
-        <motion.div
-            ref={cardRef}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, type: 'spring', stiffness: 280, damping: 26 }}
-            whileHover={{ y: -4 }}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            transition={{ delay, type: 'spring', stiffness: 320, damping: 28 }}
+            whileHover={{ y: -2, scale: 1.01, boxShadow: '0 16px 40px rgba(0,0,0,0.08)' }}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-[22px] p-5 ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            className={`relative overflow-hidden rounded-[24px] p-6 transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
             style={glassStyle}
         >
-            {/* Accent top bar */}
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[22px]"
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
-
-            {/* Glow follows mouse */}
-            <GlowOverlay glowX={glowX} glowY={glowY} color={color} />
-
-            <div className="relative z-10 flex flex-col h-full pt-1">
-                <div className="flex items-start justify-between mb-3">
-                    <motion.div
-                        whileHover={{ scale: 1.1, rotate: -5 }}
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shrink-0"
-                        style={{ background: `${color}12`, border: `1px solid ${color}22` }}
-                    >
-                        {icon}
-                    </motion.div>
-                    {trend !== undefined && (
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: delay + 0.2, type: 'spring' }}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
-                                trendUp ? 'bg-[#34C759]/12 text-[#27A84E]' : 'bg-[#FF3B30]/12 text-[#CC2A20]'
-                            }`}
-                        >
-                            {trendUp ? '↑' : '↓'} {trend}%
-                        </motion.div>
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col">
+                    <p className="text-[#86868B] text-[12px] font-bold tracking-widest mb-1.5">{title}</p>
+                    <CountUp value={value} />
+                </div>
+                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 bg-white/60 shadow-sm border border-white text-[#1D1D1F]">
+                    {typeof icon === 'string' && ICONS[icon] ? (
+                        <svg className="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
+                    ) : (
+                        <span className="text-lg opacity-80">{icon}</span>
                     )}
                 </div>
+            </div>
 
-                <CountUp value={value} />
-                <p className="text-[#86868B] text-[10px] font-black uppercase tracking-[0.18em] mt-1">{title}</p>
-                {subtitle && <p className="text-[#AEAEB2] text-[11px] mt-1.5 leading-snug">{subtitle}</p>}
-
-                {sparkline && sparkline.length > 0 && (
-                    <div className="mt-4 -mx-1 -mb-1">
-                        <MiniSparklineArea data={sparkline} color={color} />
+            <div className="flex items-center justify-between mt-5 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                {subtitle ? (
+                    <p className="text-[#86868B] text-xs font-medium">{subtitle}</p>
+                ) : <div />}
+                
+                {trend !== undefined && (
+                    <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-lg ${trendUp ? 'bg-[#34C759]/10 text-[#248A3D]' : 'bg-[#FF3B30]/10 text-[#D12B22]'}`}>
+                        {trendUp ? (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>
+                        ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-7-7m7 7l7-7" /></svg>
+                        )}
+                        <span>{trend}%</span>
                     </div>
                 )}
             </div>
         </motion.div>
-    );
-}
-
-function MiniSparklineArea({ data, color }) {
-    if (!data?.length) return null;
-    const max = Math.max(...data, 1);
-    const w = 100, h = 36;
-    const PAD = 4;
-    const pts = data.map((v, i, arr) => ({
-        x: arr.length === 1 ? 50 : (i / (arr.length - 1)) * w,
-        y: PAD + (h - PAD * 2) - (v / max) * (h - PAD * 2),
-    }));
-
-    let line = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 1; i < pts.length; i++) {
-        const cpx = (pts[i-1].x + pts[i].x) / 2;
-        line += ` C ${cpx.toFixed(1)} ${pts[i-1].y.toFixed(1)} ${cpx.toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
-    }
-    const area = `${line} L ${w} ${h} L 0 ${h} Z`;
-    const uid = `sp${color.replace('#', '')}`;
-
-    return (
-        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full" style={{ height: 36 }}>
-            <defs>
-                <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0" />
-                </linearGradient>
-            </defs>
-            <path fill={`url(#${uid})`} d={area} />
-            <path fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" d={line} />
-            <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="2.5" fill={color} />
-        </svg>
     );
 }
 
@@ -160,7 +92,7 @@ function CountUp({ value }) {
         : display;
 
     return (
-        <p className="text-[30px] font-black tracking-tighter leading-none mt-1 text-[#1D1D1F]">
+        <p className="text-[34px] font-[800] tracking-tight leading-none text-[#1D1D1F]">
             {formatted}
         </p>
     );
@@ -168,26 +100,26 @@ function CountUp({ value }) {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const STATUS_MAP = {
-    'ממתין':    { bg: 'rgba(255,149,0,0.10)',   text: '#B86A00', dot: '#FF9500' },
-    'חדש':      { bg: 'rgba(255,59,48,0.10)',   text: '#C0392B', dot: '#FF3B30' },
-    'אושר':     { bg: 'rgba(0,122,255,0.10)',   text: '#005EC4', dot: '#007AFF' },
-    'נשלח':     { bg: 'rgba(88,86,214,0.10)',   text: '#4340A8', dot: '#5856D6' },
-    'נמסר':     { bg: 'rgba(52,199,89,0.10)',   text: '#1A8C40', dot: '#34C759' },
-    'בוטל':     { bg: 'rgba(255,59,48,0.10)',   text: '#C0392B', dot: '#FF3B30' },
-    'בטיפול':   { bg: 'rgba(255,149,0,0.10)',   text: '#B86A00', dot: '#FF9500' },
-    'נסגר':     { bg: 'rgba(52,199,89,0.10)',   text: '#1A8C40', dot: '#34C759' },
-    'פעיל':     { bg: 'rgba(52,199,89,0.10)',   text: '#1A8C40', dot: '#34C759' },
-    'לא פעיל':  { bg: 'rgba(134,134,139,0.10)', text: '#6E6E73', dot: '#AEAEB2' },
-    'תקין':     { bg: 'rgba(52,199,89,0.10)',   text: '#1A8C40', dot: '#34C759' },
-    'נמוך':     { bg: 'rgba(255,149,0,0.10)',   text: '#B86A00', dot: '#FF9500' },
-    'אזל':      { bg: 'rgba(255,59,48,0.10)',   text: '#C0392B', dot: '#FF3B30' },
+    'ממתין':    { bg: '#FFF5E5', border: '#FFE0B2', text: '#B86A00', dot: '#FF9500' },
+    'חדש':      { bg: '#FFEBEB', border: '#FFC7C7', text: '#C0392B', dot: '#FF3B30' },
+    'אושר':     { bg: '#E5F0FF', border: '#B2D4FF', text: '#005EC4', dot: '#007AFF' },
+    'נשלח':     { bg: '#EFEFFF', border: '#D0CFFF', text: '#4340A8', dot: '#5856D6' },
+    'נמסר':     { bg: '#EBF9EE', border: '#C7EDD0', text: '#1A8C40', dot: '#34C759' },
+    'בוטל':     { bg: '#FFEBEB', border: '#FFC7C7', text: '#C0392B', dot: '#FF3B30' },
+    'בטיפול':   { bg: '#FFF5E5', border: '#FFE0B2', text: '#B86A00', dot: '#FF9500' },
+    'נסגר':     { bg: '#EBF9EE', border: '#C7EDD0', text: '#1A8C40', dot: '#34C759' },
+    'פעיל':     { bg: '#EBF9EE', border: '#C7EDD0', text: '#1A8C40', dot: '#34C759' },
+    'לא פעיל':  { bg: '#F5F5F7', border: '#E5E5EA', text: '#6E6E73', dot: '#AEAEB2' },
+    'תקין':     { bg: '#EBF9EE', border: '#C7EDD0', text: '#1A8C40', dot: '#34C759' },
+    'נמוך':     { bg: '#FFF5E5', border: '#FFE0B2', text: '#B86A00', dot: '#FF9500' },
+    'אזל':      { bg: '#FFEBEB', border: '#FFC7C7', text: '#C0392B', dot: '#FF3B30' },
 };
 
 export function StatusBadge({ status, pulse }) {
-    const s = STATUS_MAP[status] || { bg: 'rgba(0,0,0,0.06)', text: '#1D1D1F', dot: '#6E6E73' };
+    const s = STATUS_MAP[status] || { bg: '#F5F5F7', border: '#E5E5EA', text: '#1D1D1F', dot: '#6E6E73' };
     return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black whitespace-nowrap"
-            style={{ background: s.bg, color: s.text }}>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold whitespace-nowrap"
+            style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.text }}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pulse ? 'animate-pulse' : ''}`} style={{ background: s.dot }} />
             {status}
         </span>
@@ -197,14 +129,14 @@ export function StatusBadge({ status, pulse }) {
 // ─── Table ────────────────────────────────────────────────────────────────────
 export function AdminTable({ columns, data, onRowClick, emptyMessage, emptyIcon, emptyAction }) {
     return (
-        <div className="w-full overflow-x-auto rounded-[22px] overflow-hidden" style={glassStyle}>
+        <div className="w-full overflow-x-auto rounded-[24px]" style={glassStyle}>
             <table className="w-full text-right min-w-[600px]">
                 <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <tr>
                         {columns.map(col => (
                             <th key={col.key}
-                                className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#AEAEB2] whitespace-nowrap"
-                                style={{ background: 'rgba(248,248,250,0.80)' }}>
+                                className="px-6 py-4 text-[12px] font-bold text-[#86868B] whitespace-nowrap"
+                                style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                                 {col.label}
                             </th>
                         ))}
@@ -216,15 +148,15 @@ export function AdminTable({ columns, data, onRowClick, emptyMessage, emptyIcon,
                             key={row.id || i}
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.025, type: 'spring', stiffness: 300, damping: 26 }}
+                            transition={{ delay: i * 0.015, duration: 0.3 }}
                             onClick={() => onRowClick?.(row)}
-                            className={`transition-colors group ${onRowClick ? 'cursor-pointer hover:bg-[#007AFF]/03' : ''}`}
-                            style={{ borderBottom: i < data.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}
+                            className={`transition-colors group ${onRowClick ? 'cursor-pointer hover:bg-black/[0.02]' : ''}`}
+                            style={{ borderBottom: i < data.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none' }}
                         >
                             {columns.map(col => (
-                                <td key={col.key} className="px-5 py-3.5 text-sm">
+                                <td key={col.key} className="px-6 py-4 text-sm text-[#1D1D1F]">
                                     {col.render ? col.render(row[col.key], row) : (
-                                        <span className="text-[#1D1D1F] font-medium">{row[col.key]}</span>
+                                        <span className="font-medium text-[14.5px]">{row[col.key]}</span>
                                     )}
                                 </td>
                             ))}
@@ -262,16 +194,16 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
 // ─── Section Header ───────────────────────────────────────────────────────────
 export function AdminSectionHeader({ title, subtitle, action }) {
     return (
-        <div className="flex items-start justify-between mb-7">
+        <div className="flex items-end justify-between mb-8 pb-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
             <div className="text-right">
                 <motion.h1 initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
-                    className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{title}</motion.h1>
+                    className="text-[32px] font-[800] text-[#1D1D1F] tracking-tight leading-none">{title}</motion.h1>
                 {subtitle && (
                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                        className="text-[#6E6E73] text-sm mt-1">{subtitle}</motion.p>
+                        className="text-[#86868B] text-[15px] font-medium mt-2">{subtitle}</motion.p>
                 )}
             </div>
-            {action && <div className="flex gap-2.5 shrink-0">{action}</div>}
+            {action && <div className="flex gap-3 shrink-0">{action}</div>}
         </div>
     );
 }
@@ -280,25 +212,30 @@ export function AdminSectionHeader({ title, subtitle, action }) {
 export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button' }) {
     const [popped, setPopped] = useState(false);
     const styles = {
-        primary: { bg: 'linear-gradient(135deg, #007AFF, #5856D6)', color: 'white', border: 'none', shadow: '0 4px 14px rgba(0,122,255,0.30)' },
-        success: { bg: 'linear-gradient(135deg, #34C759, #30D158)', color: 'white', border: 'none', shadow: '0 4px 14px rgba(52,199,89,0.30)' },
-        danger:  { bg: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.20)', shadow: 'none' },
-        ghost:   { bg: 'rgba(255,255,255,0.70)', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.10)', shadow: 'none' },
-        outline: { bg: 'transparent', color: '#007AFF', border: '1px solid rgba(0,122,255,0.40)', shadow: 'none' },
+        primary: { bg: '#1D1D1F', color: 'white', border: '1px solid #1D1D1F', shadow: '0 2px 8px rgba(0,0,0,0.1)' },
+        success: { bg: '#000000', color: 'white', border: '1px solid #000000', shadow: '0 2px 8px rgba(0,0,0,0.1)' },
+        danger:  { bg: 'transparent', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.20)', shadow: 'none' },
+        ghost:   { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.10)', shadow: 'none' },
+        outline: { bg: 'transparent', color: '#1D1D1F', border: '1px solid #1D1D1F', shadow: 'none' },
     };
     const s = styles[variant] || styles.primary;
-    const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-7 py-3.5 text-base' : 'px-4 py-2.5 text-sm';
+    const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-7 py-3 text-base' : 'px-4 py-2 text-sm';
 
     return (
         <motion.button
             type={type}
-            animate={popped ? { scale: [1, 0.92, 1.06, 1] } : {}}
-            transition={{ duration: 0.28 }}
-            whileHover={{ opacity: 0.88 }}
-            onClick={() => { setPopped(true); setTimeout(() => setPopped(false), 300); onClick?.(); }}
+            animate={popped ? { scale: [1, 0.95, 1.02, 1] } : {}}
+            transition={{ duration: 0.2 }}
+            whileHover={{ opacity: 0.9 }}
+            onClick={() => { setPopped(true); setTimeout(() => setPopped(false), 200); onClick?.(); }}
             disabled={disabled}
-            className={`${pad} rounded-xl font-bold disabled:opacity-35 whitespace-nowrap shrink-0`}
-            style={{ background: s.bg, color: s.color, border: s.border, boxShadow: s.shadow }}
+            className={`${pad} rounded-[10px] font-semibold disabled:opacity-50 whitespace-nowrap shrink-0 transition-colors hover:bg-black/05`}
+            style={{ 
+                background: variant === 'primary' || variant === 'success' ? s.bg : 'transparent', 
+                color: s.color, 
+                border: s.border, 
+                boxShadow: s.shadow 
+            }}
         >
             {children}
         </motion.button>
@@ -471,13 +408,9 @@ export function AdminTabs({ tabs, active, onChange }) {
 }
 
 // ─── Glass Panel ──────────────────────────────────────────────────────────────
-export function GlassPanel({ children, className = '', padding = 'p-6', accent }) {
+export function GlassPanel({ children, className = '', padding = 'p-6' }) {
     return (
-        <div className={`rounded-[22px] ${padding} ${className} relative overflow-hidden`} style={glassStyle}>
-            {accent && (
-                <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[22px]"
-                    style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
-            )}
+        <div className={`rounded-[24px] ${padding} ${className} relative overflow-hidden`} style={glassStyle}>
             {children}
         </div>
     );
@@ -642,36 +575,22 @@ export function AdminToggle({ label, sub, value, onChange }) {
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 export function AdminEmpty({ icon, title, subtitle, action }) {
-    const icons = {
-        orders:    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />,
-        products:  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />,
-        customers: <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-        search:    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
-    };
-
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center">
-            <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                className="w-16 h-16 rounded-[20px] flex items-center justify-center mb-5"
-                style={{ background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.12)' }}
-            >
-                {typeof icon === 'string' && icons[icon] ? (
-                    <svg className="w-7 h-7 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        {icons[icon]}
-                    </svg>
-                ) : <span className="text-3xl">{icon || '📭'}</span>}
-            </motion.div>
-            <p className="text-[#1D1D1F] font-black text-base mb-1">{title || 'אין נתונים'}</p>
-            {subtitle && <p className="text-[#AEAEB2] text-sm">{subtitle}</p>}
+            className="flex flex-col items-center justify-center py-24 text-center px-4">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#F5F5F7] text-[#86868B]">
+                {typeof icon === 'string' && ICONS[icon] ? (
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS[icon]}</svg>
+                ) : (
+                    <span className="text-3xl">{icon || <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS.empty}</svg>}</span>
+                )}
+            </div>
+            <p className="text-[#1D1D1F] font-bold text-lg mb-1.5">{title || 'אין נתונים להצגה'}</p>
+            {subtitle && <p className="text-[#86868B] text-sm max-w-sm">{subtitle}</p>}
             {action && (
-                <motion.button whileTap={{ scale: 0.96 }} onClick={action.onClick}
-                    className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)', boxShadow: '0 4px 14px rgba(0,122,255,0.28)' }}>
-                    {action.label}
-                </motion.button>
+                <div className="mt-6">
+                    <AdminButton onClick={action.onClick}>{action.label}</AdminButton>
+                </div>
             )}
         </motion.div>
     );
@@ -681,26 +600,31 @@ export function AdminEmpty({ icon, title, subtitle, action }) {
 export function AdminFAB({ actions = [] }) {
     const [open, setOpen] = useState(false);
     return (
-        <div className="fixed bottom-6 left-6 z-[100] flex flex-col items-end gap-3">
+        <div className="fixed bottom-8 left-8 z-[100] flex flex-col items-end gap-3">
             <AnimatePresence>
                 {open && actions.map((a, i) => (
                     <motion.button key={a.label}
-                        initial={{ opacity: 0, scale: 0.7, y: 10 }}
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.7, y: 10 }}
-                        transition={{ delay: i * 0.04, type: 'spring', stiffness: 400, damping: 26 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                        transition={{ delay: i * 0.04, duration: 0.2 }}
                         onClick={() => { a.onClick(); setOpen(false); }}
-                        className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold text-white whitespace-nowrap shadow-xl"
-                        style={{ background: a.color || 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
-                        <span>{a.icon}</span>{a.label}
+                        className="flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-[#1D1D1F] whitespace-nowrap shadow-xl bg-white border border-black/05 hover:bg-[#F5F5F7] transition-colors"
+                        >
+                        {typeof a.icon === 'string' && ICONS[a.icon] ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>{ICONS[a.icon]}</svg>
+                        ) : <span>{a.icon}</span>}
+                        {a.label}
                     </motion.button>
                 ))}
             </AnimatePresence>
-            <motion.button whileTap={{ scale: 0.92 }} animate={{ rotate: open ? 45 : 0 }}
+            <motion.button whileTap={{ scale: 0.95 }} animate={{ rotate: open ? 45 : 0 }}
                 onClick={() => setOpen(o => !o)}
-                className="w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl font-light"
-                style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 8px 32px rgba(0,122,255,0.40)' }}>
-                +
+                className="w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl font-light bg-[#1D1D1F] shadow-2xl hover:bg-black transition-colors"
+                >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
             </motion.button>
         </div>
     );

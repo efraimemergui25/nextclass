@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, List, SlidersHorizontal, X, Sparkles, Check, ShoppingCart, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
-import products from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import useCartPop from '../hooks/useCartPop';
@@ -30,7 +30,8 @@ const CatalogGrid = () => {
     const [sortBy, setSortBy] = useState('default');
     const [priceRange, setPriceRange] = useState([0, 30000]);
 
-    const categories = useMemo(() => ["הכל", ...new Set(products.map(p => p.category))], []);
+    const { activeProducts: products } = useProducts();
+    const categories = useMemo(() => ["הכל", ...new Set(products.map(p => p.category))], [products]);
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
@@ -44,7 +45,7 @@ const CatalogGrid = () => {
         else if (sortBy === 'name') result.sort((a, b) => a.title.localeCompare(b.title));
         
         return result;
-    }, [selectedCategory, sortBy, priceRange]);
+    }, [selectedCategory, sortBy, priceRange, products]);
 
     return (
         <section className="w-full max-w-[1440px] mx-auto px-6 md:px-24 pt-20 pb-32 bg-[#F5F5F7] relative z-10">
@@ -203,7 +204,7 @@ const CatalogGrid = () => {
                             {/* Inner Shine */}
                             <div className="absolute inset-0 pointer-events-none border-l border-white/80 z-10" />
                             
-                            <div className="relative z-20 p-12 flex flex-col h-full">
+                            <div className="relative z-20 p-6 sm:p-12 flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-16">
                                     <div className="flex flex-col text-right w-full">
                                         <h3 className="text-4xl font-black tracking-tight text-[#1D1D1F]">סינון מתקדם</h3>
@@ -351,10 +352,10 @@ const ListCard = ({ product }) => {
         >
             <motion.div
                 whileHover={{ y: -4 }}
-                className="flex items-center gap-8 bg-white/60 backdrop-blur-2xl rounded-[2.5rem] p-5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:shadow-2xl transition-all overflow-hidden"
+                className="flex items-center gap-4 sm:gap-8 bg-white/60 backdrop-blur-2xl rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:shadow-2xl transition-all overflow-hidden"
             >
                 {/* Image Section */}
-                <div className="relative z-10 w-32 h-32 shrink-0 rounded-[1.75rem] overflow-hidden bg-white border border-gray-100">
+                <div className="relative z-10 w-20 h-20 sm:w-32 sm:h-32 shrink-0 rounded-[1.25rem] sm:rounded-[1.75rem] overflow-hidden bg-white border border-gray-100">
                     {imgError || !image ? (
                         <ImageFallback />
                     ) : (
@@ -379,9 +380,9 @@ const ListCard = ({ product }) => {
                 </div>
 
                 {/* Price & Actions Section */}
-                <div className="relative z-20 shrink-0 flex items-center gap-12 pl-6 mr-4 border-r border-gray-100">
-                    <div className="text-left">
-                        <div className="text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
+                <div className="relative z-20 shrink-0 flex items-center gap-4 sm:gap-12 pl-4 sm:pl-6 mr-2 sm:mr-4 border-r border-gray-100">
+                    <div className="text-left hidden sm:block">
+                        <div className="text-xl sm:text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
                             {formattedPrice}
                         </div>
                         <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
@@ -407,7 +408,7 @@ const ListCard = ({ product }) => {
                                 onClick={handleCartToggle}
                                 animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
                                 whileTap={{ scale: 0.95 }}
-                                className={`h-12 min-w-[140px] px-6 rounded-full font-bold text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
+                                className={`h-12 min-w-[100px] sm:min-w-[140px] px-4 sm:px-6 rounded-full font-bold text-[12px] sm:text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
                             >
                                 <AnimatePresence mode="wait">
                                     {isInCart ? (

@@ -4,14 +4,12 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { LayoutGrid, List, SlidersHorizontal, X, Check } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import ProductCard from '../components/ProductCard';
-import products from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 import Magnetic from '../components/Magnetic';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import useCartPop from '../hooks/useCartPop';
 import { ShoppingCart, Scale } from 'lucide-react';
-
-const categories = ['הכל', ...new Set(products.map(p => p.category))];
 
 // ─── Animation variants ────────────────────────────────────────────────────
 const containerVariants = {
@@ -51,6 +49,10 @@ const CatalogPage = () => {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
     const tabsRef = useRef(null);
 
+    // ── Live product catalog from central ProductsContext (admin-synced) ──
+    const { activeProducts: products } = useProducts();
+    const categories = useMemo(() => ['הכל', ...new Set(products.map(p => p.category))], [products]);
+
     const initialCat = searchParams.get('category') ?? 'הכל';
     const [selectedCategory, setSelectedCategory] = useState(
         categories.includes(initialCat) ? initialCat : 'הכל'
@@ -70,15 +72,21 @@ const CatalogPage = () => {
         let result = selectedCategory === 'הכל'
             ? [...products]
             : products.filter(p => p.category === selectedCategory);
-            
-        result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
-        
-        if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price);
-        else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price);
-        else if (sortBy === 'name') result.sort((a, b) => a.title.localeCompare(b.title));
-        
+
+        // Hide admin-deactivated products
+        result = result.filter(p => p.isActive !== false);
+
+        result = result.filter(p => {
+            const price = typeof p.price === 'number' ? p.price : Number(p.price) || 0;
+            return price >= priceRange[0] && price <= priceRange[1];
+        });
+
+        if (sortBy === 'price-asc') result.sort((a, b) => Number(a.price) - Number(b.price));
+        else if (sortBy === 'price-desc') result.sort((a, b) => Number(b.price) - Number(a.price));
+        else if (sortBy === 'name') result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
         return result;
-    }, [selectedCategory, sortBy, priceRange]);
+    }, [products, selectedCategory, sortBy, priceRange]);
 
     return (
         <PageTransition>
@@ -99,7 +107,7 @@ const CatalogPage = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.05 }}
-                            className="text-5xl md:text-8xl font-bold text-[#1D1D1F] tracking-tighter leading-[1.05] mb-8"
+                            className="text-3xl sm:text-5xl md:text-8xl font-bold text-[#1D1D1F] tracking-tighter leading-[1.05] mb-5 sm:mb-8"
                         >
                             הכלים שמעצבים <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007AFF] to-[#5856D6]">את המחר.</span>
                         </motion.h1>
@@ -113,7 +121,7 @@ const CatalogPage = () => {
                         </motion.p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 relative z-50">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-8 mb-10 sm:mb-16 relative z-50">
                         {/* Category Tabs — RIGHT SIDE (First in RTL) */}
                         <div className="relative flex-1 min-w-0 overflow-hidden">
                             <div
@@ -172,7 +180,7 @@ const CatalogPage = () => {
                                         e.stopPropagation();
                                         setIsFilterOpen(true);
                                     }}
-                                    className="group relative flex items-center gap-3 px-8 py-4 rounded-full bg-[#1D1D1F] text-white font-bold text-[14px] shadow-2xl hover:scale-105 transition-all cursor-pointer overflow-hidden"
+                                    className="group relative flex items-center gap-2 sm:gap-3 px-5 sm:px-8 py-3 sm:py-4 rounded-full bg-[#1D1D1F] text-white font-bold text-[13px] sm:text-[14px] shadow-2xl hover:scale-105 transition-all cursor-pointer overflow-hidden"
                                 >
                                     <div className="relative flex items-center justify-center">
                                         <SlidersHorizontal size={18} strokeWidth={2.5} className="text-[#007AFF]" />
@@ -394,10 +402,10 @@ const ListCard = ({ product }) => {
         >
             <motion.div
                 whileHover={{ y: -4 }}
-                className="flex items-center gap-8 bg-white/60 backdrop-blur-2xl rounded-[2.5rem] p-5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:shadow-2xl transition-all overflow-hidden"
+                className="flex items-center gap-4 sm:gap-8 bg-white/60 backdrop-blur-2xl rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] hover:shadow-2xl transition-all overflow-hidden"
             >
                 {/* Image Section */}
-                <div className="relative z-10 w-32 h-32 shrink-0 rounded-[1.75rem] overflow-hidden bg-white border border-gray-100">
+                <div className="relative z-10 w-20 h-20 sm:w-32 sm:h-32 shrink-0 rounded-[1.25rem] sm:rounded-[1.75rem] overflow-hidden bg-white border border-gray-100">
                     {imgError || !image ? (
                         <ImageFallback />
                     ) : (
@@ -422,9 +430,9 @@ const ListCard = ({ product }) => {
                 </div>
 
                 {/* Price & Actions Section */}
-                <div className="relative z-20 shrink-0 flex items-center gap-12 pl-6 mr-4 border-r border-gray-100">
-                    <div className="text-left">
-                        <div className="text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
+                <div className="relative z-20 shrink-0 flex items-center gap-4 sm:gap-12 pl-4 sm:pl-6 mr-2 sm:mr-4 border-r border-gray-100">
+                    <div className="text-left hidden sm:block">
+                        <div className="text-xl sm:text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
                             {formattedPrice}
                         </div>
                         <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
@@ -450,7 +458,7 @@ const ListCard = ({ product }) => {
                                 onClick={handleCartToggle}
                                 animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
                                 whileTap={{ scale: 0.95 }}
-                                className={`group/cart h-12 min-w-[140px] px-6 rounded-full font-bold text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
+                                className={`group/cart h-12 min-w-[100px] sm:min-w-[140px] px-4 sm:px-6 rounded-full font-bold text-[12px] sm:text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
                             >
                                 <AnimatePresence mode="wait">
                                     {isInCart ? (

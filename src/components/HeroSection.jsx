@@ -1,20 +1,46 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
+const DEFAULTS = {
+    hero_headline: 'חדשנות חסרת פשרות.',
+    hero_subline: 'מקצוענות בכל מרחב למידה.',
+    hero_cta: 'גלו את הפתרונות שלנו',
+};
+
+function readContent() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
+        return {
+            hero_headline: stored.hero_headline || DEFAULTS.hero_headline,
+            hero_subline: stored.hero_subline || DEFAULTS.hero_subline,
+            hero_cta: stored.hero_cta || DEFAULTS.hero_cta,
+        };
+    } catch { return DEFAULTS; }
+}
+
 const HeroSection = () => {
     const navigate = useNavigate();
+    const [content, setContent] = useState(readContent);
+
+    useEffect(() => {
+        const onStorage = (e) => {
+            if (e.key === 'nextclass_content') setContent(readContent());
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
 
     const handleScrollDown = () => {
         window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
     };
 
-    // Staggered word reveal for headline
-    const titleWords = ['חדשנות', 'חסרת', 'פשרות.'];
-    const subWords = ['מקצוענות', 'בכל', 'מרחב', 'למידה.'];
+    // Split by spaces for stagger animation
+    const titleWords = content.hero_headline.split(' ');
+    const subWords = content.hero_subline.split(' ');
 
     return (
-        <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased">
+        <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased pb-20">
 
             {/* Background — parallax-ready, subtle scale-in */}
             <motion.div
@@ -52,31 +78,41 @@ const HeroSection = () => {
                 </motion.span>
 
                 {/* Staggered headline */}
-                <div className="flex flex-col items-center mb-16">
-                    <motion.h1 
-                        className="text-white text-6xl md:text-8xl font-apple-display tracking-tight leading-tight mb-4"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                        חדשנות חסרת פשרות.
-                    </motion.h1>
-                    <motion.h2
-                        className="text-white/60 text-3xl md:text-5xl font-light tracking-tight leading-tight"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                        מקצוענות בכל מרחב למידה.
-                    </motion.h2>
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-3">
+                    {titleWords.map((word, i) => (
+                        <motion.span
+                            key={word}
+                            className="text-hero text-white drop-shadow-2xl"
+                            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            {word}
+                        </motion.span>
+                    ))}
+                </div>
+
+                {/* Second headline line */}
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-8">
+                    {subWords.map((word, i) => (
+                        <motion.span
+                            key={word}
+                            className="text-hero text-white/80 font-bold drop-shadow-2xl"
+                            initial={{ opacity: 0, y: 40, filter: 'blur(8px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            transition={{ duration: 0.8, delay: 0.45 + i * 0.09, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                            {word}
+                        </motion.span>
+                    ))}
                 </div>
 
                 {/* Subtitle */}
                 <motion.p
-                    className="text-lg md:text-xl text-gray-400 font-medium leading-loose mx-auto max-w-2xl mb-16"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 1 }}
+                    className="text-hero-sub text-gray-300 mx-auto"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.85, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                 >
                     הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.
                 </motion.p>
@@ -86,15 +122,14 @@ const HeroSection = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    className="mt-10 flex justify-center"
+                    className="mt-8 sm:mt-10 flex justify-center px-6 sm:px-0"
                 >
-                    {/* Primary CTA */}
                     <motion.button
                         onClick={() => navigate('/discover')}
-                        whileHover={{ scale: 1.02, y: -1 }}
-                        whileTap={{ scale: 0.98 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                        className="relative overflow-hidden font-bold tracking-wide rounded-full px-12 py-4 text-lg text-white hover:text-[#1D1D1F] hover:bg-white transition-all duration-500"
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+                        className="relative overflow-hidden font-bold tracking-wide rounded-full px-8 sm:px-12 py-4 text-base sm:text-lg text-white hover:text-[#1D1D1F] hover:bg-white transition-all duration-500 w-full sm:w-auto"
                         style={{
                             background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)',
                             backdropFilter: 'blur(24px) saturate(1.5)',
@@ -104,7 +139,7 @@ const HeroSection = () => {
                         }}
                     >
                         <span className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
-                        גלו את הפתרונות שלנו
+                        {content.hero_cta}
                     </motion.button>
                 </motion.div>
             </div>
@@ -118,7 +153,6 @@ const HeroSection = () => {
                 transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
                 aria-label="גלול מטה"
             >
-                {/* Animated ring */}
                 <div className="relative flex flex-col items-center gap-2">
                     <div className="w-6 h-9 rounded-full border-2 border-current flex items-start justify-center pt-1.5">
                         <motion.div
