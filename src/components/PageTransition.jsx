@@ -49,8 +49,8 @@ const PageTransition = ({ children }) => {
             exit="exit"
             variants={pageVariants}
             onAnimationStart={() => {
-                // Immediate scroll to top during popLayout switch
-                window.scrollTo({ top: 0, behavior: 'instant' });
+                // Immediate scroll to top during switch
+                window.scrollTo(0, 0);
             }}
             className="w-full flex-1 flex flex-col origin-center will-change-[transform,opacity,filter]"
         >

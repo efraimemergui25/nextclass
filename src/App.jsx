@@ -27,7 +27,7 @@ import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
 import AccessibilityWidget from './components/AccessibilityWidget';
-import AdminApp from './admin/AdminApp';
+const AdminApp = React.lazy(() => import('./admin/AdminApp'));
 
 // Contexts
 import { CompareProvider } from './context/CompareContext';
@@ -79,7 +79,7 @@ if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
 function AnimatedRoutes() {
     const location = useLocation();
     return (
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
                 <Route path="/"           element={<LandingPage />} />
                 <Route path="/catalog"    element={<CatalogPage />} />
@@ -107,7 +107,11 @@ function AppContent() {
     const maintenance = getSetting('maintenance_mode', false);
 
     if (location.pathname.startsWith('/admin')) {
-        return <AdminApp />;
+        return (
+            <React.Suspense fallback={<div className="min-h-screen bg-[#F5F5F7]" />}>
+                <AdminApp />
+            </React.Suspense>
+        );
     }
 
     if (maintenance) {
@@ -155,9 +159,10 @@ function AppContent() {
                 <AnimatedRoutes />
             </main>
             <Footer />
-            {/* <SmartConcierge /> */}
+            <DynamicIsland />
+            <SmartConcierge />
             <CompareTray />
-            {/* {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />} */}
+            {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
         </div>
     );
 }
