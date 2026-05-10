@@ -30,10 +30,6 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_trust_bar',       label: 'שורת לוגואים (Trust)',   desc: 'הצגת לוגואים של מוסדות', icon: '🤝' },
     { key: 'vis_value_props',     label: 'יתרונות הפלטפורמה',       desc: 'קטע ה-Value Props והנתונים', icon: '⭐' },
     { key: 'vis_featured_products', label: 'מוצרים מומלצים',         desc: 'סקציית המלצות בתחתית דף הבית', icon: '✨' },
-    { key: 'vis_catalog',         label: 'קטלוג מוצרים (דף בית)',  desc: 'הצגת גריד מוצרים בדף הבית', icon: '🛍️' },
-    { key: 'vis_ecosystem',       label: 'אקוסיסטם ויזואלי',       desc: 'הדגמת השילוב בין המוצרים', icon: '🌐' },
-    { key: 'vis_shoppable',       label: 'תמונת רכישה (Shoppable)', desc: 'תמונה אינטראקטיבית עם נקודות חמות', icon: '📸' },
-    { key: 'vis_quote_wizard',    label: 'אשף הצעות מחיר',         desc: 'שאלון התאמה אישית מהיר', icon: '🧙' },
     { key: 'vis_testimonials',    label: 'עדויות לקוחות',           desc: 'סקציית חוות דעת וציטוטים', icon: '💬' },
     { key: 'vis_announcement_bar', label: 'בר הכרזות עליון',        desc: 'הסרגל שמופיע מעל ה-Header', icon: '📣' },
     { key: 'vis_about_page',      label: 'עמוד "הסיפור שלנו"',      desc: 'הפעלה/השבתה של עמוד האודות', icon: '📖' },
@@ -43,14 +39,6 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_ai_assistant',    label: 'עוזר אישי (AI)',         desc: 'הפעלה/השבתה של הווידג׳ט הצף', icon: '🤖' },
     { key: 'vis_a11y_widget',     label: 'נגישות (ווידג׳ט)',      desc: 'הפעלה/השבתה של תפריט הנגישות', icon: '♿' },
     { key: 'vis_qa_section',      label: 'שאלות ותשובות (מוצר)',   desc: 'הצגת קטע שאלות גולשים בדף מוצר', icon: '💬' },
-    { key: 'sidebar_visible',     label: 'סרגל ניווט צדדי',        desc: 'הצגת התפריט המרחף בדף מוצר', icon: '📋' },
-    { key: 'sidebar_vis_features', label: 'סרגל: תכונות',          desc: 'הצגת לינק לתכונות בסרגל', icon: '✨' },
-    { key: 'sidebar_vis_dims',     label: 'סרגל: מידות',           desc: 'הצגת לינק למידות בסרגל', icon: '📏' },
-    { key: 'sidebar_vis_specs',    label: 'סרגל: מפרט',            desc: 'הצגת לינק למפרט בסרגל', icon: '🔧' },
-    { key: 'sidebar_vis_support',  label: 'סרגל: תמיכה',           desc: 'הצגת לינק לתמיכה בסרגל', icon: '🎧' },
-    { key: 'sidebar_vis_faq',      label: 'סרגל: שאלות נפוצות',     desc: 'הצגת לינק ל-FAQ בסרגל', icon: '❓' },
-    { key: 'sidebar_vis_qa',       label: 'סרגל: שאלות גולשים',     desc: 'הצגת לינק ל-Q&A בסרגל', icon: '💬' },
-    { key: 'sidebar_vis_reviews',  label: 'סרגל: ביקורות',          desc: 'הצגת לינק לביקורות בסרגל', icon: '⭐' },
 ];
 
 const FIELD_SECTIONS = [

@@ -50,7 +50,7 @@ function ProductFAQ({ getSetting }) {
     ].filter(item => item.q && item.a);
     if (!items.length) return null;
     return (
-        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 scroll-mt-32">
             <div className="text-right mb-10">
                 <div className="flex items-center gap-3 justify-end mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות גולשים')}</h3>
@@ -101,7 +101,7 @@ function ProductReviews({ getSetting, product }) {
         { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים. איכות ומחיר מעולים.'), stars: 4 },
     ];
     return (
-        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24">
+        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24 scroll-mt-32">
             <div className="text-right mb-10">
                 <div className="flex items-center gap-3 justify-end mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_reviews_title', 'חוות דעת')}</h3>
@@ -175,7 +175,6 @@ const ProductDetailPage = () => {
         addToCart:  getSetting('catalog_add_to_cart', 'הוסף לעגלה'),
         buyNow:     getSetting('pd_buy_now', 'קנה עכשיו'),
         quickInquiry: getSetting('pd_quick_inquiry', 'שלח פנייה מהירה'),
-        requestQuote: getSetting('pd_request_quote', 'בקש הצעה'),
         requestQuoteInst: getSetting('pd_request_quote_inst', 'בקש הצעת מחיר מוסדית'),
         compareSelected: getSetting('pd_compare_selected', 'נבחר להשוואה'),
         compareBtn: getSetting('pd_compare_btn', 'השווה דגם'),
@@ -615,8 +614,8 @@ const ProductDetailPage = () => {
                                 </div>
                             </section>
 
-                            {/* Accessories ─ anchor for sidebar (renamed to avoid conflict with dims) */}
-                            <section id="pd-accessories" className="mb-12">
+                            {/* Accessories ─ anchor for sidebar */}
+                            <section id="pd-acc" className="mb-12">
                                 <div className="flex items-center justify-between mb-5">
                                     <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
                                     <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">{content.accOptional}</span>
@@ -757,49 +756,44 @@ const ProductDetailPage = () => {
                                     </Link>
                                 )}
 
-                                </div>
-
                                 <TrustBadges />
 
                                 {allowOrders && (
                                     <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                                        <Magnetic strength={0.15}>
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
-                                            >
-                                                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-                                                {allowOrders ? content.buyNow : content.quickInquiry}
-                                            </motion.button>
-                                        </Magnetic>
-
-                                        <Magnetic strength={0.15}>
-                                            <motion.button
-                                                onClick={handleCompareToggle}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                className={`flex-1 min-w-[200px] border-2 py-4 px-10 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                                </svg>
-                                                <span>{isProductSelectedForCompare ? content.compareSelected : content.compareBtn}</span>
-                                            </motion.button>
-                                        </Magnetic>
-
-                                        <Magnetic strength={0.15}>
-                                            <motion.button
-                                                onClick={handleWishlistToggle}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                className={`p-4 rounded-full border-2 flex justify-center items-center transition-apple-fluid ${wishlisted ? 'bg-[#FF2D55]/5 border-[#FF2D55] text-[#FF2D55]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF2D55]/30'}`}
-                                            >
-                                                <svg className="w-6 h-6" fill={wishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                                                </svg>
-                                            </motion.button>
-                                        </Magnetic>
+                                    <Magnetic strength={0.15}>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
+                                        >
+                                            {/* Shine effect for black button */}
+                                            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                                            {allowOrders ? content.buyNow : content.quickInquiry}
+                                        </motion.button>
+                                    </Magnetic>
+                                    <Magnetic strength={0.15}>
+                                        <motion.button
+                                            onClick={handleCompareToggle}
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className={`flex-1 min-w-[200px] border-2 py-4 px-10 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                            </svg>
+                                    </Magnetic>
+                                    <Magnetic strength={0.15}>
+                                        <motion.button
+                                            onClick={handleWishlistToggle}
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className={`p-4 rounded-full border-2 flex justify-center items-center transition-apple-fluid ${wishlisted ? 'bg-[#FF2D55]/5 border-[#FF2D55] text-[#FF2D55]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF2D55]/30'}`}
+                                        >
+                                            <svg className="w-6 h-6" fill={wishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                            </svg>
+                                        </motion.button>
+                                    </Magnetic>
                                     </div>
                                 )}
                             </div>
@@ -808,7 +802,7 @@ const ProductDetailPage = () => {
 
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
-                    <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
+                    <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)] scroll-mt-32">
                         <div className="max-w-7xl mx-auto h-full flex flex-col md:grid md:grid-cols-2 relative">
 
                             {/* Sticky Visual — order 1 on mobile, 2 on desktop */}
@@ -868,43 +862,55 @@ const ProductDetailPage = () => {
                                 ))}
                             </div>
 
+                        </div>
                     </div>
 
-                    {/* ─── Product Dimensions Section ────────────────────────────── */}
-                    <section id="pd-dims" className="max-w-[1200px] mx-auto mt-24 md:mt-40 mb-24 px-6 md:px-12">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                            <div className="text-right">
-                                <span className="text-xs font-black text-[#007AFF] uppercase tracking-[0.2em] mb-4 block">Dimensions & Weight</span>
-                                <h3 className="text-3xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-6">התאמה מושלמת למרחב שלך</h3>
-                                <p className="text-lg text-[#86868B] leading-relaxed mb-10">תכנון נכון של מרחב הלמידה מתחיל במידות מדויקות. כל המוצרים שלנו מתוכננים לעמידות ונוחות מקסימלית.</p>
-                                
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-sm">
-                                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">רוחב</p>
-                                        <p className="text-2xl font-black text-[#1D1D1F]">{product.specs?.find(s => s.label.includes('גודל'))?.value || '165.5 ס"מ'}</p>
-                                    </div>
-                                    <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-sm">
-                                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">משקל</p>
-                                        <p className="text-2xl font-black text-[#1D1D1F]">{product.specs?.find(s => s.label.includes('משקל'))?.value || '48 ק"ג'}</p>
+                    {/* ─── Product Dimensions Section ──────────────────────────────── */}
+                    <section id="pd-dims" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12 scroll-mt-32">
+                        <div className="bg-white/80 backdrop-blur-2xl rounded-[3rem] p-10 md:p-16 border border-white/50 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/5 blur-[100px] -translate-x-1/2 -translate-y-1/2" />
+                            <div className="flex flex-col md:flex-row items-center gap-12">
+                                <div className="flex-1 text-right">
+                                    <h3 className="text-3xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-6">{getSetting('pd_dims_title', 'מידות ומבנה')}</h3>
+                                    <p className="text-lg text-gray-500 font-medium mb-10">{getSetting('pd_dims_desc', 'תכנון ארגונומי המותאם בצורה מושלמת למרחב הלמידה המודרני.')}</p>
+                                    
+                                    <div className="grid grid-cols-2 gap-6">
+                                        {[
+                                            { label: 'רוחב', value: product.specs?.find(s => s.label.includes('רוחב') || s.label.includes('גודל'))?.value || '170 ס"מ' },
+                                            { label: 'גובה', value: product.specs?.find(s => s.label.includes('גובה'))?.value || '102 ס"מ' },
+                                            { label: 'עומק', value: product.specs?.find(s => s.label.includes('עומק'))?.value || '8.5 ס"מ' },
+                                            { label: 'משקל', value: product.specs?.find(s => s.label.includes('משקל'))?.value || '42 ק"ג' },
+                                        ].map((dim, idx) => (
+                                            <div key={idx} className="bg-[#F5F5F7] p-4 rounded-2xl text-right border border-gray-100">
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">{dim.label}</p>
+                                                <p className="text-xl font-black text-[#1D1D1F]">{dim.value}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
-                            <div className="relative aspect-square md:aspect-[4/3] rounded-[3rem] overflow-hidden bg-white shadow-2xl group">
-                                <img 
-                                    src={product.image} 
-                                    alt="Dimensions Preview" 
-                                    className="w-full h-full object-contain p-12 opacity-80 group-hover:scale-105 transition-transform duration-1000"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
-                                {/* Blueprint overlay effect */}
-                                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+                                <div className="w-full md:w-1/2 aspect-square md:aspect-[4/3] rounded-[2rem] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-8 relative">
+                                    {/* Abstract ruler visual */}
+                                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        whileInView={{ opacity: 1, scale: 1 }}
+                                        viewport={{ once: true }}
+                                        className="relative z-10 w-full h-full border-2 border-dashed border-blue-500/20 rounded-xl flex items-center justify-center"
+                                    >
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pt-4 text-[10px] font-bold text-blue-400">1700mm</div>
+                                        <div className="absolute right-0 top-1/2 translate-x-full translate-y-[-50%] pr-4 text-[10px] font-bold text-blue-400 [writing-mode:vertical-rl]">1020mm</div>
+                                        <svg className="w-32 h-32 text-blue-500/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h3.375m-10.5 0h3.375m-3.375-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5" />
+                                        </svg>
+                                    </motion.div>
+                                </div>
                             </div>
                         </div>
                     </section>
 
                     {/* ─── Technical Specs Grid ──────────────────────────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
+                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12 scroll-mt-32">
                             <div
                                 className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] border border-white/60 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden relative"
                             >
@@ -943,68 +949,86 @@ const ProductDetailPage = () => {
                     )}
                 </div>
 
-                {/* ─── Service, Support & Warranty ────────────────────────────── */}
-                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 space-y-8">
-                    {/* Combined Service & Warranty Card */}
-                    <div className="rounded-[3.5rem] p-8 md:p-16 bg-white border border-gray-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 pointer-events-none" />
-                        
-                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12">
-                            {/* Warranty Info (Right 7 cols) */}
-                            <div className="lg:col-span-7 text-right">
-                                <div className="flex items-center gap-3 justify-end mb-6">
-                                    <h3 className="text-3xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter">
-                                        {getSetting('pd_warranty_title', 'שירות, תמיכה ואחריות')}
-                                    </h3>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#007AFF] text-white flex items-center justify-center shadow-lg shadow-[#007AFF]/20">
-                                        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p className="text-lg text-[#6E6E73] leading-relaxed mb-10">
-                                    {getSetting('pd_warranty_text', 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף.')}
-                                </p>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {[
-                                        { icon: '🛡️', label: 'אחריות מלאה', sub: '12 חודשי יצרן' },
-                                        { icon: '🔧', label: 'תיקון בבית הלקוח', sub: 'טכנאי עד 48 שעות' },
-                                    ].map((b, i) => (
-                                        <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-[#F5F5F7] border border-gray-100">
-                                            <span className="text-3xl">{b.icon}</span>
-                                            <div className="text-right">
-                                                <p className="font-black text-[#1D1D1F] text-sm">{b.label}</p>
-                                                <p className="text-[#86868B] text-xs font-medium">{b.sub}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                {/* ─── Warranty & Purchase Terms ──────────────────────────────── */}
+                <section id="pd-warranty" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+                    <div className="rounded-[3rem] p-8 md:p-14 relative overflow-hidden"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0,122,255,0.04) 0%, rgba(255,255,255,0.95) 60%)',
+                            border: '1px solid rgba(0,122,255,0.12)',
+                            boxShadow: '0 8px 40px rgba(0,0,0,0.04)',
+                        }}>
+                        <div className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none -z-0"
+                            style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.06) 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
+                        <div className="relative z-10 text-right">
+                            <div className="flex items-center gap-3 justify-end mb-6">
+                                <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
+                                    {getSetting('pd_warranty_title', 'תנאי רכישה ואחריות')}
+                                </h3>
+                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                                    style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.15)' }}>
+                                    <svg className="w-6 h-6 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
                                 </div>
                             </div>
-
-                            {/* Contact Links (Left 5 cols) */}
-                            <div className="lg:col-span-5 flex flex-col gap-4">
+                            <div className="h-1 w-12 bg-[#007AFF] rounded-full mb-8 mr-0 ml-auto" />
+                            <p className="text-gray-500 text-base md:text-lg leading-relaxed max-w-3xl mr-0 ml-auto whitespace-pre-line">
+                                {getSetting('pd_warranty_text', 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף. כל המוצרים עוברים בדיקת איכות קפדנית לפני המשלוח.')}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
                                 {[
-                                    { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: 'תמיכה טלפונית', value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
-                                    { icon: '✉️', href: `mailto:${getSetting('contact_email','info@nextclass.co.il')}`, label: 'שלח מייל', value: getSetting('contact_email','info@nextclass.co.il'), color: '#5856D6' },
-                                    { icon: '💬', href: 'https://wa.me/972546398257', label: 'וואטסאפ עסקי', value: 'זמינים למענה מהיר', color: '#25D366' },
-                                ].map((item, i) => (
-                                    <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
-                                        className="group flex items-center gap-4 p-5 rounded-3xl transition-all hover:bg-white hover:shadow-xl border border-transparent hover:border-gray-100"
-                                        style={{ background: `${item.color}05` }}>
-                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110" style={{ background: `${item.color}10`, color: item.color }}>
-                                            {item.icon}
+                                    { icon: '🛡️', label: getSetting('pd_warranty_badge1', 'אחריות יצרן'), sub: getSetting('pd_warranty_badge1_sub', '12 חודשים') },
+                                    { icon: '🔧', label: getSetting('pd_warranty_badge2', 'תיקון חינם'),  sub: getSetting('pd_warranty_badge2_sub', 'כולל חלפים') },
+                                    { icon: '📦', label: getSetting('pd_warranty_badge3', 'החלפת מוצר'),  sub: getSetting('pd_warranty_badge3_sub', 'תוך 30 יום') },
+                                ].map((b, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-4 rounded-2xl"
+                                        style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                                        <span className="text-2xl">{b.icon}</span>
+                                        <div className="text-right">
+                                            <p className="font-black text-[#1D1D1F] text-sm">{b.label}</p>
+                                            <p className="text-[#86868B] text-xs font-medium">{b.sub}</p>
                                         </div>
-                                        <div className="text-right flex-1">
-                                            <p className="text-[10px] font-black uppercase tracking-widest mb-0.5 opacity-60" style={{ color: item.color }}>{item.label}</p>
-                                            <p className="font-bold text-[#1D1D1F] text-sm">{item.value}</p>
-                                        </div>
-                                        <svg className="w-5 h-5 text-gray-300 group-hover:text-[#007AFF] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </a>
+                                    </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ─── Service & Support ──────────────────────────────────────── */}
+                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 scroll-mt-32">
+                    <div className="rounded-[3rem] p-8 md:p-14"
+                        style={{
+                            background: 'rgba(255,255,255,0.88)',
+                            backdropFilter: 'blur(32px) saturate(1.8)',
+                            WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
+                            border: '1px solid rgba(255,255,255,0.82)',
+                            boxShadow: '0 8px 40px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+                        }}>
+                        <div className="flex items-center gap-3 justify-end mb-8">
+                            <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_support_title', 'שירות ותמיכה')}</h3>
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.18)' }}>
+                                <svg className="w-6 h-6 text-[#34C759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-right">
+                            {[
+                                { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: getSetting('pd_support_phone_label','תמיכה טלפונית'), value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
+                                { icon: '✉️', href: `mailto:${getSetting('contact_email','info@nextclass.co.il')}`, label: getSetting('pd_support_email_label','שלח מייל'), value: getSetting('contact_email','info@nextclass.co.il'), color: '#5856D6' },
+                                { icon: '💬', href: 'https://wa.me/972546398257', label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
+                            ].map((item, i) => (
+                                <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
+                                    className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:scale-[1.02]"
+                                    style={{ background: `${item.color}08`, border: `1px solid ${item.color}18`, boxShadow: `0 4px 16px ${item.color}0A` }}>
+                                    <span className="text-2xl">{item.icon}</span>
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: item.color }}>{item.label}</p>
+                                        <p className="font-bold text-[#1D1D1F] text-sm group-hover:underline">{item.value}</p>
+                                    </div>
+                                </a>
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -1012,11 +1036,13 @@ const ProductDetailPage = () => {
                 {/* ─── FAQ — Frequently Asked Questions ───────────────────────── */}
                 <ProductFAQ getSetting={getSetting} />
 
+                {/* ─── Q&A ────────────────────────────────────────────────────── */}
+                <div id="pd-qa" className="scroll-mt-32">
+                    {isVisible('vis_qa_section', true) && <ProductQA productId={product?.id} />}
+                </div>
+
                 {/* ─── Reviews ────────────────────────────────────────────────── */}
                 <ProductReviews getSetting={getSetting} product={product} />
-
-                {/* ─── Q&A ────────────────────────────────────────────────────── */}
-                {isVisible('vis_qa_section', true) && <ProductQA productId={product?.id} />}
 
                 {/* ─── Recently Viewed Tray ─────────────────────────────────── */}
                 <RecentlyViewedTray recentIds={recentIds} currentId={product?.id} />

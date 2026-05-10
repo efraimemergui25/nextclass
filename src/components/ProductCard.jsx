@@ -178,8 +178,7 @@ const ProductCard = ({ product }) => {
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
         >
-            <motion.div
-                style={{ rotateX, rotateY }}
+            {/* ── 3D tiltable card ────────────────────────────────────────── */}
                 className="flex flex-col h-full glass-apple rounded-[3rem] relative transform-gpu will-change-transform shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] border border-white/40 overflow-hidden"
             >
                 <Link

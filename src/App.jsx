@@ -1,40 +1,4 @@
 import React, { useEffect, useState, Component } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-
-// Pages
-import LandingPage from './pages/LandingPage';
-import CatalogPage from './pages/CatalogPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import AboutPage from './pages/AboutPage';
-import SuccessStoriesPage from './pages/SuccessStoriesPage';
-import SupportPage from './pages/SupportPage';
-import ContactPage from './pages/ContactPage';
-import VODCenterPage from './pages/VODCenterPage';
-import MagazinePage from './pages/MagazinePage';
-import ComparePage from './pages/ComparePage';
-import DiscoverPage from './pages/DiscoverPage';
-import WishlistPage from './pages/WishlistPage';
-
-// Global Components
-import Header from './components/Header';
-import Footer from './components/Footer';
-import AnnouncementBar from './components/AnnouncementBar';
-import DynamicIsland from './components/DynamicIsland';
-import SmartConcierge from './components/SmartConcierge';
-import CompareTray from './components/CompareTray';
-import GlassCanvas from './components/GlassCanvas';
-import AccessibilityWidget from './components/AccessibilityWidget';
-const AdminApp = React.lazy(() => import('./admin/AdminApp'));
-
-// Contexts
-import { CompareProvider } from './context/CompareContext';
-import { CartProvider } from './context/CartContext';
-import { ProductsProvider } from './context/ProductsContext';
-import { SettingsProvider, useSettings } from './context/SettingsContext';
-import { WishlistProvider } from './context/WishlistContext';
 
 class AppErrorBoundary extends Component {
     state = { crashed: false, error: null };
@@ -54,24 +18,63 @@ class AppErrorBoundary extends Component {
         );
     }
 }
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 
+import Header from './components/Header';
+import Footer from './components/Footer';
+import LandingPage from './pages/LandingPage';
+import CatalogPage from './pages/CatalogPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import AboutPage from './pages/AboutPage';
+import SuccessStoriesPage from './pages/SuccessStoriesPage';
+import SupportPage from './pages/SupportPage';
+import ContactPage from './pages/ContactPage';
+import VODCenterPage from './pages/VODCenterPage';
+import MagazinePage from './pages/MagazinePage';
+import ComparePage from './pages/ComparePage';
+import DiscoverPage from './pages/DiscoverPage';
+import AnnouncementBar from './components/AnnouncementBar';
+import DynamicIsland from './components/DynamicIsland';
+import SmartConcierge from './components/SmartConcierge';
+import CompareTray from './components/CompareTray';
+import GlassCanvas from './components/GlassCanvas';
+import { CompareProvider } from './context/CompareContext';
+import { CartProvider } from './context/CartContext';
+import { ProductsProvider } from './context/ProductsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { WishlistProvider } from './context/WishlistContext';
+import WishlistPage from './pages/WishlistPage';
+import AccessibilityWidget from './components/AccessibilityWidget';
+import AdminApp from './admin/AdminApp';
+
+// ─── Analytics Tracker ──────────────────────────────────────────────────────
 function AnalyticsTracker() {
     const location = useLocation();
+
     useEffect(() => {
+        // Don't track admin pages
         if (location.pathname.startsWith('/admin')) return;
+
         try {
             const today = new Date().toISOString().split('T')[0];
             const savedVisits = localStorage.getItem('nextclass_visits');
             const visits = savedVisits ? JSON.parse(savedVisits) : {};
+            
             visits[today] = (visits[today] || 0) + 1;
             localStorage.setItem('nextclass_visits', JSON.stringify(visits));
         } catch (e) {
             console.error('Analytics tracking failed', e);
         }
     }, [location]);
+
     return null;
 }
 
+
+// Preserve manual scroll restoration for smooth route transitions
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
     window.history.scrollRestoration = 'manual';
 }
@@ -79,7 +82,7 @@ if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
 function AnimatedRoutes() {
     const location = useLocation();
     return (
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
             <Routes location={location} key={location.pathname}>
                 <Route path="/"           element={<LandingPage />} />
                 <Route path="/catalog"    element={<CatalogPage />} />
@@ -101,19 +104,37 @@ function AnimatedRoutes() {
     );
 }
 
+function App() {
+    return (
+        <AppErrorBoundary>
+            <SettingsProvider>
+                <WishlistProvider>
+                    <CartProvider>
+                        <ProductsProvider>
+                            <CompareProvider>
+                                <Router>
+                                    <AppContent />
+                                </Router>
+                            </CompareProvider>
+                        </ProductsProvider>
+                    </CartProvider>
+                </WishlistProvider>
+            </SettingsProvider>
+        </AppErrorBoundary>
+    );
+}
+
 function AppContent() {
     const location = useLocation();
-    const { getSetting, isVisible } = useSettings();
+    const { getSetting } = useSettings();
     const maintenance = getSetting('maintenance_mode', false);
 
+    // ─── Admin Route Isolation ────────────────────────────────────────────────
     if (location.pathname.startsWith('/admin')) {
-        return (
-            <React.Suspense fallback={<div className="min-h-screen bg-[#F5F5F7]" />}>
-                <AdminApp />
-            </React.Suspense>
-        );
+        return <AdminApp />;
     }
 
+    // ─── Maintenance Mode ──────────────────────────────────────────────────────
     if (maintenance) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F7] text-center px-6">
@@ -130,6 +151,7 @@ function AppContent() {
         );
     }
 
+    // ─── Adaptive Mood — unique color personality per page ──────────────────
     const getMood = () => {
         const path = location.pathname;
         if (path === '/')                              return { primary: '#007AFF', secondary: '#5856D6' };
@@ -152,37 +174,23 @@ function AppContent() {
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
             <AnalyticsTracker />
+            {/* ── Living Aurora Atmosphere — reactive, always present ── */}
             <GlassCanvas mood={mood} />
+
             <AnnouncementBar />
             <Header />
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
                 <AnimatedRoutes />
             </main>
             <Footer />
+
+            {/* ── Global Floating UI Layer ── */}
             <DynamicIsland />
-            {isVisible('vis_ai_assistant', true) && <SmartConcierge />}
+            <SmartConcierge />
             <CompareTray />
-            {isVisible('vis_a11y_widget', true) && <AccessibilityWidget />}
+            {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
         </div>
     );
 }
 
-export default function App() {
-    return (
-        <AppErrorBoundary>
-            <SettingsProvider>
-                <WishlistProvider>
-                    <CartProvider>
-                        <ProductsProvider>
-                            <CompareProvider>
-                                <Router>
-                                    <AppContent />
-                                </Router>
-                            </CompareProvider>
-                        </ProductsProvider>
-                    </CartProvider>
-                </WishlistProvider>
-            </SettingsProvider>
-        </AppErrorBoundary>
-    );
-}
+export default App;
