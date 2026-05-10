@@ -7,7 +7,7 @@ import {
     AdminTextArea, 
     AdminToggle, 
     AdminButton 
-} from '../components/AdminShared';
+} from '../components/AdminComponents';
 import { 
     Eye, 
     Layout, 
