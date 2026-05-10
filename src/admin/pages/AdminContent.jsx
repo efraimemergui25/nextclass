@@ -309,27 +309,27 @@ const ALL_SECTIONS = [
 
 // ── Shared UI Components ───────────────────────────────────────────────────
 
-const AdminInputItem = ({ label, value, onChange, placeholder = \"\" }) => (
-    <div className=\"space-y-2\">
-        <label className=\"text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right block\">{label}</label>
+const AdminInputItem = ({ label, value, onChange, placeholder = "" }) => (
+    <div className="space-y-2">
+        <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right block">{label}</label>
         <input
-            type=\"text\"
-            value={value || \"\"}
+            type="text"
+            value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className=\"w-full px-5 py-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-[15px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all\"
+            className="w-full px-5 py-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-[15px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all"
         />
     </div>
 );
 
 const AdminTextAreaItem = ({ label, value, onChange, rows = 3 }) => (
-    <div className=\"space-y-2\">
-        <label className=\"text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right block\">{label}</label>
+    <div className="space-y-2">
+        <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right block">{label}</label>
         <textarea
-            value={value || \"\"}
+            value={value || ""}
             onChange={(e) => onChange(e.target.value)}
             rows={rows}
-            className=\"w-full px-5 py-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-[15px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all resize-none\"
+            className="w-full px-5 py-4 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-[15px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all resize-none"
         />
     </div>
 );
@@ -362,26 +362,26 @@ const MenuReorderSection = ({ content, onChange }) => {
     };
 
     return (
-        <div className=\"p-6 space-y-4\">
-            <p className=\"text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right mb-4\">
+        <div className="p-6 space-y-4">
+            <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right mb-4">
                 גררו פריטים כדי לשנות את סדר הניווט באתר
             </p>
-            <div className=\"space-y-2\">
+            <div className="space-y-2">
                 {items.map((item, idx) => (
                     <motion.div
                         key={item.id}
                         layout
-                        className=\"flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-move group hover:border-[#007AFF]/30 transition-colors\"
+                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-move group hover:border-[#007AFF]/30 transition-colors"
                     >
-                        <div className=\"flex flex-col gap-1 text-[#AEAEB2] group-hover:text-[#007AFF] transition-colors\">
-                            <button onClick={() => idx > 0 && move(idx, idx - 1)} className=\"hover:scale-125 transition-transform\">▲</button>
-                            <button onClick={() => idx < items.length - 1 && move(idx, idx + 1)} className=\"hover:scale-125 transition-transform\">▼</button>
+                        <div className="flex flex-col gap-1 text-[#AEAEB2] group-hover:text-[#007AFF] transition-colors">
+                            <button onClick={() => idx > 0 && move(idx, idx - 1)} className="hover:scale-125 transition-transform">▲</button>
+                            <button onClick={() => idx < items.length - 1 && move(idx, idx + 1)} className="hover:scale-125 transition-transform">▼</button>
                         </div>
-                        <div className=\"flex-1 text-right\">
-                            <p className=\"text-sm font-bold text-[#1D1D1F]\">{item.label}</p>
-                            <p className=\"text-[10px] text-gray-400 font-mono\">{item.path}</p>
+                        <div className="flex-1 text-right">
+                            <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{item.path}</p>
                         </div>
-                        <div className=\"w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-[#AEAEB2]\">
+                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-[#AEAEB2]">
                             {idx + 1}
                         </div>
                     </motion.div>
@@ -402,14 +402,14 @@ const FieldInput = ({ field, value, onChange }) => {
 };
 
 const VisibilitySection = ({ content, onChange }) => (
-    <div className=\"p-6 grid grid-cols-1 md:grid-cols-2 gap-4\">
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         {VISIBILITY_ITEMS.map(item => (
-            <div key={item.key} className=\"flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100\">
-                <div className=\"flex items-center gap-3\">
-                    <span className=\"text-xl\">{item.icon}</span>
-                    <div className=\"text-right\">
-                        <p className=\"text-sm font-bold text-[#1D1D1F]\">{item.label}</p>
-                        <p className=\"text-[11px] text-gray-500\">{item.desc}</p>
+            <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <div className="flex items-center gap-3">
+                    <span className="text-xl">{item.icon}</span>
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
+                        <p className="text-[11px] text-gray-500">{item.desc}</p>
                     </div>
                 </div>
                 <AdminToggle
@@ -433,15 +433,15 @@ const VideosSection = ({ showToast }) => {
     };
 
     return (
-        <div className=\"p-6\">
-            <div className=\"grid grid-cols-1 gap-3\">
+        <div className="p-6">
+            <div className="grid grid-cols-1 gap-3">
                 {videos.map(v => (
-                    <div key={v.id} className=\"flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100\">
-                        <div className=\"flex items-center gap-4\">
-                            <img src={v.thumbnail} className=\"w-16 h-10 object-cover rounded-lg\" alt=\"\" />
-                            <div className=\"text-right\">
-                                <p className=\"text-sm font-bold\">{v.title}</p>
-                                <p className=\"text-[10px] text-gray-400\">{v.category} • {v.duration}</p>
+                    <div key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="flex items-center gap-4">
+                            <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg" alt="" />
+                            <div className="text-right">
+                                <p className="text-sm font-bold">{v.title}</p>
+                                <p className="text-[10px] text-gray-400">{v.category} • {v.duration}</p>
                             </div>
                         </div>
                         <AdminToggle value={v.visible} onChange={() => toggleVideo(v.id)} />
@@ -514,15 +514,15 @@ export default function AdminContent({ showToast }) {
     const currentDef = ALL_SECTIONS.find(s => s.id === activeSection);
 
     return (
-        <div dir=\"rtl\" className=\"space-y-6\">
+        <div dir="rtl" className="space-y-6">
             <AdminSectionHeader
-                title=\"ניהול תוכן האתר\"
-                subtitle=\"כאן ניתן לערוך טקסטים, להציג או להסתיר רכיבים באתר ללא צורך בקוד\"
+                title="ניהול תוכן האתר"
+                subtitle="כאן ניתן לערוך טקסטים, להציג או להסתיר רכיבים באתר ללא צורך בקוד"
                 action={
-                    <div className=\"flex items-center gap-3\">
+                    <div className="flex items-center gap-3">
                         {hasChanges && (
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                className=\"text-[#FF9500] text-xs font-bold\">
+                                className="text-[#FF9500] text-xs font-bold">
                                 יש שינויים שטרם נשמרו
                             </motion.span>
                         )}
@@ -533,19 +533,19 @@ export default function AdminContent({ showToast }) {
                 }
             />
 
-            <div className=\"flex gap-6\">
+            <div className="flex gap-6">
                 {/* Sidebar nav */}
-                <div className=\"w-52 shrink-0\">
-                    <div className=\"bg-white rounded-[20px] overflow-hidden\" style={card}>
+                <div className="w-52 shrink-0">
+                    <div className="bg-white rounded-[20px] overflow-hidden" style={card}>
                         {ALL_SECTIONS.map(s => (
-                            <button key={s.id} type=\"button\" onClick={() => setActiveSection(s.id)}
-                                className=\"w-full flex items-center gap-3 px-4 py-3 text-right transition-all border-b border-black/04 last:border-0\"
+                            <button key={s.id} type="button" onClick={() => setActiveSection(s.id)}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-right transition-all border-b border-black/04 last:border-0"
                                 style={{
                                     background: activeSection === s.id ? `${s.accent}10` : 'transparent',
                                     borderRight: activeSection === s.id ? `3px solid ${s.accent}` : '3px solid transparent',
                                 }}>
-                                <span className=\"text-base\">{s.icon}</span>
-                                <span className=\"text-sm font-bold flex-1 text-right\"
+                                <span className="text-base">{s.icon}</span>
+                                <span className="text-sm font-bold flex-1 text-right"
                                     style={{ color: activeSection === s.id ? s.accent : '#6E6E73' }}>
                                     {s.label}
                                 </span>
@@ -555,8 +555,8 @@ export default function AdminContent({ showToast }) {
                 </div>
 
                 {/* Content area */}
-                <div className=\"flex-1 bg-white rounded-[20px] overflow-hidden\" style={card}>
-                    <AnimatePresence mode=\"wait\">
+                <div className="flex-1 bg-white rounded-[20px] overflow-hidden" style={card}>
+                    <AnimatePresence mode="wait">
                         <motion.div
                             key={activeSection}
                             initial={{ opacity: 0, x: 20 }}
@@ -574,15 +574,15 @@ export default function AdminContent({ showToast }) {
                                 <VideosSection showToast={showToast} />
                             )}
                             {currentDef && currentDef.fields && (
-                                <div className=\"p-8\">
-                                    <div className=\"flex items-center justify-between mb-8\">
-                                        <div className=\"text-right\">
-                                            <h3 className=\"text-xl font-black text-[#1D1D1F]\">{currentDef.label}</h3>
-                                            <p className=\"text-[#AEAEB2] text-xs mt-1\">ערוך את שדות הטקסט והגדרות התוכן עבור {currentDef.label}</p>
+                                <div className="p-8">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="text-right">
+                                            <h3 className="text-xl font-black text-[#1D1D1F]">{currentDef.label}</h3>
+                                            <p className="text-[#AEAEB2] text-xs mt-1">ערוך את שדות הטקסט והגדרות התוכן עבור {currentDef.label}</p>
                                         </div>
-                                        <AdminButton variant=\"outline\" size=\"sm\" onClick={() => handleReset(currentDef)}>איפוס לברירת מחדל</AdminButton>
+                                        <AdminButton variant="outline" size="sm" onClick={() => handleReset(currentDef)}>איפוס לברירת מחדל</AdminButton>
                                     </div>
-                                    <div className=\"space-y-6\">
+                                    <div className="space-y-6">
                                         {currentDef.fields.map(field => (
                                             <FieldInput
                                                 key={field.key}
