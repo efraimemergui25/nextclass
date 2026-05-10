@@ -39,6 +39,14 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_ai_assistant',    label: 'עוזר אישי (AI)',         desc: 'הפעלה/השבתה של הווידג׳ט הצף', icon: '🤖' },
     { key: 'vis_a11y_widget',     label: 'נגישות (ווידג׳ט)',      desc: 'הפעלה/השבתה של תפריט הנגישות', icon: '♿' },
     { key: 'vis_qa_section',      label: 'שאלות ותשובות (מוצר)',   desc: 'הצגת קטע שאלות גולשים בדף מוצר', icon: '💬' },
+    { key: 'sidebar_visible',     label: 'סרגל ניווט צדדי',        desc: 'הצגת התפריט המרחף בדף מוצר', icon: '📋' },
+    { key: 'sidebar_vis_features', label: 'סרגל: תכונות',          desc: 'הצגת לינק לתכונות בסרגל', icon: '✨' },
+    { key: 'sidebar_vis_dims',     label: 'סרגל: מידות',           desc: 'הצגת לינק למידות בסרגל', icon: '📏' },
+    { key: 'sidebar_vis_specs',    label: 'סרגל: מפרט',            desc: 'הצגת לינק למפרט בסרגל', icon: '🔧' },
+    { key: 'sidebar_vis_support',  label: 'סרגל: תמיכה',           desc: 'הצגת לינק לתמיכה בסרגל', icon: '🎧' },
+    { key: 'sidebar_vis_faq',      label: 'סרגל: שאלות נפוצות',     desc: 'הצגת לינק ל-FAQ בסרגל', icon: '❓' },
+    { key: 'sidebar_vis_qa',       label: 'סרגל: שאלות גולשים',     desc: 'הצגת לינק ל-Q&A בסרגל', icon: '💬' },
+    { key: 'sidebar_vis_reviews',  label: 'סרגל: ביקורות',          desc: 'הצגת לינק לביקורות בסרגל', icon: '⭐' },
 ];
 
 const FIELD_SECTIONS = [
