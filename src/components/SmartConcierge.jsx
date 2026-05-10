@@ -4,6 +4,7 @@ import { X, Sparkles, ArrowUp, MessageCircle, Send, Plus, Minus, Info } from 'lu
 import { useLocation } from 'react-router-dom';
 import Magnetic from './Magnetic';
 import { useProducts } from '../context/ProductsContext';
+import { useSettings } from '../context/SettingsContext';
 import Anthropic from '@anthropic-ai/sdk';
 
 const WHATSAPP_NUMBER = '972500000000'; 

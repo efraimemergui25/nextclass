@@ -27,7 +27,7 @@ export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
     const { repairProductImages, reseedDatabase } = useAdminData();
     const { showToast } = useAdminToast();
-    const { getSetting, updateGlobalSettings, settings: globalSettings } = useSettings();
+    const { getSetting, updateGlobalSettings } = useSettings();
 
     // PIN change
     const [currentPin, setCurrentPin] = useState('');
@@ -46,16 +46,12 @@ export default function AdminSettings() {
         try { return JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifContacts === true; } catch { return false; }
     });
 
-    // Site settings
-    const [maintenanceMode, setMaintenanceMode] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('nextclass_content') || '{}').maintenance_mode === true; } catch { return false; }
-    });
-    const [showPrices, setShowPrices] = useState(() => {
-        try { const v = JSON.parse(localStorage.getItem('nextclass_content') || '{}').show_prices; return v !== false; } catch { return true; }
-    });
-    const [allowOrders, setAllowOrders] = useState(() => {
-        try { const v = JSON.parse(localStorage.getItem('nextclass_content') || '{}').allow_orders; return v !== false; } catch { return true; }
-    });
+    // Site settings — read from Firestore via SettingsContext, write back on change
+    const maintenanceMode = getSetting('maintenance_mode', false);
+    const showPrices      = getSetting('show_prices', true);
+    const allowOrders     = getSetting('allow_orders', true);
+
+    const setSiteSetting = (key, value) => updateGlobalSettings({ [key]: value });
 
     const persistSettingsFlag = (key, value) => {
         try {
@@ -67,18 +63,6 @@ export default function AdminSettings() {
     useEffect(() => { persistSettingsFlag('notifOrders', notifOrders); }, [notifOrders]);
     useEffect(() => { persistSettingsFlag('notifLowStock', notifLowStock); }, [notifLowStock]);
     useEffect(() => { persistSettingsFlag('notifContacts', notifContacts); }, [notifContacts]);
-
-    const persistSiteFlag = (key, value) => {
-        try {
-            const existing = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            localStorage.setItem('nextclass_content', JSON.stringify({ ...existing, [key]: value }));
-            window.dispatchEvent(new StorageEvent('storage', { key: 'nextclass_content' }));
-        } catch {}
-    };
-
-    useEffect(() => { persistSiteFlag('maintenance_mode', maintenanceMode); }, [maintenanceMode]);
-    useEffect(() => { persistSiteFlag('show_prices', showPrices); }, [showPrices]);
-    useEffect(() => { persistSiteFlag('allow_orders', allowOrders); }, [allowOrders]);
 
     // Business info
     const [bizName, setBizName] = useState('NextClass');
@@ -171,19 +155,19 @@ export default function AdminSettings() {
                             label="מצב תחזוקה"
                             sub="הצג עמוד 'בקרוב' לכל המבקרים"
                             value={maintenanceMode}
-                            onChange={setMaintenanceMode}
+                            onChange={v => setSiteSetting('maintenance_mode', v)}
                         />
                         <AdminToggle
                             label="הצג מחירים"
                             sub="הצג מחירי מוצרים בקטלוג"
                             value={showPrices}
-                            onChange={setShowPrices}
+                            onChange={v => setSiteSetting('show_prices', v)}
                         />
                         <AdminToggle
                             label="אפשר הזמנות"
                             sub="לקוחות יכולים להשלים רכישות"
                             value={allowOrders}
-                            onChange={setAllowOrders}
+                            onChange={v => setSiteSetting('allow_orders', v)}
                         />
                     </div>
                 </SettingCard>

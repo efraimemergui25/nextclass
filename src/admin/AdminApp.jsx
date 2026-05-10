@@ -25,6 +25,7 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminContent from './pages/AdminContent';
 import AdminSettings from './pages/AdminSettings';
+import AdminQA from './pages/AdminQA';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -40,7 +41,19 @@ function AdminShell() {
             <AdminDataProvider>
             <AdminNotificationWatcher />
             <div className="flex h-screen overflow-hidden" dir="rtl"
-            style={{ background: 'linear-gradient(135deg, #EDF2FF 0%, #F0EAFF 28%, #FFF0F8 60%, #FFF5EE 100%)' }}>
+            style={{ background: 'linear-gradient(145deg, #EBF0FF 0%, #EEE8FF 22%, #F7E8FF 50%, #FFF0F5 75%, #FFF8EE 100%)' }}>
+                {/* Ambient floating orbs — admin atmosphere */}
+                <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+                    <div style={{ position: 'absolute', top: '-8%', right: '-4%', width: 600, height: 600, borderRadius: '50%', background: '#007AFF', filter: 'blur(120px)', opacity: 0.045, willChange: 'transform' }} />
+                    <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: 500, height: 500, borderRadius: '50%', background: '#5856D6', filter: 'blur(130px)', opacity: 0.04, willChange: 'transform' }} />
+                    <div style={{ position: 'absolute', top: '45%', left: '35%', width: 400, height: 400, borderRadius: '50%', background: '#FF9500', filter: 'blur(150px)', opacity: 0.025 }} />
+                    {/* Noise grain */}
+                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.025, mixBlendMode: 'overlay' }}>
+                        <filter id="admin-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /></filter>
+                        <rect width="100%" height="100%" filter="url(#admin-noise)" />
+                    </svg>
+                </div>
+
                 {/* Sidebar */}
                 <div className="relative z-20">
                     <AdminSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(p => !p)} />
@@ -53,10 +66,10 @@ function AdminShell() {
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={location.pathname}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
+                                initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                                transition={{ type: 'spring', stiffness: 340, damping: 30 }}
                                 className="max-w-7xl mx-auto"
                             >
                                 <Routes location={location}>
@@ -69,6 +82,7 @@ function AdminShell() {
                                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                                     <Route path="/admin/marketing" element={<AdminMarketing />} />
                                     <Route path="/admin/content" element={<AdminContent />} />
+                                    <Route path="/admin/qa" element={<AdminQA />} />
                                     <Route path="/admin/settings" element={<AdminSettings />} />
                                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                                 </Routes>

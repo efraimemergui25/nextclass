@@ -31,8 +31,8 @@ export default function GlassCanvas({ mood }) {
         const tick = () => {
             const cur = currentRef.current;
             const tgt = targetRef.current;
-            cur.x = lerp(cur.x, tgt.x, 0.06);
-            cur.y = lerp(cur.y, tgt.y, 0.06);
+            cur.x = lerp(cur.x, tgt.x, 0.055);
+            cur.y = lerp(cur.y, tgt.y, 0.055);
 
             if (glowRef.current) {
                 // transform: translate is GPU-composited — zero layout, zero reflow
@@ -100,15 +100,27 @@ export default function GlassCanvas({ mood }) {
                 className="absolute top-[45%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.03]"
             />
 
+            {/* Aurora Orb 4 — Warm accent, lower-right */}
+            <motion.div
+                animate={{
+                    x: [0, -35, 20, 0],
+                    y: [0, 30, -20, 0],
+                    scale: [1, 1.06, 0.94, 1],
+                }}
+                transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 12 }}
+                style={{ willChange: 'transform', filter: 'blur(120px)', backgroundColor: '#FF9500' }}
+                className="absolute bottom-[10%] right-[15%] w-[500px] h-[500px] rounded-full opacity-[0.028]"
+            />
+
             <div
                 ref={glowRef}
                 style={{
                     position: 'fixed',
-                    width: '600px',
-                    height: '600px',
+                    width: '700px',
+                    height: '700px',
                     borderRadius: '50%',
-                    background: `radial-gradient(circle, ${primaryColor}14 0%, transparent 65%)`,
-                    filter: 'blur(50px)',
+                    background: `radial-gradient(circle, ${primaryColor}16 0%, ${primaryColor}06 40%, transparent 65%)`,
+                    filter: 'blur(45px)',
                     top: 0,
                     left: 0,
                     willChange: 'transform',

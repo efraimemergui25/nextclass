@@ -11,12 +11,19 @@ const CompareTray = () => {
         <AnimatePresence>
             {selectedForCompare.length > 0 && (
                 <motion.div
-                    initial={{ y: 100, opacity: 0, x: '-50%' }}
-                    animate={{ y: 0, opacity: 1, x: '-50%' }}
-                    exit={{ y: 100, opacity: 0, x: '-50%' }}
-                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-                    style={{ left: '50%' }}
-                    className="fixed bottom-8 z-[60] bg-white/70 backdrop-blur-2xl border border-white/60 shadow-[0_20px_40px_rgb(0_0_0/0.08)] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px] transform-gpu will-change-transform"
+                    initial={{ y: 120, opacity: 0, x: '-50%', scale: 0.92 }}
+                    animate={{ y: 0, opacity: 1, x: '-50%', scale: 1 }}
+                    exit={{ y: 120, opacity: 0, x: '-50%', scale: 0.92 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 28, mass: 0.9 }}
+                    style={{
+                        left: '50%',
+                        background: 'rgba(255,255,255,0.75)',
+                        backdropFilter: 'blur(48px) saturate(2.0)',
+                        WebkitBackdropFilter: 'blur(48px) saturate(2.0)',
+                        border: '1px solid rgba(255,255,255,0.75)',
+                        boxShadow: '0 24px 60px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+                    }}
+                    className="fixed bottom-8 z-[60] rounded-full px-4 py-3 flex items-center justify-between gap-6 md:gap-12 min-w-[320px] md:min-w-[450px] transform-gpu will-change-transform"
                 >
                     {/* RTL Right: avatars and count */}
                     <div className="flex items-center gap-4">

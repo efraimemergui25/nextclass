@@ -30,6 +30,37 @@
     90% { transform: translate(-3%, 1%); }
 }
 
+/* Ripple press — button liquid feedback */
+@keyframes ripple-out {
+    0%   { transform: scale(0); opacity: 0.45; }
+    100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* Slide-up reveal — section entrance */
+@keyframes slide-up-in {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fade-blur in — modal / overlay entrance */
+@keyframes fade-blur-in {
+    from { opacity: 0; filter: blur(12px); }
+    to   { opacity: 1; filter: blur(0px); }
+}
+
+/* Pulse dot — live/active indicators */
+@keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.5); opacity: 0.55; }
+}
+
+/* Glitter — sparkling premium badge effect */
+@keyframes glitter {
+    0%, 100% { opacity: 0.4; transform: rotate(0deg) scale(1); }
+    33%  { opacity: 1;   transform: rotate(120deg) scale(1.2); }
+    66%  { opacity: 0.6; transform: rotate(240deg) scale(0.9); }
+}
+
 @keyframes shimmer {
     0% { background-position: 200% center; }
     100% { background-position: -200% center; }
@@ -115,6 +146,12 @@
     background-size: 400% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
 }
+
+.animate-ripple-out { animation: ripple-out 0.55s var(--spring-fluid) forwards; }
+.animate-slide-up   { animation: slide-up-in 0.5s var(--spring-fluid) both; }
+.animate-fade-blur  { animation: fade-blur-in 0.4s var(--spring-fluid) both; }
+.animate-pulse-dot  { animation: pulse-dot 1.6s ease-in-out infinite; }
+.animate-glitter    { animation: glitter 2.4s ease-in-out infinite; }
 
 .text-shimmer {
     background: linear-gradient(90deg,
@@ -221,19 +258,21 @@
     .glass-apple {
         background: linear-gradient(
             145deg,
-            rgba(255, 255, 255, 0.70) 0%,
-            rgba(255, 255, 255, 0.55) 100%
+            rgba(255, 255, 255, 0.72) 0%,
+            rgba(255, 255, 255, 0.58) 50%,
+            rgba(255, 255, 255, 0.50) 100%
         );
-        backdrop-filter: blur(52px) saturate(2.0) contrast(1.06);
-        -webkit-backdrop-filter: blur(52px) saturate(2.0) contrast(1.06);
-        border: 1px solid rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(54px) saturate(2.1) contrast(1.07) brightness(1.02);
+        -webkit-backdrop-filter: blur(54px) saturate(2.1) contrast(1.07) brightness(1.02);
+        border: 1px solid rgba(255, 255, 255, 0.62);
         box-shadow:
-            0 1px 0 rgba(255, 255, 255, 0.80) inset,
+            0 1px 0 rgba(255, 255, 255, 0.92) inset,
             0 -1px 0 rgba(0, 0, 0, 0.03) inset,
-            0 12px 40px rgba(0, 0, 0, 0.05);
+            0 12px 40px rgba(0, 0, 0, 0.05),
+            0 2px 8px rgba(0, 0, 0, 0.03);
         position: relative;
         overflow: hidden;
-        animation: breathing-glass 8s ease-in-out infinite;
+        animation: breathing-glass 9s ease-in-out infinite;
     }
 
     /* Glint sweep on hover — the "alive" refraction effect */
@@ -598,6 +637,47 @@
     /* Frosted section divider */
     .section-fade-top {
         background: linear-gradient(to bottom, rgba(242, 242, 245, 0) 0%, rgba(242, 242, 245, 1) 100%);
+    }
+
+    /* Focus ring — accessible, premium */
+    .focus-ring-premium {
+        outline: none;
+        transition: box-shadow 200ms var(--spring-fluid);
+    }
+    .focus-ring-premium:focus-visible {
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.30), 0 0 0 1px rgba(0, 122, 255, 0.80);
+    }
+
+    /* Link underline slide — for footer/nav text links */
+    .link-underline {
+        position: relative;
+        text-decoration: none;
+    }
+    .link-underline::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        right: 0;
+        width: 0;
+        height: 1.5px;
+        background: #007AFF;
+        transition: width 300ms var(--spring-fluid);
+        border-radius: 2px;
+    }
+    .link-underline:hover::after { width: 100%; }
+
+    /* Badge pulse ring — live status rings */
+    .badge-pulse {
+        position: relative;
+    }
+    .badge-pulse::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        opacity: 0;
+        animation: ripple-out 1.8s ease-out infinite;
     }
 
     /* Scrollbar hide — horizontal scroll strips */

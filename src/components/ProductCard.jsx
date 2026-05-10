@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import useCartPop from '../hooks/useCartPop';
 import { Sparkles } from 'lucide-react';
 
@@ -48,6 +49,7 @@ const ProductCard = ({ product }) => {
 
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
     const { cartItems, addToCart, removeFromCart } = useCart();
+    const { toggle: toggleWishlist, isWishlisted } = useWishlist();
     const { state: popState, trigger } = useCartPop();
 
     // ─── Spatial tilt motion values ───────────────────────────────────────────
@@ -159,6 +161,14 @@ const ProductCard = ({ product }) => {
         else trigger(() => addToCart(product))();
     }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
 
+    const handleWishlistToggle = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWishlist(id);
+    }, [id, toggleWishlist]);
+
+    const wishlisted = useMemo(() => isWishlisted(id), [isWishlisted, id]);
+
     return (
         /* ── Perspective wrapper ──────────────────────────────────────────── */
         <div
@@ -168,32 +178,57 @@ const ProductCard = ({ product }) => {
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
         >
-            {/* ── 3D tiltable card ────────────────────────────────────────── */}
             <motion.div
-                style={{
-                    rotateX,
-                    rotateY,
-                    transformStyle: 'preserve-3d',
-                }}
-                className="flex flex-col h-full glass-apple rounded-[2.5rem] relative transform-gpu will-change-transform shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)]"
+                style={{ rotateX, rotateY }}
+                className="flex flex-col h-full glass-apple rounded-[3rem] relative transform-gpu will-change-transform shadow-[0_20px_50px_-15px_rgba(0,0,0,0.08)] border border-white/40 overflow-hidden"
             >
                 <Link
                     to={`/catalog/${id}`}
-                    className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-[2.5rem]"
+                    className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30"
                 >
                     {/* ── Image Container ─────────────────────────────────── */}
-                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-white/30">
+                    <div className="w-full relative aspect-[1] overflow-hidden bg-white/40">
                         {imgError || !image ? (
                             <ImageFallback />
                         ) : (
-                            <img
+                            <motion.img
                                 src={image}
                                 alt={title}
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] cubic-bezier(0.22, 1, 0.36, 1)"
+                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-[cubic-bezier(0.2,0.8,0.2,1)]"
                                 onError={handleImgError}
                                 loading="lazy"
                             />
                         )}
+
+                        {/* Glossy Overlay Sweep */}
+                        <motion.div 
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"
+                            style={{ skewX: -20 }}
+                        />
+
+                        {/* Category Floating Badge */}
+                        {category && (
+                            <div className="absolute top-6 right-6 z-10">
+                                <div className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 text-[10px] font-black text-[#1D1D1F] uppercase tracking-widest shadow-sm">
+                                    {category}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Wishlist Button */}
+                        <motion.button
+                            onClick={handleWishlistToggle}
+                            whileHover={{ scale: 1.12 }}
+                            whileTap={{ scale: 0.88 }}
+                            className={`absolute top-4 left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${wishlisted
+                                ? 'bg-[#FF2D55] text-white shadow-lg shadow-[#FF2D55]/30'
+                                : 'bg-white/80 backdrop-blur-md text-gray-500 hover:text-[#FF2D55] border border-white/50'
+                                }`}
+                        >
+                            <svg className="w-5 h-5" fill={wishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                            </svg>
+                        </motion.button>
                         
                         {/* Product badges — data-driven */}
                         {(_isBestSeller || isNew) && (
@@ -213,28 +248,24 @@ const ProductCard = ({ product }) => {
                     </div>
 
                     {/* ── Text Content ─────────────────────────────────────── */}
-                    <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-0">
-                        {category && (
-                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
-                        )}
-                        <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
+                    <div className="flex-1 flex flex-col text-right px-8 pt-8 pb-0">
+                        <h3 className="text-xl md:text-2xl font-black text-[#1D1D1F] leading-[1.2] tracking-tight line-clamp-2 mb-3 group-hover:text-[#007AFF] transition-colors duration-300">{title}</h3>
                         {description && (
-                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
+                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-3 mt-1 font-medium opacity-80">{description}</p>
                         )}
 
                         {/* ── Footer ───────────────────────────────────────── */}
-                        <div className="mt-auto pt-4 pb-6 flex items-center justify-between gap-3">
+                        <div className="mt-auto pt-6 pb-8 flex items-center justify-between gap-4">
                             <div className="shrink-0">
                                 {showPrices && (salePrice ? (
                                     <div className="flex flex-col items-start gap-0.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
-                                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">מבצע</span>
+                                            <span className="text-3xl font-black tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
                                         </div>
-                                        <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
+                                        <span className="text-sm text-[#86868B] line-through decoration-[#FF3B30]/30 font-bold">₪{Number(price).toLocaleString()}</span>
                                     </div>
                                 ) : (
-                                    <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
+                                    <span className="text-3xl font-black tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
                                 ))}
                             </div>
 

@@ -21,28 +21,62 @@ const ICONS = {
     empty: <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />,
 };
 
+// ─── Mini Sparkline SVG ───────────────────────────────────────────────────────
+function MiniSparkline({ data = [], color }) {
+    if (!data || data.length < 2) return null;
+    const max = Math.max(...data, 1);
+    const min = Math.min(...data, 0);
+    const range = max - min || 1;
+    const W = 88, H = 28;
+    const pts = data.map((v, i) => {
+        const x = (i / (data.length - 1)) * W;
+        const y = H - ((v - min) / range) * (H - 3) - 1;
+        return [x, y];
+    });
+    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const fillPath = `${linePath} L ${W},${H} L 0,${H} Z`;
+    const uid = color.replace('#', 'sg');
+    return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="overflow-visible" style={{ direction: 'ltr' }}>
+            <defs>
+                <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+                    <stop offset="100%" stopColor={color} stopOpacity="0" />
+                </linearGradient>
+            </defs>
+            <path d={fillPath} fill={`url(#${uid})`} />
+            <path d={linePath} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Last point dot */}
+            <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="2.5" fill={color} />
+        </svg>
+    );
+}
+
 // ─── Premium KPI Card ─────────────────────────────────────────────────────────
-export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick }) {
+export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick, sparkData }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, type: 'spring', stiffness: 320, damping: 28 }}
-            whileHover={{ y: -3, scale: 1.015 }}
+            initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay, type: 'spring', stiffness: 340, damping: 28 }}
+            whileHover={{ y: -4, scale: 1.018, boxShadow: `0 20px 48px ${color}22, inset 0 1px 0 rgba(255,255,255,0.9)` }}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-[24px] p-5 transition-all ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            className={`relative overflow-hidden rounded-[26px] p-5 transition-shadow ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
             style={{
-                background: `linear-gradient(145deg, ${color}14 0%, rgba(255,255,255,0.92) 55%)`,
-                backdropFilter: 'blur(40px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                border: `1px solid ${color}28`,
-                boxShadow: `0 4px 24px ${color}14, inset 0 1px 0 rgba(255,255,255,0.85)`,
+                background: `linear-gradient(145deg, ${color}12 0%, rgba(255,255,255,0.94) 45%, rgba(255,255,255,0.88) 100%)`,
+                backdropFilter: 'blur(48px) saturate(220%)',
+                WebkitBackdropFilter: 'blur(48px) saturate(220%)',
+                border: `1px solid ${color}24`,
+                boxShadow: `0 4px 24px ${color}12, 0 1px 0 rgba(255,255,255,0.95) inset, 0 -1px 0 rgba(0,0,0,0.025) inset`,
             }}
         >
+            {/* Top specular edge */}
+            <div className="absolute top-0 left-[10%] right-[10%] h-px pointer-events-none"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
             {/* Ambient radial glow */}
-            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${color}20 0%, transparent 70%)` }} />
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${color}18 0%, transparent 65%)` }} />
 
             <div className="flex items-start justify-between mb-3">
                 <div className="flex flex-col">
@@ -58,6 +92,13 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                     )}
                 </div>
             </div>
+
+            {/* Sparkline */}
+            {sparkData && sparkData.length >= 2 && (
+                <div className="mb-3 opacity-70">
+                    <MiniSparkline data={sparkData} color={color} />
+                </div>
+            )}
 
             <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${color}12` }}>
                 {subtitle ? (
@@ -158,11 +199,12 @@ export function AdminTable({ columns, data, onRowClick, emptyMessage, emptyIcon,
                     {data.map((row, i) => (
                         <motion.tr
                             key={row.id || i}
-                            initial={{ opacity: 0, y: 8 }}
+                            initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.015, duration: 0.3 }}
+                            transition={{ delay: i * 0.012, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => onRowClick?.(row)}
-                            className={`transition-colors group ${onRowClick ? 'cursor-pointer hover:bg-black/[0.02]' : ''}`}
+                            whileHover={onRowClick ? { backgroundColor: 'rgba(0,122,255,0.025)' } : {}}
+                            className={`transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
                             style={{ borderBottom: i < data.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none' }}
                         >
                             {columns.map(col => (
@@ -206,13 +248,25 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
 // ─── Section Header ───────────────────────────────────────────────────────────
 export function AdminSectionHeader({ title, subtitle, action }) {
     return (
-        <div className="flex items-end justify-between mb-8 pb-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="flex items-end justify-between mb-8 pb-5" style={{ borderBottom: '1px solid rgba(0,0,0,0.045)' }}>
             <div className="text-right">
-                <motion.h1 initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
-                    className="text-[32px] font-[800] text-[#1D1D1F] tracking-tight leading-none">{title}</motion.h1>
+                <motion.h1
+                    initial={{ opacity: 0, x: 12, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                    className="text-[32px] font-[800] text-[#1D1D1F] tracking-tight leading-none"
+                >
+                    {title}
+                </motion.h1>
                 {subtitle && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                        className="text-[#86868B] text-[15px] font-medium mt-2">{subtitle}</motion.p>
+                    <motion.p
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08, duration: 0.35 }}
+                        className="text-[#86868B] text-[15px] font-medium mt-2"
+                    >
+                        {subtitle}
+                    </motion.p>
                 )}
             </div>
             {action && <div className="flex gap-3 shrink-0">{action}</div>}
@@ -222,34 +276,64 @@ export function AdminSectionHeader({ title, subtitle, action }) {
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button' }) {
-    const [popped, setPopped] = useState(false);
+    const [ripple, setRipple] = useState(null);
     const styles = {
-        primary: { bg: '#1D1D1F', color: 'white', border: '1px solid #1D1D1F', shadow: '0 2px 8px rgba(0,0,0,0.1)' },
-        success: { bg: '#000000', color: 'white', border: '1px solid #000000', shadow: '0 2px 8px rgba(0,0,0,0.1)' },
-        danger:  { bg: 'transparent', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.20)', shadow: 'none' },
-        ghost:   { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.10)', shadow: 'none' },
-        outline: { bg: 'transparent', color: '#1D1D1F', border: '1px solid #1D1D1F', shadow: 'none' },
+        primary: {
+            bg: 'linear-gradient(180deg, #2A2A2C 0%, #1D1D1F 100%)',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.08)',
+            shadow: '0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.10)',
+            hoverShadow: '0 6px 20px rgba(0,0,0,0.25)',
+        },
+        success: {
+            bg: 'linear-gradient(180deg, #000 0%, #000 100%)',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.08)',
+            shadow: '0 2px 8px rgba(0,0,0,0.18)',
+            hoverShadow: '0 6px 18px rgba(0,0,0,0.22)',
+        },
+        danger:  { bg: 'transparent', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)', shadow: 'none', hoverShadow: '0 2px 12px rgba(255,59,48,0.14)' },
+        ghost:   { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.10)', shadow: 'none', hoverShadow: 'none' },
+        outline: { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.18)', shadow: 'none', hoverShadow: 'none' },
     };
     const s = styles[variant] || styles.primary;
     const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-7 py-3 text-base' : 'px-4 py-2 text-sm';
 
+    const handleClick = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setTimeout(() => setRipple(null), 550);
+        onClick?.();
+    };
+
     return (
         <motion.button
             type={type}
-            animate={popped ? { scale: [1, 0.95, 1.02, 1] } : {}}
-            transition={{ duration: 0.2 }}
-            whileHover={{ opacity: 0.9 }}
-            onClick={() => { setPopped(true); setTimeout(() => setPopped(false), 200); onClick?.(); }}
+            whileHover={{ y: -1, boxShadow: s.hoverShadow }}
+            whileTap={{ scale: 0.96, y: 0 }}
+            onClick={handleClick}
             disabled={disabled}
-            className={`${pad} rounded-[10px] font-semibold disabled:opacity-50 whitespace-nowrap shrink-0 transition-colors hover:bg-black/05`}
-            style={{ 
-                background: variant === 'primary' || variant === 'success' ? s.bg : 'transparent', 
-                color: s.color, 
-                border: s.border, 
-                boxShadow: s.shadow 
+            className={`${pad} rounded-[11px] font-semibold disabled:opacity-50 whitespace-nowrap shrink-0 relative overflow-hidden`}
+            style={{
+                background: variant === 'primary' || variant === 'success' ? s.bg : 'transparent',
+                color: s.color,
+                border: s.border,
+                boxShadow: s.shadow,
+                transition: 'box-shadow 250ms ease',
             }}
         >
-            {children}
+            {ripple && (
+                <span
+                    className="pointer-events-none absolute rounded-full"
+                    style={{
+                        left: ripple.x - 40, top: ripple.y - 40,
+                        width: 80, height: 80,
+                        background: 'rgba(255,255,255,0.22)',
+                        animation: 'ripple-out 0.55s ease-out forwards',
+                    }}
+                />
+            )}
+            <span className="relative">{children}</span>
         </motion.button>
     );
 }
@@ -306,10 +390,25 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 export function AdminInput({ label, value, onChange, type = 'text', placeholder, dir = 'rtl', rows }) {
-    const base = "w-full rounded-xl px-4 text-[#1D1D1F] text-sm outline-none transition-all placeholder-[#AEAEB2]";
-    const normalBorder = '1px solid rgba(0,0,0,0.10)';
-    const focusBorder  = '1px solid rgba(0,122,255,0.55)';
-    const inputStyle = { background: 'rgba(255,255,255,0.9)', border: normalBorder };
+    const base = "w-full rounded-[13px] px-4 text-[#1D1D1F] text-sm outline-none transition-all placeholder-[#AEAEB2]";
+    const normalBorder = '1px solid rgba(0,0,0,0.09)';
+    const focusBorder  = '1px solid rgba(0,122,255,0.50)';
+    const inputStyle = {
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.88) 100%)',
+        border: normalBorder,
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+    };
+
+    const onFocus = e => {
+        e.target.style.border = focusBorder;
+        e.target.style.boxShadow = '0 0 0 3.5px rgba(0,122,255,0.10), inset 0 1px 2px rgba(0,0,0,0.03)';
+        e.target.style.background = 'rgba(255,255,255,1)';
+    };
+    const onBlur = e => {
+        e.target.style.border = normalBorder;
+        e.target.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.05)';
+        e.target.style.background = 'rgba(255,255,255,0.95)';
+    };
 
     return (
         <div>
@@ -317,13 +416,11 @@ export function AdminInput({ label, value, onChange, type = 'text', placeholder,
             {rows ? (
                 <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
                     rows={rows} dir={dir} className={`${base} py-3 resize-none`} style={inputStyle}
-                    onFocus={e => { e.target.style.border = focusBorder; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.08)'; }}
-                    onBlur={e => { e.target.style.border = normalBorder; e.target.style.boxShadow = 'none'; }} />
+                    onFocus={onFocus} onBlur={onBlur} />
             ) : (
                 <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
                     dir={dir} className={`${base} py-2.5`} style={inputStyle}
-                    onFocus={e => { e.target.style.border = focusBorder; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.08)'; }}
-                    onBlur={e => { e.target.style.border = normalBorder; e.target.style.boxShadow = 'none'; }} />
+                    onFocus={onFocus} onBlur={onBlur} />
             )}
         </div>
     );
@@ -427,7 +524,13 @@ export function AdminTabs({ tabs, active, onChange }) {
 // ─── Glass Panel ──────────────────────────────────────────────────────────────
 export function GlassPanel({ children, className = '', padding = 'p-6' }) {
     return (
-        <div className={`rounded-[24px] ${padding} ${className} relative overflow-hidden`} style={glassStyle}>
+        <div className={`rounded-[24px] ${padding} ${className} relative overflow-hidden`} style={{
+            ...glassStyle,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.92)',
+        }}>
+            {/* Specular top edge */}
+            <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.9) 30%, rgba(255,255,255,0.9) 70%, transparent)' }} />
             {children}
         </div>
     );
@@ -850,11 +953,30 @@ export function DonutChart({ data, colors = ['#007AFF', '#5856D6', '#34C759', '#
 export function AdminToggle({ label, sub, value, onChange }) {
     return (
         <div className="flex items-center justify-between py-0.5">
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => onChange(!value)}
-                className="w-11 h-6 rounded-full relative shrink-0"
-                style={{ background: value ? '#34C759' : 'rgba(0,0,0,0.14)' }}>
-                <motion.div animate={{ x: value ? 22 : 3 }} transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-                    className="absolute top-1 left-0 w-4 h-4 rounded-full bg-white shadow-md" />
+            <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => onChange(!value)}
+                className="w-12 h-6.5 rounded-full relative shrink-0 focus:outline-none"
+                style={{
+                    width: 46, height: 26,
+                    background: value
+                        ? 'linear-gradient(135deg, #30D158 0%, #34C759 100%)'
+                        : 'rgba(0,0,0,0.13)',
+                    boxShadow: value
+                        ? '0 2px 8px rgba(52,199,89,0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
+                        : 'inset 0 1px 3px rgba(0,0,0,0.12)',
+                    transition: 'background 250ms ease, box-shadow 250ms ease',
+                }}
+            >
+                <motion.div
+                    animate={{ x: value ? 22 : 3 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 30 }}
+                    className="absolute top-[3px] left-0 w-5 h-5 rounded-full"
+                    style={{
+                        background: 'white',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.20), 0 0 0 0.5px rgba(0,0,0,0.08)',
+                    }}
+                />
             </motion.button>
             <div className="text-right flex-1 mr-4">
                 <p className="text-[#1D1D1F] text-sm font-bold leading-tight">{label}</p>

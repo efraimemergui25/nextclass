@@ -134,12 +134,23 @@ function CustomerAvatar({ name }) {
     );
 }
 
+const SS_KEY = 'admin_orders_filters';
+
 export default function AdminOrders() {
     const { orders, updateOrderStatus, inventory } = useAdminData();
     const { showToast } = useAdminToast();
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('הכל');
-    const [dateFilter, setDateFilter] = useState('all');
+
+    // Restore filters from sessionStorage on mount
+    const savedFilters = (() => { try { return JSON.parse(sessionStorage.getItem(SS_KEY) || '{}'); } catch { return {}; } })();
+    const [search, setSearch] = useState(savedFilters.search || '');
+    const [statusFilter, setStatusFilter] = useState(savedFilters.statusFilter || 'הכל');
+    const [dateFilter, setDateFilter] = useState(savedFilters.dateFilter || 'all');
+
+    // Persist filters to sessionStorage whenever they change
+    useEffect(() => {
+        sessionStorage.setItem(SS_KEY, JSON.stringify({ search, statusFilter, dateFilter }));
+    }, [search, statusFilter, dateFilter]);
+
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [newStatus, setNewStatus] = useState('');
     const [saved, setSaved] = useState(false);
@@ -208,8 +219,8 @@ export default function AdminOrders() {
             <div className="space-y-3 mt-4">
                 {/* Header */}
                 {filtered.length > 0 && (
-                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-2 text-right">
-                        {['', 'מס׳ / תאריך', 'לקוח / מוצר', 'סה״כ', 'סטטוס', ''].map((h, i) => (
+                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-2 text-right">
+                        {['', 'מס׳ / תאריך', 'לקוח / מוצר', 'סה״כ', 'סטטוס', '', ''].map((h, i) => (
                             <p key={i} className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2]">{h}</p>
                         ))}
                     </div>
@@ -224,7 +235,7 @@ export default function AdminOrders() {
                             exit={{ opacity: 0, scale: 0.98 }}
                             transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => { setSelectedOrder(order); setNewStatus(''); setSaved(false); }}
-                            className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                            className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
                             style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                         >
                             {/* Avatar */}
@@ -247,6 +258,30 @@ export default function AdminOrders() {
 
                             {/* Status dropdown */}
                             <QuickStatusDropdown order={order} onUpdate={handleQuickStatus} />
+
+                            {/* Inline quick actions — appear on row hover */}
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
+                                {order.status !== 'אושר' && order.status !== 'נמסר' && order.status !== 'בוטל' && (
+                                    <motion.button
+                                        whileTap={{ scale: 0.88 }}
+                                        onClick={(e) => { e.stopPropagation(); handleQuickStatus(order.id, 'אושר'); }}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-black text-white transition-all"
+                                        style={{ background: 'linear-gradient(135deg,#34C759,#30D158)', boxShadow: '0 2px 8px rgba(52,199,89,0.35)' }}
+                                    >
+                                        אשר
+                                    </motion.button>
+                                )}
+                                {order.status !== 'בוטל' && (
+                                    <motion.button
+                                        whileTap={{ scale: 0.88 }}
+                                        onClick={(e) => { e.stopPropagation(); handleQuickStatus(order.id, 'בוטל'); }}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-black text-white transition-all"
+                                        style={{ background: 'linear-gradient(135deg,#FF3B30,#FF453A)', boxShadow: '0 2px 8px rgba(255,59,48,0.30)' }}
+                                    >
+                                        בטל
+                                    </motion.button>
+                                )}
+                            </div>
 
                             {/* Arrow */}
                             <motion.span whileHover={{ x: -3 }} className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold shrink-0 transition-colors">←</motion.span>

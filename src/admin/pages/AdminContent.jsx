@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useSettings } from '../../context/SettingsContext';
 import { 
     AdminSectionHeader, 
@@ -37,6 +37,8 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_magazine',        label: 'מגזין חדשנות',           desc: 'הפעלה/השבתה של בלוג האתר', icon: '📰' },
     { key: 'vis_compare_page',    label: 'עמוד השוואת דגמים',       desc: 'הפעלה/השבתה של כלי ההשוואה', icon: '⚖️' },
     { key: 'vis_ai_assistant',    label: 'עוזר אישי (AI)',         desc: 'הפעלה/השבתה של הווידג׳ט הצף', icon: '🤖' },
+    { key: 'vis_a11y_widget',     label: 'נגישות (ווידג׳ט)',      desc: 'הפעלה/השבתה של תפריט הנגישות', icon: '♿' },
+    { key: 'vis_qa_section',      label: 'שאלות ותשובות (מוצר)',   desc: 'הצגת קטע שאלות גולשים בדף מוצר', icon: '💬' },
 ];
 
 const FIELD_SECTIONS = [
@@ -164,6 +166,93 @@ const FIELD_SECTIONS = [
             { key: 'pd_color_label',    label: 'בחירת צבע',            type: 'text',     default: 'בחירת צבע' },
             { key: 'pd_compare_btn',    label: 'כפתור השוואה',         type: 'text',     default: 'השווה דגם' },
             { key: 'pd_compare_selected', label: 'נבחר להשוואה',        type: 'text',     default: 'נבחר להשוואה' },
+        ],
+    },
+    {
+        id: 'sidebar_sections',
+        label: 'סרגל ניווט מוצר',
+        icon: '📋',
+        accent: '#5856D6',
+        fields: [
+            { key: 'sidebar_label_features', label: 'תווית: תכונות בולטות',      type: 'text', default: 'תכונות בולטות' },
+            { key: 'sidebar_label_dims',     label: 'תווית: מידות המוצר',         type: 'text', default: 'מידות המוצר' },
+            { key: 'sidebar_label_specs',    label: 'תווית: מפרט טכני',           type: 'text', default: 'מפרט טכני' },
+            { key: 'sidebar_label_warranty', label: 'תווית: תנאי רכישה ואחריות',  type: 'text', default: 'תנאי רכישה ואחריות' },
+            { key: 'sidebar_label_support',  label: 'תווית: שירות ותמיכה',         type: 'text', default: 'שירות ותמיכה' },
+            { key: 'sidebar_label_faq',      label: 'תווית: שאלות נפוצות',        type: 'text', default: 'שאלות נפוצות' },
+            { key: 'sidebar_label_qa',       label: 'תווית: שאלות ותשובות',       type: 'text', default: 'שאלות ותשובות' },
+            { key: 'sidebar_label_reviews',  label: 'תווית: חוות דעת',            type: 'text', default: 'חוות דעת' },
+        ],
+    },
+    {
+        id: 'pd_warranty_section',
+        label: 'אחריות ורכישה (מוצר)',
+        icon: '🛡️',
+        accent: '#007AFF',
+        fields: [
+            { key: 'pd_warranty_title',      label: 'כותרת קטע אחריות',      type: 'text',     default: 'תנאי רכישה ואחריות' },
+            { key: 'pd_warranty_text',       label: 'טקסט תנאים',             type: 'textarea', default: 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף. כל המוצרים עוברים בדיקת איכות קפדנית לפני המשלוח.' },
+            { key: 'pd_warranty_badge1',     label: 'תג 1: כותרת',            type: 'text',     default: 'אחריות יצרן' },
+            { key: 'pd_warranty_badge1_sub', label: 'תג 1: פרט',              type: 'text',     default: '12 חודשים' },
+            { key: 'pd_warranty_badge2',     label: 'תג 2: כותרת',            type: 'text',     default: 'תיקון חינם' },
+            { key: 'pd_warranty_badge2_sub', label: 'תג 2: פרט',              type: 'text',     default: 'כולל חלפים' },
+            { key: 'pd_warranty_badge3',     label: 'תג 3: כותרת',            type: 'text',     default: 'החלפת מוצר' },
+            { key: 'pd_warranty_badge3_sub', label: 'תג 3: פרט',              type: 'text',     default: 'תוך 30 יום' },
+        ],
+    },
+    {
+        id: 'pd_support_section',
+        label: 'שירות ותמיכה (מוצר)',
+        icon: '🎧',
+        accent: '#34C759',
+        fields: [
+            { key: 'pd_support_title',       label: 'כותרת קטע תמיכה',       type: 'text', default: 'שירות ותמיכה' },
+            { key: 'pd_support_phone_label', label: 'תווית כפתור טלפון',      type: 'text', default: 'תמיכה טלפונית' },
+            { key: 'pd_support_email_label', label: 'תווית כפתור מייל',       type: 'text', default: 'שלח מייל' },
+            { key: 'pd_support_wa_label',    label: 'תווית כפתור וואטסאפ',    type: 'text', default: 'וואטסאפ' },
+            { key: 'pd_support_wa_value',    label: 'שעות זמינות וואטסאפ',    type: 'text', default: 'זמינים 9:00–21:00' },
+        ],
+    },
+    {
+        id: 'pd_faq_section',
+        label: 'שאלות נפוצות (מוצר)',
+        icon: '❓',
+        accent: '#5856D6',
+        fields: [
+            { key: 'pd_faq_title', label: 'כותרת קטע שאלות',  type: 'text',     default: 'שאלות נפוצות' },
+            { key: 'pd_faq_q1',   label: 'שאלה 1',            type: 'text',     default: 'מהו זמן האספקה הצפוי?' },
+            { key: 'pd_faq_a1',   label: 'תשובה 1',           type: 'textarea', default: 'אספקה תוך 3–7 ימי עסקים לרוב האזורים בישראל. הזמנות גדולות (מוסדי) עשויות לקחת עד 14 יום.' },
+            { key: 'pd_faq_q2',   label: 'שאלה 2',            type: 'text',     default: 'האם ניתן לקבל הצעת מחיר מוסדית?' },
+            { key: 'pd_faq_a2',   label: 'תשובה 2',           type: 'textarea', default: 'כן! מלאו את טופס יצירת הקשר או התקשרו אלינו ישירות לקבלת הצעת מחיר מותאמת לבית ספרכם.' },
+            { key: 'pd_faq_q3',   label: 'שאלה 3',            type: 'text',     default: 'מה כולל שירות ההתקנה?' },
+            { key: 'pd_faq_a3',   label: 'תשובה 3',           type: 'textarea', default: 'שירות ההתקנה כולל: הרכבה מלאה, הגדרת רשת, הדרכת צוות ופתרון בעיות ראשוני.' },
+            { key: 'pd_faq_q4',   label: 'שאלה 4 (אופציונלי)', type: 'text',     default: '' },
+            { key: 'pd_faq_a4',   label: 'תשובה 4 (אופציונלי)', type: 'textarea', default: '' },
+            { key: 'pd_faq_q5',   label: 'שאלה 5 (אופציונלי)', type: 'text',     default: '' },
+            { key: 'pd_faq_a5',   label: 'תשובה 5 (אופציונלי)', type: 'textarea', default: '' },
+        ],
+    },
+    {
+        id: 'pd_reviews_section',
+        label: 'ביקורות לקוחות (מוצר)',
+        icon: '⭐',
+        accent: '#FF9500',
+        fields: [
+            { key: 'pd_reviews_title', label: 'כותרת קטע ביקורות',   type: 'text', default: 'חוות דעת' },
+            { key: 'pd_reviews_avg',   label: 'ממוצע דירוג (1–5)',    type: 'text', default: '4.8' },
+            { key: 'pd_reviews_count', label: 'מספר ביקורות',         type: 'text', default: '24' },
+            { key: 'pd_review1_name',  label: 'ביקורת 1 — שם',        type: 'text',     default: 'שרה כ.' },
+            { key: 'pd_review1_role',  label: 'ביקורת 1 — תפקיד',     type: 'text',     default: 'מורה, חט"ב גבעתיים' },
+            { key: 'pd_review1_stars', label: 'ביקורת 1 — כוכבים (1-5)', type: 'text',  default: '5' },
+            { key: 'pd_review1_text',  label: 'ביקורת 1 — טקסט',      type: 'textarea', default: 'ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים, הילדים מעורבים הרבה יותר.' },
+            { key: 'pd_review2_name',  label: 'ביקורת 2 — שם',        type: 'text',     default: 'דוד מ.' },
+            { key: 'pd_review2_role',  label: 'ביקורת 2 — תפקיד',     type: 'text',     default: 'רכז טכנולוגיה, יסודי הרצליה' },
+            { key: 'pd_review2_stars', label: 'ביקורת 2 — כוכבים (1-5)', type: 'text',  default: '5' },
+            { key: 'pd_review2_text',  label: 'ביקורת 2 — טקסט',      type: 'textarea', default: 'התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי, ממליץ בחום.' },
+            { key: 'pd_review3_name',  label: 'ביקורת 3 — שם',        type: 'text',     default: 'מיכל ל.' },
+            { key: 'pd_review3_role',  label: 'ביקורת 3 — תפקיד',     type: 'text',     default: 'מנהלת בית ספר' },
+            { key: 'pd_review3_stars', label: 'ביקורת 3 — כוכבים (1-5)', type: 'text',  default: '4' },
+            { key: 'pd_review3_text',  label: 'ביקורת 3 — טקסט',      type: 'textarea', default: 'השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים. איכות ומחיר מעולים.' },
         ],
     },
     {
@@ -334,59 +423,101 @@ const AdminTextAreaItem = ({ label, value, onChange, rows = 3 }) => (
     </div>
 );
 
-const MenuReorderSection = ({ content, onChange }) => {
-    const items = useMemo(() => {
-        const list = [];
-        for (let i = 1; i <= 6; i++) {
-            list.push({
-                id: i,
-                label: content[`menu_item${i}_label`] || `פריט ${i}`,
-                path: content[`menu_item${i}_path`] || '/',
-            });
-        }
-        return list;
-    }, [content]);
+const DEFAULT_NAV_ITEMS = [
+    { id: 'home',     path: '/',         labelKey: 'nav_home',     defaultLabel: 'דף הבית',       visible: true },
+    { id: 'catalog',  path: '/catalog',  labelKey: 'nav_catalog',  defaultLabel: 'המוצרים שלנו', visible: true, isMega: true },
+    { id: 'compare',  path: '/compare',  labelKey: 'nav_compare',  defaultLabel: 'השוואת דגמים', visible: true },
+    { id: 'story',    path: '/story',    labelKey: 'nav_about',    defaultLabel: 'הסיפור שלנו',  visible: true },
+    { id: 'vod',      path: '/vod',      labelKey: 'nav_vod',      defaultLabel: 'מרכז הדרכה',   visible: true },
+    { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין',         visible: true },
+    { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר',       visible: true },
+];
 
-    const move = (from, to) => {
-        const newList = [...items];
-        const [moved] = newList.splice(from, 1);
-        newList.splice(to, 0, moved);
-        
-        const updates = {};
-        newList.forEach((item, idx) => {
-            updates[`menu_item${idx + 1}_label`] = item.label;
-            updates[`menu_item${idx + 1}_path`] = item.path;
-        });
-        
-        Object.entries(updates).forEach(([k, v]) => onChange(k, v));
+const NAV_ICONS = { home: '🏠', catalog: '🛍️', compare: '⚖️', story: '📖', vod: '🎬', magazine: '📰', contact: '📞' };
+
+const NavMenuManager = ({ showToast }) => {
+    const { getSetting, updateGlobalSettings } = useSettings();
+
+    const [items, setItems] = useState(() => {
+        const saved = getSetting('nav_items', null);
+        return Array.isArray(saved) ? saved : DEFAULT_NAV_ITEMS;
+    });
+    const itemsRef = React.useRef(items);
+
+    useEffect(() => {
+        const fromFirestore = getSetting('nav_items', null);
+        if (Array.isArray(fromFirestore)) {
+            setItems(fromFirestore);
+            itemsRef.current = fromFirestore;
+        }
+    }, [getSetting]);
+
+    const persist = async (newItems) => {
+        try {
+            await updateGlobalSettings({ nav_items: newItems });
+            showToast('תפריט הניווט עודכן', 'success');
+        } catch {
+            showToast('שגיאה בשמירת התפריט', 'error');
+        }
+    };
+
+    const handleReorder = (newItems) => {
+        setItems(newItems);
+        itemsRef.current = newItems;
+    };
+
+    const handleDragEnd = () => persist(itemsRef.current);
+
+    const toggleVisibility = async (id) => {
+        const newItems = items.map(item => item.id === id ? { ...item, visible: !item.visible } : item);
+        setItems(newItems);
+        itemsRef.current = newItems;
+        await persist(newItems);
+    };
+
+    const handleReset = async () => {
+        const reset = DEFAULT_NAV_ITEMS.map(d => ({ ...d, visible: true }));
+        setItems(reset);
+        itemsRef.current = reset;
+        await persist(reset);
     };
 
     return (
         <div className="p-6 space-y-4">
-            <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right mb-4">
-                גררו פריטים כדי לשנות את סדר הניווט באתר
-            </p>
-            <div className="space-y-2">
-                {items.map((item, idx) => (
-                    <motion.div
+            <div className="flex items-center justify-between mb-4">
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#007AFF] transition-colors font-bold">
+                    איפוס לברירת מחדל
+                </button>
+                <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right">
+                    גרור לשינוי סדר • מתג להסתרה / הצגה
+                </p>
+            </div>
+            <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {items.map((item) => (
+                    <Reorder.Item
                         key={item.id}
-                        layout
-                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-move group hover:border-[#007AFF]/30 transition-colors"
+                        value={item}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none' }}
+                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#007AFF]/30 transition-colors select-none"
                     >
-                        <div className="flex flex-col gap-1 text-[#AEAEB2] group-hover:text-[#007AFF] transition-colors">
-                            <button onClick={() => idx > 0 && move(idx, idx - 1)} className="hover:scale-125 transition-transform">▲</button>
-                            <button onClick={() => idx < items.length - 1 && move(idx, idx + 1)} className="hover:scale-125 transition-transform">▼</button>
-                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#007AFF] transition-colors">
+                            <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" />
+                            <rect x="3" y="7.25" width="10" height="1.5" rx="0.75" />
+                            <rect x="3" y="11" width="10" height="1.5" rx="0.75" />
+                        </svg>
+                        <span className="text-xl shrink-0">{NAV_ICONS[item.id] || '🔗'}</span>
                         <div className="flex-1 text-right">
-                            <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
+                            <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
                             <p className="text-[10px] text-gray-400 font-mono">{item.path}</p>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-[#AEAEB2]">
-                            {idx + 1}
-                        </div>
-                    </motion.div>
+                        <AdminToggle
+                            value={item.visible !== false}
+                            onChange={() => toggleVisibility(item.id)}
+                        />
+                    </Reorder.Item>
                 ))}
-            </div>
+            </Reorder.Group>
         </div>
     );
 };
@@ -568,7 +699,7 @@ export default function AdminContent({ showToast }) {
                                 <VisibilitySection content={content} onChange={handleChange} />
                             )}
                             {activeSection === 'menu_reorder' && (
-                                <MenuReorderSection content={content} onChange={handleChange} />
+                                <NavMenuManager showToast={showToast} />
                             )}
                             {activeSection === 'videos' && (
                                 <VideosSection showToast={showToast} />

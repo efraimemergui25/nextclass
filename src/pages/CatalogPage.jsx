@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, Link } from 'react-router-dom';
 import { LayoutGrid, List, SlidersHorizontal, X, Check } from 'lucide-react';
@@ -8,7 +8,10 @@ import { useProducts } from '../context/ProductsContext';
 import Magnetic from '../components/Magnetic';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import useCartPop from '../hooks/useCartPop';
+import useRecentlyViewed from '../hooks/useRecentlyViewed';
+import RecentlyViewedTray from '../components/RecentlyViewedTray';
 import { ShoppingCart, Scale } from 'lucide-react';
 
 // ─── Animation variants ────────────────────────────────────────────────────
@@ -62,12 +65,35 @@ const CatalogPage = () => {
     const [sortBy, setSortBy] = useState('default');
     const [priceRange, setPriceRange] = useState([0, 30000]);
 
-    // Sync URL with category
+    // ─── Scroll restoration via sessionStorage ────────────────────────────────
+    const scrollKey = 'catalog_scroll_pos';
+    useEffect(() => {
+        const saved = sessionStorage.getItem(scrollKey);
+        if (saved) {
+            requestAnimationFrame(() => window.scrollTo({ top: parseInt(saved), behavior: 'instant' }));
+            sessionStorage.removeItem(scrollKey);
+        }
+    }, []);
+
+    useEffect(() => {
+        const saveScroll = () => sessionStorage.setItem(scrollKey, String(window.scrollY));
+        window.addEventListener('beforeunload', saveScroll);
+        return () => window.removeEventListener('beforeunload', saveScroll);
+    }, []);
+
+    const handleProductClick = useCallback(() => {
+        sessionStorage.setItem(scrollKey, String(window.scrollY));
+    }, []);
+
+    // ─── Sync URL with category ────────────────────────────────────────────────
     const handleCategorySelect = (cat) => {
         setSelectedCategory(cat);
         setSearchParams(cat === allLabel ? {} : { category: cat });
         setIsFilterOpen(false);
     };
+
+    // ─── Recently Viewed ───────────────────────────────────────────────────────
+    const { recentIds } = useRecentlyViewed();
 
     const filtered = useMemo(() => {
         let result = selectedCategory === allLabel
@@ -214,6 +240,7 @@ const CatalogPage = () => {
                                 <motion.div
                                     key={product.id}
                                     variants={itemVariants}
+                                    onClick={handleProductClick}
                                 >
                                     {viewMode === 'list' ? (
                                         <ListCard product={product} />
@@ -225,13 +252,50 @@ const CatalogPage = () => {
                         </motion.div>
                     </AnimatePresence>
 
-                    {filtered.length === 0 && (
-                        <div className="text-center py-32">
-                            <p className="text-3xl font-bold text-gray-300 mb-3">{getSetting('catalog_empty_msg', 'לא נמצאו מוצרים')}</p>
-                            <p className="text-gray-400">{getSetting('catalog_empty_hint', 'נסה קטגוריה אחרת')}</p>
-                        </div>
-                    )}
+                    {/* ── Smart Empty State ──────────────────────────────────── */}
+                    <AnimatePresence>
+                        {filtered.length === 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="text-center py-24 flex flex-col items-center gap-6"
+                            >
+                                <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
+                                    style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.12)' }}>
+                                    🔍
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-black text-[#1D1D1F] mb-2">{getSetting('catalog_empty_msg', 'לא נמצאו מוצרים')}</p>
+                                    <p className="text-gray-400 font-medium">{getSetting('catalog_empty_hint', 'נסה קטגוריה אחרת או שנה את הפילטרים')}</p>
+                                </div>
+                                <motion.button
+                                    whileHover={{ scale: 1.04 }}
+                                    whileTap={{ scale: 0.96 }}
+                                    onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory(allLabel); setSearchParams({}); }}
+                                    className="px-8 py-3 rounded-full bg-[#007AFF] text-white font-bold text-sm shadow-[0_8px_20px_rgba(0,122,255,0.3)] hover:shadow-[0_12px_28px_rgba(0,122,255,0.4)] transition-all"
+                                >
+                                    הצג את כל המוצרים
+                                </motion.button>
+
+                                {/* 3 random product suggestions */}
+                                {products.length > 0 && (
+                                    <div className="w-full mt-8">
+                                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#86868B] mb-6">אולי תאהב</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            {products.slice(0, 3).map(p => (
+                                                <ProductCard key={p.id} product={p} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
+
+                {/* ── Recently Viewed ─────────────────────────────────────────── */}
+                <RecentlyViewedTray recentIds={recentIds} />
 
                 {/* ── Filter Drawer ──────────────────────────────────────────── */}
                 <AnimatePresence>

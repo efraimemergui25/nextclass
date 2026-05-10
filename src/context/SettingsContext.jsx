@@ -19,15 +19,21 @@ export const SettingsProvider = ({ children }) => {
 
     // ─── Live Firestore Sync ────────────────────────────────────────────────
     useEffect(() => {
-        // Listen to global settings in Firestore
-        const unsub = onSnapshot(doc(db, 'cms_settings', FIREBASE_DOC_ID), (snap) => {
-            if (snap.exists()) {
-                const cloudData = snap.data();
-                setSettings(cloudData);
-                // Keep localStorage as a fast fallback/cache
-                localStorage.setItem(LS_KEY, JSON.stringify(cloudData));
+        // Listen to global settings in Firestore — falls back to localStorage on permission error
+        const unsub = onSnapshot(
+            doc(db, 'cms_settings', FIREBASE_DOC_ID),
+            (snap) => {
+                if (snap.exists()) {
+                    const cloudData = snap.data();
+                    setSettings(cloudData);
+                    localStorage.setItem(LS_KEY, JSON.stringify(cloudData));
+                }
+            },
+            (err) => {
+                // Permission denied or network error — keep using localStorage cache silently
+                console.warn('SettingsContext: Firestore unavailable, using local cache', err.code);
             }
-        });
+        );
 
         // Still listen to storage events for cross-tab sync if local changes happen
         const handleStorageChange = (e) => {
@@ -57,7 +63,7 @@ export const SettingsProvider = ({ children }) => {
 
     const updateGlobalSettings = async (newSettings) => {
         try {
-            await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), newSettings);
+            await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), newSettings, { merge: true });
         } catch (err) {
             console.error('Failed to update global settings', err);
         }

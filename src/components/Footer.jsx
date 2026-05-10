@@ -45,10 +45,12 @@ const Footer = () => {
 
     // Removed storage listener (handled by SettingsContext)
     return (
-        <footer className="relative bg-[#F5F5F7] pt-12 sm:pt-20 pb-8 sm:pb-12 w-full mt-auto overflow-hidden border-t border-gray-200/50">
+        <footer className="relative bg-[#F5F5F7] pt-12 sm:pt-20 pb-8 sm:pb-12 w-full mt-auto overflow-hidden"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.6)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' }}>
             {/* Ambient Background Glows */}
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-[100px] -mr-32 -mt-32" />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-100/20 rounded-full blur-[100px] -ml-32 -mb-32" />
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[120px] -mr-40 -mt-40 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-100/25 rounded-full blur-[110px] -ml-32 -mb-32 pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-sky-50/30 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-20 mb-12 sm:mb-20">
@@ -109,17 +111,25 @@ const Footer = () => {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="pt-10 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6"
+                    style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                     <div className="flex items-center gap-2 text-[11px] text-gray-400 font-bold uppercase tracking-widest">
                         <span>{content.copyright}</span>
                     </div>
-                    
+
                     <div className="flex gap-6 text-[11px] text-gray-400 font-bold uppercase tracking-widest">
-                        <Link to="/" className="hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
-                        <Link to="/" className="hover:text-[#007AFF] transition-colors">{content.terms}</Link>
+                        <Link to="/" className="link-underline hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
+                        <Link to="/" className="link-underline hover:text-[#007AFF] transition-colors">{content.terms}</Link>
                     </div>
 
-                    <div className="flex items-center gap-3 px-4 py-1.5 rounded-full glass-apple border border-gray-200/50 shadow-sm bg-white/50">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full"
+                        style={{
+                            background: 'rgba(255,255,255,0.75)',
+                            backdropFilter: 'blur(24px) saturate(1.8)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+                            border: '1px solid rgba(255,255,255,0.80)',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
+                        }}>
                         <Globe size={12} className="text-[#007AFF]" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-[#1D1D1F]">{content.location}</span>
                     </div>

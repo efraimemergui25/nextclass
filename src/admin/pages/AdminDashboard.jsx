@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminKPICard, StatusBadge, HeatGrid } from '../components/AdminComponents';
+import { AdminKPICard, StatusBadge, HeatGrid, AdminModal } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 
 // ─── Activity icon per type ───────────────────────────────────────────────────
@@ -81,6 +81,7 @@ const greeting = () => {
 export default function AdminDashboard() {
     const { kpis, orders, analytics, inventory, activityLog } = useAdminData();
     const [period, setPeriod] = useState('30');
+    const [drilldown, setDrilldown] = useState(null); // 'revenue' | 'orders' | 'conversion' | 'avg'
 
     // Slice analytics by selected period
     const periodData = useMemo(() => {
@@ -134,10 +135,13 @@ export default function AdminDashboard() {
                     <p className="text-[#86868B] text-sm mt-1 font-medium">{dateStr} · נתוני אמת מתעדכנים בזמן-אמת</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Live dot */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                    {/* Live dot — enhanced with badge-pulse */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full relative"
                         style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.25)' }}>
-                        <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
+                        <span className="relative flex items-center justify-center w-2 h-2">
+                            <span className="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-60" />
+                            <span className="relative w-2 h-2 rounded-full bg-[#34C759] animate-pulse-dot" />
+                        </span>
                         <span className="text-[11px] font-black tracking-widest text-[#1D1D1F] uppercase">Live</span>
                     </div>
                     <PeriodSelector value={period} onChange={setPeriod} />
@@ -149,19 +153,27 @@ export default function AdminDashboard() {
                 <AdminKPICard title="הכנסות" icon="💰"
                     value={`₪${kpis.totalRevenue.toLocaleString()}`}
                     subtitle={`₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`}
-                    trend={12} trendUp color="#34C759" delay={0} />
+                    trend={12} trendUp color="#34C759" delay={0}
+                    sparkData={periodData?.revenue}
+                    onClick={() => setDrilldown('revenue')} />
                 <AdminKPICard title="עסקאות" icon="📦"
                     value={kpis.totalOrders}
                     subtitle={`${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`}
-                    trend={8} trendUp color="#007AFF" delay={0.05} />
+                    trend={8} trendUp color="#007AFF" delay={0.05}
+                    sparkData={periodData?.sales}
+                    onClick={() => setDrilldown('orders')} />
                 <AdminKPICard title="יחס המרה" icon="📈"
                     value={`${kpis.conversionRate}%`}
                     subtitle="מכניסות ייחודיות"
-                    trend={3} trendUp color="#5856D6" delay={0.1} />
+                    trend={3} trendUp color="#5856D6" delay={0.1}
+                    sparkData={periodData?.visits}
+                    onClick={() => setDrilldown('conversion')} />
                 <AdminKPICard title="ממוצע עסקה" icon="🎯"
                     value={`₪${kpis.avgOrderValue.toLocaleString()}`}
                     subtitle={`${kpis.completedOrders} הזמנות הושלמו`}
-                    trend={5} trendUp color="#FF9500" delay={0.15} />
+                    trend={5} trendUp color="#FF9500" delay={0.15}
+                    sparkData={periodData?.revenue}
+                    onClick={() => setDrilldown('avg')} />
             </div>
 
             {/* ── Secondary KPIs ──────────────────────────────────────────────── */}
@@ -392,6 +404,78 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
             </div>
+
+            {/* ── KPI Drilldown Modal ────────────────────────────────────────── */}
+            {(() => {
+                const meta = {
+                    revenue:    { title: 'פירוט הכנסות', color: '#34C759', data: periodData?.revenue, labels: periodData?.labels, icon: '💰' },
+                    orders:     { title: 'פירוט עסקאות', color: '#007AFF', data: periodData?.sales,   labels: periodData?.labels, icon: '📦' },
+                    conversion: { title: 'פירוט תנועה',  color: '#5856D6', data: periodData?.visits,  labels: periodData?.labels, icon: '📈' },
+                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', data: null, icon: '🎯' },
+                };
+                const m = drilldown ? meta[drilldown] : null;
+                const maxBar = m?.data ? Math.max(...m.data, 1) : 1;
+                return (
+                    <AdminModal open={!!drilldown} onClose={() => setDrilldown(null)} title={m?.title || ''} size="lg">
+                        {m && (
+                            <div className="space-y-5" dir="rtl">
+                                {drilldown === 'avg' ? (
+                                    <div className="space-y-3">
+                                        {topProducts.length === 0 && <p className="text-[#AEAEB2] text-sm text-center py-8">אין נתונים להצגה</p>}
+                                        {topProducts.map((p, i) => (
+                                            <div key={i} className="flex items-center gap-3">
+                                                <span className="text-[#AEAEB2] text-xs w-5 text-center font-black">{i + 1}</span>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between mb-1">
+                                                        <span className="text-[11px] font-bold text-[#1D1D1F]">{p.title}</span>
+                                                        <span className="text-[11px] font-black" style={{ color: m.color }}>₪{p.revenue.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
+                                                            transition={{ delay: i * 0.06, duration: 0.7, ease: [0.22,1,0.36,1] }}
+                                                            className="h-full rounded-full"
+                                                            style={{ background: `linear-gradient(90deg, ${m.color}, ${m.color}80)` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : m.data ? (
+                                    <div>
+                                        <p className="text-[#86868B] text-[11px] font-bold mb-4">
+                                            {period === '1' ? 'היום' : `${period} ימים אחרונים`} · {m.icon} סה״כ: <span className="font-black text-[#1D1D1F]">{m.data.reduce((a,b) => a+b, 0).toLocaleString()}</span>
+                                        </p>
+                                        <div className="flex items-end gap-1 h-36 overflow-x-auto pb-1" style={{ direction: 'ltr' }}>
+                                            {m.data.map((v, i) => (
+                                                <div key={i} className="flex flex-col items-center gap-1 shrink-0" style={{ minWidth: Math.max(14, Math.floor(320 / m.data.length)) }}>
+                                                    <motion.div
+                                                        initial={{ height: 0 }}
+                                                        animate={{ height: `${Math.max(2, (v / maxBar) * 100)}%` }}
+                                                        transition={{ delay: i * 0.01, duration: 0.5, ease: [0.22,1,0.36,1] }}
+                                                        className="w-full rounded-t-md"
+                                                        style={{ background: v > 0 ? `linear-gradient(180deg, ${m.color} 0%, ${m.color}60 100%)` : 'rgba(0,0,0,0.06)' }}
+                                                        title={`${m.labels?.[i] || i}: ${v}`}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {m.labels && (
+                                            <div className="flex gap-1 mt-1 overflow-x-auto" style={{ direction: 'ltr' }}>
+                                                {m.labels.filter((_, i) => i % Math.ceil(m.labels.length / 8) === 0).map((l, i) => (
+                                                    <span key={i} className="text-[9px] text-[#AEAEB2] font-mono shrink-0 min-w-[28px] text-center">{l}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
+                    </AdminModal>
+                );
+            })()}
         </div>
     );
 }

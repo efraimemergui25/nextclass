@@ -9,8 +9,11 @@ import { useProducts } from '../context/ProductsContext';
 import TrustBadges from '../components/TrustBadges';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
+import ProductPageSidebar from '../components/ProductPageSidebar';
 import Magnetic from '../components/Magnetic';
+import ProductQA from '../components/ProductQA';
 import { useSettings } from '../context/SettingsContext';
+import { useWishlist } from '../context/WishlistContext';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
@@ -26,12 +29,135 @@ const ImageFallback = memo(() => (
 ));
 ImageFallback.displayName = 'ImageFallback';
 
+const DEFAULT_FAQ = [
+    { q: 'מהו זמן האספקה הצפוי?',                a: 'אספקה תוך 3–7 ימי עסקים לרוב האזורים בישראל. הזמנות גדולות (מוסדי) עשויות לקחת עד 14 יום.' },
+    { q: 'האם ניתן לקבל הצעת מחיר מוסדית?',      a: 'כן! מלאו את טופס יצירת הקשר או התקשרו אלינו ישירות לקבלת הצעת מחיר מותאמת לבית ספרכם.' },
+    { q: 'מה כולל שירות ההתקנה?',                  a: 'שירות ההתקנה כולל: הרכבה מלאה, הגדרת רשת, הדרכת צוות ופתרון בעיות ראשוני.' },
+    { q: 'האם קיימת אחריות על המוצר?',             a: 'כל המוצרים מגיעים עם אחריות יצרן של 3 שנים ותמיכה טכנית מלאה של NextClass.' },
+    { q: 'כיצד ניתן לבצע תיקון או להחזיר מוצר?', a: 'ניתן לפנות לשירות הלקוחות שלנו בכל ערוץ — טלפון, וואטסאפ או דוא"ל — ונלווה אתכם בכל תהליך.' },
+];
+
+// ─── FAQ Section ─────────────────────────────────────────────────────────────
+function ProductFAQ({ getSetting }) {
+    const [openIdx, setOpenIdx] = useState(null);
+    // Read individual CMS keys (matching AdminContent pd_faq_section fields)
+    const items = [
+        { q: getSetting('pd_faq_q1', DEFAULT_FAQ[0].q), a: getSetting('pd_faq_a1', DEFAULT_FAQ[0].a) },
+        { q: getSetting('pd_faq_q2', DEFAULT_FAQ[1].q), a: getSetting('pd_faq_a2', DEFAULT_FAQ[1].a) },
+        { q: getSetting('pd_faq_q3', DEFAULT_FAQ[2].q), a: getSetting('pd_faq_a3', DEFAULT_FAQ[2].a) },
+        { q: getSetting('pd_faq_q4', DEFAULT_FAQ[3].q), a: getSetting('pd_faq_a4', DEFAULT_FAQ[3].a) },
+        { q: getSetting('pd_faq_q5', DEFAULT_FAQ[4].q), a: getSetting('pd_faq_a5', DEFAULT_FAQ[4].a) },
+    ].filter(item => item.q && item.a);
+    if (!items.length) return null;
+    return (
+        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+            <div className="text-right mb-10">
+                <div className="flex items-center gap-3 justify-end mb-4">
+                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות גולשים')}</h3>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.18)' }}>
+                        <svg className="w-6 h-6 text-[#5856D6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                </div>
+                <div className="h-1 w-12 bg-[#5856D6] rounded-full mr-0 ml-auto" />
+            </div>
+            <div className="space-y-3">
+                {items.map((item, i) => (
+                    <motion.div key={i} className="rounded-2xl overflow-hidden"
+                        style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                        <button onClick={() => setOpenIdx(openIdx === i ? null : i)}
+                            className="w-full flex items-center justify-between gap-4 p-5 text-right cursor-pointer">
+                            <motion.svg className="w-5 h-5 text-[#5856D6] shrink-0"
+                                animate={{ rotate: openIdx === i ? 180 : 0 }} transition={{ duration: 0.25 }}
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </motion.svg>
+                            <span className="font-black text-[#1D1D1F] text-base flex-1">{item.q}</span>
+                        </button>
+                        <AnimatePresence>
+                            {openIdx === i && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22,1,0.36,1] }}>
+                                    <p className="px-5 pb-5 text-[#6E6E73] text-base leading-relaxed text-right">{item.a}</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+// ─── Reviews Section ──────────────────────────────────────────────────────────
+function ProductReviews({ getSetting, product }) {
+    const avgRating = parseFloat(getSetting('pd_reviews_avg', '4.8'));
+    const reviewCount = parseInt(getSetting('pd_reviews_count', '24'));
+    const defaultReviews = [
+        { name: getSetting('pd_review1_name','שרה כ.'), role: getSetting('pd_review1_role','מורה, חט"ב גבעתיים'), text: getSetting('pd_review1_text','ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים, הילדים מעורבים הרבה יותר.'), stars: 5 },
+        { name: getSetting('pd_review2_name','דוד מ.'), role: getSetting('pd_review2_role','רכז טכנולוגיה, יסודי הרצליה'), text: getSetting('pd_review2_text','התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי, ממליץ בחום.'), stars: 5 },
+        { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים. איכות ומחיר מעולים.'), stars: 4 },
+    ];
+    return (
+        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24">
+            <div className="text-right mb-10">
+                <div className="flex items-center gap-3 justify-end mb-4">
+                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_reviews_title', 'חוות דעת')}</h3>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.18)' }}>
+                        <svg className="w-6 h-6 text-[#FF9500]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </div>
+                </div>
+                {/* Summary bar */}
+                <div className="flex items-center gap-6 justify-end mb-8">
+                    <div className="flex items-center gap-1.5">
+                        {[1,2,3,4,5].map(s => (
+                            <svg key={s} className="w-5 h-5" fill={s <= Math.round(avgRating) ? '#FF9500' : '#E5E5EA'} viewBox="0 0 24 24">
+                                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                        ))}
+                    </div>
+                    <span className="text-4xl font-black text-[#1D1D1F] tracking-tighter">{avgRating}</span>
+                    <span className="text-[#86868B] font-medium">{reviewCount} חוות דעת</span>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {defaultReviews.map((r, i) => (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22,1,0.36,1] }}
+                        className="p-6 rounded-[1.75rem] text-right"
+                        style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+                        <div className="flex items-center gap-1 mb-4 justify-end">
+                            {[1,2,3,4,5].map(s => (
+                                <svg key={s} className="w-4 h-4" fill={s <= r.stars ? '#FF9500' : '#E5E5EA'} viewBox="0 0 24 24">
+                                    <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                </svg>
+                            ))}
+                        </div>
+                        <p className="text-[#1D1D1F] text-sm font-medium leading-relaxed mb-5">"{r.text}"</p>
+                        <div className="border-t border-gray-100 pt-4">
+                            <p className="font-black text-[#1D1D1F] text-sm">{r.name}</p>
+                            <p className="text-[#86868B] text-xs font-medium">{r.role}</p>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 const ProductDetailPage = () => {
     const { id } = useParams();
     const { getSetting, isVisible } = useSettings();
     const { cartItems, addToCart, removeFromCart } = useCart();
     const { getProductById } = useProducts();
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
+    const { toggle: toggleWishlist, isWishlisted } = useWishlist();
 
     const content = useMemo(() => ({
         notFound:   getSetting('pd_not_found', 'המוצר לא נמצא.'),
@@ -221,6 +347,12 @@ const ProductDetailPage = () => {
         }
     }, [isProductSelectedForCompare, product, addToCompare, removeFromCompare]);
 
+    const handleWishlistToggle = useCallback(() => {
+        toggleWishlist(product?.id);
+    }, [product?.id, toggleWishlist]);
+
+    const wishlisted = useMemo(() => isWishlisted(product?.id), [isWishlisted, product?.id]);
+
     const toggleAccessory = useCallback((accId) => {
         setSelectedAccessories(prev => {
             const next = new Set(prev);
@@ -245,7 +377,53 @@ const ProductDetailPage = () => {
 
     return (
         <>
-            {/* ─── Sticky Mini-Bar rendered via Portal — bypasses PageTransition CSS transform ─ */}
+            {/* ─── Mobile-Only Bottom CTA Bar (always visible on mobile) ──────── */}
+            {createPortal(
+                <AnimatePresence>
+                    {showStickyBar && (
+                        <motion.div
+                            initial={{ y: 80, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 80, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                            className="fixed bottom-0 left-0 right-0 z-[999] md:hidden px-4 pb-5 pt-3 flex gap-3 items-center"
+                            style={{
+                                background: 'linear-gradient(to top, rgba(245,245,247,1) 60%, rgba(245,245,247,0))',
+                            }}
+                        >
+                            {allowOrders ? (
+                                <motion.button
+                                    whileTap={{ scale: 0.96 }}
+                                    onClick={handleCartToggle}
+                                    className={`flex-1 h-[54px] rounded-full font-black text-[15px] flex items-center justify-center gap-2 transition-all ${
+                                        isInCart
+                                            ? 'bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200'
+                                            : 'bg-[#007AFF] text-white shadow-[0_8px_24px_rgba(0,122,255,0.35)]'
+                                    }`}
+                                >
+                                    {isInCart ? (
+                                        <><svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>{content.added}</>
+                                    ) : (
+                                        <><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>{content.addToCart}</>
+                                    )}
+                                </motion.button>
+                            ) : null}
+                            <Link to="/contact" className="shrink-0">
+                                <motion.button
+                                    whileTap={{ scale: 0.96 }}
+                                    className="h-[54px] px-5 rounded-full border-2 border-[#1D1D1F] text-[#1D1D1F] font-black text-[13px] flex items-center justify-center gap-2 bg-white/80 backdrop-blur-xl"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    {content.quickInquiry}
+                                </motion.button>
+                            </Link>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* ─── Desktop Sticky Mini-Bar via Portal ──────────────────────────── */}
             {createPortal(
                 <AnimatePresence>
                     {showStickyBar && (
@@ -314,8 +492,11 @@ const ProductDetailPage = () => {
             )}
 
             <PageTransition>
+                {/* ─── Product Page Sidebar Navigation ─────────────────────────── */}
+                <ProductPageSidebar visible={true} />
+
                 {/* ─── Main Content ────────────────────────────────────────────── */}
-                <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full">
+                <div id="pd-overview" className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-6 md:px-12 w-full">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20">
 
                         {/* ─── Left Column: Sticky Media Panel ─────────────────── */}
@@ -433,8 +614,8 @@ const ProductDetailPage = () => {
                                 </div>
                             </section>
 
-                            {/* Accessories — Hyper-Glass RTL Cards */}
-                            <section className="mb-12">
+                            {/* Accessories ─ anchor for sidebar (renamed to avoid conflict with dims) */}
+                            <section id="pd-accessories" className="mb-12">
                                 <div className="flex items-center justify-between mb-5">
                                     <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
                                     <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">{content.accOptional}</span>
@@ -575,34 +756,49 @@ const ProductDetailPage = () => {
                                     </Link>
                                 )}
 
+                                </div>
+
                                 <TrustBadges />
 
                                 {allowOrders && (
                                     <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                                    <Magnetic strength={0.15}>
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
-                                        >
-                                            {/* Shine effect for black button */}
-                                            <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-                                            {allowOrders ? content.buyNow : content.quickInquiry}
-                                        </motion.button>
-                                    </Magnetic>
-                                    <Magnetic strength={0.15}>
-                                        <motion.button
-                                            onClick={handleCompareToggle}
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className={`flex-1 min-w-[200px] border-2 py-4 px-10 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                            </svg>
-                                            <span>{isProductSelectedForCompare ? content.compareSelected : content.compareBtn}</span>
-                                        </motion.button>
-                                    </Magnetic>
+                                        <Magnetic strength={0.15}>
+                                            <motion.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
+                                            >
+                                                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                                                {allowOrders ? content.buyNow : content.quickInquiry}
+                                            </motion.button>
+                                        </Magnetic>
+
+                                        <Magnetic strength={0.15}>
+                                            <motion.button
+                                                onClick={handleCompareToggle}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className={`flex-1 min-w-[200px] border-2 py-4 px-10 rounded-full font-bold flex justify-center items-center gap-3 transition-apple-fluid ${isProductSelectedForCompare ? 'bg-[#007AFF]/5 border-[#007AFF] text-[#007AFF]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                                            >
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                                </svg>
+                                                <span>{isProductSelectedForCompare ? content.compareSelected : content.compareBtn}</span>
+                                            </motion.button>
+                                        </Magnetic>
+
+                                        <Magnetic strength={0.15}>
+                                            <motion.button
+                                                onClick={handleWishlistToggle}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                className={`p-4 rounded-full border-2 flex justify-center items-center transition-apple-fluid ${wishlisted ? 'bg-[#FF2D55]/5 border-[#FF2D55] text-[#FF2D55]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF2D55]/30'}`}
+                                            >
+                                                <svg className="w-6 h-6" fill={wishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                                </svg>
+                                            </motion.button>
+                                        </Magnetic>
                                     </div>
                                 )}
                             </div>
@@ -611,7 +807,7 @@ const ProductDetailPage = () => {
 
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
-                    <div ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
+                    <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
                         <div className="max-w-7xl mx-auto h-full flex flex-col md:grid md:grid-cols-2 relative">
 
                             {/* Sticky Visual — order 1 on mobile, 2 on desktop */}
@@ -671,12 +867,43 @@ const ProductDetailPage = () => {
                                 ))}
                             </div>
 
-                        </div>
                     </div>
 
-                    {/* ─── Technical Specs Grid (Gestalt Redesign) ──────────────── */}
+                    {/* ─── Product Dimensions Section ────────────────────────────── */}
+                    <section id="pd-dims" className="max-w-[1200px] mx-auto mt-24 md:mt-40 mb-24 px-6 md:px-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                            <div className="text-right">
+                                <span className="text-xs font-black text-[#007AFF] uppercase tracking-[0.2em] mb-4 block">Dimensions & Weight</span>
+                                <h3 className="text-3xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-6">התאמה מושלמת למרחב שלך</h3>
+                                <p className="text-lg text-[#86868B] leading-relaxed mb-10">תכנון נכון של מרחב הלמידה מתחיל במידות מדויקות. כל המוצרים שלנו מתוכננים לעמידות ונוחות מקסימלית.</p>
+                                
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">רוחב</p>
+                                        <p className="text-2xl font-black text-[#1D1D1F]">{product.specs?.find(s => s.label.includes('גודל'))?.value || '165.5 ס"מ'}</p>
+                                    </div>
+                                    <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">משקל</p>
+                                        <p className="text-2xl font-black text-[#1D1D1F]">{product.specs?.find(s => s.label.includes('משקל'))?.value || '48 ק"ג'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="relative aspect-square md:aspect-[4/3] rounded-[3rem] overflow-hidden bg-white shadow-2xl group">
+                                <img 
+                                    src={product.image} 
+                                    alt="Dimensions Preview" 
+                                    className="w-full h-full object-contain p-12 opacity-80 group-hover:scale-105 transition-transform duration-1000"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
+                                {/* Blueprint overlay effect */}
+                                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* ─── Technical Specs Grid ──────────────────────────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div id="specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
+                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
                             <div
                                 className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] border border-white/60 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden relative"
                             >
@@ -714,6 +941,81 @@ const ProductDetailPage = () => {
                         </div>
                     )}
                 </div>
+
+                {/* ─── Service, Support & Warranty ────────────────────────────── */}
+                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 space-y-8">
+                    {/* Combined Service & Warranty Card */}
+                    <div className="rounded-[3.5rem] p-8 md:p-16 bg-white border border-gray-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 pointer-events-none" />
+                        
+                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12">
+                            {/* Warranty Info (Right 7 cols) */}
+                            <div className="lg:col-span-7 text-right">
+                                <div className="flex items-center gap-3 justify-end mb-6">
+                                    <h3 className="text-3xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter">
+                                        {getSetting('pd_warranty_title', 'שירות, תמיכה ואחריות')}
+                                    </h3>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#007AFF] text-white flex items-center justify-center shadow-lg shadow-[#007AFF]/20">
+                                        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <p className="text-lg text-[#6E6E73] leading-relaxed mb-10">
+                                    {getSetting('pd_warranty_text', 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף.')}
+                                </p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[
+                                        { icon: '🛡️', label: 'אחריות מלאה', sub: '12 חודשי יצרן' },
+                                        { icon: '🔧', label: 'תיקון בבית הלקוח', sub: 'טכנאי עד 48 שעות' },
+                                    ].map((b, i) => (
+                                        <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-[#F5F5F7] border border-gray-100">
+                                            <span className="text-3xl">{b.icon}</span>
+                                            <div className="text-right">
+                                                <p className="font-black text-[#1D1D1F] text-sm">{b.label}</p>
+                                                <p className="text-[#86868B] text-xs font-medium">{b.sub}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Contact Links (Left 5 cols) */}
+                            <div className="lg:col-span-5 flex flex-col gap-4">
+                                {[
+                                    { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: 'תמיכה טלפונית', value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
+                                    { icon: '✉️', href: `mailto:${getSetting('contact_email','info@nextclass.co.il')}`, label: 'שלח מייל', value: getSetting('contact_email','info@nextclass.co.il'), color: '#5856D6' },
+                                    { icon: '💬', href: 'https://wa.me/972546398257', label: 'וואטסאפ עסקי', value: 'זמינים למענה מהיר', color: '#25D366' },
+                                ].map((item, i) => (
+                                    <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
+                                        className="group flex items-center gap-4 p-5 rounded-3xl transition-all hover:bg-white hover:shadow-xl border border-transparent hover:border-gray-100"
+                                        style={{ background: `${item.color}05` }}>
+                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110" style={{ background: `${item.color}10`, color: item.color }}>
+                                            {item.icon}
+                                        </div>
+                                        <div className="text-right flex-1">
+                                            <p className="text-[10px] font-black uppercase tracking-widest mb-0.5 opacity-60" style={{ color: item.color }}>{item.label}</p>
+                                            <p className="font-bold text-[#1D1D1F] text-sm">{item.value}</p>
+                                        </div>
+                                        <svg className="w-5 h-5 text-gray-300 group-hover:text-[#007AFF] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ─── FAQ — Frequently Asked Questions ───────────────────────── */}
+                <ProductFAQ getSetting={getSetting} />
+
+                {/* ─── Reviews ────────────────────────────────────────────────── */}
+                <ProductReviews getSetting={getSetting} product={product} />
+
+                {/* ─── Q&A ────────────────────────────────────────────────────── */}
+                {isVisible('vis_qa_section', true) && <ProductQA productId={product?.id} />}
 
                 {/* ─── Recently Viewed Tray ─────────────────────────────────── */}
                 <RecentlyViewedTray recentIds={recentIds} currentId={product?.id} />

@@ -7,12 +7,23 @@ import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 
 // Remove static helpers
 
+const DEFAULT_NAV_ITEMS = [
+    { id: 'home',     path: '/',         labelKey: 'nav_home',     defaultLabel: 'דף הבית',       visible: true },
+    { id: 'catalog',  path: '/catalog',  labelKey: 'nav_catalog',  defaultLabel: 'המוצרים שלנו', visible: true, isMega: true },
+    { id: 'compare',  path: '/compare',  labelKey: 'nav_compare',  defaultLabel: 'השוואת דגמים', visible: true },
+    { id: 'story',    path: '/story',    labelKey: 'nav_about',    defaultLabel: 'הסיפור שלנו',  visible: true },
+    { id: 'vod',      path: '/vod',      labelKey: 'nav_vod',      defaultLabel: 'מרכז הדרכה',   visible: true },
+    { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין',         visible: true },
+    { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר',       visible: true },
+];
+
 const Header = () => {
-    const { getSetting, isVisible } = useSettings();
+    const { getSetting } = useSettings();
     const siteName = getSetting('site_name', 'NextClass');
     const siteLogo = getSetting('site_logo_url', '');
 
@@ -22,17 +33,16 @@ const Header = () => {
     }, [getSetting]);
 
     const navLinks = useMemo(() => {
-        const links = [
-            { path: '/', label: getSetting('nav_home', 'דף הבית') },
-            { path: '/catalog', label: getSetting('nav_catalog', 'המוצרים שלנו'), isMega: true },
-        ];
-        if (isVisible('vis_compare_page')) links.push({ path: '/compare', label: getSetting('nav_compare', 'השוואת דגמים') });
-        if (isVisible('vis_about_page'))   links.push({ path: '/story',   label: getSetting('nav_about', 'הסיפור שלנו') });
-        if (isVisible('vis_vod_page'))     links.push({ path: '/vod',     label: getSetting('nav_vod', 'מרכז הדרכה') });
-        if (isVisible('vis_magazine'))    links.push({ path: '/magazine', label: getSetting('nav_magazine', 'מגזין') });
-        links.push({ path: '/contact', label: getSetting('nav_contact', 'צור קשר') });
-        return links;
-    }, [isVisible, getSetting]);
+        const saved = getSetting('nav_items', null);
+        const items = Array.isArray(saved) ? saved : DEFAULT_NAV_ITEMS;
+        return items
+            .filter(item => item.visible !== false)
+            .map(item => ({
+                path: item.path,
+                label: getSetting(item.labelKey, item.defaultLabel),
+                isMega: item.isMega || false,
+            }));
+    }, [getSetting]);
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
@@ -45,6 +55,7 @@ const Header = () => {
     const closeTimerRef = useRef(null);
 
     const { cartItems } = useCart();
+    const { count: wishlistCount } = useWishlist();
     const navigate = useNavigate();
 
     const cartCount = useMemo(
@@ -186,6 +197,22 @@ const Header = () => {
                         {cartCount > 0 && (
                             <span className="absolute top-1 right-1 bg-[#007AFF] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
                                 {cartCount}
+                            </span>
+                        )}
+                    </motion.button>
+                    
+                    <motion.button
+                        onClick={() => navigate('/wishlist')}
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#FF2D55] transition-all flex items-center justify-center shrink-0 z-[120]"
+                        aria-label={getSetting('aria_wishlist', 'מוצרים שאהבתי')}
+                    >
+                        <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                        {wishlistCount > 0 && (
+                            <span className="absolute top-1 right-1 bg-[#FF2D55] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+                                {wishlistCount}
                             </span>
                         )}
                     </motion.button>

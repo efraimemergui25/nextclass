@@ -11,23 +11,19 @@ const MenuOverlay = ({ isOpen, onClose }) => {
     const { getSetting } = useSettings();
 
     const navItems = useMemo(() => {
-        const items = [];
-        for (let i = 1; i <= 6; i++) {
-            const label = getSetting(`menu_item${i}_label`, '');
-            const path = getSetting(`menu_item${i}_path`, '');
-            if (label && path) items.push({ name: label, path: path });
-        }
-        if (items.length === 0) {
-            return [
-                { name: "קטלוג פתרונות", path: "/catalog" },
-                { name: "השוואת דגמים", path: "/compare" },
-                { name: "מרכז הדרכות", path: "/vod" },
-                { name: "מגזין חדשנות", path: "/magazine" },
-                { name: "הסיפור שלנו", path: "/story" },
-                { name: "צור קשר", path: "/contact" },
-            ];
-        }
-        return items;
+        const DEFAULT_ITEMS = [
+            { id: 'catalog',  path: '/catalog',  labelKey: 'nav_catalog',  defaultLabel: 'המוצרים שלנו', visible: true },
+            { id: 'compare',  path: '/compare',  labelKey: 'nav_compare',  defaultLabel: 'השוואת דגמים', visible: true },
+            { id: 'story',    path: '/story',    labelKey: 'nav_about',    defaultLabel: 'הסיפור שלנו',  visible: true },
+            { id: 'vod',      path: '/vod',      labelKey: 'nav_vod',      defaultLabel: 'מרכז הדרכה',   visible: true },
+            { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין',         visible: true },
+            { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר',       visible: true },
+        ];
+        const saved = getSetting('nav_items', null);
+        const source = Array.isArray(saved) ? saved : DEFAULT_ITEMS;
+        return source
+            .filter(item => item.visible !== false && item.id !== 'home')
+            .map(item => ({ name: getSetting(item.labelKey, item.defaultLabel), path: item.path }));
     }, [getSetting]);
 
     const siteName = getSetting('site_name', 'NextClass');

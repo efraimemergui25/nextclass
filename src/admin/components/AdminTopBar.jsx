@@ -130,8 +130,14 @@ export default function AdminTopBar({ collapsed }) {
     return (
         <>
             <div
-                className="h-14 shrink-0 flex items-center gap-4 px-6 border-b border-black/06 bg-white/80 backdrop-blur-xl"
-                style={{ borderRight: '1px solid rgba(0,0,0,0.06)' }}
+                className="h-14 shrink-0 flex items-center gap-4 px-6 border-b border-white/60"
+                style={{
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.72) 100%)',
+                    backdropFilter: 'blur(48px) saturate(2.0)',
+                    WebkitBackdropFilter: 'blur(48px) saturate(2.0)',
+                    borderBottom: '1px solid rgba(255,255,255,0.55)',
+                    boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 16px rgba(0,0,0,0.04)',
+                }}
                 dir="rtl"
             >
                 {/* Date + Clock */}
