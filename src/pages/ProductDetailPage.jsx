@@ -11,9 +11,7 @@ import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
 import ProductPageSidebar from '../components/ProductPageSidebar';
 import Magnetic from '../components/Magnetic';
-import ProductQA from '../components/ProductQA';
 import { useSettings } from '../context/SettingsContext';
-import { useWishlist } from '../context/WishlistContext';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
@@ -50,7 +48,7 @@ function ProductFAQ({ getSetting }) {
     ].filter(item => item.q && item.a);
     if (!items.length) return null;
     return (
-        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 scroll-mt-32">
+        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
             <div className="text-right mb-10">
                 <div className="flex items-center gap-3 justify-end mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות גולשים')}</h3>
@@ -101,7 +99,7 @@ function ProductReviews({ getSetting, product }) {
         { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים. איכות ומחיר מעולים.'), stars: 4 },
     ];
     return (
-        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24 scroll-mt-32">
+        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24">
             <div className="text-right mb-10">
                 <div className="flex items-center gap-3 justify-end mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_reviews_title', 'חוות דעת')}</h3>
@@ -155,9 +153,8 @@ const ProductDetailPage = () => {
     const { id } = useParams();
     const { getSetting, isVisible } = useSettings();
     const { cartItems, addToCart, removeFromCart } = useCart();
-    const { getProductById } = useProducts();
-    const { addToCompare, removeFromCompare, isSelected } = useCompare();
-    const { toggle: toggleWishlist, isWishlisted } = useWishlist();
+    const { getProductById: fetchProduct } = useProducts();
+    const { addToCompare, removeFromCompare, isSelected: isProductCompared } = useCompare();
 
     const content = useMemo(() => ({
         notFound:   getSetting('pd_not_found', 'המוצר לא נמצא.'),
@@ -284,8 +281,8 @@ const ProductDetailPage = () => {
 
     // ─── Derived values (memoised) ────────────────────────────────────────────
     const product = useMemo(
-        () => getProductById(id) ?? {},
-        [id, getProductById]
+        () => fetchProduct(id) ?? {},
+        [id, fetchProduct]
     );
 
     const currentProductId = useMemo(
@@ -307,8 +304,8 @@ const ProductDetailPage = () => {
     const formattedPrice = useMemo(() => `₪${totalPrice.toLocaleString()}`, [totalPrice]);
 
     const isProductSelectedForCompare = useMemo(
-        () => isSelected(product?.id),
-        [isSelected, product?.id]
+        () => isProductCompared(product?.id),
+        [isProductCompared, product?.id]
     );
 
     // ─── Stable handlers (useCallback — prevents re-render of motion.button) ─
@@ -346,12 +343,6 @@ const ProductDetailPage = () => {
             addToCompare(product);
         }
     }, [isProductSelectedForCompare, product, addToCompare, removeFromCompare]);
-
-    const handleWishlistToggle = useCallback(() => {
-        toggleWishlist(product?.id);
-    }, [product?.id, toggleWishlist]);
-
-    const wishlisted = useMemo(() => isWishlisted(product?.id), [isWishlisted, product?.id]);
 
     const toggleAccessory = useCallback((accId) => {
         setSelectedAccessories(prev => {
@@ -614,8 +605,8 @@ const ProductDetailPage = () => {
                                 </div>
                             </section>
 
-                            {/* Accessories ─ anchor for sidebar */}
-                            <section id="pd-acc" className="mb-12">
+                            {/* Accessories - Dimensions anchor for sidebar */}
+                            <section id="pd-dims" className="mb-12">
                                 <div className="flex items-center justify-between mb-5">
                                     <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
                                     <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">{content.accOptional}</span>
@@ -781,17 +772,7 @@ const ProductDetailPage = () => {
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                             </svg>
-                                    </Magnetic>
-                                    <Magnetic strength={0.15}>
-                                        <motion.button
-                                            onClick={handleWishlistToggle}
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className={`p-4 rounded-full border-2 flex justify-center items-center transition-apple-fluid ${wishlisted ? 'bg-[#FF2D55]/5 border-[#FF2D55] text-[#FF2D55]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#FF2D55]/30'}`}
-                                        >
-                                            <svg className="w-6 h-6" fill={wishlisted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                                            </svg>
+                                            <span>{isProductSelectedForCompare ? content.compareSelected : content.compareBtn}</span>
                                         </motion.button>
                                     </Magnetic>
                                     </div>
@@ -802,7 +783,7 @@ const ProductDetailPage = () => {
 
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
-                    <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)] scroll-mt-32">
+                    <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
                         <div className="max-w-7xl mx-auto h-full flex flex-col md:grid md:grid-cols-2 relative">
 
                             {/* Sticky Visual — order 1 on mobile, 2 on desktop */}
@@ -865,52 +846,9 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* ─── Product Dimensions Section ──────────────────────────────── */}
-                    <section id="pd-dims" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12 scroll-mt-32">
-                        <div className="bg-white/80 backdrop-blur-2xl rounded-[3rem] p-10 md:p-16 border border-white/50 shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/5 blur-[100px] -translate-x-1/2 -translate-y-1/2" />
-                            <div className="flex flex-col md:flex-row items-center gap-12">
-                                <div className="flex-1 text-right">
-                                    <h3 className="text-3xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-6">{getSetting('pd_dims_title', 'מידות ומבנה')}</h3>
-                                    <p className="text-lg text-gray-500 font-medium mb-10">{getSetting('pd_dims_desc', 'תכנון ארגונומי המותאם בצורה מושלמת למרחב הלמידה המודרני.')}</p>
-                                    
-                                    <div className="grid grid-cols-2 gap-6">
-                                        {[
-                                            { label: 'רוחב', value: product.specs?.find(s => s.label.includes('רוחב') || s.label.includes('גודל'))?.value || '170 ס"מ' },
-                                            { label: 'גובה', value: product.specs?.find(s => s.label.includes('גובה'))?.value || '102 ס"מ' },
-                                            { label: 'עומק', value: product.specs?.find(s => s.label.includes('עומק'))?.value || '8.5 ס"מ' },
-                                            { label: 'משקל', value: product.specs?.find(s => s.label.includes('משקל'))?.value || '42 ק"ג' },
-                                        ].map((dim, idx) => (
-                                            <div key={idx} className="bg-[#F5F5F7] p-4 rounded-2xl text-right border border-gray-100">
-                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">{dim.label}</p>
-                                                <p className="text-xl font-black text-[#1D1D1F]">{dim.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="w-full md:w-1/2 aspect-square md:aspect-[4/3] rounded-[2rem] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-8 relative">
-                                    {/* Abstract ruler visual */}
-                                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                                    <motion.div 
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        whileInView={{ opacity: 1, scale: 1 }}
-                                        viewport={{ once: true }}
-                                        className="relative z-10 w-full h-full border-2 border-dashed border-blue-500/20 rounded-xl flex items-center justify-center"
-                                    >
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pt-4 text-[10px] font-bold text-blue-400">1700mm</div>
-                                        <div className="absolute right-0 top-1/2 translate-x-full translate-y-[-50%] pr-4 text-[10px] font-bold text-blue-400 [writing-mode:vertical-rl]">1020mm</div>
-                                        <svg className="w-32 h-32 text-blue-500/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h3.375m-10.5 0h3.375m-3.375-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5m-10.5-1.5h1.5m3.75 0h1.5m3.75 0h1.5" />
-                                        </svg>
-                                    </motion.div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
                     {/* ─── Technical Specs Grid ──────────────────────────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12 scroll-mt-32">
+                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
                             <div
                                 className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] border border-white/60 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden relative"
                             >
@@ -996,7 +934,7 @@ const ProductDetailPage = () => {
                 </section>
 
                 {/* ─── Service & Support ──────────────────────────────────────── */}
-                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 scroll-mt-32">
+                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
                     <div className="rounded-[3rem] p-8 md:p-14"
                         style={{
                             background: 'rgba(255,255,255,0.88)',
@@ -1035,11 +973,6 @@ const ProductDetailPage = () => {
 
                 {/* ─── FAQ — Frequently Asked Questions ───────────────────────── */}
                 <ProductFAQ getSetting={getSetting} />
-
-                {/* ─── Q&A ────────────────────────────────────────────────────── */}
-                <div id="pd-qa" className="scroll-mt-32">
-                    {isVisible('vis_qa_section', true) && <ProductQA productId={product?.id} />}
-                </div>
 
                 {/* ─── Reviews ────────────────────────────────────────────────── */}
                 <ProductReviews getSetting={getSetting} product={product} />

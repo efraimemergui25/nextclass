@@ -45,9 +45,6 @@ import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
-import { WishlistProvider } from './context/WishlistContext';
-import WishlistPage from './pages/WishlistPage';
-import AccessibilityWidget from './components/AccessibilityWidget';
 import AdminApp from './admin/AdminApp';
 
 // ─── Analytics Tracker ──────────────────────────────────────────────────────
@@ -96,7 +93,6 @@ function AnimatedRoutes() {
                 <Route path="/vod"        element={<VODCenterPage />} />
                 <Route path="/magazine"   element={<MagazinePage />} />
                 <Route path="/compare"    element={<ComparePage />} />
-                <Route path="/wishlist"   element={<WishlistPage />} />
                 <Route path="/discover"   element={<DiscoverPage />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
@@ -108,17 +104,15 @@ function App() {
     return (
         <AppErrorBoundary>
             <SettingsProvider>
-                <WishlistProvider>
-                    <CartProvider>
-                        <ProductsProvider>
-                            <CompareProvider>
-                                <Router>
-                                    <AppContent />
-                                </Router>
-                            </CompareProvider>
-                        </ProductsProvider>
-                    </CartProvider>
-                </WishlistProvider>
+                <CartProvider>
+                    <ProductsProvider>
+                        <CompareProvider>
+                            <Router>
+                                <AppContent />
+                            </Router>
+                        </CompareProvider>
+                    </ProductsProvider>
+                </CartProvider>
             </SettingsProvider>
         </AppErrorBoundary>
     );
@@ -161,7 +155,6 @@ function AppContent() {
         if (path === '/story')                         return { primary: '#5856D6', secondary: '#007AFF' };
         if (path === '/discover')                      return { primary: '#007AFF', secondary: '#30D158' };
         if (path === '/innovation')                    return { primary: '#FF9F0A', secondary: '#FF375F' };
-        if (path === '/wishlist')                      return { primary: '#FF2D55', secondary: '#FF375F' };
         return { primary: '#007AFF', secondary: '#5856D6' };
     };
 
@@ -188,7 +181,6 @@ function AppContent() {
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
-            {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
         </div>
     );
 }

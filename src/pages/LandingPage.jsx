@@ -14,7 +14,7 @@ import { useSettings } from '../context/SettingsContext';
 
 const SECTION_DEFS = [
     { key: 'vis_hero',         Component: HeroSection },
-    { key: 'vis_trust_bar', Component: SocialProofStrip },
+    { key: 'vis_social_proof', Component: SocialProofStrip },
     { key: 'vis_catalog',      Component: CatalogGrid },
     { key: 'vis_ecosystem',    Component: EcosystemVisualizer },
     { key: 'vis_shoppable',    Component: ShoppableImage },

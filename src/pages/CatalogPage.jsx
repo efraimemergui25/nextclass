@@ -526,27 +526,27 @@ const ListCard = ({ product }) => {
                                 className={`group/cart h-12 min-w-[100px] sm:min-w-[140px] px-4 sm:px-6 rounded-full font-bold text-[12px] sm:text-[13px] tracking-tight flex items-center justify-center gap-2 shadow-lg transition-all ${isInCart ? 'bg-[#F5F5F7] text-[#1D1D1F]' : 'bg-[#007AFF] text-white hover:shadow-xl'}`}
                             >
                                 <AnimatePresence mode="wait">
-                                        {isInCart ? (
-                                            <motion.span key="in-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                                                <div className="flex items-center gap-2 group-hover/cart:hidden">
-                                                    <Check size={16} strokeWidth={3} className="text-green-500" />
-                                                    <span>{getSetting('catalog_added_msg', 'נוסף לעגלה')}</span>
-                                                </div>
-                                                <div className="hidden group-hover/cart:flex items-center gap-2 text-red-500">
-                                                    <X size={16} strokeWidth={2.5} />
-                                                    <span>{getSetting('catalog_remove_msg', 'הסר')}</span>
-                                                </div>
-                                            </motion.span>
-                                        ) : (
-                                            <motion.span key="add-to-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                                                {popState === 'loading' ? '...' : (
-                                                    <>
-                                                        <ShoppingCart size={16} strokeWidth={2.5} />
-                                                        {getSetting('catalog_add_to_cart', 'הוסף לעגלה')}
-                                                    </>
-                                                )}
-                                            </motion.span>
-                                        )}
+                                    {isInCart ? (
+                                        <motion.span key="in-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 group-hover/cart:hidden">
+                                                <Check size={16} strokeWidth={3} className="text-green-500" />
+                                                <span>נוסף לעגלה</span>
+                                            </div>
+                                            <div className="hidden group-hover/cart:flex items-center gap-2 text-red-500">
+                                                <X size={16} strokeWidth={2.5} />
+                                                <span>הסר</span>
+                                            </div>
+                                        </motion.span>
+                                    ) : (
+                                        <motion.span key="add-to-cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                                            {popState === 'loading' ? '...' : (
+                                                <>
+                                                    <ShoppingCart size={16} strokeWidth={2.5} />
+                                                    הוסף לעגלה
+                                                </>
+                                            )}
+                                        </motion.span>
+                                    )}
                                 </AnimatePresence>
                             </motion.button>
                         </Magnetic>

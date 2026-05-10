@@ -37,8 +37,6 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_magazine',        label: 'מגזין חדשנות',           desc: 'הפעלה/השבתה של בלוג האתר', icon: '📰' },
     { key: 'vis_compare_page',    label: 'עמוד השוואת דגמים',       desc: 'הפעלה/השבתה של כלי ההשוואה', icon: '⚖️' },
     { key: 'vis_ai_assistant',    label: 'עוזר אישי (AI)',         desc: 'הפעלה/השבתה של הווידג׳ט הצף', icon: '🤖' },
-    { key: 'vis_a11y_widget',     label: 'נגישות (ווידג׳ט)',      desc: 'הפעלה/השבתה של תפריט הנגישות', icon: '♿' },
-    { key: 'vis_qa_section',      label: 'שאלות ותשובות (מוצר)',   desc: 'הצגת קטע שאלות גולשים בדף מוצר', icon: '💬' },
 ];
 
 const FIELD_SECTIONS = [
@@ -180,7 +178,6 @@ const FIELD_SECTIONS = [
             { key: 'sidebar_label_warranty', label: 'תווית: תנאי רכישה ואחריות',  type: 'text', default: 'תנאי רכישה ואחריות' },
             { key: 'sidebar_label_support',  label: 'תווית: שירות ותמיכה',         type: 'text', default: 'שירות ותמיכה' },
             { key: 'sidebar_label_faq',      label: 'תווית: שאלות נפוצות',        type: 'text', default: 'שאלות נפוצות' },
-            { key: 'sidebar_label_qa',       label: 'תווית: שאלות ותשובות',       type: 'text', default: 'שאלות ותשובות' },
             { key: 'sidebar_label_reviews',  label: 'תווית: חוות דעת',            type: 'text', default: 'חוות דעת' },
         ],
     },

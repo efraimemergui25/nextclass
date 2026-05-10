@@ -7,7 +7,6 @@ import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 
 // Remove static helpers
@@ -55,7 +54,6 @@ const Header = () => {
     const closeTimerRef = useRef(null);
 
     const { cartItems } = useCart();
-    const { count: wishlistCount } = useWishlist();
     const navigate = useNavigate();
 
     const cartCount = useMemo(
@@ -197,22 +195,6 @@ const Header = () => {
                         {cartCount > 0 && (
                             <span className="absolute top-1 right-1 bg-[#007AFF] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
                                 {cartCount}
-                            </span>
-                        )}
-                    </motion.button>
-                    
-                    <motion.button
-                        onClick={() => navigate('/wishlist')}
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#FF2D55] transition-all flex items-center justify-center shrink-0 z-[120]"
-                        aria-label={getSetting('aria_wishlist', 'מוצרים שאהבתי')}
-                    >
-                        <svg className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                        </svg>
-                        {wishlistCount > 0 && (
-                            <span className="absolute top-1 right-1 bg-[#FF2D55] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
-                                {wishlistCount}
                             </span>
                         )}
                     </motion.button>

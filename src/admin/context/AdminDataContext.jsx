@@ -30,14 +30,8 @@ function computeRealAnalytics(orders) {
         
         // Compute real sales and revenue for this day
         const dayOrders = orders.filter(o => {
-            try {
-                const ts = o.dateTs || (typeof o.id === 'string' && !isNaN(o.id) ? parseInt(o.id) : o.id);
-                const od = new Date(ts);
-                if (isNaN(od.getTime())) return false; // Invalid date
-                return od.toISOString().split('T')[0] === iso && o.status !== 'בוטל';
-            } catch (e) {
-                return false;
-            }
+            const od = new Date(o.dateTs || o.id);
+            return od.toISOString().split('T')[0] === iso && o.status !== 'בוטל';
         });
         
         sales.push(dayOrders.length);
