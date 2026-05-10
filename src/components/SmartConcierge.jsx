@@ -5,19 +5,10 @@ import { useLocation } from 'react-router-dom';
 import Magnetic from './Magnetic';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
-import Anthropic from '@anthropic-ai/sdk';
 
 const WHATSAPP_NUMBER = '972500000000'; 
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY || 'sk-ant-dummy-key',
-    dangerouslyAllowBrowser: true // For development only! Will move to Cloud Functions later.
-});
-
-
 
 const Bubble = memo(({ msg }) => {
     const isUser = msg.role === 'user';
@@ -102,8 +93,8 @@ const SmartConcierge = () => {
         setIsTyping(true);
         
         try {
-            // Check if API key exists
-            if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+            const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+            if (!apiKey) {
                 setTimeout(() => {
                     setIsTyping(false);
                     setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'סליחה, אני לא מחובר לענן כרגע. יש להזין מפתח API של Claude למערכת.' }]);
@@ -111,35 +102,43 @@ const SmartConcierge = () => {
                 return;
             }
 
-            // Prepare catalog context for Claude
             const catalogInfo = activeProducts.map(p => `- ${p.title} (${p.category}): ₪${p.price}. במלאי: ${p.stock > 0 ? 'כן' : 'לא'}. תיאור: ${p.description}`).join('\n');
             const systemPrompt = `You are the official Smart Concierge for "NextClass", a premium Israeli B2B company selling tech equipment to educational institutions. 
 Respond in friendly, professional, sales-oriented Hebrew. Keep answers relatively brief.
 Here is the live catalog data you should refer to:
 ${catalogInfo}`;
 
-            // Format history for Anthropic API
-            const history = newMessages
-                .filter(m => m.id !== 0) // exclude initial hardcoded msg to save context length if needed, or include it
-                .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
-
-            const response = await anthropic.messages.create({
-                model: "claude-sonnet-4-6",
-                max_tokens: 300,
-                system: systemPrompt,
-                messages: history
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'dangerously-allow-browser': 'true'
+                },
+                body: JSON.stringify({
+                    model: "claude-3-sonnet-20240229",
+                    max_tokens: 300,
+                    system: systemPrompt,
+                    messages: newMessages
+                        .filter(m => m.id !== 0)
+                        .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }))
+                })
             });
 
-            const replyText = response.content[0].text;
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            
+            const data = await response.json();
+            const replyText = data.content[0].text;
+            
             setIsTyping(false);
             setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: replyText }]);
         } catch (error) {
-            console.error('Claude API Error Details:', error);
-            const errorMessage = error.message || JSON.stringify(error);
+            console.error('AI Error:', error);
             setIsTyping(false);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: `שגיאת שרת: ${errorMessage}` }]);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'מצטער, חלה שגיאה בחיבור לעוזר החכם. ניתן לפנות אלינו בוואטסאפ למענה אנושי.' }]);
         }
-    }, [input, messages, activeProducts]);
+    }, [input, messages, activeProducts, getSetting]);
 
     const openWhatsApp = () => {
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=היי, אשמח להתייעץ לגבי פתרונות NextClass`, '_blank');
@@ -156,7 +155,6 @@ ${catalogInfo}`;
                         transition={SPRING}
                         className="w-[380px] h-[620px] flex flex-col overflow-hidden glass-apple rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] border border-white/60 relative"
                     >
-                        {/* Header Section — Refined & Correctly Padded */}
                         <div className="relative z-20 px-8 pt-8 pb-6 flex items-center justify-between bg-white/40 backdrop-blur-md border-b border-white/40">
                             <div className="flex items-center gap-4">
                                 <div className="relative">
@@ -180,14 +178,12 @@ ${catalogInfo}`;
                             </Magnetic>
                         </div>
 
-                        {/* Chat History Area */}
                         <div className="relative z-10 flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-5 custom-scrollbar bg-gradient-to-b from-transparent to-white/20" dir="rtl">
                             {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
                             {isTyping && <TypingDots />}
                             <div ref={bottomRef} />
                         </div>
 
-                        {/* WhatsApp Bridge — Simplified & More Elegant */}
                         <div className="relative z-20 px-6 py-4">
                             <motion.button 
                                 whileHover={{ scale: 1.02 }}
@@ -208,7 +204,6 @@ ${catalogInfo}`;
                             </motion.button>
                         </div>
 
-                        {/* Quick Action Chips — More Minimal */}
                         <div className="relative z-20 px-6 pb-2 flex flex-wrap gap-2 justify-end" dir="rtl">
                             {[
                                 getSetting('ai_chip1', 'הצעת מחיר'),
@@ -225,7 +220,6 @@ ${catalogInfo}`;
                             ))}
                         </div>
 
-                        {/* Input Footer — Refined Proportions */}
                         <div className="relative z-20 p-6 pt-2 bg-white/60 backdrop-blur-2xl border-t border-white/40">
                             <div className="relative flex items-center gap-2 bg-[#F5F5F7] rounded-2xl px-2 py-1.5 border border-white shadow-inner">
                                 <input
@@ -250,14 +244,12 @@ ${catalogInfo}`;
                             </div>
                         </div>
 
-                        {/* Animated Glow in background */}
                         <div className="absolute top-0 right-0 w-48 h-48 bg-[#007AFF]/5 blur-3xl pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#5856D6]/5 blur-3xl pointer-events-none" />
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Main Trigger Button — Refined */}
             <motion.button
                 layout
                 onMouseEnter={() => setIsHovered(true)}
