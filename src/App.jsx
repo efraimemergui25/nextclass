@@ -155,10 +155,9 @@ function AppContent() {
                 <AnimatedRoutes />
             </main>
             <Footer />
-            <DynamicIsland />
-            <SmartConcierge />
+            {/* <SmartConcierge /> */}
             <CompareTray />
-            {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />}
+            {/* {getSetting('vis_a11y_widget', true) && <AccessibilityWidget />} */}
         </div>
     );
 }
