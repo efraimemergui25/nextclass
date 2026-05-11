@@ -92,6 +92,7 @@ const ContactPage = () => {
         phone: '',
         msg: '',
     });
+    const [submitError, setSubmitError] = useState('');
 
     const setField = (key) => (val) => setFormData(prev => ({ ...prev, [key]: val }));
 
@@ -121,14 +122,21 @@ const ContactPage = () => {
             dateTs: Date.now(),
         };
 
+        setSubmitError('');
         try {
             await setDoc(doc(db, 'contacts', id), contact);
         } catch {
             // Firestore unavailable — store locally as fallback
+            let savedLocally = false;
             try {
                 const existing = JSON.parse(localStorage.getItem('nextclass_contacts') || '[]');
                 localStorage.setItem('nextclass_contacts', JSON.stringify([contact, ...existing]));
+                savedLocally = true;
             } catch {}
+            if (!savedLocally) {
+                setSubmitError('הייתה בעיה בשליחת הפנייה. אנא נסו שוב או פנו אלינו בטלפון.');
+                return;
+            }
         }
 
         setIsSubmitted(true);
@@ -275,6 +283,9 @@ const ContactPage = () => {
                                             </div>
                                             <FloatingInput label={contactContent.labelMsg} id="msg" isTextArea value={formData.msg} onChange={setField('msg')} />
 
+                                            {submitError && (
+                                                <p className="text-sm font-bold text-red-500 text-center bg-red-50 rounded-2xl px-4 py-3 border border-red-100">{submitError}</p>
+                                            )}
                                             <motion.button
                                                 type="submit"
                                                 whileHover={{ scale: 1.01, y: -2 }}

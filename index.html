@@ -41,6 +41,22 @@
   <!-- Preconnect to Firebase and Unsplash for faster image loads -->
   <link rel="preconnect" href="https://firestore.googleapis.com" />
   <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+  <!-- Google Analytics 4 — loaded only when VITE_GA_ID is set at build time -->
+  <script>
+    window.__GA_ID__ = '%VITE_GA_ID%';
+    if (window.__GA_ID__ && window.__GA_ID__ !== '%VITE_GA_ID%' && window.__GA_ID__.startsWith('G-')) {
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.__GA_ID__;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', window.__GA_ID__, { send_page_view: false });
+    }
+  </script>
 </head>
 
 <body class="bg-[#F5F5F7] font-heebo text-[#1D1D1F] antialiased">

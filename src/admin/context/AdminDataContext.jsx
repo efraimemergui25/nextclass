@@ -115,9 +115,11 @@ export function AdminDataProvider({ children }) {
                         sku: p.sku || `SKU-${p.id || Math.floor(Math.random() * 9000 + 1000)}`,
                     };
                 });
-                toSeed.forEach(async (prod) => {
-                    await setDoc(doc(db, 'products', prod.id.toString()), prod);
+                const seedBatch = writeBatch(db);
+                toSeed.forEach(prod => {
+                    seedBatch.set(doc(db, 'products', prod.id.toString()), prod);
                 });
+                seedBatch.commit().catch(err => console.warn('Seed batch failed', err));
             } else {
                 const newInv = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 

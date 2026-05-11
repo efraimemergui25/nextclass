@@ -7,6 +7,7 @@ import { useSettings } from '../context/SettingsContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import PageTransition from '../components/PageTransition';
+import { trackEvent } from '../App';
 import {
     ArrowLeft, ArrowRight, CheckCircle, Building2, Phone, MessageSquare,
     Sparkles, ShoppingBag, Trash2,
@@ -123,7 +124,7 @@ export default function CheckoutPage() {
         }
         if (step === 2) {
             if (!form.phone.trim()) e.phone = 'שדה חובה';
-            if (!form.email.trim() || !form.email.includes('@')) e.email = 'מייל לא תקין';
+            if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'מייל לא תקין';
         }
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -176,6 +177,7 @@ export default function CheckoutPage() {
                 history: [{ status: 'חדש', date: now.toLocaleDateString('he-IL'), time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) }],
             };
             await setDoc(doc(db, 'quotes', id), quote);
+            trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
             setQuoteId(id);
             clearCart();
             setSubmitted(true);

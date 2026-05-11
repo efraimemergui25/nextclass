@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Component } from 'react';
+import { useEffect, Component } from 'react';
 
 class AppErrorBoundary extends Component {
     state = { crashed: false, error: null };
@@ -42,6 +42,7 @@ import DynamicIsland from './components/DynamicIsland';
 import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
+import PageErrorBoundary from './components/PageErrorBoundary';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
@@ -49,23 +50,33 @@ import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import AdminApp from './admin/AdminApp';
 
-// ─── Analytics Tracker ──────────────────────────────────────────────────────
+// ─── Analytics helpers ───────────────────────────────────────────────────────
+export function trackEvent(name, params = {}) {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', name, params);
+    }
+}
+
 function AnalyticsTracker() {
     const location = useLocation();
 
     useEffect(() => {
-        // Don't track admin pages
         if (location.pathname.startsWith('/admin')) return;
 
+        // LocalStorage visit counter (admin heatmap)
         try {
             const today = new Date().toISOString().split('T')[0];
-            const savedVisits = localStorage.getItem('nextclass_visits');
-            const visits = savedVisits ? JSON.parse(savedVisits) : {};
-            
+            const visits = JSON.parse(localStorage.getItem('nextclass_visits') || '{}');
             visits[today] = (visits[today] || 0) + 1;
             localStorage.setItem('nextclass_visits', JSON.stringify(visits));
-        } catch (e) {
-            console.error('Analytics tracking failed', e);
+        } catch {}
+
+        // GA4 page_view
+        if (typeof window.gtag === 'function') {
+            window.gtag('event', 'page_view', {
+                page_path: location.pathname + location.search,
+                page_title: document.title,
+            });
         }
     }, [location]);
 
@@ -178,7 +189,9 @@ function AppContent() {
             <AnnouncementBar />
             <Header />
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
-                <AnimatedRoutes />
+                <PageErrorBoundary>
+                    <AnimatedRoutes />
+                </PageErrorBoundary>
             </main>
             <Footer />
 
