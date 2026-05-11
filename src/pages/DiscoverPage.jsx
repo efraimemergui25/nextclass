@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect, memo } from 'react';
+import { useMemo, useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Sparkles, ChevronLeft, ChevronDown, ArrowLeft, TrendingUp, Zap, Gift } from 'lucide-react';
@@ -172,31 +172,6 @@ const DiscoverPage = () => {
     }, [bestSellers, newArrivals, dealProducts, activeProducts, getSetting]);
 
     const [activeTab, setActiveTab] = useState(categoryData[0]?.cat ?? null);
-    const sectionRefs = useRef({});
-    const tabsRef = useRef(null);
-
-    useEffect(() => {
-        if (!categoryData.length) return;
-        const observers = [];
-        categoryData.forEach(({ cat }) => {
-            const el = sectionRefs.current[cat];
-            if (!el) return;
-            const obs = new IntersectionObserver(
-                ([entry]) => { if (entry.isIntersecting) setActiveTab(cat); },
-                { rootMargin: '-20% 0px -55% 0px', threshold: 0 }
-            );
-            obs.observe(el);
-            observers.push(obs);
-        });
-        return () => observers.forEach(o => o.disconnect());
-    }, [categoryData]);
-
-    const scrollToCategory = (cat) => {
-        const el = sectionRefs.current[cat];
-        if (!el) return;
-        window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' });
-        setActiveTab(cat);
-    };
 
     const hero = featuredProduct;
 
@@ -305,7 +280,6 @@ const DiscoverPage = () => {
                     {/* ── Sticky category tabs ────────────────────────────── */}
                     {categoryData.length > 1 && (
                         <div
-                            ref={tabsRef}
                             className="sticky top-[64px] z-40 mb-10 -mx-6 md:-mx-16 px-6 md:px-16 py-3"
                             style={{
                                 background: 'rgba(245,245,247,0.90)',
@@ -320,7 +294,7 @@ const DiscoverPage = () => {
                                     return (
                                         <button
                                             key={cat}
-                                            onClick={() => scrollToCategory(cat)}
+                                            onClick={() => setActiveTab(cat)}
                                             className="shrink-0 px-4 py-2 rounded-full font-bold text-[12px] whitespace-nowrap transition-all duration-300 cursor-pointer"
                                             style={isActive
                                                 ? { background: accent, color: '#fff', boxShadow: `0 3px 12px ${accent}40` }
@@ -335,16 +309,28 @@ const DiscoverPage = () => {
                         </div>
                     )}
 
-                    {/* ── Category sections ──────────────────────────────── */}
-                    {categoryData.map(({ cat, products, accent }) => (
-                        <CategorySection
-                            key={cat}
-                            cat={cat}
-                            products={products}
-                            accent={accent}
-                            sectionRef={el => { sectionRefs.current[cat] = el; }}
-                        />
-                    ))}
+                    {/* ── Category section — filtered by active tab ──────── */}
+                    <AnimatePresence mode="wait">
+                        {categoryData
+                            .filter(({ cat }) => cat === activeTab)
+                            .map(({ cat, products, accent }) => (
+                                <motion.div
+                                    key={cat}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                                >
+                                    <CategorySection
+                                        cat={cat}
+                                        products={products}
+                                        accent={accent}
+                                        sectionRef={() => {}}
+                                    />
+                                </motion.div>
+                            ))
+                        }
+                    </AnimatePresence>
 
                     {/* ── Bottom callout ─────────────────────────────────── */}
                     <motion.div
