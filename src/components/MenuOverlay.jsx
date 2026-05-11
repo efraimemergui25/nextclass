@@ -1,19 +1,28 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { X, ChevronLeft, Phone, Mail, MessageCircle } from 'lucide-react';
+import { X, ChevronLeft, Phone, Mail, MessageCircle, ShoppingBag, BarChart2, BookOpen, PlayCircle, Newspaper, HeadphonesIcon } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
-// Default subtitle per nav id — overridable via CMS key `nav_[id]_sub`
 const NAV_META = {
-    home:     { emoji: '🏠', sub: 'חזרה לעמוד הראשי' },
-    catalog:  { emoji: '🛍️', sub: 'כל הפתרונות הטכנולוגיים לחינוך' },
-    compare:  { emoji: '⚖️', sub: 'השווה בין מוצרים בקלות' },
-    story:    { emoji: '📖', sub: 'מי אנחנו ולמה זה חשוב' },
-    vod:      { emoji: '🎬', sub: 'מדריכי וידאו ומרכז ידע חינמי' },
-    magazine: { emoji: '📰', sub: 'תוכן מקצועי לאנשי חינוך' },
-    contact:  { emoji: '📞', sub: 'דבר איתנו עכשיו' },
+    home:     { icon: null,           sub: 'חזרה לעמוד הראשי',                  color: '#6e6e73' },
+    catalog:  { icon: ShoppingBag,    sub: 'כל הפתרונות הטכנולוגיים לחינוך',    color: '#007AFF' },
+    compare:  { icon: BarChart2,      sub: 'השווה בין מוצרים בקלות',            color: '#5856D6' },
+    story:    { icon: BookOpen,       sub: 'מי אנחנו ולמה זה חשוב',             color: '#FF9F0A' },
+    vod:      { icon: PlayCircle,     sub: 'מדריכי וידאו ומרכז ידע חינמי',      color: '#FF375F' },
+    magazine: { icon: Newspaper,      sub: 'תוכן מקצועי לאנשי חינוך',           color: '#34C759' },
+    contact:  { icon: HeadphonesIcon, sub: 'דבר איתנו עכשיו',                   color: '#FF9F0A' },
 };
+
+// All nav destinations — always show in mobile overlay
+const ALL_NAV_ITEMS = [
+    { id: 'catalog',  path: '/catalog',  labelKey: 'nav_catalog',  defaultLabel: 'המוצרים שלנו' },
+    { id: 'compare',  path: '/compare',  labelKey: 'nav_compare',  defaultLabel: 'השוואת דגמים' },
+    { id: 'story',    path: '/story',    labelKey: 'nav_about',    defaultLabel: 'הסיפור שלנו'  },
+    { id: 'vod',      path: '/vod',      labelKey: 'nav_vod',      defaultLabel: 'מרכז הדרכה'   },
+    { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין'         },
+    { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר'       },
+];
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 30 };
 
@@ -21,180 +30,163 @@ const MenuOverlay = ({ isOpen, onClose }) => {
     const location = useLocation();
     const { getSetting } = useSettings();
 
-    const navItems = useMemo(() => {
-        const DEFAULT_ITEMS = [
-            { id: 'catalog',  path: '/catalog',  labelKey: 'nav_catalog',  defaultLabel: 'המוצרים שלנו', visible: true },
-            { id: 'compare',  path: '/compare',  labelKey: 'nav_compare',  defaultLabel: 'השוואת דגמים', visible: true },
-            { id: 'story',    path: '/story',    labelKey: 'nav_about',    defaultLabel: 'הסיפור שלנו',  visible: true },
-            { id: 'vod',      path: '/vod',      labelKey: 'nav_vod',      defaultLabel: 'מרכז הדרכה',   visible: true },
-            { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין',         visible: true },
-            { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר',       visible: true },
-        ];
-        const saved = getSetting('nav_items', null);
-        const source = Array.isArray(saved) ? saved : DEFAULT_ITEMS;
-        return source
-            .filter(item => item.visible !== false && item.id !== 'home')
-            .map(item => ({
-                id: item.id,
-                name: getSetting(item.labelKey, item.defaultLabel),
-                sub: getSetting(`nav_${item.id}_sub`, NAV_META[item.id]?.sub || ''),
-                emoji: NAV_META[item.id]?.emoji || '→',
-                path: item.path,
-            }));
-    }, [getSetting]);
+    const navItems = useMemo(() => ALL_NAV_ITEMS.map(item => ({
+        id:    item.id,
+        name:  getSetting(item.labelKey, item.defaultLabel),
+        sub:   getSetting(`nav_${item.id}_sub`, NAV_META[item.id]?.sub || ''),
+        icon:  NAV_META[item.id]?.icon || null,
+        color: NAV_META[item.id]?.color || '#007AFF',
+        path:  item.path,
+    })), [getSetting]);
 
-    const siteName  = getSetting('site_name', 'NextClass');
-    const siteLogo  = getSetting('site_logo_url', '');
-    const phone     = getSetting('contact_phone', '058-5856356');
-    const email     = getSetting('contact_email', 'nextclass.en@gmail.com');
-    const waNumber  = getSetting('whatsapp_number', '972585856356');
-
-    const bgStyle = {
-        background: 'linear-gradient(160deg, rgba(12,14,26,0.97) 0%, rgba(18,16,40,0.98) 60%, rgba(12,20,36,0.97) 100%)',
-        backdropFilter: 'blur(60px) saturate(1.6)',
-        WebkitBackdropFilter: 'blur(60px) saturate(1.6)',
-    };
+    const siteName = getSetting('site_name', 'NextClass');
+    const siteLogo = getSetting('site_logo_url', '');
+    const phone    = getSetting('contact_phone', '058-5856356');
+    const email    = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const waNumber = getSetting('whatsapp_number', '972585856356');
 
     return (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    initial={{ opacity: 0, clipPath: 'circle(0% at calc(100% - 48px) 48px)' }}
-                    animate={{ opacity: 1, clipPath: 'circle(150% at calc(100% - 48px) 48px)' }}
-                    exit={{ opacity: 0, clipPath: 'circle(0% at calc(100% - 48px) 48px)' }}
-                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    style={bgStyle}
+                    initial={{ opacity: 0, clipPath: 'circle(0% at calc(100% - 52px) 52px)' }}
+                    animate={{ opacity: 1, clipPath: 'circle(150% at calc(100% - 52px) 52px)' }}
+                    exit={{ opacity: 0, clipPath: 'circle(0% at calc(100% - 52px) 52px)' }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="fixed inset-0 z-[250] flex flex-col pointer-events-auto overflow-hidden"
+                    style={{
+                        background: 'rgba(248,248,250,0.92)',
+                        backdropFilter: 'blur(56px) saturate(200%)',
+                        WebkitBackdropFilter: 'blur(56px) saturate(200%)',
+                    }}
                     dir="rtl"
                 >
-                    {/* ── Ambient glows ─────────────────────────────────────── */}
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none"
-                        style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.10) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full pointer-events-none"
-                        style={{ background: 'radial-gradient(circle, rgba(88,86,214,0.08) 0%, transparent 70%)', transform: 'translate(-20%, 20%)' }} />
+                    {/* Ambient glows */}
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none"
+                        style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.07) 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
+                    <div className="absolute bottom-0 left-0 w-[320px] h-[320px] rounded-full pointer-events-none"
+                        style={{ background: 'radial-gradient(circle, rgba(88,86,214,0.05) 0%, transparent 70%)', transform: 'translate(-20%,20%)' }} />
 
-                    {/* ── Header bar ────────────────────────────────────────── */}
-                    <div className="flex items-center justify-between px-8 pt-6 pb-4 shrink-0">
+                    {/* ── Header ──────────────────────────────────────── */}
+                    <div className="flex items-center justify-between px-6 pt-6 pb-5 shrink-0"
+                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+
                         <motion.button
                             onClick={onClose}
                             whileHover={{ scale: 1.08, rotate: 90 }}
                             whileTap={{ scale: 0.92 }}
                             transition={SPRING}
-                            className="w-11 h-11 rounded-2xl flex items-center justify-center cursor-pointer"
-                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                            className="w-10 h-10 rounded-2xl bg-black/[0.06] flex items-center justify-center cursor-pointer"
                             aria-label="סגור תפריט"
                         >
-                            <X className="w-5 h-5 text-white" />
+                            <X className="w-4 h-4 text-[#1D1D1F]" />
                         </motion.button>
 
-                        <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
+                        <Link to="/" onClick={onClose} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
                             {siteLogo ? (
-                                <img src={siteLogo} alt={siteName} className="h-8 object-contain brightness-[10]" />
+                                <img src={siteLogo} alt={siteName} className="h-7 object-contain" />
                             ) : (
-                                <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
-                                    <circle cx="12" cy="16" r="9" stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
-                                    <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.2" />
+                                <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none">
+                                    <circle cx="12" cy="16" r="9" stroke="#AEAEB2" strokeWidth="2" />
+                                    <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="2" fill="#007AFF" fillOpacity="0.18" />
                                 </svg>
                             )}
-                            <span className="text-white font-black text-lg tracking-tighter">{siteName}</span>
+                            <span className="text-[#1D1D1F] font-black text-[17px] tracking-tighter">{siteName}</span>
                         </Link>
                     </div>
 
-                    {/* ── Nav items ─────────────────────────────────────────── */}
-                    <nav className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2">
+                    {/* ── Nav items ───────────────────────────────────── */}
+                    <nav className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-1.5">
                         {navItems.map((item, i) => {
                             const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                            const Icon = item.icon;
                             return (
                                 <motion.div
                                     key={item.id}
-                                    initial={{ opacity: 0, x: 30 }}
+                                    initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ ...SPRING, delay: 0.06 + i * 0.055 }}
+                                    exit={{ opacity: 0, x: 12 }}
+                                    transition={{ ...SPRING, delay: 0.05 + i * 0.045 }}
                                 >
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className="flex items-center gap-4 w-full p-4 rounded-2xl group transition-all duration-300"
+                                        className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl group transition-all duration-200"
                                         style={{
-                                            background: isActive
-                                                ? 'rgba(0,122,255,0.16)'
-                                                : 'rgba(255,255,255,0.04)',
-                                            border: isActive
-                                                ? '1px solid rgba(0,122,255,0.35)'
-                                                : '1px solid rgba(255,255,255,0.07)',
+                                            background: isActive ? `${item.color}12` : 'transparent',
+                                            border: isActive ? `1px solid ${item.color}28` : '1px solid transparent',
                                         }}
-                                        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                                        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                                        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
+                                        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                                     >
-                                        {/* Emoji icon */}
-                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
-                                            style={{
-                                                background: isActive
-                                                    ? 'rgba(0,122,255,0.25)'
-                                                    : 'rgba(255,255,255,0.07)',
-                                            }}>
-                                            {item.emoji}
-                                        </div>
+                                        {/* Icon pill */}
+                                        {Icon && (
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                                style={{ background: isActive ? `${item.color}18` : 'rgba(0,0,0,0.05)' }}>
+                                                <Icon size={18} style={{ color: isActive ? item.color : '#86868B' }} />
+                                            </div>
+                                        )}
 
                                         {/* Text */}
                                         <div className="flex-1 text-right">
-                                            <p className={`text-lg font-black tracking-tight leading-tight ${isActive ? 'text-[#007AFF]' : 'text-white'}`}>
+                                            <p className="text-[16px] font-black tracking-tight leading-tight"
+                                                style={{ color: isActive ? item.color : '#1D1D1F' }}>
                                                 {item.name}
                                             </p>
                                             {item.sub && (
-                                                <p className="text-[12px] font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                                <p className="text-[11px] font-medium mt-0.5 text-[#86868B]">
                                                     {item.sub}
                                                 </p>
                                             )}
                                         </div>
 
-                                        <ChevronLeft size={16} className={`shrink-0 transition-all duration-300 ${isActive ? 'text-[#007AFF]' : 'text-white/20 group-hover:text-white/60 group-hover:-translate-x-1'}`} />
+                                        <ChevronLeft size={14} className="shrink-0 transition-all duration-200"
+                                            style={{ color: isActive ? item.color : '#AEAEB2' }} />
                                     </Link>
                                 </motion.div>
                             );
                         })}
                     </nav>
 
-                    {/* ── Bottom contact strip ───────────────────────────────── */}
+                    {/* ── Bottom contact strip ────────────────────────── */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        transition={{ ...SPRING, delay: 0.35 }}
-                        className="shrink-0 px-6 pb-8 pt-4"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                        transition={{ ...SPRING, delay: 0.3 }}
+                        className="shrink-0 px-5 pb-8 pt-4"
+                        style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
                     >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                             {/* WhatsApp */}
                             <a
                                 href={`https://wa.me/${waNumber}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-black text-sm transition-all"
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-black text-[13px] transition-all active:scale-[0.97]"
                                 style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}
                             >
-                                <MessageCircle size={16} fill="white" strokeWidth={0} />
+                                <MessageCircle size={15} fill="white" strokeWidth={0} />
                                 וואטסאפ
                             </a>
 
                             {/* Phone */}
                             <a
                                 href={`tel:${phone}`}
-                                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-white font-bold text-sm transition-all"
-                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                                className="flex items-center justify-center gap-2 py-3 px-3.5 rounded-2xl font-bold text-[13px] text-[#1D1D1F] transition-all active:scale-[0.97]"
+                                style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}
                             >
-                                <Phone size={15} />
-                                <span className="font-mono text-sm">{phone}</span>
+                                <Phone size={14} className="text-[#007AFF]" />
+                                <span dir="ltr" className="font-mono text-[12px]">{phone}</span>
                             </a>
 
                             {/* Mail */}
                             <a
                                 href={`mailto:${email}`}
-                                className="w-12 h-12 flex items-center justify-center rounded-2xl text-white transition-all"
-                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                                className="w-11 h-11 flex items-center justify-center rounded-2xl transition-all active:scale-[0.97]"
+                                style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.07)' }}
                             >
-                                <Mail size={16} />
+                                <Mail size={15} className="text-[#007AFF]" />
                             </a>
                         </div>
                     </motion.div>

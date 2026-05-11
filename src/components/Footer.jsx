@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, Mail, Phone, MapPin, Sparkles, Send, CheckCircle2 } from 'lucide-react';
-
-// Removed readFooterContent helper
+import { Globe, Mail, Phone, MapPin, Sparkles, Send, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const Footer = () => {
     const navigate = useNavigate();
     const { getSetting } = useSettings();
     const logoClickRef = useRef({ count: 0, timer: null });
-    
+
     const content = useMemo(() => ({
         siteName:  getSetting('site_name', 'NextClass'),
         phone:     getSetting('contact_phone', '058-5856356'),
@@ -26,21 +24,17 @@ const Footer = () => {
         col2:      getSetting('footer_col2_title', 'האקדמיה'),
         col2Items: getSetting('footer_col2_items', 'מרכז עזרה, מדריכי וידאו, בלוג חדשנות, תמיכה טכנית').split(',').map(s => s.trim()),
         col3:      getSetting('footer_col3_title', 'קשר'),
-        privacy:   getSetting('footer_privacy', 'Privacy'),
-        terms:     getSetting('footer_terms', 'Terms'),
+        privacy:   getSetting('footer_privacy', 'פרטיות'),
+        terms:     getSetting('footer_terms', 'תנאי שימוש'),
         location:  getSetting('footer_location', 'ISRAEL | HEBREW'),
     }), [getSetting]);
 
     const [email, setEmail] = useState('');
-    const [status, setStatus] = useState('idle'); // idle, loading, success, error
+    const [status, setStatus] = useState('idle');
 
     const handleSubscribe = async (e) => {
         e.preventDefault();
-        if (!email || !email.includes('@')) {
-            setStatus('error');
-            return;
-        }
-
+        if (!email || !email.includes('@')) { setStatus('error'); return; }
         setStatus('loading');
         try {
             await addDoc(collection(db, 'newsletter_subs'), {
@@ -51,8 +45,7 @@ const Footer = () => {
             setStatus('success');
             setEmail('');
             setTimeout(() => setStatus('idle'), 5000);
-        } catch (err) {
-            console.error('Newsletter error:', err);
+        } catch {
             setStatus('error');
             setTimeout(() => setStatus('idle'), 3000);
         }
@@ -73,153 +66,178 @@ const Footer = () => {
         }
     }, [navigate]);
 
-    // Removed storage listener (handled by SettingsContext)
     return (
-        <footer className="relative bg-[#F5F5F7] pt-14 sm:pt-20 pb-14 sm:pb-20 w-full mt-auto overflow-hidden"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.6)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' }}>
-            {/* Ambient Background Glows */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[120px] -mr-40 -mt-40 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-100/25 rounded-full blur-[110px] -ml-32 -mb-32 pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-sky-50/30 rounded-full blur-[100px] pointer-events-none" />
+        <footer className="w-full mt-auto overflow-hidden" dir="rtl">
 
-            <div className="max-w-[1400px] mx-auto px-6 md:px-12 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-20 mb-12 sm:mb-20">
+            {/* ── Main footer body ─────────────────────────────────────── */}
+            <div className="relative bg-[#F5F5F7] pt-14 pb-10 overflow-hidden"
+                style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
 
-                    {/* Brand & Narrative */}
-                    <div className="lg:col-span-5 flex flex-col gap-6">
-                        <Link to="/" onClick={handleLogoClick} className="text-2xl md:text-3xl font-apple-display text-[#1D1D1F] tracking-tighter hover:opacity-80 transition-all w-fit uppercase font-black">
-                            {content.siteName}
-                        </Link>
-                        <p className="text-xl text-gray-400 font-medium leading-[1.2] max-w-sm">
-                            {content.tagline}
-                        </p>
-                        <div className="flex items-center gap-4 text-gray-300">
-                             <Sparkles size={16} className="text-[#007AFF] animate-glow-pulse" />
-                            <div className="w-px h-6 bg-gray-200" />
-                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-400">{content.loveMsg}</p>
-                        </div>
+                {/* Ambient glows */}
+                <div className="absolute top-0 right-0 w-[420px] h-[300px] bg-[#007AFF]/6 rounded-full blur-[110px] -mr-32 -mt-32 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[320px] h-[260px] bg-[#5856D6]/5 rounded-full blur-[100px] -ml-24 -mb-24 pointer-events-none" />
 
-                        {/* Newsletter — LEAD COLLECTION */}
-                        <div className="mt-8 relative max-w-sm">
-                            <h4 className="text-[10px] font-black text-[#1D1D1F] mb-4 uppercase tracking-[0.2em]">בואו נישאר מחוברים</h4>
-                            <p className="text-sm text-gray-500 font-medium mb-5">קבלו עדכונים על פתרונות למידה חדשים, מדריכים והטבות בלעדיות למוסדות חינוך.</p>
-                            
-                            <form onSubmit={handleSubscribe} className="relative group">
-                                <input 
-                                    type="email" 
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="הכנס כתובת אימייל..."
-                                    disabled={status === 'loading' || status === 'success'}
-                                    className="w-full h-14 bg-white rounded-2xl px-6 py-4 text-sm font-bold border border-gray-100 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] group-hover:shadow-lg disabled:opacity-50"
-                                />
-                                <button 
-                                    type="submit"
-                                    disabled={status === 'loading' || status === 'success'}
-                                    className="absolute left-2 top-2 bottom-2 px-4 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center transition-all hover:bg-black active:scale-95 disabled:bg-gray-400"
-                                >
-                                    <AnimatePresence mode="wait">
-                                        {status === 'success' ? (
-                                            <motion.div key="success" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                                <CheckCircle2 size={18} />
-                                            </motion.div>
-                                        ) : status === 'loading' ? (
-                                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <motion.div key="send" initial={{ x: 5, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-                                                <Send size={16} className="-rotate-45" />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </button>
-                            </form>
-                            
-                            {status === 'success' && (
-                                <motion.p 
-                                    initial={{ opacity: 0, y: 5 }} 
-                                    animate={{ opacity: 1, y: 0 }} 
-                                    className="mt-3 text-[11px] font-bold text-green-500"
-                                >
-                                    נרשמת בהצלחה! אנחנו נהיה בקשר.
-                                </motion.p>
-                            )}
-                            {status === 'error' && (
-                                <motion.p 
-                                    initial={{ opacity: 0, y: 5 }} 
-                                    animate={{ opacity: 1, y: 0 }} 
-                                    className="mt-3 text-[11px] font-bold text-red-500"
-                                >
-                                    חלה שגיאה. בדוק את האימייל ונסה שוב.
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
+                <div className="max-w-[1400px] mx-auto px-6 md:px-12 relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 mb-10">
 
-                    {/* Solutions Grid */}
-                    <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-10">
-                        <div className="flex flex-col">
-                            <h4 className="text-[10px] font-black text-[#1D1D1F] mb-6 uppercase tracking-[0.2em]">{content.col1}</h4>
-                            <nav className="flex flex-col space-y-3">
-                                {content.col1Items.map(item => (
-                                    <Link key={item} to="/catalog" className="text-gray-500 font-bold text-sm hover:text-[#007AFF] transition-all w-fit">{item}</Link>
-                                ))}
-                            </nav>
-                        </div>
+                        {/* ── Brand column ─────────────────────────────── */}
+                        <div className="lg:col-span-4 flex flex-col gap-5">
+                            {/* Logo */}
+                            <Link to="/" onClick={handleLogoClick}
+                                className="text-xl font-black tracking-tighter text-[#1D1D1F] hover:opacity-70 transition-opacity w-fit uppercase">
+                                {content.siteName}
+                            </Link>
 
-                        <div className="flex flex-col">
-                            <h4 className="text-[10px] font-black text-[#1D1D1F] mb-6 uppercase tracking-[0.2em]">{content.col2}</h4>
-                            <nav className="flex flex-col space-y-3">
-                                {content.col2Items.map(item => (
-                                    <Link key={item} to="/help" className="text-gray-500 font-bold text-sm hover:text-[#007AFF] transition-all w-fit">{item}</Link>
-                                ))}
-                            </nav>
-                        </div>
+                            {/* Tagline */}
+                            <p className="text-[14px] text-[#86868B] font-medium leading-relaxed max-w-[260px]">
+                                {content.tagline}
+                            </p>
 
-                        <div className="flex flex-col">
-                            <h4 className="text-[10px] font-black text-[#1D1D1F] mb-6 uppercase tracking-[0.2em]">{content.col3}</h4>
-                            <div className="flex flex-col space-y-5">
-                                <a href={`tel:${content.phone}`} className="flex items-center gap-3 text-gray-500 font-bold text-sm hover:text-[#007AFF] transition-all" dir="ltr">
-                                    <Phone size={14} />
-                                    <span>{content.phone}</span>
-                                </a>
-                                <a href={`mailto:${content.email}`} className="flex items-center gap-3 text-gray-500 font-bold text-sm hover:text-[#007AFF] transition-all">
-                                    <Mail size={14} />
-                                    <span>{content.email}</span>
-                                </a>
-                                <div className="flex items-center gap-3 text-gray-500 font-bold text-sm">
-                                    <MapPin size={14} />
-                                    <span>{content.address}</span>
-                                </div>
+                            {/* Love badge */}
+                            <div className="flex items-center gap-2 w-fit">
+                                <Sparkles size={12} className="text-[#007AFF]" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#AEAEB2]">{content.loveMsg}</span>
+                            </div>
+
+                            {/* Newsletter */}
+                            <div className="mt-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1D1D1F] mb-3">
+                                    בואו נישאר מחוברים
+                                </p>
+                                <form onSubmit={handleSubscribe} className="relative">
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        placeholder="כתובת אימייל..."
+                                        disabled={status === 'loading' || status === 'success'}
+                                        className="w-full h-11 bg-white rounded-xl pr-4 pl-12 text-[13px] font-medium border border-black/[0.08] shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:opacity-50 placeholder:text-[#AEAEB2]"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={status === 'loading' || status === 'success'}
+                                        className="absolute left-1.5 top-1.5 bottom-1.5 w-8 rounded-lg bg-[#1D1D1F] text-white flex items-center justify-center transition-all hover:bg-[#007AFF] active:scale-95 disabled:bg-[#AEAEB2]"
+                                    >
+                                        <AnimatePresence mode="wait">
+                                            {status === 'success' ? (
+                                                <motion.div key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                                                    <CheckCircle2 size={14} />
+                                                </motion.div>
+                                            ) : status === 'loading' ? (
+                                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                <motion.div key="send" initial={{ x: 4, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+                                                    <Send size={13} className="-rotate-45" />
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </button>
+                                </form>
+                                <AnimatePresence>
+                                    {status === 'success' && (
+                                        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            className="mt-2 text-[11px] font-bold text-[#34C759]">
+                                            נרשמת בהצלחה!
+                                        </motion.p>
+                                    )}
+                                    {status === 'error' && (
+                                        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            className="mt-2 text-[11px] font-bold text-[#FF3B30]">
+                                            בדוק את האימייל ונסה שוב.
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Bottom Bar */}
-                <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6"
-                    style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                    <div className="flex items-center gap-2 text-[11px] text-gray-400 font-bold uppercase tracking-widest">
-                        <span>{content.copyright}</span>
+                        {/* ── Link columns ─────────────────────────────── */}
+                        <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8">
+
+                            {/* Col 1 */}
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 uppercase tracking-[0.2em]">{content.col1}</h4>
+                                <nav className="flex flex-col gap-3">
+                                    {content.col1Items.map(item => (
+                                        <Link key={item} to="/catalog"
+                                            className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">
+                                            {item}
+                                        </Link>
+                                    ))}
+                                </nav>
+                            </div>
+
+                            {/* Col 2 */}
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 uppercase tracking-[0.2em]">{content.col2}</h4>
+                                <nav className="flex flex-col gap-3">
+                                    {content.col2Items.map(item => (
+                                        <Link key={item} to="/help"
+                                            className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">
+                                            {item}
+                                        </Link>
+                                    ))}
+                                </nav>
+                            </div>
+
+                            {/* Col 3 — Contact, RTL-correct */}
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 uppercase tracking-[0.2em]">{content.col3}</h4>
+                                <div className="flex flex-col gap-4">
+                                    <a href={`tel:${content.phone}`}
+                                        className="group flex items-center justify-end gap-2 text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors">
+                                        <span dir="ltr">{content.phone}</span>
+                                        <div className="w-6 h-6 rounded-lg bg-[#007AFF]/8 flex items-center justify-center group-hover:bg-[#007AFF]/15 transition-colors shrink-0">
+                                            <Phone size={11} className="text-[#007AFF]" />
+                                        </div>
+                                    </a>
+                                    <a href={`mailto:${content.email}`}
+                                        className="group flex items-center justify-end gap-2 text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors">
+                                        <span dir="ltr">{content.email}</span>
+                                        <div className="w-6 h-6 rounded-lg bg-[#007AFF]/8 flex items-center justify-center group-hover:bg-[#007AFF]/15 transition-colors shrink-0">
+                                            <Mail size={11} className="text-[#007AFF]" />
+                                        </div>
+                                    </a>
+                                    <div className="flex items-center justify-end gap-2 text-[13px] text-[#86868B] font-medium">
+                                        <span>{content.address}</span>
+                                        <div className="w-6 h-6 rounded-lg bg-[#007AFF]/8 flex items-center justify-center shrink-0">
+                                            <MapPin size={11} className="text-[#007AFF]" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
-                    <div className="flex gap-6 text-[11px] text-gray-400 font-bold uppercase tracking-widest">
-                        <Link to="/" className="link-underline hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
-                        <Link to="/" className="link-underline hover:text-[#007AFF] transition-colors">{content.terms}</Link>
-                    </div>
+                    {/* ── Divider ──────────────────────────────────────── */}
+                    <div className="h-px bg-black/[0.07] mb-6" />
 
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-full"
-                        style={{
-                            background: 'rgba(255,255,255,0.75)',
-                            backdropFilter: 'blur(24px) saturate(1.8)',
-                            WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-                            border: '1px solid rgba(255,255,255,0.80)',
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
-                        }}>
-                        <Globe size={12} className="text-[#007AFF]" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[#1D1D1F]">{content.location}</span>
+                    {/* ── Mid bar — links + locale ──────────────────────── */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-5">
+                            <Link to="/" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
+                            <Link to="/" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.terms}</Link>
+                            <Link to="/contact" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">צור קשר</Link>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 border border-black/[0.06] shadow-sm">
+                            <Globe size={10} className="text-[#007AFF]" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-[#86868B]">{content.location}</span>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* ── Dark bottom strip ────────────────────────────────────── */}
+            <div className="bg-[#1D1D1F] px-6 md:px-12 py-4">
+                <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <span className="text-[11px] text-white/35 font-medium tracking-wide">{content.copyright}</span>
+                    <div className="flex items-center gap-1.5 text-white/25">
+                        <Sparkles size={9} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{content.loveMsg}</span>
+                    </div>
+                </div>
+            </div>
+
         </footer>
     );
 };
