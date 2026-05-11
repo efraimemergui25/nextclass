@@ -65,6 +65,23 @@ const CatalogPage = () => {
     const [sortBy, setSortBy] = useState('default');
     const [priceRange, setPriceRange] = useState([0, 30000]);
 
+    const maxPrice = useMemo(() => {
+        if (!products.length) return 30000;
+        const max = Math.max(...products.map(p => Number(p.price) || 0));
+        return Math.ceil(max / 1000) * 1000 || 10000;
+    }, [products]);
+
+    const priceStep = useMemo(() => {
+        if (maxPrice <= 2000) return 50;
+        if (maxPrice <= 10000) return 200;
+        if (maxPrice <= 30000) return 500;
+        return 1000;
+    }, [maxPrice]);
+
+    useEffect(() => {
+        setPriceRange(prev => [prev[0], Math.max(prev[1], maxPrice)]);
+    }, [maxPrice]);
+
     // ─── Scroll restoration via sessionStorage ────────────────────────────────
     const scrollKey = 'catalog_scroll_pos';
     useEffect(() => {
@@ -272,7 +289,7 @@ const CatalogPage = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.04 }}
                                     whileTap={{ scale: 0.96 }}
-                                    onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory(allLabel); setSearchParams({}); }}
+                                    onClick={() => { setSortBy('default'); setPriceRange([0, maxPrice]); setSelectedCategory(allLabel); setSearchParams({}); }}
                                     className="px-8 py-3 rounded-full bg-[#007AFF] text-white font-bold text-sm shadow-[0_8px_20px_rgba(0,122,255,0.3)] hover:shadow-[0_12px_28px_rgba(0,122,255,0.4)] transition-all"
                                 >
                                     הצג את כל המוצרים
@@ -365,23 +382,50 @@ const CatalogPage = () => {
                                     <section className="mb-14">
                                         <div className="flex justify-between items-center mb-6">
                                             <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">טווח מחירים</p>
-                                            <span className="text-base font-black text-[#1D1D1F]">עד ₪{priceRange[1].toLocaleString()}</span>
+                                            <AnimatePresence mode="wait">
+                                                <motion.span
+                                                    key={priceRange[1]}
+                                                    initial={{ opacity: 0, y: -4 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 4 }}
+                                                    transition={{ duration: 0.15 }}
+                                                    className="text-base font-black text-[#1D1D1F]"
+                                                >
+                                                    {priceRange[1] >= maxPrice ? 'ללא הגבלה' : `עד ₪${priceRange[1].toLocaleString()}`}
+                                                </motion.span>
+                                            </AnimatePresence>
                                         </div>
-                                        <div className="px-2">
-                                            <input 
-                                                type="range" 
-                                                min="0" 
-                                                max="30000" 
-                                                step="500"
-                                                value={priceRange[1]}
+                                        <div className="px-1" dir="ltr">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={maxPrice}
+                                                step={priceStep}
+                                                value={Math.min(priceRange[1], maxPrice)}
                                                 onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                                                className="w-full h-2.5 bg-black/10 rounded-lg appearance-none cursor-pointer accent-[#007AFF]"
+                                                style={{
+                                                    background: `linear-gradient(to right, #007AFF ${Math.min(priceRange[1], maxPrice) / maxPrice * 100}%, rgba(0,0,0,0.1) ${Math.min(priceRange[1], maxPrice) / maxPrice * 100}%)`
+                                                }}
+                                                className="w-full h-2 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_2px_10px_rgba(0,0,0,0.25)] [&::-webkit-slider-thumb]:border-[2.5px] [&::-webkit-slider-thumb]:border-[#007AFF] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
                                             />
-                                            <div className="flex justify-between mt-4 text-[11px] font-black text-gray-400">
+                                            <div className="flex justify-between mt-3 text-[11px] font-bold text-gray-400">
                                                 <span>₪0</span>
-                                                <span>₪30,000+</span>
+                                                <span>₪{maxPrice.toLocaleString()}+</span>
                                             </div>
                                         </div>
+                                        <AnimatePresence>
+                                            {priceRange[1] < maxPrice && (
+                                                <motion.button
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    onClick={() => setPriceRange([0, maxPrice])}
+                                                    className="mt-3 text-[11px] text-[#007AFF] font-bold hover:underline block"
+                                                >
+                                                    הצג את כל המחירים
+                                                </motion.button>
+                                            )}
+                                        </AnimatePresence>
                                     </section>
 
                                     {/* Categories inside drawer (for mobile/redundancy) */}
@@ -403,7 +447,7 @@ const CatalogPage = () => {
 
                                 <div className="mt-auto pt-10 flex gap-4 border-t border-black/5">
                                     <button 
-                                        onClick={() => { setSortBy('default'); setPriceRange([0, 30000]); setSelectedCategory(allLabel); }}
+                                        onClick={() => { setSortBy('default'); setPriceRange([0, maxPrice]); setSelectedCategory(allLabel); }}
                                         className="flex-1 py-5 rounded-2xl font-bold text-sm text-gray-400 hover:text-[#1D1D1F] transition-colors"
                                     >
                                         איפוס

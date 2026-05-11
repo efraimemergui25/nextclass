@@ -3,22 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Sparkles, ArrowUp, MessageCircle,
     Type, Contrast, Eye, MousePointer2, Link as LinkIcon,
-    RotateCcw, Check, Accessibility
+    RotateCcw, Check, Accessibility, ShoppingCart, ExternalLink
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Magnetic from './Magnetic';
 import { useProducts } from '../context/ProductsContext';
+import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
-import Anthropic from '@anthropic-ai/sdk';
-
-const WHATSAPP_NUMBER = '972585856356';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
-
-const anthropic = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY || 'sk-ant-dummy-key',
-    dangerouslyAllowBrowser: true
-});
 
 // ── Accessibility helpers ────────────────────────────────────────────────────
 const DEFAULT_A11Y = {
@@ -60,8 +53,114 @@ const A11yOption = memo(({ active, onClick, icon, label }) => (
     </button>
 ));
 
-// ── Chat sub-components ──────────────────────────────────────────────────────
-const Bubble = memo(({ msg }) => {
+// ── Inline Product Card (rendered inside chat) ───────────────────────────────
+const ProductChip = memo(({ product, onAddToCart, onNavigate }) => {
+    const [added, setAdded] = useState(false);
+    const price = product.salePrice ?? product.price ?? 0;
+    const original = product.price ?? 0;
+    const hasDiscount = product.salePrice && product.salePrice < original;
+
+    const handleAdd = (e) => {
+        e.stopPropagation();
+        onAddToCart(product);
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer group"
+            style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
+            onClick={() => onNavigate(product.id)}
+        >
+            {/* Image */}
+            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+                {product.image ? (
+                    <img src={product.image} alt={product.title} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <Sparkles size={20} />
+                    </div>
+                )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-black text-[#1D1D1F] leading-tight truncate">{product.title}</p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                    <span className="text-[14px] font-black text-[#007AFF]">₪{Number(price).toLocaleString()}</span>
+                    {hasDiscount && (
+                        <span className="text-[10px] font-bold text-[#AEAEB2] line-through">₪{Number(original).toLocaleString()}</span>
+                    )}
+                </div>
+                {product.stock > 0 ? (
+                    <span className="text-[9px] font-bold text-[#34C759]">במלאי ✓</span>
+                ) : (
+                    <span className="text-[9px] font-bold text-[#FF3B30]">אזל מהמלאי</span>
+                )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-1.5 shrink-0">
+                <button
+                    onClick={handleAdd}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        added
+                            ? 'bg-[#34C759] text-white'
+                            : 'bg-[#007AFF] text-white hover:bg-blue-600'
+                    }`}
+                    style={{ boxShadow: '0 4px 12px rgba(0,122,255,0.3)' }}
+                    title="הוסף לעגלה"
+                >
+                    {added ? <Check size={14} strokeWidth={3} /> : <ShoppingCart size={14} />}
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onNavigate(product.id); }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center bg-black/5 hover:bg-black/10 text-[#86868B] transition-all cursor-pointer"
+                    title="פרטי מוצר"
+                >
+                    <ExternalLink size={12} />
+                </button>
+            </div>
+        </motion.div>
+    );
+});
+
+// ── Rich text renderer (bold, line breaks) ───────────────────────────────────
+function RichText({ text }) {
+    if (!text) return null;
+    const lines = text.split('\n').filter(l => l.trim() !== '');
+    return (
+        <div className="space-y-1">
+            {lines.map((line, i) => {
+                // Render **bold** markers
+                const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                const rendered = parts.map((part, j) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={j} className="font-black text-[#1D1D1F]">{part.slice(2, -2)}</strong>;
+                    }
+                    // Bullet point
+                    if (part.startsWith('• ') || part.startsWith('- ')) {
+                        return <span key={j}>{part}</span>;
+                    }
+                    return <span key={j}>{part}</span>;
+                });
+                const isBullet = line.trimStart().startsWith('•') || line.trimStart().startsWith('-') || line.trimStart().startsWith('*') && !line.startsWith('**');
+                return (
+                    <p key={i} className={`leading-[1.65] ${isBullet ? 'flex gap-2' : ''}`}>
+                        {rendered}
+                    </p>
+                );
+            })}
+        </div>
+    );
+}
+
+// ── Chat bubble ──────────────────────────────────────────────────────────────
+const Bubble = memo(({ msg, onAddToCart, onNavigate }) => {
     const isUser = msg.role === 'user';
     return (
         <motion.div
@@ -71,18 +170,34 @@ const Bubble = memo(({ msg }) => {
             className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
         >
             {!isUser && (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shrink-0 shadow-lg border border-white/20 self-start mt-1">
                     <Sparkles size={14} className="text-white" />
                 </div>
             )}
-            <div className={`px-5 py-3 text-[14px] font-medium leading-[1.6] max-w-[85%] relative overflow-hidden ${
-                isUser
-                    ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-none shadow-md'
-                    : 'text-[#1D1D1F] rounded-[1.25rem] rounded-bl-none'
-            }`}
-            style={!isUser ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } : {}}
-            >
-                {msg.text}
+            <div className={`max-w-[85%] flex flex-col gap-2`}>
+                <div className={`px-5 py-3 text-[14px] font-medium leading-[1.6] relative overflow-hidden ${
+                    isUser
+                        ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-none shadow-md'
+                        : 'text-[#1D1D1F] rounded-[1.25rem] rounded-bl-none'
+                }`}
+                style={!isUser ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } : {}}
+                >
+                    {isUser ? msg.text : <RichText text={msg.text} />}
+                </div>
+
+                {/* Inline product cards */}
+                {!isUser && msg.products && msg.products.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        {msg.products.map(p => (
+                            <ProductChip
+                                key={p.id}
+                                product={p}
+                                onAddToCart={onAddToCart}
+                                onNavigate={onNavigate}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </motion.div>
     );
@@ -113,12 +228,36 @@ const TABS = [
     { id: 'whatsapp',      label: 'וואטסאפ', Icon: MessageCircle },
 ];
 
+// ── Context-aware quick replies ──────────────────────────────────────────────
+function getQuickReplies(messages, settings) {
+    const hasConversation = messages.length > 1;
+    if (!hasConversation) {
+        return [
+            settings.ai_chip1 || 'הצעת מחיר',
+            settings.ai_chip2 || 'מפרט טכני',
+            settings.ai_chip3 || 'ייעוץ',
+        ];
+    }
+    const lastAI = [...messages].reverse().find(m => m.role === 'ai');
+    const lastText = lastAI?.text?.toLowerCase() || '';
+    if (lastText.includes('מחיר') || lastText.includes('₪')) {
+        return ['מה כלול במחיר?', 'אפשר הנחה?', 'הוסף לעגלה'];
+    }
+    if (lastText.includes('מפרט') || lastText.includes('טכנ')) {
+        return ['אפשרויות שדרוג?', 'השוואה למוצרים אחרים', 'שלח הצעת מחיר'];
+    }
+    return ['ספר עוד', 'מה המחיר?', 'צור קשר'];
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 const SmartConcierge = () => {
     const { getSetting } = useSettings();
+    const whatsappNumber = getSetting('biz_whatsapp', '972585856356');
     const location = useLocation();
+    const navigate = useNavigate();
     const isProductPage = location.pathname.startsWith('/catalog/');
     const { activeProducts } = useProducts();
+    const { addToCart } = useCart();
 
     const getInitialMessage = useCallback(() => {
         if (isProductPage) return getSetting('ai_greeting_pd', 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?');
@@ -132,6 +271,7 @@ const SmartConcierge = () => {
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [cartFeedback, setCartFeedback] = useState(null);
 
     const rootRef = useRef(null);
     const bottomRef = useRef(null);
@@ -152,14 +292,14 @@ const SmartConcierge = () => {
     const updateFontSize = useCallback((delta) => setA11y(p => ({ ...p, fontSize: Math.min(Math.max(p.fontSize + delta, 80), 150) })), []);
     const resetA11y = useCallback(() => setA11y(DEFAULT_A11Y), []);
 
-    // Open via custom event (e.g., from "גלה פתרונות לפי צורך" button)
+    // Open via custom event
     useEffect(() => {
         const handler = () => setIsOpen(true);
         window.addEventListener('open-concierge', handler);
         return () => window.removeEventListener('open-concierge', handler);
     }, []);
 
-    // Chat effects
+    // Reset chat on route change
     useEffect(() => {
         if (!isOpen) {
             setMessages([{ id: 0, role: 'ai', text: getInitialMessage() }]);
@@ -172,51 +312,122 @@ const SmartConcierge = () => {
         if (isOpen && activeTab === 'chat') setTimeout(() => inputRef.current?.focus(), 400);
     }, [isOpen, activeTab]);
 
+    // Add to cart handler with visual feedback
+    const handleAddToCart = useCallback((product) => {
+        addToCart({ ...product, qty: 1 });
+        setCartFeedback(product.title);
+        setTimeout(() => setCartFeedback(null), 2500);
+    }, [addToCart]);
+
+    // Navigate to product page and close
+    const handleNavigate = useCallback((productId) => {
+        navigate(`/catalog/${productId}`);
+        setIsOpen(false);
+    }, [navigate]);
+
+    // Build compact catalog context (ID|name|category|price|stock)
+    const buildCatalogContext = useCallback(() => {
+        return activeProducts.slice(0, 25).map(p =>
+            `${p.id}|${p.title}|${p.category}|₪${p.salePrice ?? p.price ?? 0}|${p.stock > 0 ? 'במלאי' : 'אזל'}`
+        ).join('\n');
+    }, [activeProducts]);
+
+    // Parse [PRODUCTS: id1, id2] tags from AI response
+    const parseProducts = useCallback((text) => {
+        const match = text.match(/\[PRODUCTS:\s*([^\]]+)\]/);
+        if (!match) return { cleanText: text, products: [] };
+        const ids = match[1].split(',').map(s => s.trim());
+        const products = ids
+            .map(id => activeProducts.find(p => String(p.id) === id))
+            .filter(Boolean);
+        const cleanText = text.replace(/\[PRODUCTS:[^\]]+\]/g, '').trim();
+        return { cleanText, products };
+    }, [activeProducts]);
+
     const send = useCallback(async (text) => {
         const t = (text ?? input).trim();
-        if (!t) return;
+        if (!t || isTyping) return;
         const newMessages = [...messages, { id: Date.now(), role: 'user', text: t }];
         setMessages(newMessages);
         setInput('');
         setIsTyping(true);
         try {
-            if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
-                setTimeout(() => {
-                    setIsTyping(false);
-                    setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'סליחה, אני לא מחובר לענן כרגע. יש להזין מפתח API של Claude למערכת.' }]);
-                }, 1000);
-                return;
-            }
-            const catalogInfo = activeProducts.map(p =>
-                `- ${p.title} (${p.category}): ₪${p.price}. במלאי: ${p.stock > 0 ? 'כן' : 'לא'}. תיאור: ${p.description}`
-            ).join('\n');
-            const systemPrompt = `You are the official Smart Concierge for "NextClass", a premium Israeli B2B company selling tech equipment to educational institutions.
-Respond in friendly, professional, sales-oriented Hebrew. Keep answers relatively brief.
-Here is the live catalog data you should refer to:
+            const catalogInfo = buildCatalogContext();
+            const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.
+
+## אופן עבודה — ייעוץ בשלבים
+כשלקוח מבקש מוצר או פתרון, **אל תמליץ מיד**. קודם שאל שאלה אחת ממוקדת כדי להבין את הצורך (למשל: כמות, תקציב, מטרת שימוש, סוג מוסד).
+- שאל **שאלה אחת בלבד** בכל הודעה — לא יותר
+- **אל תשאל את אותה שאלה פעמיים**
+- לאחר 2-3 תשובות — **המלץ על מוצרים ספציפיים מהקטלוג** עם נימוק אישי ומדויק
+- תשובות חייבות להיות מבוססות על הקטלוג בלבד — אל תמציא מוצרים שאינם ברשימה
+
+## כללים
+- ענה אך ורק בעברית, 2-3 משפטים, מקצועי וחם
+- השתמש **bold** להדגשות חשובות
+- אל תציין מספרי ID בתוך הטקסט בשום פנים
+- רק לאחר הבנת הצורך — הוסף בשורה נפרדת: [PRODUCTS: id1,id2] (עד 3 מוצרים)
+
+## קטלוג (id|שם|קטגוריה|מחיר|מלאי):
 ${catalogInfo}`;
+
             const history = newMessages
                 .filter(m => m.id !== 0)
+                .slice(-6)
                 .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
-            const response = await anthropic.messages.create({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 300,
-                system: systemPrompt,
-                messages: history,
+
+            const res = await fetch('/api/concierge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: history, systemPrompt }),
             });
+
+            const data = await res.json();
+            const rawText = data.text || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
+            const { cleanText, products } = parseProducts(rawText);
+
             setIsTyping(false);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: response.content[0].text }]);
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                role: 'ai',
+                text: cleanText,
+                products,
+            }]);
         } catch (error) {
             setIsTyping(false);
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: `שגיאת שרת: ${error.message || JSON.stringify(error)}` }]);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.', products: [] }]);
         }
-    }, [input, messages, activeProducts]);
+    }, [input, messages, activeProducts, isTyping, buildCatalogContext, parseProducts]);
+
+    const quickReplies = getQuickReplies(messages, {
+        ai_chip1: getSetting('ai_chip1', ''),
+        ai_chip2: getSetting('ai_chip2', ''),
+        ai_chip3: getSetting('ai_chip3', ''),
+    });
 
     const openWhatsApp = () => {
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=היי, אשמח להתייעץ לגבי פתרונות NextClass`, '_blank');
+        window.open(`https://wa.me/${whatsappNumber}?text=היי, אשמח להתייעץ לגבי פתרונות NextClass`, '_blank');
     };
 
     return (
         <div ref={rootRef} className="fixed bottom-8 right-8 z-[1000] flex flex-col items-end gap-5">
+
+            {/* ── Cart feedback toast ─────────────────────────────────────── */}
+            <AnimatePresence>
+                {cartFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                        className="px-4 py-2.5 rounded-2xl text-[12px] font-bold text-white flex items-center gap-2"
+                        style={{ background: '#34C759', boxShadow: '0 8px 24px rgba(52,199,89,0.4)' }}
+                    >
+                        <Check size={13} strokeWidth={3} />
+                        נוסף לעגלה!
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -282,21 +493,26 @@ ${catalogInfo}`;
                         {activeTab === 'chat' && (
                             <>
                                 <div className="relative z-10 flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4 custom-scrollbar" style={{ background: '#F2F3F7' }} dir="rtl">
-                                    {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
+                                    {messages.map(msg => (
+                                        <Bubble
+                                            key={msg.id}
+                                            msg={msg}
+                                            onAddToCart={handleAddToCart}
+                                            onNavigate={handleNavigate}
+                                        />
+                                    ))}
                                     {isTyping && <TypingDots />}
                                     <div ref={bottomRef} />
                                 </div>
 
+                                {/* Quick reply chips */}
                                 <div className="relative z-20 px-6 pb-2 pt-3 flex flex-wrap gap-2 justify-end border-t" style={{ background: 'rgba(255,255,255,0.98)', borderColor: 'rgba(0,0,0,0.06)' }} dir="rtl">
-                                    {[
-                                        getSetting('ai_chip1', 'הצעת מחיר'),
-                                        getSetting('ai_chip2', 'מפרט טכני'),
-                                        getSetting('ai_chip3', 'ייעוץ'),
-                                    ].map(chip => (
+                                    {quickReplies.map(chip => (
                                         <button
                                             key={chip}
                                             onClick={() => send(chip)}
-                                            className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer"
+                                            disabled={isTyping}
+                                            className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer disabled:opacity-40"
                                             style={{ background: 'rgba(0,122,255,0.09)', border: '1px solid rgba(0,122,255,0.20)', color: '#007AFF' }}
                                         >
                                             {chip}
@@ -304,6 +520,7 @@ ${catalogInfo}`;
                                     ))}
                                 </div>
 
+                                {/* Input bar */}
                                 <div className="relative z-20 p-6 pt-2 border-t" style={{ background: 'rgba(255,255,255,0.98)', borderColor: 'rgba(0,0,0,0.06)' }}>
                                     <div className="relative flex items-center gap-2 rounded-2xl px-2 py-1.5" style={{ background: '#F2F3F7', border: '1px solid rgba(0,0,0,0.10)' }}>
                                         <input
@@ -311,7 +528,7 @@ ${catalogInfo}`;
                                             type="text"
                                             value={input}
                                             onChange={e => setInput(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && send()}
+                                            onKeyDown={e => e.key === 'Enter' && !isTyping && send()}
                                             placeholder={getSetting('ai_placeholder', 'מה תרצו לבדוק?')}
                                             dir="rtl"
                                             className="flex-1 bg-transparent border-none px-3 py-2 text-[14px] font-medium outline-none placeholder:text-gray-400"
@@ -319,7 +536,7 @@ ${catalogInfo}`;
                                         <Magnetic strength={0.2}>
                                             <button
                                                 onClick={() => send()}
-                                                disabled={!input.trim()}
+                                                disabled={!input.trim() || isTyping}
                                                 className="w-10 h-10 bg-[#1D1D1F] disabled:opacity-20 text-white rounded-xl flex items-center justify-center shadow-lg transition-all cursor-pointer"
                                             >
                                                 <ArrowUp size={18} strokeWidth={3} />
@@ -333,32 +550,17 @@ ${catalogInfo}`;
                         {/* ── ACCESSIBILITY TAB ─────────────────────────────── */}
                         {activeTab === 'accessibility' && (
                             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 custom-scrollbar" style={{ background: '#F2F3F7' }} dir="rtl">
-                                {/* Font size */}
                                 <div>
                                     <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                         <Type size={12} />
                                         גודל גופן: {a11y.fontSize}%
                                     </p>
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => updateFontSize(-10)}
-                                            className="flex-1 h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center font-bold text-base transition-colors cursor-pointer text-[#1D1D1F]"
-                                        >
-                                            A-
-                                        </button>
-                                        <div className="flex-1 h-11 rounded-2xl flex items-center justify-center font-black text-[#007AFF] text-sm" style={{ background: 'rgba(0,122,255,0.08)' }}>
-                                            {a11y.fontSize}%
-                                        </div>
-                                        <button
-                                            onClick={() => updateFontSize(10)}
-                                            className="flex-1 h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center font-bold text-base transition-colors cursor-pointer text-[#1D1D1F]"
-                                        >
-                                            A+
-                                        </button>
+                                        <button onClick={() => updateFontSize(-10)} className="flex-1 h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center font-bold text-base transition-colors cursor-pointer text-[#1D1D1F]">A-</button>
+                                        <div className="flex-1 h-11 rounded-2xl flex items-center justify-center font-black text-[#007AFF] text-sm" style={{ background: 'rgba(0,122,255,0.08)' }}>{a11y.fontSize}%</div>
+                                        <button onClick={() => updateFontSize(10)} className="flex-1 h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center font-bold text-base transition-colors cursor-pointer text-[#1D1D1F]">A+</button>
                                     </div>
                                 </div>
-
-                                {/* Options grid */}
                                 <div className="grid grid-cols-2 gap-2.5">
                                     <A11yOption active={a11y.highContrast}   onClick={() => toggleA11y('highContrast')}   icon={<Contrast size={16} />}      label="ניגוד גבוה" />
                                     <A11yOption active={a11y.grayscale}      onClick={() => toggleA11y('grayscale')}      icon={<Eye size={16} />}           label="גווני אפור" />
@@ -367,19 +569,12 @@ ${catalogInfo}`;
                                     <A11yOption active={a11y.readableFont}   onClick={() => toggleA11y('readableFont')}   icon={<Type size={16} />}          label="גופן קריא" />
                                     <A11yOption active={a11y.bigCursor}      onClick={() => toggleA11y('bigCursor')}      icon={<MousePointer2 size={16} />} label="סמן גדול" />
                                 </div>
-
-                                {/* WCAG note */}
                                 <div className="p-4 rounded-2xl" style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.12)' }}>
                                     <p className="text-[11px] text-[#007AFF] font-bold leading-relaxed">
                                         ווידג׳ט זה מנגיש את האתר בהתאם לתקן WCAG 2.1 AA ולדרישות החוק הישראלי למוסדות חינוך.
                                     </p>
                                 </div>
-
-                                {/* Reset */}
-                                <button
-                                    onClick={resetA11y}
-                                    className="w-full h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-[#1D1D1F] font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-                                >
+                                <button onClick={resetA11y} className="w-full h-11 rounded-2xl bg-white border border-gray-200 hover:bg-gray-50 text-[#1D1D1F] font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
                                     <RotateCcw size={14} />
                                     איפוס הגדרות נגישות
                                 </button>
@@ -392,21 +587,14 @@ ${catalogInfo}`;
                                 <div className="w-20 h-20 rounded-3xl bg-[#25D366] flex items-center justify-center shadow-2xl" style={{ boxShadow: '0 20px 50px rgba(37,211,102,0.35)' }}>
                                     <MessageCircle size={40} fill="white" strokeWidth={0} className="text-white" />
                                 </div>
-
                                 <div className="text-center space-y-2">
-                                    <h3 className="text-[20px] font-black text-[#1D1D1F] tracking-tight">
-                                        {getSetting('ai_wa_label', 'מענה אנושי בוואטסאפ')}
-                                    </h3>
-                                    <p className="text-[13px] text-[#86868B] font-medium">
-                                        {getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת ✅')}
-                                    </p>
+                                    <h3 className="text-[20px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_wa_label', 'מענה אנושי בוואטסאפ')}</h3>
+                                    <p className="text-[13px] text-[#86868B] font-medium">{getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת ✅')}</p>
                                 </div>
-
                                 <div className="text-center w-full px-4 py-4 rounded-3xl" style={{ background: 'rgba(37,211,102,0.07)', border: '1px solid rgba(37,211,102,0.18)' }}>
                                     <p className="text-[11px] font-bold text-[#1D1D1F]/50 mb-1">שעות זמינות</p>
                                     <p className="text-[14px] font-black text-[#1D1D1F]">ראשון–שישי | 08:00–21:00</p>
                                 </div>
-
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
@@ -417,10 +605,7 @@ ${catalogInfo}`;
                                     <MessageCircle size={22} fill="white" strokeWidth={0} />
                                     התחל שיחה בוואטסאפ
                                 </motion.button>
-
-                                <p className="text-[10px] text-[#AEAEB2] font-medium text-center">
-                                    הלחיצה תפתח את WhatsApp עם הודעה מוכנה מראש
-                                </p>
+                                <p className="text-[10px] text-[#AEAEB2] font-medium text-center">הלחיצה תפתח את WhatsApp עם הודעה מוכנה מראש</p>
                             </div>
                         )}
 
@@ -464,7 +649,7 @@ ${catalogInfo}`;
                 </div>
             </motion.button>
 
-            {/* Accessibility CSS — applied globally via document.documentElement classes */}
+            {/* Accessibility CSS */}
             <style>{`
                 .high-contrast { background-color: #000 !important; color: #fff !important; }
                 .high-contrast * { border-color: #fff !important; color: #fff !important; }

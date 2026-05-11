@@ -29,13 +29,13 @@ export default function AdminSettings() {
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
 
-    // PIN change
+    // ─── PIN ────────────────────────────────────────────────────────────────────
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [pinStatus, setPinStatus] = useState(null);
 
-    // Notifications — persisted to localStorage
+    // ─── Notifications (localStorage) ──────────────────────────────────────────
     const [notifOrders, setNotifOrders] = useState(() => {
         try { const v = JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifOrders; return v !== false; } catch { return true; }
     });
@@ -46,56 +46,94 @@ export default function AdminSettings() {
         try { return JSON.parse(localStorage.getItem('nextclass_settings') || '{}').notifContacts === true; } catch { return false; }
     });
 
-    // Site settings — read from Firestore via SettingsContext, write back on change
+    // ─── Site toggles (Firestore via SettingsContext) ──────────────────────────
     const maintenanceMode = getSetting('maintenance_mode', false);
     const showPrices      = getSetting('show_prices', true);
     const allowOrders     = getSetting('allow_orders', true);
+    const setSiteSetting  = (key, value) => updateGlobalSettings({ [key]: value });
 
-    const setSiteSetting = (key, value) => updateGlobalSettings({ [key]: value });
+    // ─── Business info (Firestore) ──────────────────────────────────────────────
+    const [bizName,      setBizName]      = useState(getSetting('biz_name',    'NextClass'));
+    const [bizPhone,     setBizPhone]     = useState(getSetting('biz_phone',   '058-5856356'));
+    const [bizWhatsapp,  setBizWhatsapp]  = useState(getSetting('biz_whatsapp','972585856356'));
+    const [bizEmail,     setBizEmail]     = useState(getSetting('biz_email',   'nextclass.en@gmail.com'));
+    const [bizAddress,   setBizAddress]   = useState(getSetting('biz_address', 'בראלי 10, תל אביב'));
+    const [bizHours,     setBizHours]     = useState(getSetting('contact_hours',  'ראשון–חמישי 08:00–18:00'));
+    const [bizInstagram, setBizInstagram] = useState(getSetting('biz_instagram',''));
+    const [bizFacebook,  setBizFacebook]  = useState(getSetting('biz_facebook', ''));
+    const [bizYoutube,   setBizYoutube]   = useState(getSetting('biz_youtube',  ''));
+    const [bizSaved,     setBizSaved]     = useState(false);
 
-    const persistSettingsFlag = (key, value) => {
-        try {
-            const existing = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
-            localStorage.setItem('nextclass_settings', JSON.stringify({ ...existing, [key]: value }));
-        } catch {}
-    };
+    // Keep form in sync if Firestore updates after mount
+    useEffect(() => {
+        setBizName(getSetting('biz_name',    'NextClass'));
+        setBizPhone(getSetting('biz_phone',   '058-5856356'));
+        setBizWhatsapp(getSetting('biz_whatsapp','972585856356'));
+        setBizEmail(getSetting('biz_email',   'nextclass.en@gmail.com'));
+        setBizAddress(getSetting('biz_address','בראלי 10, תל אביב'));
+        setBizHours(getSetting('contact_hours',  'ראשון–חמישי 08:00–18:00'));
+        setBizInstagram(getSetting('biz_instagram',''));
+        setBizFacebook(getSetting('biz_facebook', ''));
+        setBizYoutube(getSetting('biz_youtube',   ''));
+    }, []); // runs once; Firestore listener in SettingsContext handles live updates
 
-    useEffect(() => { persistSettingsFlag('notifOrders', notifOrders); }, [notifOrders]);
-    useEffect(() => { persistSettingsFlag('notifLowStock', notifLowStock); }, [notifLowStock]);
-    useEffect(() => { persistSettingsFlag('notifContacts', notifContacts); }, [notifContacts]);
-
-    // Business info
-    const [bizName, setBizName] = useState('NextClass');
-    const [bizPhone, setBizPhone] = useState('058-5856356');
-    const [bizEmail, setBizEmail] = useState('nextclass.en@gmail.com');
-    const [bizAddress, setBizAddress] = useState('בראלי 10, תל אביב');
-    const [bizSaved, setBizSaved] = useState(false);
-
-    const saveBiz = () => {
-        try {
-            const existing = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            localStorage.setItem('nextclass_content', JSON.stringify({
-                ...existing,
-                contact_phone: bizPhone,
-                contact_email: bizEmail,
-                contact_address: bizAddress,
-            }));
-        } catch {}
+    const saveBiz = async () => {
+        await updateGlobalSettings({
+            biz_name:      bizName,
+            biz_phone:     bizPhone,
+            biz_whatsapp:  bizWhatsapp,
+            biz_email:     bizEmail,
+            biz_address:   bizAddress,
+            contact_hours: bizHours,
+            biz_instagram: bizInstagram,
+            biz_facebook:  bizFacebook,
+            biz_youtube:   bizYoutube,
+            // Legacy keys for Footer / Contact page compatibility
+            contact_phone:   bizPhone,
+            contact_email:   bizEmail,
+            contact_address: bizAddress,
+        });
+        showToast('פרטי העסק נשמרו בהצלחה', 'success');
         setBizSaved(true);
-        setTimeout(() => setBizSaved(false), 2000);
+        setTimeout(() => setBizSaved(false), 2500);
     };
 
+    // ─── Catalog & Content settings (Firestore) ─────────────────────────────────
+    const [catTitle,    setCatTitle]    = useState(getSetting('catalog_title',    'הכלים שמעצבים את המחר.'));
+    const [catSubtitle, setCatSubtitle] = useState(getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.'));
+    const [catBadge,    setCatBadge]    = useState(getSetting('catalog_badge',    'הקטלוג המוסדי'));
+    const [catAllCat,   setCatAllCat]   = useState(getSetting('catalog_all_cat',  'הכל'));
+    const [announcText, setAnnouncText] = useState(getSetting('announcement_text', ''));
+    const [contentSaved, setContentSaved] = useState(false);
+
+    const saveContent = async () => {
+        await updateGlobalSettings({
+            catalog_title:    catTitle,
+            catalog_subtitle: catSubtitle,
+            catalog_badge:    catBadge,
+            catalog_all_cat:  catAllCat,
+            announcement_text: announcText,
+        });
+        showToast('תוכן האתר עודכן בהצלחה', 'success');
+        setContentSaved(true);
+        setTimeout(() => setContentSaved(false), 2500);
+    };
+
+    // ─── Notifications persist ──────────────────────────────────────────────────
+    const persistFlag = (key, value) => {
+        try {
+            const ex = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+            localStorage.setItem('nextclass_settings', JSON.stringify({ ...ex, [key]: value }));
+        } catch {}
+    };
+    useEffect(() => { persistFlag('notifOrders',  notifOrders);  }, [notifOrders]);
+    useEffect(() => { persistFlag('notifLowStock', notifLowStock); }, [notifLowStock]);
+    useEffect(() => { persistFlag('notifContacts', notifContacts); }, [notifContacts]);
+
+    // ─── PIN change ─────────────────────────────────────────────────────────────
     const handlePinChange = async () => {
-        if (!currentPin || !newPin || newPin !== confirmPin) {
-            setPinStatus('error');
-            setTimeout(() => setPinStatus(null), 2000);
-            return;
-        }
-        if (newPin.length < 4) {
-            setPinStatus('short');
-            setTimeout(() => setPinStatus(null), 2000);
-            return;
-        }
+        if (!currentPin || !newPin || newPin !== confirmPin) { setPinStatus('error'); setTimeout(() => setPinStatus(null), 2000); return; }
+        if (newPin.length < 4) { setPinStatus('short'); setTimeout(() => setPinStatus(null), 2000); return; }
         const ok = await changePin(currentPin, newPin);
         setPinStatus(ok ? 'success' : 'wrong');
         if (ok) { setCurrentPin(''); setNewPin(''); setConfirmPin(''); }
@@ -104,43 +142,55 @@ export default function AdminSettings() {
 
     return (
         <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader title="הגדרות" subtitle="ניהול חשבון, אבטחה והגדרות מערכת" />
+            <AdminSectionHeader title="הגדרות" subtitle="ניהול עסק, תוכן, אבטחה ומערכת — כל שינוי מסתנכרן עם השרתים בזמן-אמת" />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Business Info */}
-                <SettingCard title="פרטי עסק" icon="🏢" accent="#007AFF">
+
+                {/* ── Business Info ──────────────────────────────────────────── */}
+                <SettingCard title="פרטי עסק ויצירת קשר" icon="🏢" accent="#007AFF">
                     <AdminInput label="שם העסק" value={bizName} onChange={setBizName} />
-                    <AdminInput label="טלפון" value={bizPhone} onChange={setBizPhone} dir="ltr" />
-                    <AdminInput label="מייל" value={bizEmail} onChange={setBizEmail} dir="ltr" />
-                    <AdminInput label="כתובת" value={bizAddress} onChange={setBizAddress} />
+                    <AdminInput label="טלפון (מוצג בפוטר ובדף צור קשר)" value={bizPhone} onChange={setBizPhone} dir="ltr" placeholder="058-5856356" />
+                    <AdminInput label="WhatsApp (מספר בינלאומי, ללא +)" value={bizWhatsapp} onChange={setBizWhatsapp} dir="ltr" placeholder="972585856356" />
+                    <AdminInput label="מייל" value={bizEmail} onChange={setBizEmail} dir="ltr" placeholder="nextclass.en@gmail.com" />
+                    <AdminInput label="כתובת" value={bizAddress} onChange={setBizAddress} placeholder="בראלי 10, תל אביב" />
+                    <AdminInput label="שעות פעילות" value={bizHours} onChange={setBizHours} placeholder="ראשון–חמישי 08:00–18:00" />
                     <AdminButton onClick={saveBiz}>
                         {bizSaved ? '✓ נשמר!' : 'שמור פרטי עסק'}
                     </AdminButton>
-                    <p className="text-[#AEAEB2] text-xs">פרטים אלה מתעדכנים גם ב-Footer ובדף צור קשר</p>
+                    <p className="text-[#AEAEB2] text-xs">נשמר ב-Firestore · מתעדכן בפוטר, דף צור קשר ו-SmartConcierge</p>
                 </SettingCard>
 
-                {/* Security / PIN */}
+                {/* ── Social Media ───────────────────────────────────────────── */}
+                <SettingCard title="רשתות חברתיות" icon="📱" accent="#AF52DE">
+                    <AdminInput label="Instagram (שם משתמש בלבד)" value={bizInstagram} onChange={setBizInstagram} dir="ltr" placeholder="nextclass.il" />
+                    <AdminInput label="Facebook (URL מלא או שם)" value={bizFacebook} onChange={setBizFacebook} dir="ltr" placeholder="nextclassil" />
+                    <AdminInput label="YouTube (URL ערוץ)" value={bizYoutube} onChange={setBizYoutube} dir="ltr" placeholder="@nextclass" />
+                    <AdminButton onClick={saveBiz}>
+                        {bizSaved ? '✓ נשמר!' : 'שמור קישורים'}
+                    </AdminButton>
+                    <p className="text-[#AEAEB2] text-xs">מוצג בפוטר ובדף "הסיפור שלנו"</p>
+                </SettingCard>
+
+                {/* ── Security / PIN ────────────────────────────────────────── */}
                 <SettingCard title="אבטחה — שינוי PIN" icon="🔐" accent="#5856D6">
                     <AdminInput label="PIN נוכחי" type="password" value={currentPin} onChange={setCurrentPin} placeholder="••••" dir="ltr" />
                     <AdminInput label="PIN חדש (מינימום 4 ספרות)" type="password" value={newPin} onChange={setNewPin} placeholder="••••" dir="ltr" />
                     <AdminInput label="אישור PIN חדש" type="password" value={confirmPin} onChange={setConfirmPin} placeholder="••••" dir="ltr" />
-
                     {pinStatus && (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             className="text-sm font-bold text-right"
                             style={{ color: pinStatus === 'success' ? '#34C759' : '#FF3B30' }}>
                             {pinStatus === 'success' && '✓ קוד הגישה עודכן בהצלחה'}
-                            {pinStatus === 'wrong' && '✕ קוד הגישה הנוכחי שגוי'}
-                            {pinStatus === 'error' && '✕ הקודים החדשים אינם תואמים'}
-                            {pinStatus === 'short' && '✕ קוד חדש קצר מדי (מינימום 4)'}
+                            {pinStatus === 'wrong'   && '✕ קוד הגישה הנוכחי שגוי'}
+                            {pinStatus === 'error'   && '✕ הקודים החדשים אינם תואמים'}
+                            {pinStatus === 'short'   && '✕ קוד חדש קצר מדי (מינימום 4)'}
                         </motion.p>
                     )}
-
                     <AdminButton onClick={handlePinChange} variant="outline">עדכן קוד גישה</AdminButton>
                 </SettingCard>
 
-                {/* Notifications */}
-                <SettingCard title="התראות" icon="🔔" accent="#FF9500">
+                {/* ── Notifications ─────────────────────────────────────────── */}
+                <SettingCard title="התראות מערכת" icon="🔔" accent="#FF9500">
                     <div className="space-y-4">
                         <AdminToggle label="הזמנות חדשות" sub="קבל התראה על כל הזמנה נכנסת" value={notifOrders} onChange={setNotifOrders} />
                         <AdminToggle label="מלאי נמוך" sub="התראה כאשר מוצר מתחת לסף" value={notifLowStock} onChange={setNotifLowStock} />
@@ -148,7 +198,7 @@ export default function AdminSettings() {
                     </div>
                 </SettingCard>
 
-                {/* Site settings */}
+                {/* ── Site Toggles ──────────────────────────────────────────── */}
                 <SettingCard title="הגדרות אתר" icon="⚙️" accent="#34C759">
                     <div className="space-y-4">
                         <AdminToggle
@@ -170,9 +220,23 @@ export default function AdminSettings() {
                             onChange={v => setSiteSetting('allow_orders', v)}
                         />
                     </div>
+                    <p className="text-[#AEAEB2] text-xs">שינויים נכנסים לתוקף מיידי דרך Firestore</p>
                 </SettingCard>
 
-                {/* System Maintenance */}
+                {/* ── Catalog & Content ─────────────────────────────────────── */}
+                <SettingCard title="תוכן קטלוג ואתר" icon="✏️" accent="#FF9500">
+                    <AdminInput label="כותרת ראשית (עמוד קטלוג)" value={catTitle} onChange={setCatTitle} />
+                    <AdminInput label="תת-כותרת" value={catSubtitle} onChange={setCatSubtitle} rows={2} />
+                    <AdminInput label="תווית Badge" value={catBadge} onChange={setCatBadge} placeholder="הקטלוג המוסדי" />
+                    <AdminInput label="שם קטגוריה 'הכל'" value={catAllCat} onChange={setCatAllCat} placeholder="הכל" />
+                    <AdminInput label="טקסט פס הכרזה (ריק = ללא)" value={announcText} onChange={setAnnouncText} placeholder="משלוח חינם מעל ₪500..." />
+                    <AdminButton onClick={saveContent}>
+                        {contentSaved ? '✓ נשמר!' : 'שמור תוכן'}
+                    </AdminButton>
+                    <p className="text-[#AEAEB2] text-xs">מסתנכרן עם Firestore · תוצאות נראות מיידית</p>
+                </SettingCard>
+
+                {/* ── System Maintenance ────────────────────────────────────── */}
                 <SettingCard title="תחזוקת מערכת" icon="🛠️" accent="#8E8E93">
                     <div className="space-y-4">
                         <div className="flex flex-col gap-2">
@@ -180,7 +244,7 @@ export default function AdminSettings() {
                                 const count = await repairProductImages();
                                 showToast(count > 0 ? `תוקנו ${count} תמונות מוצרים` : 'כל התמונות תקינות', count > 0 ? 'success' : 'info');
                             }}>תיקון תמונות שבורות</AdminButton>
-                            <p className="text-[10px] text-[#AEAEB2]">משווה את התמונות ב-Firebase לקובץ המקור ומתקן במקרה של שוני.</p>
+                            <p className="text-[10px] text-[#AEAEB2]">משווה תמונות ב-Firebase לקובץ המקור ומתקן שוני.</p>
                         </div>
                         <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
                             <AdminButton variant="ghost" onClick={async () => {
@@ -189,7 +253,7 @@ export default function AdminSettings() {
                                     showToast('בסיס הנתונים סונכרן מחדש בהצלחה', 'success');
                                 }
                             }}>סנכרון מלא מחדש (Reseed)</AdminButton>
-                            <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף של כל המוצרים מהמקור. שומר על נתוני מלאי ומכירות קיימים.</p>
+                            <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף מהמקור. שומר על מלאי ומכירות קיימים.</p>
                         </div>
                     </div>
                 </SettingCard>
@@ -201,13 +265,12 @@ export default function AdminSettings() {
                 <AdminButton variant="danger" onClick={logout}>יציאה מהמערכת</AdminButton>
                 <div className="text-right">
                     <p className="text-[#1D1D1F] font-black text-sm">סיום Session</p>
-                    <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת</p>
+                    <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת · נתונים ב-Firestore</p>
                 </div>
             </div>
 
-            {/* Version info */}
             <div className="text-center">
-                <p className="text-[#AEAEB2] text-xs">NextClass Admin v2.0 · Built with React + Vite · 2026</p>
+                <p className="text-[#AEAEB2] text-xs">NextClass Admin v2.0 · React + Vite + Firebase · 2026</p>
             </div>
         </div>
     );

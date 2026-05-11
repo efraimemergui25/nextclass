@@ -6,8 +6,6 @@ import { useSettings } from '../context/SettingsContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-const GLASS_CARD = "glass-apple gestalt-card p-10 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-sm transition-apple-fluid";
-
 // Controlled floating label input
 const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, onChange }) => {
     const [focused, setFocused] = useState(false);
@@ -246,7 +244,7 @@ const ContactPage = () => {
                                         loading="lazy"
                                         allowFullScreen
                                         referrerPolicy="no-referrer-when-downgrade"
-                                        src="https://maps.google.com/maps?q=%D7%91%D7%A8%D7%90%D7%9C%D7%99+10+%D7%AA%D7%9C+%D7%90%D7%91%D7%99%D7%91&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                                        src={`https://maps.google.com/maps?q=${encodeURIComponent(contactContent.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                                     />
                                 </div>
                             </div>

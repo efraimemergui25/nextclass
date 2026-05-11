@@ -43,7 +43,6 @@ import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
 import PageErrorBoundary from './components/PageErrorBoundary';
-import ExitIntentPopup from './components/ExitIntentPopup';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
@@ -217,7 +216,6 @@ function AppContent() {
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
-            <ExitIntentPopup />
             <CrispChat />
         </div>
     );

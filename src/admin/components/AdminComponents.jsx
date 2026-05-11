@@ -2,6 +2,62 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ─── Info Tooltip — reusable dark popover ─────────────────────────────────────
+export function InfoTooltip({ text }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <span className="relative inline-flex items-center" style={{ verticalAlign: 'middle' }}>
+            <motion.button
+                onMouseEnter={() => setOpen(true)}
+                onMouseLeave={() => setOpen(false)}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setOpen(false)}
+                onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+                className="w-[15px] h-[15px] rounded-full flex items-center justify-center ml-1 shrink-0"
+                style={{ background: 'rgba(0,0,0,0.08)', border: 'none', padding: 0, lineHeight: 1, cursor: 'pointer' }}
+                whileHover={{ scale: 1.25 }}
+                whileTap={{ scale: 0.9 }}
+                aria-label="מידע נוסף"
+            >
+                <span style={{ fontSize: 9, fontWeight: 900, color: '#6E6E73', userSelect: 'none' }}>i</span>
+            </motion.button>
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.93 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.93 }}
+                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                        className="absolute z-50 bottom-full mb-2.5 right-0 pointer-events-none"
+                        style={{ minWidth: 200, maxWidth: 240 }}
+                    >
+                        <div style={{
+                            background: 'rgba(29,29,31,0.93)',
+                            backdropFilter: 'blur(24px) saturate(200%)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                            borderRadius: 13,
+                            padding: '9px 13px',
+                            boxShadow: '0 12px 40px rgba(0,0,0,0.30)',
+                            border: '1px solid rgba(255,255,255,0.10)',
+                        }}>
+                            <p style={{ color: '#F5F5F7', fontSize: 11, fontWeight: 500, lineHeight: 1.55, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
+                        </div>
+                        {/* Arrow */}
+                        <div style={{
+                            position: 'absolute', bottom: -5, right: 14,
+                            width: 10, height: 10,
+                            background: 'rgba(29,29,31,0.93)',
+                            transform: 'rotate(45deg)',
+                            borderRight: '1px solid rgba(255,255,255,0.10)',
+                            borderBottom: '1px solid rgba(255,255,255,0.10)',
+                        }} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </span>
+    );
+}
+
 // ─── Shared glass surface ─────────────────────────────────────────────────────
 const glassStyle = {
     background: 'rgba(255,255,255,0.80)',
@@ -53,7 +109,7 @@ function MiniSparkline({ data = [], color }) {
 }
 
 // ─── Premium KPI Card ─────────────────────────────────────────────────────────
-export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick, sparkData }) {
+export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick, sparkData, tooltip }) {
 
     return (
         <motion.div
@@ -80,7 +136,10 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
 
             <div className="flex items-start justify-between mb-3">
                 <div className="flex flex-col">
-                    <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] uppercase mb-1.5">{title}</p>
+                    <span className="flex items-center gap-0.5 mb-1.5">
+                        <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] uppercase">{title}</p>
+                        {tooltip && <InfoTooltip text={tooltip} />}
+                    </span>
                     <CountUp value={value} color={color} />
                 </div>
                 <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 shadow-sm"
@@ -944,6 +1003,62 @@ export function DonutChart({ data, colors = ['#007AFF', '#5856D6', '#34C759', '#
                         <span className="text-[#86868B] text-[11px] font-bold shrink-0">{(seg.pct * 100).toFixed(0)}%</span>
                     </motion.div>
                 ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Goal Ring — circular progress for monthly targets ───────────────────────
+export function GoalRing({ value = 0, target = 1, color = '#34C759', label, subtitle, size = 100 }) {
+    const pct = Math.min(value / Math.max(target, 1), 1);
+    const r = 38, cx = 50, cy = 50, C = 2 * Math.PI * r;
+    const fmt = v => v >= 1000 ? `₪${(v / 1000).toFixed(0)}k` : `₪${v}`;
+
+    return (
+        <div className="flex items-center gap-4">
+            <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+                <svg viewBox="0 0 100 100" style={{ width: size, height: size, transform: 'rotate(-90deg)' }}>
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="13" />
+                    <motion.circle
+                        cx={cx} cy={cy} r={r} fill="none"
+                        stroke={color} strokeWidth="13" strokeLinecap="round"
+                        strokeDasharray={C}
+                        initial={{ strokeDashoffset: C }}
+                        animate={{ strokeDashoffset: C * (1 - pct) }}
+                        transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+                    />
+                </svg>
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <span style={{ fontSize: 17, fontWeight: 900, color: '#1D1D1F', lineHeight: 1 }}>
+                        {Math.round(pct * 100)}%
+                    </span>
+                    <span style={{ fontSize: 8, fontWeight: 700, color: '#AEAEB2', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        יעד
+                    </span>
+                </div>
+            </div>
+            <div className="text-right flex-1 min-w-0">
+                <p className="font-black text-[#1D1D1F] text-sm leading-tight">{label}</p>
+                {subtitle && <p className="text-[#86868B] text-[11px] mt-0.5">{subtitle}</p>}
+                <div className="mt-2 space-y-1">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-black" style={{ color }}>{fmt(value)}</span>
+                        <span className="text-[10px] text-[#AEAEB2]">מתוך {fmt(target)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                        <motion.div
+                            className="h-full rounded-full"
+                            style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.round(pct * 100)}%` }}
+                            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );

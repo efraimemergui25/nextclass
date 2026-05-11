@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useSettings } from '../context/SettingsContext';
 
 // ─── SVG Icons replacing emojis ────────────────────────────────────────────────
@@ -58,12 +61,21 @@ const SelectionCard = ({ title, icon, isSelected, onClick }) => (
     </motion.button>
 );
 
+// ─── Pricing matrix (institution × need) ──────────────────────────────────────
+const PRICE_MATRIX = {
+    elementary: { screens: '14,500', labs: '22,000', software: '7,800' },
+    high:       { screens: '26,000', labs: '41,000', software: '13,500' },
+    academy:    { screens: '48,000', labs: '82,000', software: '24,000' },
+};
+
 const QuoteWizard = () => {
     const { getSetting } = useSettings();
+    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [institution, setInstitution] = useState('');
     const [need, setNeed] = useState('');
     const [isCalculating, setIsCalculating] = useState(false);
+    const [leadSaved, setLeadSaved] = useState(false);
     const totalSteps = 3;
 
     const content = useMemo(() => ({
@@ -80,10 +92,31 @@ const QuoteWizard = () => {
         priceNote: getSetting('quote_price_note', '*לפני מע״מ, כולל התקנה והדרכה'),
     }), [getSetting]);
 
+    const dynamicPrice = PRICE_MATRIX[institution]?.[need] || getSetting('quote_price_value', '28,500');
+    const bizPhone = getSetting('biz_phone', '058-5856356');
+
+    const saveLead = async (inst, nd) => {
+        if (leadSaved) return;
+        setLeadSaved(true);
+        try {
+            const id = `LEAD-${Date.now()}`;
+            await setDoc(doc(db, 'leads', id), {
+                id,
+                institution: inst,
+                need: nd,
+                dateTs: Date.now(),
+                date: new Date().toLocaleDateString('he-IL'),
+                status: 'חדש',
+                source: 'quote_wizard',
+            });
+        } catch {}
+    };
+
     const handleNext = () => {
         if (step === 2) {
             setIsCalculating(true);
             setStep(3);
+            saveLead(institution, need);
             setTimeout(() => setIsCalculating(false), 2500);
         } else if (step < totalSteps) {
             setStep(step + 1);
@@ -217,22 +250,22 @@ const QuoteWizard = () => {
                                         </p>
                                         <div className="bg-white rounded-3xl p-8 shadow-sm w-full max-w-sm mx-auto mb-8 border border-gray-50">
                                             <div className="text-sm font-bold text-brand-blue uppercase tracking-widest mb-2">{content.priceLabel}</div>
-                                            <div className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-1">₪{content.priceValue}</div>
+                                            <div className="text-4xl font-black text-[#1D1D1F] tracking-tighter mb-1">₪{dynamicPrice}</div>
                                             <div className="text-sm text-gray-400 font-medium mt-2">{content.priceNote}</div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mx-auto">
                                             <motion.button
                                                 whileHover={{ scale: 1.03, y: -2 }}
                                                 whileTap={{ scale: 0.95 }}
-                                                onClick={() => alert('הצעת המחיר נשלחה לכתובת המייל שלכם!\n\nנציג שלנו יחזור אליכם תוך 24 שעות.')}
+                                                onClick={() => navigate('/checkout')}
                                                 className="flex-1 bg-[#007AFF] text-white py-4 rounded-2xl font-bold text-base shadow-[0_8px_16px_rgb(0_122_255/0.2)] hover:shadow-[0_12px_24px_rgb(0_122_255/0.4)] transition-all duration-300"
                                             >
-                                                הורד הצעת מחיר
+                                                המשך לבקשת הצעה
                                             </motion.button>
                                             <motion.button
                                                 whileHover={{ scale: 1.03, y: -2 }}
                                                 whileTap={{ scale: 0.95 }}
-                                                onClick={() => window.open('tel:0546398257')}
+                                                onClick={() => window.open(`tel:${bizPhone}`)}
                                                 className="flex-1 bg-white text-[#1D1D1F] py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-[#007AFF] hover:shadow-md transition-all duration-300"
                                             >
                                                 דברו עם יועץ

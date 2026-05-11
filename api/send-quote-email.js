@@ -71,6 +71,8 @@ function baseTemplate(content) {
 </body></html>`;
 }
 
+const BIZ_PHONE = process.env.NEXTCLASS_PHONE || '058-585-6356';
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     if (!process.env.RESEND_API_KEY) return res.status(200).json({ skipped: true, reason: 'RESEND_API_KEY not set' });
@@ -101,7 +103,7 @@ export default async function handler(req, res) {
                 ${itemsTable(quote.items)}
                 <div style="margin-top:32px;padding:20px;background:rgba(0,122,255,0.06);border-radius:16px;border:1px solid rgba(0,122,255,0.12);">
                     <p style="font-size:14px;color:#007AFF;font-weight:700;margin:0;">יש שאלות? נשמח לעזור.</p>
-                    <p style="font-size:13px;color:#6E6E73;margin:6px 0 0;">📞 058-585-6356 &nbsp;|&nbsp; 💬 WhatsApp זמין</p>
+                    <p style="font-size:13px;color:#6E6E73;margin:6px 0 0;">📞 ${BIZ_PHONE} &nbsp;|&nbsp; 💬 WhatsApp זמין</p>
                 </div>
             `)
         );
