@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
-import { AdminKPICard, StatusBadge, AreaChart, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
+import { AdminKPICard, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
                     }
                 >
                     {periodData && periodData.visits.some(v => v > 0) ? (
-                        <AreaChart data={periodData.visits} color="#007AFF" labels={periodData.labels} height={110} />
+                        <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
                     ) : (
                         <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
                             <span className="text-2xl">👁️</span>
@@ -593,8 +593,7 @@ export default function AdminDashboard() {
                     }
                 >
                     {periodData && periodData.revenue.some(v => v > 0) ? (
-                        <AreaChart data={periodData.revenue} color="#34C759" labels={periodData.labels} height={100}
-                            formatY={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                        <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
                     ) : (
                         <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
                             טרם בוצעו עסקאות
