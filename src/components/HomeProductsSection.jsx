@@ -47,11 +47,19 @@ const HomeProductsSection = () => {
     const [viewMode, setViewMode]   = useState('grid');
     const [sortBy,   setSortBy]     = useState('default');
     const [sortOpen, setSortOpen]   = useState(false);
+    const [priceMax,  setPriceMax]  = useState(30000);
 
     const tabIndex = categories.indexOf(activeTab);
     const accent = CAT_ACCENTS[tabIndex >= 0 ? tabIndex % CAT_ACCENTS.length : 0];
 
     const allInTab = productsByCat[activeTab] ?? [];
+
+    // Dynamic max price per tab so the slider range matches the actual catalog
+    const tabCeiling = useMemo(() => {
+        const prices = allInTab.map(p => p.salePrice ?? p.price ?? 0).filter(Boolean);
+        return prices.length ? Math.ceil(Math.max(...prices) / 1000) * 1000 : 30000;
+    }, [allInTab]);
+
     const sorted = useMemo(() => {
         const arr = [...allInTab];
         if (sortBy === 'price-asc')  arr.sort((a, b) => a.price - b.price);
@@ -60,8 +68,19 @@ const HomeProductsSection = () => {
         return arr;
     }, [allInTab, sortBy]);
 
-    const visible = sorted.slice(0, HOMEPAGE_PREVIEW);
+    const filtered = useMemo(
+        () => sorted.filter(p => (p.salePrice ?? p.price ?? 0) <= priceMax),
+        [sorted, priceMax]
+    );
+
+    const visible = filtered.slice(0, HOMEPAGE_PREVIEW);
     const total   = allInTab.length;
+
+    // Reset slider when tab changes
+    const handleTabChange = (cat) => {
+        setActiveTab(cat);
+        setPriceMax(30000);
+    };
 
     const activeSortLabel = SORT_OPTIONS.find(o => o.id === sortBy);
     const sortLabel = getSetting(activeSortLabel?.labelKey ?? 'home_sort_rel', activeSortLabel?.defaultLabel ?? 'רלוונטיות');
@@ -150,7 +169,7 @@ const HomeProductsSection = () => {
                         return (
                             <button
                                 key={cat}
-                                onClick={() => setActiveTab(cat)}
+                                onClick={() => handleTabChange(cat)}
                                 className="shrink-0 px-6 py-2.5 rounded-full font-bold text-[13px] whitespace-nowrap transition-all duration-300 cursor-pointer"
                                 style={isActive
                                     ? { background: catAccent, color: '#fff', boxShadow: `0 6px 20px ${catAccent}45` }
@@ -239,6 +258,52 @@ const HomeProductsSection = () => {
                         </Link>
                     </div>
                 </div>
+
+                {/* ── Budget range slider ────────────────────────────────── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.1, duration: 0.5 }}
+                    className="mb-8 px-1"
+                    dir="rtl"
+                >
+                    <div className="bg-white rounded-2xl border border-[#E5E5EA] px-6 py-4 flex items-center gap-5">
+                        <div className="shrink-0 text-right">
+                            <p className="text-[10px] font-black text-[#86868B] uppercase tracking-[0.2em] mb-0.5">תקציב מקסימלי</p>
+                            <p className="text-[18px] font-black text-[#1D1D1F] leading-none" style={{ direction: 'ltr' }}>
+                                {priceMax >= tabCeiling ? 'הכל' : `₪${priceMax.toLocaleString()}`}
+                            </p>
+                        </div>
+                        <div className="flex-1 relative">
+                            <input
+                                type="range"
+                                min={0}
+                                max={tabCeiling}
+                                step={500}
+                                value={Math.min(priceMax, tabCeiling)}
+                                onChange={e => setPriceMax(Number(e.target.value) >= tabCeiling ? 30000 : Number(e.target.value))}
+                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                                style={{
+                                    background: `linear-gradient(to left, #E5E5EA ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%, ${accent} ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%)`,
+                                    accentColor: accent,
+                                }}
+                            />
+                            <div className="flex justify-between mt-2 text-[10px] font-bold text-[#AEAEB2]">
+                                <span>₪{tabCeiling.toLocaleString()}+</span>
+                                <span>₪0</span>
+                            </div>
+                        </div>
+                        {priceMax < tabCeiling && (
+                            <button
+                                onClick={() => setPriceMax(30000)}
+                                className="shrink-0 px-3 py-1.5 rounded-full bg-[#F5F5F7] text-[#86868B] font-bold text-[11px] hover:bg-[#E5E5EA] transition-all cursor-pointer"
+                            >
+                                איפוס
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
 
                 {/* ── Product display ────────────────────────────────────── */}
                 <AnimatePresence mode="wait">
