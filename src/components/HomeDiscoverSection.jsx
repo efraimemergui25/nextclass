@@ -158,7 +158,7 @@ const HomeDiscoverSection = () => {
             <div className="max-w-[1400px] mx-auto px-6 md:px-16">
 
                 {/* ── Section header ─────────────────────────────────────── */}
-                <div className="text-center mb-20" dir="rtl">
+                <div className="text-center mb-16" dir="rtl">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.88 }}
                         whileInView={{ opacity: 1, scale: 1 }}
@@ -175,7 +175,7 @@ const HomeDiscoverSection = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                        className="text-5xl md:text-[72px] font-black tracking-tight leading-[1.04] text-[#1D1D1F] mb-6"
+                        className="text-4xl sm:text-5xl md:text-[64px] font-black tracking-tight leading-[1.04] text-[#1D1D1F] mb-6"
                     >
                         {title}
                     </motion.h2>
@@ -192,7 +192,7 @@ const HomeDiscoverSection = () => {
                 </div>
 
                 {/* ── Category cards grid ────────────────────────────────── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                     {categories.map((cat, i) => {
                         const isLastOdd = isOdd && i === categories.length - 1;
                         return (

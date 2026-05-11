@@ -24,7 +24,7 @@ const ImageFallback = memo(() => (
         <svg className="w-12 h-12 md:w-16 md:h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <span className="text-xs md:text-sm font-bold text-gray-400 tracking-widest uppercase">nextclass visual</span>
+        <span className="text-xs md:text-sm font-bold text-[#AEAEB2] tracking-widest uppercase">nextclass visual</span>
     </div>
 ));
 ImageFallback.displayName = 'ImageFallback';
@@ -402,7 +402,7 @@ const ProductDetailPage = () => {
         return (
             <PageTransition>
                 <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
-                    <p className="text-gray-400 text-xl font-medium">{content.notFound}</p>
+                    <p className="text-[#AEAEB2] text-xl font-medium">{content.notFound}</p>
                 </div>
             </PageTransition>
         );
@@ -468,7 +468,7 @@ const ProductDetailPage = () => {
                             className="fixed top-0 left-0 w-full z-[1001] bg-white/70 backdrop-blur-3xl backdrop-saturate-[1.5] border-b border-white/60 shadow-[0_8px_32px_0_rgb(31_38_135/0.07)] py-4 px-6 md:px-12 flex justify-between items-center will-change-transform"
                         >
                             <div className="flex flex-col">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{product.category}</span>
+                                <span className="text-xs font-bold text-[#86868B] uppercase tracking-widest">{product.category}</span>
                                 <h2 className="text-sm md:text-base font-black text-[#1D1D1F] tracking-tighter truncate max-w-[150px] md:max-w-none">
                                     {product.title}
                                 </h2>
@@ -612,7 +612,7 @@ const ProductDetailPage = () => {
                         {/* ─── Right Column: Product Info ────────────────────────── */}
                         <div className="flex flex-col">
                             {/* Breadcrumb */}
-                            <div className="text-sm font-medium text-gray-400 mb-8 flex items-center gap-2">
+                            <div className="text-sm font-medium text-[#AEAEB2] mb-8 flex items-center gap-2">
                                 <Link to="/" className="hover:text-[#007AFF] transition-apple-fluid">{content.home}</Link>
                                 <span>/</span>
                                 <Link to="/catalog" className="hover:text-[#007AFF] transition-apple-fluid">{content.catalog}</Link>
@@ -694,7 +694,7 @@ const ProductDetailPage = () => {
                                                     )}
                                                     <p className="text-sm font-black text-[#1D1D1F] leading-snug">{acc.title}</p>
                                                     {acc.description && (
-                                                        <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-1">{acc.description}</p>
+                                                        <p className="text-xs text-[#AEAEB2] mt-0.5 leading-snug line-clamp-1">{acc.description}</p>
                                                     )}
                                                     <p className={`text-sm font-black tracking-tighter mt-1 ${isSelected ? 'text-[#007AFF]' : 'text-[#1D1D1F]'}`}>+₪{acc.price}</p>
                                                 </div>
@@ -717,7 +717,7 @@ const ProductDetailPage = () => {
                                                             whileTap={{ scale: 0.88 }}
                                                             className="w-9 h-9 rounded-full border-2 border-gray-200 hover:border-[#007AFF] hover:bg-[#007AFF]/5 flex items-center justify-center transition-colors"
                                                         >
-                                                            <svg className="w-4 h-4 text-gray-400 hover:text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                            <svg className="w-4 h-4 text-[#AEAEB2] hover:text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                             </svg>
                                                         </motion.div>
@@ -989,7 +989,7 @@ const ProductDetailPage = () => {
                                 </div>
                             </div>
                             <div className="h-1 w-12 bg-[#007AFF] rounded-full mb-8 mr-0 ml-auto" />
-                            <p className="text-gray-500 text-base md:text-lg leading-relaxed max-w-3xl mr-0 ml-auto whitespace-pre-line">
+                            <p className="text-[#86868B] text-base md:text-lg leading-relaxed max-w-3xl mr-0 ml-auto whitespace-pre-line">
                                 {getSetting('pd_warranty_text', 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף. כל המוצרים עוברים בדיקת איכות קפדנית לפני המשלוח.')}
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">

@@ -283,9 +283,9 @@ const ProductCard = ({ product }) => {
                                 <div className="flex items-center gap-3 justify-end mb-1.5">
                                     {stockStatus && (
                                         <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${
-                                            stockStatus === 'ok' ? 'text-[#30D158]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
+                                            stockStatus === 'ok' ? 'text-[#34C759]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
                                         }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#30D158]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
+                                            <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#34C759]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
                                             {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
                                         </div>
                                     )}

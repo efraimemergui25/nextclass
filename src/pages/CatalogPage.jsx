@@ -159,7 +159,7 @@ const CatalogPage = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.15 }}
-                            className="text-xl text-gray-400 font-medium max-w-xl leading-relaxed mr-0 ml-auto"
+                            className="text-xl text-[#AEAEB2] font-medium max-w-xl leading-relaxed mr-0 ml-auto"
                         >
                             {getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.')}
                         </motion.p>
@@ -284,7 +284,7 @@ const CatalogPage = () => {
                                 </div>
                                 <div>
                                     <p className="text-2xl font-black text-[#1D1D1F] mb-2">{getSetting('catalog_empty_msg', 'לא נמצאו מוצרים')}</p>
-                                    <p className="text-gray-400 font-medium">{getSetting('catalog_empty_hint', 'נסה קטגוריה אחרת או שנה את הפילטרים')}</p>
+                                    <p className="text-[#AEAEB2] font-medium">{getSetting('catalog_empty_hint', 'נסה קטגוריה אחרת או שנה את הפילטרים')}</p>
                                 </div>
                                 <motion.button
                                     whileHover={{ scale: 1.04 }}
@@ -347,7 +347,7 @@ const CatalogPage = () => {
                                 <div className="flex items-center justify-between mb-12">
                                     <div className="text-right">
                                         <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('catalog_filter_btn', 'סינון מתקדם')}</h2>
-                                        <p className="text-sm text-gray-500 mt-2 font-medium">התאימו את הקטלוג לצרכים שלכם</p>
+                                        <p className="text-sm text-[#86868B] mt-2 font-medium">התאימו את הקטלוג לצרכים שלכם</p>
                                     </div>
                                     <Magnetic strength={0.2}>
                                         <button onClick={() => setIsFilterOpen(false)} className="w-12 h-12 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-colors cursor-pointer shrink-0">
@@ -408,7 +408,7 @@ const CatalogPage = () => {
                                                 }}
                                                 className="w-full h-2 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_2px_10px_rgba(0,0,0,0.25)] [&::-webkit-slider-thumb]:border-[2.5px] [&::-webkit-slider-thumb]:border-[#007AFF] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
                                             />
-                                            <div className="flex justify-between mt-3 text-[11px] font-bold text-gray-400">
+                                            <div className="flex justify-between mt-3 text-[11px] font-bold text-[#AEAEB2]">
                                                 <span>₪0</span>
                                                 <span>₪{maxPrice.toLocaleString()}+</span>
                                             </div>
@@ -448,7 +448,7 @@ const CatalogPage = () => {
                                 <div className="mt-auto pt-10 flex gap-4 border-t border-black/5">
                                     <button 
                                         onClick={() => { setSortBy('default'); setPriceRange([0, maxPrice]); setSelectedCategory(allLabel); }}
-                                        className="flex-1 py-5 rounded-2xl font-bold text-sm text-gray-400 hover:text-[#1D1D1F] transition-colors"
+                                        className="flex-1 py-5 rounded-2xl font-bold text-sm text-[#AEAEB2] hover:text-[#1D1D1F] transition-colors"
                                     >
                                         איפוס
                                     </button>
@@ -535,7 +535,7 @@ const ListCard = ({ product }) => {
                         </span>
                     </div>
                     <h3 className="text-2xl font-bold text-[#1D1D1F] tracking-tight line-clamp-1 mb-1">{title}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed font-medium max-w-xl">{description}</p>
+                    <p className="text-sm text-[#86868B] line-clamp-2 leading-relaxed font-medium max-w-xl">{description}</p>
                 </div>
 
                 {/* Price & Actions Section */}
@@ -555,7 +555,7 @@ const ListCard = ({ product }) => {
                             <motion.button
                                 onClick={handleCompareClick}
                                 whileTap={{ scale: 0.9 }}
-                                className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${selected ? 'bg-[#007AFF] text-white border-[#007AFF]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#007AFF] hover:text-[#007AFF]'}`}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${selected ? 'bg-[#007AFF] text-white border-[#007AFF]' : 'bg-white text-[#AEAEB2] border-gray-100 hover:border-[#007AFF] hover:text-[#007AFF]'}`}
                             >
                                 <Scale size={18} strokeWidth={2.5} />
                             </motion.button>

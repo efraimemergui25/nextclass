@@ -112,7 +112,7 @@ const CartPage = () => {
                             </svg>
                         </div>
                         <h2 className="text-4xl md:text-5xl font-black text-[#1D1D1F] mb-6 tracking-tighter">{content.emptyTitle}</h2>
-                        <p className="text-gray-500 mb-12 text-xl font-normal leading-relaxed px-4">{content.emptyDesc}</p>
+                        <p className="text-[#86868B] mb-12 text-xl font-normal leading-relaxed px-4">{content.emptyDesc}</p>
                         <Link to="/catalog" className="inline-block">
                             <MotionButton variant="primary" className="px-12 py-5 text-xl font-black w-full sm:w-auto">
                                 {content.backCatalog}
@@ -154,10 +154,10 @@ const CartPage = () => {
                                             key={item.id}
                                             layout
                                             variants={itemVariants}
-                                            className="group flex flex-col md:flex-row items-start py-8 bg-white border-b-0 relative" /* Removed border-b completely. Using whitespace instead */
+                                            className="group flex flex-col md:flex-row items-start gap-8 py-8 bg-white border-b-0 relative"
                                         >
                                             {/* Image Thumbnail */}
-                                            <div className="w-full md:w-48 aspect-square rounded-[2.5rem] bg-[#F5F5F7] overflow-hidden flex-shrink-0 mb-8 md:mb-0 ml-0 md:ml-10 relative shadow-sm">
+                                            <div className="w-full md:w-48 aspect-square rounded-[2.5rem] bg-[#F5F5F7] overflow-hidden flex-shrink-0 mb-8 md:mb-0 relative shadow-sm">
                                                 <img
                                                     src={item.image || item.imageUrl}
                                                     alt={item.title || item.name}
@@ -167,12 +167,12 @@ const CartPage = () => {
                                             </div>
 
                                             {/* Item Details */}
-                                            <div className="flex-1 w-full pl-0 md:pl-4 flex flex-col justify-center h-full pt-2">
+                                            <div className="flex-1 w-full flex flex-col justify-center h-full pt-2">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.title || item.name}</h3>
                                                      <button
                                                         onClick={() => handleRemove(item.id)}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"
+                                                        className="text-[#AEAEB2] hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"
                                                         aria-label={content.removeAria}
                                                     >
                                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,7 +180,7 @@ const CartPage = () => {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <p className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em] mb-8">{content.skuLabel}{item.sku}</p>
+                                                <p className="text-sm font-bold text-[#AEAEB2] uppercase tracking-[0.2em] mb-8">{content.skuLabel}{item.sku}</p>
 
                                                 <div className="flex items-center justify-between w-full mt-auto">
                                                     {/* Quantity Controls */}
@@ -189,7 +189,7 @@ const CartPage = () => {
                                                             whileTap={{ scale: 0.9 }}
                                                             transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                                             onClick={() => handleQuantityChange(item.id, -1)}
-                                                            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
+                                                            className="w-10 h-10 rounded-full flex items-center justify-center text-[#86868B] hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
                                                             -
                                                         </motion.button>
@@ -198,7 +198,7 @@ const CartPage = () => {
                                                             whileTap={{ scale: 0.9 }}
                                                             transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
                                                             onClick={() => handleQuantityChange(item.id, 1)}
-                                                            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
+                                                            className="w-10 h-10 rounded-full flex items-center justify-center text-[#86868B] hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
                                                             +
                                                         </motion.button>
@@ -227,11 +227,11 @@ const CartPage = () => {
                                 <h2 className="text-3xl font-black text-[#1D1D1F] mb-10 tracking-tighter">{content.summaryTitle}</h2>
 
                                 <div className="space-y-6 mb-10">
-                                    <div className="flex justify-between items-center text-gray-500 font-medium">
+                                    <div className="flex justify-between items-center text-[#86868B] font-medium">
                                         <span className="text-lg">{content.subtotalLabel} ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} פריטים)</span>
                                         <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-gray-500 font-normal">
+                                    <div className="flex justify-between items-center text-[#86868B] font-normal">
                                         <span className="text-lg">{content.vatLabel}</span>
                                         <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
@@ -242,7 +242,7 @@ const CartPage = () => {
                                         <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{content.totalLabel}</span>
                                         <div className="text-left">
                                             <span className="block text-5xl font-black text-[#1D1D1F] tracking-tighter">₪{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            <span className="text-sm font-bold text-gray-400 mt-2 block tracking-wide">{content.taxNote}</span>
+                                            <span className="text-sm font-bold text-[#AEAEB2] mt-2 block tracking-wide">{content.taxNote}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -254,7 +254,7 @@ const CartPage = () => {
                                 </Link>
 
                                 {/* Trust indicator */}
-                                <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-400 font-bold">
+                                <div className="mt-8 flex items-center justify-center gap-2 text-sm text-[#AEAEB2] font-bold">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                                     <span>{content.warrantyNote}</span>
                                 </div>

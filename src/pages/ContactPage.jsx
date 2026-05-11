@@ -164,7 +164,7 @@ const ContactPage = () => {
                             </span>
                         ))}
                     </h1>
-                    <p className="text-base sm:text-xl md:text-2xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-base sm:text-xl md:text-2xl text-[#AEAEB2] font-medium max-w-2xl mx-auto leading-relaxed">
                         {contactContent.subtitle}
                     </p>
                 </section>
@@ -195,7 +195,7 @@ const ContactPage = () => {
                                     </div>
                                 </div>
                                 <h3 className="text-3xl font-apple-display text-[#1D1D1F] mb-4">{contactContent.conciergeTitle}</h3>
-                                <p className="text-gray-500 text-lg font-medium mb-10 leading-relaxed">{contactContent.conciergeDesc}</p>
+                                <p className="text-[#86868B] text-lg font-medium mb-10 leading-relaxed">{contactContent.conciergeDesc}</p>
                                 <motion.a
                                     href={`https://wa.me/${contactContent.whatsapp}`}
                                     whileHover={{ scale: 1.02, y: -2 }}
@@ -223,11 +223,11 @@ const ContactPage = () => {
                                     ].map((item, i) => (
                                         <a key={i} href={item.href || '#'} target={item.href?.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
                                             className="flex items-center gap-5 group cursor-pointer no-underline">
-                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 group-hover:text-[#007AFF] shadow-sm transition-all">
+                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#AEAEB2] group-hover:text-[#007AFF] shadow-sm transition-all">
                                                 {item.icon}
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</p>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">{item.label}</p>
                                                 <p className="text-lg font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.val}</p>
                                             </div>
                                         </a>
@@ -269,7 +269,7 @@ const ContactPage = () => {
                                             className="relative z-10 text-right"
                                         >
                                             <h2 className="text-2xl sm:text-4xl md:text-5xl font-apple-display text-[#1D1D1F] mb-3 sm:mb-4 tracking-tighter">{contactContent.formTitle}</h2>
-                                            <p className="text-base sm:text-xl text-gray-500 font-medium mb-6 sm:mb-12">{contactContent.formDesc}</p>
+                                            <p className="text-base sm:text-xl text-[#86868B] font-medium mb-6 sm:mb-12">{contactContent.formDesc}</p>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <FloatingInput label={contactContent.labelName} id="name" value={formData.name} onChange={setField('name')} />
@@ -305,7 +305,7 @@ const ContactPage = () => {
                                                 <CheckCircle2 size={56} className="animate-glow-pulse" />
                                             </div>
                                             <h2 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">{contactContent.successTitle}</h2>
-                                            <p className="text-xl text-gray-500 font-medium max-w-md">{contactContent.successMsg}</p>
+                                            <p className="text-xl text-[#86868B] font-medium max-w-md">{contactContent.successMsg}</p>
                                             <button
                                                 type="button"
                                                 onClick={() => setIsSubmitted(false)}
@@ -327,7 +327,7 @@ const ContactPage = () => {
                         <ShieldCheck size={32} className="text-[#007AFF]" />
                     </div>
                     <h2 className="text-3xl font-apple-display text-[#1D1D1F] mb-6 tracking-tighter">{contactContent.trustTitle}</h2>
-                    <p className="text-xl text-gray-400 font-medium mb-12 leading-relaxed">
+                    <p className="text-xl text-[#AEAEB2] font-medium mb-12 leading-relaxed">
                         {contactContent.trustDesc}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

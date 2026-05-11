@@ -16,7 +16,7 @@ const SocialProofStrip = () => {
         <section className="w-full bg-[#F5F5F7]/50 py-8 border-b border-gray-200/30 overflow-hidden">
             <div className="max-w-[1400px] mx-auto text-center px-6 md:px-12 w-full">
 
-                <h3 className="text-center text-[10px] font-bold text-gray-400 tracking-[0.25em] uppercase mb-6 opacity-60">
+                <h3 className="text-center text-[10px] font-bold text-[#AEAEB2] tracking-[0.25em] uppercase mb-6 opacity-60">
                     {title}
                 </h3>
 
