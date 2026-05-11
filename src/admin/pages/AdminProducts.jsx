@@ -9,7 +9,7 @@ import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput
 
 const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנה', 'מחשוב וטאבלטים', 'תשתיות רשת ואודיו-ויזואל', 'מעבדות STEM וחינוך STEAM', 'ריהוט חינוכי ואחסון', 'בטיחות ומעקב'];
 
-const EMPTY_FORM = { title: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], isActive: true, isNew: false, isFeatured: false };
+const EMPTY_FORM = { title: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], dimensions: [], isActive: true, isNew: false, isFeatured: false };
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -216,6 +216,7 @@ export default function AdminProducts() {
             stock: product.stock ?? '',
             threshold: product.threshold ?? 5,
             specs: product.specs ? [...product.specs] : [],
+            dimensions: product.dimensions ? [...product.dimensions] : (initialProducts.find(ip => String(ip.id) === String(product.id))?.dimensions || []),
             isActive: product.isActive !== false,
             isNew: product.isNew === true,
             isFeatured: product.isFeatured === true,
@@ -273,6 +274,10 @@ export default function AdminProducts() {
     const addSpec = () => setEditForm(f => ({ ...f, specs: [...(f.specs || []), { label: '', value: '' }] }));
     const updateSpec = (i, s) => setEditForm(f => ({ ...f, specs: f.specs.map((x, j) => j === i ? s : x) }));
     const removeSpec = (i) => setEditForm(f => ({ ...f, specs: f.specs.filter((_, j) => j !== i) }));
+
+    const addDimension = () => setEditForm(f => ({ ...f, dimensions: [...(f.dimensions || []), { label: '', value: '' }] }));
+    const updateDimension = (i, d) => setEditForm(f => ({ ...f, dimensions: f.dimensions.map((x, j) => j === i ? d : x) }));
+    const removeDimension = (i) => setEditForm(f => ({ ...f, dimensions: f.dimensions.filter((_, j) => j !== i) }));
 
     const categories = useMemo(() => ['הכל', ...new Set(products.map(p => p.category).filter(Boolean))], [products]);
 
@@ -479,6 +484,23 @@ export default function AdminProducts() {
                             ))}
                             {(!editForm.specs || editForm.specs.length === 0) && (
                                 <p className="text-[#AEAEB2] text-xs text-center py-2">לחץ + כדי להוסיף מפרטים</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Dimensions */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <button type="button" onClick={addDimension}
+                                className="text-[#5856D6] text-xs font-bold hover:underline">+ הוסף מידה</button>
+                            <label className="text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em]">מידות המוצר</label>
+                        </div>
+                        <div className="space-y-2">
+                            {(editForm.dimensions || []).map((d, i) => (
+                                <SpecRow key={i} spec={d} onChange={v => updateDimension(i, v)} onRemove={() => removeDimension(i)} />
+                            ))}
+                            {(!editForm.dimensions || editForm.dimensions.length === 0) && (
+                                <p className="text-[#AEAEB2] text-xs text-center py-2">לחץ + כדי להוסיף מידות (רוחב, גובה, משקל...)</p>
                             )}
                         </div>
                     </div>

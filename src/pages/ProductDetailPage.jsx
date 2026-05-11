@@ -13,6 +13,7 @@ import ProductPageSidebar from '../components/ProductPageSidebar';
 import ProductQA from '../components/ProductQA';
 import Magnetic from '../components/Magnetic';
 import { useSettings } from '../context/SettingsContext';
+import defaultProducts from '../data/products';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
@@ -308,6 +309,12 @@ const ProductDetailPage = () => {
         () => isProductCompared(product?.id),
         [isProductCompared, product?.id]
     );
+
+    const productDims = useMemo(() => {
+        if (product.dimensions?.length > 0) return product.dimensions;
+        const dp = defaultProducts.find(p => p.id === product.id);
+        return dp?.dimensions || [];
+    }, [product.id, product.dimensions]);
 
     // ─── Stable handlers (useCallback — prevents re-render of motion.button) ─
     const handleImgError = useCallback((e) => {
@@ -816,6 +823,7 @@ const ProductDetailPage = () => {
                     </div>
 
                     {/* ─── Product Dimensions ─────────────────────────────────────── */}
+                    {productDims.length > 0 && (
                     <section id="pd-dims" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 mt-16">
                         <div className="flex items-center gap-3 justify-end mb-5">
                             <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
@@ -830,14 +838,7 @@ const ProductDetailPage = () => {
                         </div>
                         <div className="h-1 w-10 bg-[#5856D6] rounded-full mb-7 mr-0 ml-auto" />
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {[
-                                { label: getSetting('pd_dims_label1', 'רוחב'),  value: getSetting('pd_dims_value1', '') },
-                                { label: getSetting('pd_dims_label2', 'גובה'),  value: getSetting('pd_dims_value2', '') },
-                                { label: getSetting('pd_dims_label3', 'עומק'),  value: getSetting('pd_dims_value3', '') },
-                                { label: getSetting('pd_dims_label4', 'משקל'),  value: getSetting('pd_dims_value4', '') },
-                                { label: getSetting('pd_dims_label5', ''),      value: getSetting('pd_dims_value5', '') },
-                                { label: getSetting('pd_dims_label6', ''),      value: getSetting('pd_dims_value6', '') },
-                            ].filter(d => d.label && d.value).map((d, i) => (
+                            {productDims.map((d, i) => (
                                 <motion.div key={i}
                                     initial={{ opacity: 0, y: 8 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -851,6 +852,7 @@ const ProductDetailPage = () => {
                             ))}
                         </div>
                     </section>
+                    )}
 
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
@@ -1032,7 +1034,7 @@ const ProductDetailPage = () => {
                             {[
                                 { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: getSetting('pd_support_phone_label','תמיכה טלפונית'), value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
                                 { icon: '✉️', href: `mailto:${getSetting('contact_email','nextclass.en@gmail.com')}`, label: getSetting('pd_support_email_label','שלח מייל'), value: getSetting('contact_email','nextclass.en@gmail.com'), color: '#5856D6' },
-                                { icon: '💬', href: 'https://wa.me/972585856356', label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
+                                { icon: '💬', href: `https://wa.me/${getSetting('biz_whatsapp','972585856356')}`, label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
                             ].map((item, i) => (
                                 <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
                                     className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:scale-[1.02]"

@@ -12,6 +12,13 @@ const defaultProducts = [
             { label: "טכנולוגיית מגע", value: "40 נקודות מגע Zero Bonding" },
             { label: "מערכת הפעלה", value: "Android 13 + OPS Slot" },
             { label: "זכוכית", value: "Anti-Glare 4mm Tempered" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "1,692 מ\"מ" },
+            { label: "גובה", value: "1,002 מ\"מ" },
+            { label: "עומק", value: "78 מ\"מ" },
+            { label: "משקל", value: "36 ק\"ג" },
+            { label: "גודל מסך", value: "75 אינץ'" }
         ]
     },
     {
@@ -27,6 +34,13 @@ const defaultProducts = [
             { label: "בהירות", value: "450 cd/m2" },
             { label: "רמקולים", value: "2x20W + סאב מובנה" },
             { label: "מצלמה", value: "4K AI מובנית" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "1,939 מ\"מ" },
+            { label: "גובה", value: "1,137 מ\"מ" },
+            { label: "עומק", value: "83 מ\"מ" },
+            { label: "משקל", value: "53 ק\"ג" },
+            { label: "גודל מסך", value: "86 אינץ'" }
         ]
     },
     {
@@ -41,6 +55,13 @@ const defaultProducts = [
             { label: "עוצמת הארה", value: "5000 ANSI Lumens" },
             { label: "אורך חיי המקור", value: "עד 30,000 שעות" },
             { label: "רזולוציה", value: "WUXGA (1920x1200)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "374 מ\"מ" },
+            { label: "עומק", value: "279 מ\"מ" },
+            { label: "גובה", value: "108 מ\"מ" },
+            { label: "משקל", value: "4.2 ק\"ג" },
+            { label: "טווח הקרנה", value: "1.5–12 מטר" }
         ]
     },
     {
@@ -56,6 +77,13 @@ const defaultProducts = [
             { label: "פנל", value: "IPS מסחרי (Portrait/Landscape)" },
             { label: "שעות פעילות", value: "24/7 רציף" },
             { label: "משקל", value: "88 ק\"ג" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "2,222 מ\"מ" },
+            { label: "גובה", value: "1,293 מ\"מ" },
+            { label: "עומק", value: "88 מ\"מ" },
+            { label: "משקל", value: "88 ק\"ג" },
+            { label: "גודל מסך", value: "98 אינץ'" }
         ]
     },
     {
@@ -70,6 +98,13 @@ const defaultProducts = [
             { label: "בהירות", value: "3500 ANSI Lumens" },
             { label: "כניסות", value: "HDMI x2, VGA, LAN" },
             { label: "רמקול", value: "10W מובנה" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "360 מ\"מ" },
+            { label: "עומק", value: "230 מ\"מ" },
+            { label: "גובה", value: "90 מ\"מ" },
+            { label: "משקל", value: "3.5 ק\"ג" },
+            { label: "מרחק מהקיר", value: "מינימום 25 ס\"מ" }
         ]
     },
     {
@@ -84,6 +119,13 @@ const defaultProducts = [
             { label: "עגלה", value: "מוטורית עם שלט רחוק" },
             { label: "זווית הטיה", value: "0°-90° (שולחן מגע)" },
             { label: "ניידות", value: "גלגלי סיליקון שקטים עם מעצור" }
+        ],
+        dimensions: [
+            { label: "רוחב (עגלה)", value: "1,469 מ\"מ" },
+            { label: "גובה (עמידה)", value: "1,640 מ\"מ" },
+            { label: "עומק (עגלה)", value: "680 מ\"מ" },
+            { label: "משקל כולל", value: "54 ק\"ג" },
+            { label: "גודל מסך", value: "65 אינץ'" }
         ]
     },
     {
@@ -98,6 +140,13 @@ const defaultProducts = [
             { label: "אופטיקה", value: "עדשות מתחלפות (אופציונלי)" },
             { label: "קישוריות", value: "HDBaseT, SDI, 3D Sync" },
             { label: "שקט פעולה", value: "32dB (Eco Mode)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "490 מ\"מ" },
+            { label: "עומק", value: "358 מ\"מ" },
+            { label: "גובה", value: "148 מ\"מ" },
+            { label: "משקל", value: "7.8 ק\"ג" },
+            { label: "טווח הקרנה", value: "3–30 מטר" }
         ]
     },
     {
@@ -112,6 +161,13 @@ const defaultProducts = [
             { label: "מעבד", value: "Octa-Core 8GB RAM 128GB ROM" },
             { label: "קישוריות", value: "Wi-Fi 6, Bluetooth 5.2" },
             { label: "חיישנים", value: "NFC, זיהוי אור, קרבה" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "1,692 מ\"מ" },
+            { label: "גובה", value: "1,002 מ\"מ" },
+            { label: "עומק", value: "68 מ\"מ" },
+            { label: "משקל", value: "38 ק\"ג" },
+            { label: "גודל מסך", value: "75 אינץ'" }
         ]
     },
     {
@@ -126,6 +182,13 @@ const defaultProducts = [
             { label: "סוללה", value: "עד 3 שעות הקרנה" },
             { label: "חיבור", value: "USB-C DisplayPort, HDMI" },
             { label: "פוקוס", value: "אוטומטי מהיר" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "155 מ\"מ" },
+            { label: "עומק", value: "105 מ\"מ" },
+            { label: "גובה", value: "48 מ\"מ" },
+            { label: "משקל", value: "800 גרם" },
+            { label: "גודל תמונה", value: "30\"–120\" (בהתאם למרחק)" }
         ]
     },
     {
@@ -141,6 +204,13 @@ const defaultProducts = [
             { label: "מיקרופונים", value: "8 Microphone Array" },
             { label: "ניקוי רעשים", value: "AI Noise Cancellation" },
             { label: "מערכת", value: "Android 13 Dual OS Ready" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "1,939 מ\"מ" },
+            { label: "גובה", value: "1,137 מ\"מ" },
+            { label: "עומק", value: "75 מ\"מ" },
+            { label: "משקל", value: "55 ק\"ג" },
+            { label: "גודל מסך", value: "86 אינץ'" }
         ]
     },
 
@@ -157,6 +227,13 @@ const defaultProducts = [
             { label: "זיכרון/אחסון", value: "4GB RAM / 64GB eMMC" },
             { label: "עמידות", value: "MIL-STD-810H זכוכית מחוזקת" },
             { label: "סוללה", value: "עד 12 שעות עבודה" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "296 מ\"מ" },
+            { label: "עומק", value: "204 מ\"מ" },
+            { label: "עובי (סגור)", value: "19 מ\"מ" },
+            { label: "משקל", value: "1.4 ק\"ג" },
+            { label: "מסך", value: "11.6 אינץ'" }
         ]
     },
     {
@@ -171,6 +248,13 @@ const defaultProducts = [
             { label: "מסך", value: "14\" QHD IPS Anti-Glare" },
             { label: "אבטחה", value: "טביעת אצבע ושבב TPM 2.0" },
             { label: "משקל", value: "1.3 ק\"ג" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "312 מ\"מ" },
+            { label: "עומק", value: "218 מ\"מ" },
+            { label: "עובי (סגור)", value: "17 מ\"מ" },
+            { label: "משקל", value: "1.3 ק\"ג" },
+            { label: "מסך", value: "14 אינץ'" }
         ]
     },
     {
@@ -185,6 +269,13 @@ const defaultProducts = [
             { label: "זיכרון", value: "8GB DDR4 (עד 32GB)" },
             { label: "אחסון", value: "256GB NVMe SSD" },
             { label: "מערכת", value: "Windows 11 Pro Education" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "207 מ\"מ" },
+            { label: "עומק", value: "154 מ\"מ" },
+            { label: "גובה", value: "37 מ\"מ" },
+            { label: "משקל", value: "1.1 ק\"ג" },
+            { label: "תקן חיבור", value: "OPS (Open Pluggable Spec)" }
         ]
     },
     {
@@ -199,6 +290,13 @@ const defaultProducts = [
             { label: "עט", value: "Active Stylus 4096 levels" },
             { label: "מעבד", value: "Octa-Core 2.4GHz" },
             { label: "עמידות", value: "IP52 אבק והתזות מים" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "243 מ\"מ" },
+            { label: "עומק", value: "167 מ\"מ" },
+            { label: "עובי", value: "12 מ\"מ" },
+            { label: "משקל", value: "580 גרם" },
+            { label: "מסך", value: "10.1 אינץ'" }
         ]
     },
     {
@@ -213,6 +311,13 @@ const defaultProducts = [
             { label: "מעבד", value: "Intel Core i9 Hybrid" },
             { label: "מסך", value: "15.6\" 100% sRGB Color Accurate" },
             { label: "אחסון", value: "1TB Gen4 SSD" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "356 מ\"מ" },
+            { label: "עומק", value: "238 מ\"מ" },
+            { label: "עובי (סגור)", value: "19 מ\"מ" },
+            { label: "משקל", value: "2.1 ק\"ג" },
+            { label: "מסך", value: "15.6 אינץ'" }
         ]
     },
     {
@@ -227,6 +332,13 @@ const defaultProducts = [
             { label: "תמיכה", value: "VMware / Citrix / RDP" },
             { label: "חיבורים", value: "DisplayPort, 4xUSB, LAN" },
             { label: "צריכה", value: "≤5W בלבד" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "148 מ\"מ" },
+            { label: "עומק", value: "113 מ\"מ" },
+            { label: "גובה", value: "30 מ\"מ" },
+            { label: "משקל", value: "350 גרם" },
+            { label: "ממשק הרכבה", value: "VESA 75/100 (כלול)" }
         ]
     },
     {
@@ -241,6 +353,13 @@ const defaultProducts = [
             { label: "מסך", value: "12\" IPS Multi-Touch" },
             { label: "מצלמה", value: "World Facing Camera 8MP" },
             { label: "מעבד", value: "Kompanio 520 / 8GB RAM" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "294 מ\"מ" },
+            { label: "עומק", value: "208 מ\"מ" },
+            { label: "עובי (סגור)", value: "14 מ\"מ" },
+            { label: "משקל", value: "1.2 ק\"ג" },
+            { label: "מסך", value: "12 אינץ'" }
         ]
     },
     {
@@ -255,6 +374,13 @@ const defaultProducts = [
             { label: "מבנה", value: "מארז מגנזיום מחוזק" },
             { label: "אבטחה", value: "Smart Card Reader + TPM" },
             { label: "עמידות", value: "נפילה מגובה 1.5 מטר" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "330 מ\"מ" },
+            { label: "עומק", value: "240 מ\"מ" },
+            { label: "עובי (סגור)", value: "23 מ\"מ" },
+            { label: "משקל", value: "2.3 ק\"ג" },
+            { label: "מסך", value: "14 אינץ'" }
         ]
     },
     {
@@ -269,6 +395,13 @@ const defaultProducts = [
             { label: "מקלדת", value: "נתיקה עם תאורה (כלול)" },
             { label: "מעבד", value: "Intel Core i5 Evo" },
             { label: "משקל", value: "780 גרם (ללא מקלדת)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "292 מ\"מ" },
+            { label: "עומק", value: "201 מ\"מ" },
+            { label: "עובי (טאבלט)", value: "8.5 מ\"מ" },
+            { label: "משקל (טאבלט)", value: "780 גרם" },
+            { label: "מסך", value: "13 אינץ'" }
         ]
     },
     {
@@ -283,6 +416,13 @@ const defaultProducts = [
             { label: "מעבד", value: "AMD Ryzen 7 7000 Series" },
             { label: "סוללה", value: "עד 15 שעות (Fast Charge)" },
             { label: "מסך", value: "14\" OLED Low Blue Light" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "311 מ\"מ" },
+            { label: "עומק", value: "216 מ\"מ" },
+            { label: "עובי (סגור)", value: "14.9 מ\"מ" },
+            { label: "משקל", value: "1.2 ק\"ג" },
+            { label: "מסך", value: "14 אינץ'" }
         ]
     },
 
@@ -299,6 +439,13 @@ const defaultProducts = [
             { label: "דיוק שכבה", value: "0.05 - 0.4 מ\"מ" },
             { label: "חומרים", value: "PLA, ABS, PETG, TPU" },
             { label: "אבטחה", value: "HEPA פילטר לסינון חלקיקים" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "460 מ\"מ" },
+            { label: "עומק", value: "460 מ\"מ" },
+            { label: "גובה", value: "560 מ\"מ" },
+            { label: "משקל", value: "18 ק\"ג" },
+            { label: "נפח הדפסה", value: "300×300×350 מ\"מ" }
         ]
     },
     {
@@ -313,6 +460,13 @@ const defaultProducts = [
             { label: "חיישנים", value: "מרחק, אור, קול, Gyro" },
             { label: "מנועים", value: "Servo x4, DC Gear x4" },
             { label: "תוכנה", value: "Arduino IDE / Scratch" }
+        ],
+        dimensions: [
+            { label: "רוחב (ארגז)", value: "400 מ\"מ" },
+            { label: "עומק (ארגז)", value: "300 מ\"מ" },
+            { label: "גובה (ארגז)", value: "90 מ\"מ" },
+            { label: "משקל כולל", value: "3.2 ק\"ג" },
+            { label: "מספר רכיבים", value: "250+ חלקים" }
         ]
     },
     {
@@ -327,6 +481,13 @@ const defaultProducts = [
             { label: "שקעים", value: "4xAC, 2xUSB, 1xLAN" },
             { label: "גודל", value: "160x80 ס\"מ" },
             { label: "כיוונון", value: "גובה ידני (72-90 ס\"מ)" }
+        ],
+        dimensions: [
+            { label: "אורך", value: "1,600 מ\"מ" },
+            { label: "רוחב", value: "800 מ\"מ" },
+            { label: "גובה (מתכוונן)", value: "720–900 מ\"מ" },
+            { label: "משקל", value: "45 ק\"ג" },
+            { label: "עומי משטח", value: "25 מ\"מ HPL" }
         ]
     },
     {
@@ -341,6 +502,13 @@ const defaultProducts = [
             { label: "דיוק", value: "עד 0.1 מ\"מ" },
             { label: "פורמט קבצים", value: "STL, OBJ, PLY" },
             { label: "חיבור", value: "Wireless / USB 3.0" }
+        ],
+        dimensions: [
+            { label: "אורך", value: "280 מ\"מ" },
+            { label: "רוחב", value: "75 מ\"מ" },
+            { label: "גובה", value: "65 מ\"מ" },
+            { label: "משקל", value: "950 גרם" },
+            { label: "טווח סריקה", value: "200–700 מ\"מ מהאובייקט" }
         ]
     },
     {
@@ -355,6 +523,13 @@ const defaultProducts = [
             { label: "טווח הגעה", value: "340 מ\"מ" },
             { label: "חזרתיות", value: "0.2 מ\"מ" },
             { label: "שפה", value: "Python, Blocky, ROS" }
+        ],
+        dimensions: [
+            { label: "בסיס (קוטר)", value: "95 מ\"מ" },
+            { label: "גובה (נשיאה)", value: "380 מ\"מ" },
+            { label: "טווח הגעה", value: "340 מ\"מ" },
+            { label: "משקל", value: "1.8 ק\"ג" },
+            { label: "עומס מקסימלי", value: "500 גרם" }
         ]
     },
     {
@@ -369,6 +544,13 @@ const defaultProducts = [
             { label: "חיישנים כלולים", value: "טמפ', pH, לחץ, תאוצה, CO2" },
             { label: "אפליקציה", value: "תואמת iOS, Android, Windows, Chrome" },
             { label: "תדירות דגימה", value: "עד 100,000 דגימות לשנייה" }
+        ],
+        dimensions: [
+            { label: "רוחב (מארז)", value: "220 מ\"מ" },
+            { label: "עומק (מארז)", value: "180 מ\"מ" },
+            { label: "גובה (מארז)", value: "55 מ\"מ" },
+            { label: "משקל כולל", value: "1.4 ק\"ג" },
+            { label: "חיישן בודד", value: "75×35×18 מ\"מ, 45 גרם" }
         ]
     },
     {
@@ -383,6 +565,13 @@ const defaultProducts = [
             { label: "ראש הדפסה", value: "Double Extruder (חומר תמיכה)" },
             { label: "טמפרטורה", value: "עד 350 מעלות בראש" },
             { label: "בקרה", value: "מצלמה מובנית לניטור מרחוק" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "780 מ\"מ" },
+            { label: "עומק", value: "780 מ\"מ" },
+            { label: "גובה", value: "880 מ\"מ" },
+            { label: "משקל", value: "65 ק\"ג" },
+            { label: "נפח הדפסה", value: "600×600×600 מ\"מ" }
         ]
     },
     {
@@ -397,6 +586,13 @@ const defaultProducts = [
             { label: "תמיכה", value: "מדריכי מערכי שיעור (עברית)" },
             { label: "אחסון", value: "מגירות מיון עמידות" },
             { label: "גילאים", value: "6-12 שנים" }
+        ],
+        dimensions: [
+            { label: "רוחב (ארגז)", value: "450 מ\"מ" },
+            { label: "עומק (ארגז)", value: "340 מ\"מ" },
+            { label: "גובה (ארגז)", value: "120 מ\"מ" },
+            { label: "משקל כולל", value: "4.5 ק\"ג" },
+            { label: "רכיב גדול ביותר", value: "120×40 מ\"מ" }
         ]
     },
     {
@@ -411,6 +607,13 @@ const defaultProducts = [
             { label: "שדה ראייה", value: "110 מעלות" },
             { label: "אחסון", value: "128GB מובנה" },
             { label: "ניהול כיתה", value: "סינכרון מורה ל-30 מכשירים" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "198 מ\"מ" },
+            { label: "עומק", value: "142 מ\"מ" },
+            { label: "גובה", value: "105 מ\"מ" },
+            { label: "משקל", value: "503 גרם" },
+            { label: "מרחק בין-אישי", value: "IPD 58–72 מ\"מ (מתכוונן)" }
         ]
     },
     {
@@ -425,6 +628,13 @@ const defaultProducts = [
             { label: "סוג לייזר", value: "CO2 40W Glass Tube" },
             { label: "בטיחות", value: "Class 1 (לסביבת ילדים)" },
             { label: "תוכנה", value: "תואמת בענן (Cloud-based)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "780 מ\"מ" },
+            { label: "עומק", value: "480 מ\"מ" },
+            { label: "גובה", value: "420 מ\"מ" },
+            { label: "משקל", value: "18 ק\"ג" },
+            { label: "שטח חיתוך", value: "500×300 מ\"מ" }
         ]
     },
 
@@ -441,6 +651,13 @@ const defaultProducts = [
             { label: "רזולוציה", value: "4K UHD @ 60fps" },
             { label: "בינה מלאכותית", value: "Human Tracking + Gesture Control" },
             { label: "חיבוריות", value: "HDMI, SDI, USB-C, NDI|HX" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "162 מ\"מ" },
+            { label: "עומק", value: "155 מ\"מ" },
+            { label: "גובה", value: "162 מ\"מ" },
+            { label: "משקל", value: "950 גרם" },
+            { label: "זווית פן/טילט", value: "±170° / ±90°" }
         ]
     },
     {
@@ -455,6 +672,13 @@ const defaultProducts = [
             { label: "מיקרופון", value: "Necklace / Headset" },
             { label: "סוללה", value: "10 שעות עבודה (נטענת)" },
             { label: "חיבור", value: "Link to Soundbar / Ceiling SPK" }
+        ],
+        dimensions: [
+            { label: "משדר (מיקרופון)", value: "90×55×22 מ\"מ" },
+            { label: "משקל משדר", value: "85 גרם" },
+            { label: "מקלט/רמקול", value: "200×120×55 מ\"מ" },
+            { label: "משקל מקלט", value: "580 גרם" },
+            { label: "טווח שידור", value: "עד 50 מטר" }
         ]
     },
     {
@@ -469,6 +693,13 @@ const defaultProducts = [
             { label: "אלמנטים", value: "4x Full Range + 2x Tweeters" },
             { label: "חיבור", value: "HDMI ARC, Optical, Bluetooth" },
             { label: "התקנה", value: "תושבת קיר דקה (כלולה)" }
+        ],
+        dimensions: [
+            { label: "אורך", value: "880 מ\"מ" },
+            { label: "גובה", value: "80 מ\"מ" },
+            { label: "עומק", value: "68 מ\"מ" },
+            { label: "משקל", value: "3.2 ק\"ג" },
+            { label: "התקנה", value: "VESA / ישיר מתחת למסך" }
         ]
     },
     {
@@ -483,6 +714,13 @@ const defaultProducts = [
             { label: "טווח מיקרופון", value: "עד 6 מטרים" },
             { label: "בינה מלאכותית", value: "Auto-Framing + Speaker Tracking" },
             { label: "פלטפורמות", value: "MS Teams, Zoom, Meet" }
+        ],
+        dimensions: [
+            { label: "אורך", value: "640 מ\"מ" },
+            { label: "גובה", value: "90 מ\"מ" },
+            { label: "עומק", value: "74 מ\"מ" },
+            { label: "משקל", value: "1.8 ק\"ג" },
+            { label: "כיסוי חדר", value: "עד 6×8 מטר" }
         ]
     },
     {
@@ -497,6 +735,13 @@ const defaultProducts = [
             { label: "סינון רעשים", value: "Deep Learning Noise Reduction" },
             { label: "התקנה", value: "Flush mount (60x60 cell)" },
             { label: "חיבור", value: "Dante / POE+" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "595 מ\"מ" },
+            { label: "עומק", value: "595 מ\"מ" },
+            { label: "גובה (מסגרת)", value: "48 מ\"מ" },
+            { label: "משקל", value: "2.1 ק\"ג" },
+            { label: "כיסוי קול", value: "עד 50 מ\"ר" }
         ]
     },
     {
@@ -511,6 +756,13 @@ const defaultProducts = [
             { label: "קישוריות", value: "LAN/RS232/IR" },
             { label: "ממשק", value: "עברית מלאה (Customizable)" },
             { label: "ניהול", value: "שליטה מרחוק ממשרד המנהל" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "197 מ\"מ" },
+            { label: "עומק", value: "120 מ\"מ" },
+            { label: "גובה", value: "21 מ\"מ" },
+            { label: "משקל", value: "450 גרם" },
+            { label: "מסך מגע", value: "7 אינץ' IPS" }
         ]
     },
     {
@@ -525,6 +777,13 @@ const defaultProducts = [
             { label: "תדירות רענון", value: "60fps (תנועה חלקה)" },
             { label: "זום", value: "230x Total Zoom (Optical+Digital)" },
             { label: "תאורה", value: "LED מובנית מתכווננת" }
+        ],
+        dimensions: [
+            { label: "בסיס (רוחב)", value: "370 מ\"מ" },
+            { label: "בסיס (עומק)", value: "235 מ\"מ" },
+            { label: "גובה (פרוס)", value: "435 מ\"מ" },
+            { label: "משקל", value: "1.9 ק\"ג" },
+            { label: "שטח צילום מקסימלי", value: "A3" }
         ]
     },
     {
@@ -539,6 +798,13 @@ const defaultProducts = [
             { label: "מבנה", value: "Over-ear נושם לאורך זמן" },
             { label: "הגבלת ווליום", value: "Safe Hearing 85dB" },
             { label: "מיקרופון", value: "Noise Cancelling Mic Boom" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "195 מ\"מ" },
+            { label: "גובה", value: "175 מ\"מ" },
+            { label: "עומק (מקופל)", value: "70 מ\"מ" },
+            { label: "משקל", value: "265 גרם" },
+            { label: "קוטר כוס אוזן", value: "95 מ\"מ" }
         ]
     },
     {
@@ -553,6 +819,13 @@ const defaultProducts = [
             { label: "מיקרופונים", value: "2x UHF Wireless Handheld" },
             { label: "ניידות", value: "סוללה נטענת עד 8 שעות" },
             { label: "קישוריות", value: "BT, SD, USB, AUX, Guitar" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "360 מ\"מ" },
+            { label: "עומק", value: "285 מ\"מ" },
+            { label: "גובה", value: "435 מ\"מ" },
+            { label: "משקל", value: "10.5 ק\"ג" },
+            { label: "ידית/גלגלים", value: "ידית נשיאה + 2 גלגלים" }
         ]
     },
     {
@@ -567,6 +840,13 @@ const defaultProducts = [
             { label: "מבנה", value: "2-way 6.5\" Woofer" },
             { label: "תקן אש", value: "UL-2043 (Plenum Rated)" },
             { label: "הגברה", value: "כולל מגבר 100V קומפקטי" }
+        ],
+        dimensions: [
+            { label: "קוטר (כל יחידה)", value: "210 מ\"מ" },
+            { label: "עומק התקנה", value: "74 מ\"מ" },
+            { label: "משקל (ליחידה)", value: "1.4 ק\"ג" },
+            { label: "קיטוע (חור תקרה)", value: "190 מ\"מ" },
+            { label: "כמות בסט", value: "4 יחידות" }
         ]
     },
 
@@ -583,6 +863,13 @@ const defaultProducts = [
             { label: "בקר טעינה", value: "Smart Power Management (Cycles)" },
             { label: "אבטחה", value: "נעילה שלוש נקודות + אוורור" },
             { label: "ניידות", value: "גלגלים תעשייתיים עם בלמים" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "660 מ\"מ" },
+            { label: "עומק", value: "440 מ\"מ" },
+            { label: "גובה", value: "1,080 מ\"מ" },
+            { label: "משקל (ריק)", value: "28 ק\"ג" },
+            { label: "קיבולת מכשירים", value: "36 יחידות עד 15.6\"" }
         ]
     },
     {
@@ -597,6 +884,13 @@ const defaultProducts = [
             { label: "כוונון גובה", value: "חשמלי 80-120 ס\"מ" },
             { label: "אינטגרציה", value: "ממתג AV מובנה (HDMI/USB)" },
             { label: "חומר", value: "עץ, אלומיניום ופלדה" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "520 מ\"מ" },
+            { label: "עומק", value: "450 מ\"מ" },
+            { label: "גובה (מתכוונן)", value: "800–1,200 מ\"מ" },
+            { label: "משקל", value: "75 ק\"ג" },
+            { label: "גודל מסך", value: "21.5 אינץ'" }
         ]
     },
     {
@@ -611,6 +905,13 @@ const defaultProducts = [
             { label: "קיבולת", value: "24 טאבלטים / iPad" },
             { label: "טעינה", value: "USB-C PD 15W לכל פורט" },
             { label: "אימות", value: "תקן בטיחות חשמל ישראלי" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "600 מ\"מ" },
+            { label: "עומק", value: "420 מ\"מ" },
+            { label: "גובה", value: "1,020 מ\"מ" },
+            { label: "משקל (ריק)", value: "22 ק\"ג" },
+            { label: "קיבולת", value: "24 טאבלטים עד 11\"" }
         ]
     },
     {
@@ -625,6 +926,13 @@ const defaultProducts = [
             { label: "אוורור", value: "מניפות אולטרה-שקטות עם תרמוסטט" },
             { label: "דלת", value: "זכוכית מחוסמת עם מנעול" },
             { label: "תמיכה", value: "כולל PDU 8 יציאות" }
+        ],
+        dimensions: [
+            { label: "רוחב (תקן 19\")", value: "482 מ\"מ" },
+            { label: "עומק", value: "600 מ\"מ" },
+            { label: "גובה (12U)", value: "700 מ\"מ" },
+            { label: "גובה (18U)", value: "1,000 מ\"מ" },
+            { label: "משקל (ריק)", value: "18 ק\"ג" }
         ]
     },
     {
@@ -639,6 +947,13 @@ const defaultProducts = [
             { label: "מנגנון", value: "בוכנה הידראולית איכותית" },
             { label: "משטח", value: "עץ לבן 80x50 ס\"מ" },
             { label: "תוספות", value: "מתקן למחשב נייד ומעצור כבלים" }
+        ],
+        dimensions: [
+            { label: "רוחב משטח", value: "800 מ\"מ" },
+            { label: "עומק משטח", value: "500 מ\"מ" },
+            { label: "גובה (מתכוונן)", value: "700–1,150 מ\"מ" },
+            { label: "משקל", value: "19 ק\"ג" },
+            { label: "קוטר בסיס", value: "640 מ\"מ" }
         ]
     },
     {
@@ -653,6 +968,13 @@ const defaultProducts = [
             { label: "מבנה", value: "מתכת מגולוונת עמידה" },
             { label: "הגנה", value: "נגד נחשולי מתח וחום" },
             { label: "צבעים", value: "מגוון צבעי RAL (ירוק/כחול/כתום)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "560 מ\"מ" },
+            { label: "עומק", value: "380 מ\"מ" },
+            { label: "גובה", value: "880 מ\"מ" },
+            { label: "משקל (ריק)", value: "18 ק\"ג" },
+            { label: "קיבולת", value: "12 מחשבים עד 17\"" }
         ]
     },
     {
@@ -667,6 +989,13 @@ const defaultProducts = [
             { label: "מהירות הרמה", value: "20 מ\"מ לשנייה" },
             { label: "בקרה", value: "שלט קווי מובנה" },
             { label: "התקנה", value: "VESA אקספרטיבי (עד 1200x600)" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "520 מ\"מ" },
+            { label: "עומק (מהקיר)", value: "150 מ\"מ" },
+            { label: "גובה (ניסוע)", value: "780 מ\"מ" },
+            { label: "משקל עצמי", value: "12 ק\"ג" },
+            { label: "VESA תואם", value: "עד 1,200×600 מ\"מ" }
         ]
     },
     {
@@ -681,6 +1010,13 @@ const defaultProducts = [
             { label: "חיבורים", value: "ממתג Keystones (HDMI/LAN)" },
             { label: "עיצוב", value: "אלומיניום מוברש / PVC איכותי" },
             { label: "בטיחות", value: "חסין אש ומגן ילדים" }
+        ],
+        dimensions: [
+            { label: "אורך תעלה (כל 1)", value: "2,000 מ\"מ" },
+            { label: "רוחב תעלה", value: "60 מ\"מ" },
+            { label: "עומק תעלה", value: "40 מ\"מ" },
+            { label: "משקל הסט", value: "2.4 ק\"ג" },
+            { label: "כמות תעלות בסט", value: "4 תעלות (סה\"כ 8 מטר)" }
         ]
     },
     {
@@ -695,6 +1031,13 @@ const defaultProducts = [
             { label: "מדפים", value: "מדף OPS ומדף מצלמה כלולים" },
             { label: "סיבוב", value: "גלגלי 4 אינץ' עם נעילה" },
             { label: "משקל עצמי", value: "32 ק\"ג" }
+        ],
+        dimensions: [
+            { label: "רוחב בסיס", value: "690 מ\"מ" },
+            { label: "עומק בסיס", value: "490 מ\"מ" },
+            { label: "גובה כולל", value: "1,750 מ\"מ" },
+            { label: "משקל עצמי", value: "32 ק\"ג" },
+            { label: "עומס מקסימלי", value: "160 ק\"ג" }
         ]
     },
     {
@@ -709,6 +1052,13 @@ const defaultProducts = [
             { label: "זמן גיבוי", value: "עד 15 דקות בעומס מלא" },
             { label: "שקעים", value: "6x IEC מוגנים" },
             { label: "ניהול", value: "חיבור USB לכיבוי אוטומטי של המחשב" }
+        ],
+        dimensions: [
+            { label: "רוחב", value: "433 מ\"מ" },
+            { label: "עומק", value: "186 מ\"מ" },
+            { label: "גובה", value: "230 מ\"מ" },
+            { label: "משקל", value: "8.6 ק\"ג" },
+            { label: "הספק", value: "2000VA / 1200W" }
         ]
     }
 ];
