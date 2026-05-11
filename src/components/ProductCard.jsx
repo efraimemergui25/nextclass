@@ -211,7 +211,7 @@ const ProductCard = ({ product }) => {
                         )}
                         
                         {/* Wishlist Button */}
-                        <div className="absolute top-4 left-4 z-10">
+                        <div className="absolute top-4 right-4 z-10">
                             <Magnetic strength={0.2}>
                                 <motion.button
                                     onClick={handleWishlistToggle}
@@ -230,7 +230,7 @@ const ProductCard = ({ product }) => {
 
                         {/* Product badges — data-driven */}
                         {(_isBestSeller || isNew) && (
-                            <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
+                            <div className={`absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
                                 _isBestSeller
                                     ? 'bg-gradient-to-r from-orange-500 to-red-500'
                                     : 'bg-gradient-to-r from-blue-500 to-indigo-500'
@@ -259,7 +259,7 @@ const ProductCard = ({ product }) => {
                     </div>
 
                     {/* ── Text Content ─────────────────────────────────────── */}
-                    <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-4">
+                    <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-6">
                         {category && (
                             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
                         )}

@@ -75,7 +75,7 @@ const Footer = () => {
 
     // Removed storage listener (handled by SettingsContext)
     return (
-        <footer className="relative bg-[#F5F5F7] pt-12 sm:pt-20 pb-8 sm:pb-12 w-full mt-auto overflow-hidden"
+        <footer className="relative bg-[#F5F5F7] pt-14 sm:pt-20 pb-14 sm:pb-20 w-full mt-auto overflow-hidden"
             style={{ borderTop: '1px solid rgba(255,255,255,0.6)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)' }}>
             {/* Ambient Background Glows */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[120px] -mr-40 -mt-40 pointer-events-none" />
