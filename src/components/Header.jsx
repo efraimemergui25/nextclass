@@ -66,20 +66,20 @@ const Header = () => {
 
     const navFontSize = useMemo(() => {
         const n = navLinks.length;
-        if (n <= 3) return '15px';
-        if (n === 4) return '14.5px';
-        if (n === 5) return '13.5px';
-        if (n === 6) return '13px';
-        return '12.5px';
+        if (n <= 3) return '17px';
+        if (n === 4) return '16px';
+        if (n === 5) return '15px';
+        if (n === 6) return '14px';
+        return '13px';
     }, [navLinks.length]);
 
     const navGap = useMemo(() => {
         const n = navLinks.length;
-        if (n <= 3) return '28px';
-        if (n === 4) return '22px';
-        if (n === 5) return '18px';
-        if (n === 6) return '14px';
-        return '12px';
+        if (n <= 3) return '32px';
+        if (n === 4) return '26px';
+        if (n === 5) return '20px';
+        if (n === 6) return '16px';
+        return '13px';
     }, [navLinks.length]);
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -367,16 +367,6 @@ const Header = () => {
                                                     {meta.count > 0 ? `${meta.count} פתרונות` : getSetting('nav_mega_hint', 'לחץ לצפייה')}
                                                 </p>
                                             </div>
-
-                                            {/* Product thumbnail */}
-                                            {meta.topImage && (
-                                                <div
-                                                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-300"
-                                                    style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }}
-                                                >
-                                                    <img src={meta.topImage} alt="" className="w-8 h-8 object-contain" loading="lazy" />
-                                                </div>
-                                            )}
 
                                             {/* Chevron */}
                                             <ChevronLeft
