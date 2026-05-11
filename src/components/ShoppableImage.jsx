@@ -1,49 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
+import { useCart } from '../context/CartContext';
+import { useProducts } from '../context/ProductsContext';
+import useCartPop from '../hooks/useCartPop';
+import { ShoppingCart, ArrowLeft, Check } from 'lucide-react';
 
-const hotspots = [
-    {
-        id: "touch-pro-75",
-        x: "48%", // Position on the main screen
-        y: "35%",
-        title: "מסך מגע אינטראקטיבי NextBoard Pro 75\"",
-        description: "הלב הפועם של הכיתה החכמה. 40 נקודות מגע וזכוכית Zero Bonding.",
-        linkTo: "/catalog/touch-pro-75",
-        direction: "top"
-    },
-    {
-        id: "pc-staff-setup",
-        x: "72%", // Position on the teacher's desk
-        y: "65%",
-        title: "עמדת מחשב מתקדמת לצוות מנהלה",
-        description: "Mini-PC משולב עם מסך 24 אינץ׳ לניהול שיעורים ומערכות פדגוגיות.",
-        linkTo: "/catalog/pc-staff-setup",
-        direction: "bottom"
-    },
-    {
-        id: "edu-edit-basic",
-        x: "25%", // Position on a student tablet/laptop
-        y: "75%",
-        title: "תוכנת ניהול ועריכה EduEdit",
-        description: "רישוי מוסדי חכם לניהול ועריכת תכנים עם תמיכה במאות עמדות.",
-        linkTo: "/catalog/edu-edit-basic",
-        direction: "top"
-    }
+// Maps hotspot IDs to real product IDs from the catalog
+const HOTSPOT_PRODUCT_MAP = {
+    "touch-pro-75":   "display-pro-75-uhd",
+    "pc-staff-setup": "laptop-teacher-i7",
+    "edu-edit-basic": "stem-kit-basic",
+};
+
+const RAW_HOTSPOTS = [
+    { id: "touch-pro-75",   x: "48%", y: "35%", direction: "top" },
+    { id: "pc-staff-setup", x: "72%", y: "65%", direction: "bottom" },
+    { id: "edu-edit-basic", x: "25%", y: "75%", direction: "top" },
 ];
 
-// Remove readShoppableContent helper
+// Animated add-to-cart button inside the popup
+function PopupCartBtn({ product }) {
+    const { addToCart, cartItems } = useCart();
+    const { state, trigger } = useCartPop();
+    const isInCart = (cartItems ?? []).some(i => i.id === product?.id);
+
+    if (!product) return null;
+
+    const handleAdd = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isInCart) trigger(() => addToCart(product))();
+    }, [isInCart, product, addToCart, trigger]);
+
+    return (
+        <motion.button
+            onClick={handleAdd}
+            animate={isInCart ? { backgroundColor: '#34C759' } : state !== 'idle' ? { scale: state === 'loading' ? 0.92 : 1.04 } : undefined}
+            whileTap={!isInCart && state === 'idle' ? { scale: 0.93 } : undefined}
+            disabled={state !== 'idle' && !isInCart}
+            className="h-10 px-5 rounded-full font-bold text-[12px] tracking-wide text-white flex items-center gap-2 shadow-md transition-colors cursor-pointer"
+            style={{ backgroundColor: isInCart ? '#34C759' : '#007AFF' }}
+        >
+            {isInCart ? (
+                <><Check size={14} strokeWidth={3} /> נוסף</>
+            ) : state === 'success' ? (
+                <><Check size={14} strokeWidth={3} /> נוסף!</>
+            ) : (
+                <><ShoppingCart size={13} strokeWidth={2.5} /> הוסף</>
+            )}
+        </motion.button>
+    );
+}
 
 const ShoppableImage = () => {
     const { getSetting } = useSettings();
+    const { activeProducts } = useProducts();
+    const [activeHotspot, setActiveHotspot] = useState(null);
+
     const content = {
         title:    getSetting('shop_title', 'לחץ על נקודה לגלות מוצר'),
         subtitle: getSetting('shop_desc', 'כל פתרון במרחב הלמידה שלך — ניתן לרכישה מיידית.'),
         eyebrow:  getSetting('shop_eyebrow', 'האקוסיסטם שלנו'),
-        bgImage:  getSetting('shop_bg_image', 'https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop')
+        bgImage:  getSetting('shop_bg_image', 'https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop'),
     };
-    const [activeHotspot, setActiveHotspot] = useState(null);
+
+    // Enrich hotspots with product data
+    const hotspots = RAW_HOTSPOTS.map(spot => {
+        const productId = HOTSPOT_PRODUCT_MAP[spot.id];
+        const product = activeProducts.find(p => p.id === productId) || activeProducts[0];
+        return { ...spot, product };
+    });
 
     return (
         <section className="w-full bg-[#1D1D1F] py-24 px-6 md:px-12 overflow-hidden">
@@ -62,24 +90,21 @@ const ShoppableImage = () => {
                     </p>
                 </div>
 
-                {/* The Interactive Canvas */}
+                {/* Interactive Canvas */}
                 <div className="relative w-full aspect-[4/3] md:aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl bg-gray-900">
                     <img
                         src={content.bgImage}
                         alt="Smart Classroom Environment"
                         className="w-full h-full object-cover opacity-80"
-                        onMouseEnter={() => setActiveHotspot(null)} // Clear active state if mouse leaves hotspots into plain image
                         onError={(e) => {
                             if (!e.target.dataset.triedFallback) {
                                 e.target.dataset.triedFallback = 'true';
                                 e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
-                            } else {
-                                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
                             }
                         }}
                     />
 
-                    {/* Overlay Gradient for contrast */}
+                    {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
                     {/* Hotspots */}
@@ -91,55 +116,88 @@ const ShoppableImage = () => {
                             onMouseEnter={() => setActiveHotspot(spot.id)}
                             onMouseLeave={() => setActiveHotspot(null)}
                         >
-                            {/* The Pulsing Dot */}
+                            {/* Pulsing Dot */}
                             <div className="relative flex items-center justify-center w-8 h-8 group cursor-pointer">
-                                {/* Pulse Halo */}
                                 <motion.div
-                                    animate={{
-                                        scale: [1, 1.5, 1],
-                                        opacity: [0.6, 0, 0.6]
-                                    }}
-                                    transition={{
-                                        repeat: Infinity,
-                                        duration: 2,
-                                        ease: "easeInOut"
-                                    }}
+                                    animate={{ scale: [1, 1.5, 1], opacity: [0.6, 0, 0.6] }}
+                                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                                     className="absolute inset-0 bg-[#007AFF] rounded-full"
                                 />
-                                {/* Solid Core */}
                                 <div className="w-4 h-4 bg-white rounded-full shadow-[0_0_0_8px_rgb(0_122_255/0.4)] group-hover:scale-125 transition-transform duration-300 z-10" />
                             </div>
 
-                            {/* The Tooltip (Glassmorphism) */}
+                            {/* Dark glass popup card */}
                             <AnimatePresence>
-                                {activeHotspot === spot.id && (
+                                {activeHotspot === spot.id && spot.product && (
                                     <motion.div
-                                        initial={{ opacity: 0, scale: 0.9, y: spot.direction === 'top' ? 10 : -10 }}
+                                        initial={{ opacity: 0, scale: 0.92, y: spot.direction === 'top' ? 12 : -12 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.9, y: spot.direction === 'top' ? 10 : -10 }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                        className={`absolute left-1/2 -translate-x-1/2 ${spot.direction === 'top' ? 'bottom-full mb-4' : 'top-full mt-4'} w-72 bg-white/85 backdrop-blur-3xl p-5 rounded-2xl shadow-[0_20px_40px_rgb(0_0_0/0.3)] border border-white/40 z-50 flex flex-col`}
+                                        exit={{ opacity: 0, scale: 0.92, y: spot.direction === 'top' ? 12 : -12 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.7 }}
+                                        className={`absolute left-1/2 -translate-x-1/2 ${spot.direction === 'top' ? 'bottom-full mb-5' : 'top-full mt-5'} w-[240px] z-50 overflow-hidden`}
+                                        style={{
+                                            borderRadius: 20,
+                                            background: 'rgba(28, 28, 30, 0.92)',
+                                            backdropFilter: 'blur(28px) saturate(1.8)',
+                                            WebkitBackdropFilter: 'blur(28px) saturate(1.8)',
+                                            border: '1px solid rgba(255,255,255,0.12)',
+                                            boxShadow: '0 24px 60px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.06) inset',
+                                        }}
                                     >
-                                        {/* CSS Triangle Pointer */}
-                                        <div className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-white/85 backdrop-blur-3xl border-white/40 rotate-45 ${spot.direction === 'top' ? 'bottom-[-8px] border-b border-r' : 'top-[-8px] border-t border-l'}`} />
+                                        {/* CSS Triangle pointer */}
+                                        <div
+                                            className={`absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 rotate-45 ${spot.direction === 'top' ? 'bottom-[-7px] border-b border-r' : 'top-[-7px] border-t border-l'}`}
+                                            style={{
+                                                background: 'rgba(28,28,30,0.92)',
+                                                borderColor: 'rgba(255,255,255,0.12)',
+                                            }}
+                                        />
 
-                                        <div className="relative z-10 text-right">
-                                            <h4 className="font-black text-xl text-[#1D1D1F] mb-1 leading-tight tracking-tighter">
-                                                {spot.title}
+                                        {/* Product Image */}
+                                        <div className="w-full aspect-[4/3] overflow-hidden bg-[#111]">
+                                            <img
+                                                src={spot.product.image}
+                                                alt={spot.product.title}
+                                                className="w-full h-full object-cover opacity-90"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=400&auto=format&fit=crop";
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Card Body */}
+                                        <div className="p-4 text-right" dir="rtl">
+                                            {spot.product.category && (
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#007AFF] block mb-1">
+                                                    {spot.product.category.split(' ')[0]}
+                                                </span>
+                                            )}
+                                            <h4 className="font-black text-[14px] text-white leading-snug tracking-tight mb-3 line-clamp-2">
+                                                {spot.product.title}
                                             </h4>
-                                            <p className="text-sm font-medium text-gray-500 mb-4 leading-snug">
-                                                {spot.description}
-                                            </p>
-                                            <Link to={spot.linkTo} className="block w-full">
-                                                <button className="w-full bg-[#007AFF] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-600 active:scale-[0.97] transition-all shadow-sm">
-                                                    לפרטים המלאים
-                                                </button>
+
+                                            {/* Price + Add row */}
+                                            <div className="flex items-center justify-between gap-2 mb-3">
+                                                <PopupCartBtn product={spot.product} />
+                                                <span className="font-black text-white text-[15px] tracking-tight">
+                                                    ₪{(spot.product.salePrice ?? spot.product.price)?.toLocaleString()}
+                                                </span>
+                                            </div>
+
+                                            {/* Details link */}
+                                            <Link
+                                                to={`/catalog/${spot.product.id}`}
+                                                className="flex items-center justify-center gap-1 text-[11px] font-bold text-[#636366] hover:text-[#007AFF] transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <ArrowLeft size={11} />
+                                                פרטים נוספים
                                             </Link>
                                         </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-
                         </div>
                     ))}
                 </div>

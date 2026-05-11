@@ -110,8 +110,8 @@ const ProductDetail = () => {
                                 className="relative w-full aspect-square bg-[#F5F5F7] rounded-[2rem] md:rounded-[3rem] overflow-hidden group shadow-[0_20px_40px_rgb(0_0_0/0.05)] md:shadow-[0_40px_80px_rgb(0_0_0/0.05)]"
                             >
                                 <img
-                                    src={product.imageUrl}
-                                    alt={product.name}
+                                    src={product.image || product.imageUrl}
+                                    alt={product.title || product.name}
                                     className="absolute inset-0 w-full h-full object-contain mix-blend-multiply p-8 md:p-12 transition-transform duration-[1500ms] group-hover:scale-[1.03]"
                                     style={{ transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)' }}
                                     onError={(e) => {

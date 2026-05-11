@@ -15,9 +15,9 @@ const Footer = () => {
     
     const content = useMemo(() => ({
         siteName:  getSetting('site_name', 'NextClass'),
-        phone:     getSetting('contact_phone', '054-6398257'),
+        phone:     getSetting('contact_phone', '058-5856356'),
         email:     getSetting('contact_email', 'nextclass.en@gmail.com'),
-        address:   getSetting('contact_address', 'תל אביב, ישראל'),
+        address:   getSetting('contact_address', 'בראלי 10, תל אביב'),
         copyright: getSetting('footer_copyright', '© 2026 NextClass. כל הזכויות שמורות.'),
         tagline:   getSetting('footer_tagline', 'אנחנו מעצבים את הכלים שמעצימים את דור המחר. חדשנות, איכות וחזון בכל כיתה.'),
         loveMsg:   getSetting('footer_love_msg', 'נבנה באהבה לחינוך'),

@@ -157,8 +157,8 @@ const CartPage = () => {
                                             {/* Image Thumbnail */}
                                             <div className="w-full md:w-48 aspect-square rounded-[2.5rem] bg-[#F5F5F7] overflow-hidden flex-shrink-0 mb-8 md:mb-0 ml-0 md:ml-10 relative shadow-sm">
                                                 <img
-                                                    src={item.imageUrl}
-                                                    alt={item.name}
+                                                    src={item.image || item.imageUrl}
+                                                    alt={item.title || item.name}
                                                     className="w-full h-full object-contain p-6 mix-blend-multiply"
                                                     onError={(e) => {
                                                         if (!e.target.dataset.triedFallback) {
@@ -172,7 +172,7 @@ const CartPage = () => {
                                             {/* Item Details */}
                                             <div className="flex-1 w-full pl-0 md:pl-4 flex flex-col justify-center h-full pt-2">
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.name}</h3>
+                                                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.title || item.name}</h3>
                                                      <button
                                                         onClick={() => handleRemove(item.id)}
                                                         className="text-gray-400 hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"

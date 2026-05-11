@@ -998,7 +998,7 @@ const ProductDetailPage = () => {
                             {[
                                 { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: getSetting('pd_support_phone_label','תמיכה טלפונית'), value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
                                 { icon: '✉️', href: `mailto:${getSetting('contact_email','nextclass.en@gmail.com')}`, label: getSetting('pd_support_email_label','שלח מייל'), value: getSetting('contact_email','nextclass.en@gmail.com'), color: '#5856D6' },
-                                { icon: '💬', href: 'https://wa.me/972546398257', label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
+                                { icon: '💬', href: 'https://wa.me/972585856356', label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
                             ].map((item, i) => (
                                 <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
                                     className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:scale-[1.02]"

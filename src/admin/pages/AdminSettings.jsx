@@ -66,9 +66,9 @@ export default function AdminSettings() {
 
     // Business info
     const [bizName, setBizName] = useState('NextClass');
-    const [bizPhone, setBizPhone] = useState('054-6398257');
+    const [bizPhone, setBizPhone] = useState('058-5856356');
     const [bizEmail, setBizEmail] = useState('nextclass.en@gmail.com');
-    const [bizAddress, setBizAddress] = useState('תל אביב, ישראל');
+    const [bizAddress, setBizAddress] = useState('בראלי 10, תל אביב');
     const [bizSaved, setBizSaved] = useState(false);
 
     const saveBiz = () => {

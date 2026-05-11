@@ -66,11 +66,11 @@ const ContactPage = () => {
         formDesc:       getSetting('contact_form_desc', 'השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.'),
         trustTitle:     getSetting('contact_trust_title', 'שותפות ארוכת טווח'),
         trustDesc:      getSetting('contact_trust_desc', 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.'),
-        phone:    getSetting('contact_phone', '054-6398257'),
+        phone:    getSetting('contact_phone', '058-5856356'),
         email:    getSetting('contact_email', 'nextclass.en@gmail.com'),
-        address:  getSetting('contact_address', 'תל אביב, ישראל'),
+        address:  getSetting('contact_address', 'בראלי 10, תל אביב'),
         hours:    getSetting('contact_hours', 'ראשון–חמישי 08:00–18:00'),
-        whatsapp: getSetting('whatsapp_number', '972546398257'),
+        whatsapp: getSetting('whatsapp_number', '972585856356'),
         waLabel:  getSetting('contact_wa_label', 'זמינים ב-WhatsApp'),
         waBtn:    getSetting('contact_wa_btn', 'התחל שיחה עכשיו'),
         timeHint: getSetting('contact_time_hint', 'זמן נוכחי במטה בתל אביב: '),
@@ -205,21 +205,36 @@ const ContactPage = () => {
                                 </div>
                                 <div className="space-y-6">
                                     {[
-                                        { label: 'טלפון', val: contactContent.phone, icon: <Phone size={16} /> },
-                                        { label: 'מייל', val: contactContent.email, icon: <Mail size={16} /> },
-                                        { label: 'כתובת', val: contactContent.address, icon: <MapPin size={16} /> },
+                                        { label: 'טלפון', val: contactContent.phone, icon: <Phone size={16} />, href: `tel:${contactContent.phone}` },
+                                        { label: 'מייל', val: contactContent.email, icon: <Mail size={16} />, href: `mailto:${contactContent.email}` },
+                                        { label: 'כתובת', val: contactContent.address, icon: <MapPin size={16} />, href: `https://maps.google.com/?q=${encodeURIComponent(contactContent.address)}` },
                                         ...(contactContent.hours ? [{ label: 'שעות פעילות', val: contactContent.hours, icon: <Clock size={16} /> }] : []),
                                     ].map((item, i) => (
-                                        <div key={i} className="flex items-center gap-5 group cursor-pointer">
+                                        <a key={i} href={item.href || '#'} target={item.href?.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
+                                            className="flex items-center gap-5 group cursor-pointer no-underline">
                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 group-hover:text-[#007AFF] shadow-sm transition-all">
                                                 {item.icon}
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</p>
-                                                <p className="text-lg font-bold text-[#1D1D1F]">{item.val}</p>
+                                                <p className="text-lg font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.val}</p>
                                             </div>
-                                        </div>
+                                        </a>
                                     ))}
+                                </div>
+
+                                {/* Google Maps embed */}
+                                <div className="mt-8 rounded-2xl overflow-hidden shadow-sm border border-[#E5E5EA]" style={{ height: 180 }}>
+                                    <iframe
+                                        title="מיקום NextClass"
+                                        width="100%"
+                                        height="180"
+                                        style={{ border: 0 }}
+                                        loading="lazy"
+                                        allowFullScreen
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        src="https://maps.google.com/maps?q=%D7%91%D7%A8%D7%90%D7%9C%D7%99+10+%D7%AA%D7%9C+%D7%90%D7%91%D7%99%D7%91&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                                    />
                                 </div>
                             </div>
                         </div>

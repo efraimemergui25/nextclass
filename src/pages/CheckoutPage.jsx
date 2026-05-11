@@ -314,7 +314,7 @@ const CheckoutPage = () => {
                                             <div className="w-16 h-16 rounded-xl bg-white/40 overflow-hidden border border-white/60 shadow-sm shrink-0">
                                                 <img
                                                     onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }}
-                                                    src={item.imageUrl}
+                                                    src={item.image || item.imageUrl}
                                                     alt={item.title}
                                                     className="w-full h-full object-cover mix-blend-multiply"
                                                 />

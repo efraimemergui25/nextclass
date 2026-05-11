@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Sparkles, ChevronLeft, ArrowLeft, LayoutGrid, List } from 'lucide-react';
+import { Sparkles, ChevronLeft, ArrowLeft, LayoutGrid, List, ShoppingCart, Check, Zap, Star } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { ListCard } from './CatalogGrid';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
+import { useCart } from '../context/CartContext';
+import useCartPop from '../hooks/useCartPop';
 
 // How many products to show per category on the homepage (not all)
 const HOMEPAGE_PREVIEW = 4;
@@ -19,6 +21,127 @@ const SORT_OPTIONS = [
     { id: 'price-desc', labelKey: 'home_sort_desc', defaultLabel: 'מחיר: גבוה לנמוך' },
     { id: 'name',       labelKey: 'home_sort_name', defaultLabel: 'שם (א–ת)' },
 ];
+
+// ── Featured Hero Card — shown above the product grid ─────────────────────────
+const FeaturedHeroCard = ({ product, accent }) => {
+    const { addToCart, cartItems } = useCart();
+    const { state, trigger } = useCartPop();
+    if (!product) return null;
+
+    const isInCart = (cartItems ?? []).some(i => i.id === product.id);
+    const effectivePrice = product.salePrice ? Number(product.salePrice) : (product.price ?? 0);
+    const discountPct = product.salePrice
+        ? Math.round((1 - Number(product.salePrice) / Number(product.price)) * 100)
+        : 0;
+
+    const handleCart = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isInCart) trigger(() => addToCart(product))();
+    }, [isInCart, product, addToCart, trigger]);
+
+    return (
+        <motion.div
+            layout
+            className="w-full mb-10 rounded-[2.5rem] overflow-hidden relative"
+            style={{
+                background: 'linear-gradient(135deg, #1D1D1F 0%, #2C2C2E 100%)',
+                boxShadow: `0 30px 80px -10px ${accent}30, 0 0 0 1px rgba(255,255,255,0.06)`,
+            }}
+        >
+            <div className="flex flex-col md:flex-row items-stretch min-h-[280px]" dir="rtl">
+                {/* Text side */}
+                <div className="flex-1 p-8 md:p-10 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]"
+                                style={{ background: `${accent}20`, color: accent }}>
+                                <Star size={9} fill="currentColor" />
+                                המוצר המוביל בקטגוריה
+                            </span>
+                            {product.isNew && (
+                                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-[#30D158]/20 text-[#30D158]">חדש</span>
+                            )}
+                            {discountPct > 0 && (
+                                <span className="px-3 py-1 rounded-full text-[10px] font-black bg-[#FF375F]/20 text-[#FF375F]">{discountPct}% הנחה</span>
+                            )}
+                        </div>
+
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] mb-2 block" style={{ color: accent }}>
+                            {product.category?.split(' ')[0]}
+                        </span>
+                        <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-snug mb-3">
+                            {product.title}
+                        </h3>
+                        <p className="text-[#86868B] text-sm leading-relaxed line-clamp-2 mb-5">
+                            {product.description}
+                        </p>
+
+                        {/* Specs chips */}
+                        {product.specs?.slice(0, 3).length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {product.specs.slice(0, 3).map((s, i) => (
+                                    <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
+                                        style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <Zap size={9} style={{ color: accent }} />
+                                        {s.label}: {s.value}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Price + CTA */}
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <motion.button
+                            onClick={handleCart}
+                            animate={isInCart ? { backgroundColor: '#34C759' } : state !== 'idle' ? { scale: state === 'loading' ? 0.93 : 1.04 } : undefined}
+                            whileTap={!isInCart && state === 'idle' ? { scale: 0.95 } : undefined}
+                            disabled={state !== 'idle' && !isInCart}
+                            className="h-12 px-7 rounded-full font-black text-[13px] text-white flex items-center gap-2 shadow-xl cursor-pointer"
+                            style={{ backgroundColor: isInCart ? '#34C759' : accent }}
+                        >
+                            {isInCart || state === 'success' ? <><Check size={15} strokeWidth={3} /> נוסף לעגלה</> : <><ShoppingCart size={14} strokeWidth={2.5} /> הוסף לעגלה</>}
+                        </motion.button>
+                        <Link
+                            to={`/catalog/${product.id}`}
+                            className="flex items-center gap-1.5 text-[13px] font-bold hover:opacity-70 transition-opacity"
+                            style={{ color: accent }}
+                        >
+                            לפרטים המלאים
+                            <ChevronLeft size={13} />
+                        </Link>
+                        <div className="mr-auto text-right">
+                            {product.salePrice && (
+                                <span className="block text-xs text-[#636366] line-through">₪{Number(product.price).toLocaleString()}</span>
+                            )}
+                            <span className="text-2xl font-black text-white tracking-tight">
+                                ₪{effectivePrice.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Image side */}
+                <div className="w-full md:w-[42%] relative overflow-hidden min-h-[200px] md:min-h-0">
+                    <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${accent}15 0%, transparent 60%)` }} />
+                    <img
+                        src={product.image}
+                        alt={product.title}
+                        className="w-full h-full object-cover opacity-90"
+                        style={{ mixBlendMode: 'luminosity' }}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                        }}
+                    />
+                    {/* Gradient fade into left (text) side */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#1D1D1F] via-transparent to-transparent md:block hidden" />
+                </div>
+            </div>
+        </motion.div>
+    );
+};
 
 const HomeProductsSection = () => {
     const { getSetting } = useSettings();
@@ -249,12 +372,17 @@ const HomeProductsSection = () => {
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     >
-                        {/* Product grid */}
+                        {/* Featured hero card — first product in category */}
+                        {viewMode === 'grid' && sorted[0] && (
+                            <FeaturedHeroCard product={sorted[0]} accent={accent} />
+                        )}
+
+                        {/* Product grid — remaining products */}
                         <div className={viewMode === 'grid'
                             ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10"
                             : "flex flex-col gap-5 max-w-4xl mx-auto"
                         }>
-                            {visible.map((product, i) => (
+                            {(viewMode === 'grid' ? visible.slice(1) : visible).map((product, i) => (
                                 <motion.div
                                     key={product.id}
                                     initial={{ opacity: 0, y: 20 }}

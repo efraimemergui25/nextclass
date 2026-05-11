@@ -41,9 +41,13 @@ const ProductCard = ({ product }) => {
         image = '',
         description = '',
         specs,
+        stock,
         isNew = false,
         _isBestSeller = false,
     } = product ?? {};
+
+    const discountPct = salePrice ? Math.round((1 - Number(salePrice) / Number(price)) * 100) : 0;
+    const stockStatus = stock === undefined ? null : stock > 10 ? 'ok' : stock > 0 ? 'low' : 'out';
 
     const [imgError, setImgError] = useState(false);
 
@@ -249,17 +253,37 @@ const ProductCard = ({ product }) => {
                         {description && (
                             <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
                         )}
+
+                        {/* Specs chips */}
+                        {specs?.slice(0, 2).length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                                {specs.slice(0, 2).map((s, i) => (
+                                    <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5F5F7] text-[#6E6E73] border border-[#E5E5EA]">
+                                        {s.label}: {s.value}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </Link>
 
                 {/* ── Footer — outside Link so buttons never trigger navigation ── */}
                 <div className="px-6 pb-6 flex items-center justify-between gap-3">
                     <div className="shrink-0">
+                        {/* Stock badge */}
+                        {stockStatus && (
+                            <div className={`text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 ${
+                                stockStatus === 'ok' ? 'text-[#30D158]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
+                            }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#30D158]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
+                                {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
+                            </div>
+                        )}
                         {showPrices && (salePrice ? (
                             <div className="flex flex-col items-start gap-0.5">
                                 <div className="flex items-center gap-2">
                                     <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">מבצע</span>
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">-{discountPct}%</span>
                                 </div>
                                 <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
                             </div>

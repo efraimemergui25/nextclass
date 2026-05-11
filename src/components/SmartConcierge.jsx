@@ -11,7 +11,7 @@ import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import Anthropic from '@anthropic-ai/sdk';
 
-const WHATSAPP_NUMBER = '972546398257';
+const WHATSAPP_NUMBER = '972585856356';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 

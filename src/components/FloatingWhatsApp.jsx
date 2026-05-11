@@ -27,7 +27,7 @@ const FloatingWhatsApp = () => {
                     className="fixed bottom-[5.5rem] right-8 z-[90] flex items-center transform-gpu will-change-transform"
                 >
                     <a
-                        href="https://wa.me/972546398257"
+                        href="https://wa.me/972585856356"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="שלחו לנו הודעה בוואטסאפ"
