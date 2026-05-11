@@ -11,7 +11,7 @@ import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import Anthropic from '@anthropic-ai/sdk';
 
-const WHATSAPP_NUMBER = '972500000000';
+const WHATSAPP_NUMBER = '972546398257';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
@@ -151,6 +151,13 @@ const SmartConcierge = () => {
     const toggleA11y = useCallback((key) => setA11y(p => ({ ...p, [key]: !p[key] })), []);
     const updateFontSize = useCallback((delta) => setA11y(p => ({ ...p, fontSize: Math.min(Math.max(p.fontSize + delta, 80), 150) })), []);
     const resetA11y = useCallback(() => setA11y(DEFAULT_A11Y), []);
+
+    // Open via custom event (e.g., from "גלה פתרונות לפי צורך" button)
+    useEffect(() => {
+        const handler = () => setIsOpen(true);
+        window.addEventListener('open-concierge', handler);
+        return () => window.removeEventListener('open-concierge', handler);
+    }, []);
 
     // Chat effects
     useEffect(() => {

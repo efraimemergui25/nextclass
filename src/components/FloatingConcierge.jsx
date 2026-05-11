@@ -2,8 +2,8 @@ import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Phone, X } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '972500000000'; // ← replace with real number
-const PHONE_NUMBER = 'tel:+972500000000'; // ← replace with real number
+const WHATSAPP_NUMBER = '972546398257';
+const PHONE_NUMBER = 'tel:+972546398257';
 
 const spring = { type: 'spring', stiffness: 300, damping: 25 };
 
@@ -13,7 +13,7 @@ function readContent() {
         return {
             pillLabel: s.concierge_label || 'צריכים התייעצות?',
             header: s.concierge_header || 'דברו איתנו',
-            waNumber: s.whatsapp_number || '972500000000',
+            waNumber: s.whatsapp_number || '972546398257',
             waLabel: s.whatsapp_label || 'וואטסאפ',
             waSub: s.whatsapp_sub || 'מענה מהיר עד שעה',
             phone: s.phone_number || '03-9999999',

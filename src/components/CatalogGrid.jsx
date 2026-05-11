@@ -573,4 +573,5 @@ const ListCard = ({ product }) => {
     );
 };
 
+export { ListCard };
 export default CatalogGrid;

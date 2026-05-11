@@ -46,8 +46,8 @@ const MenuOverlay = ({ isOpen, onClose }) => {
     const siteName  = getSetting('site_name', 'NextClass');
     const siteLogo  = getSetting('site_logo_url', '');
     const phone     = getSetting('contact_phone', '03-9999999');
-    const email     = getSetting('contact_email', 'info@nextclass.co.il');
-    const waNumber  = getSetting('whatsapp_number', '972500000000');
+    const email     = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const waNumber  = getSetting('whatsapp_number', '972546398257');
 
     const bgStyle = {
         background: 'linear-gradient(160deg, rgba(12,14,26,0.97) 0%, rgba(18,16,40,0.98) 60%, rgba(12,20,36,0.97) 100%)',
