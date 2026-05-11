@@ -66,12 +66,20 @@ const Header = () => {
 
     const navFontSize = useMemo(() => {
         const n = navLinks.length;
-        if (n <= 2) return '18px';
-        if (n === 3) return '16px';
-        if (n === 4) return '15px';
-        if (n === 5) return '13px';
-        if (n === 6) return '12px';
-        return '11px';
+        if (n <= 3) return '15px';
+        if (n === 4) return '14.5px';
+        if (n === 5) return '13.5px';
+        if (n === 6) return '13px';
+        return '12.5px';
+    }, [navLinks.length]);
+
+    const navGap = useMemo(() => {
+        const n = navLinks.length;
+        if (n <= 3) return '28px';
+        if (n === 4) return '22px';
+        if (n === 5) return '18px';
+        if (n === 6) return '14px';
+        return '12px';
     }, [navLinks.length]);
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -182,7 +190,7 @@ const Header = () => {
                 </Link>
 
                 {/* ═══ CENTER ZONE — Navigation ═══ */}
-                <nav className="hidden md:flex flex-1 items-center justify-center gap-3 lg:gap-5">
+                <nav className="hidden md:flex flex-1 items-center justify-center" style={{ gap: navGap }}>
                     {navLinks.map((link) => (
                         link.isMega ? (
                             <button
@@ -277,15 +285,15 @@ const Header = () => {
                 </div>
             </motion.header>
 
-            {/* ── Mega Menu — premium dark Apple-style, rendered via Portal ── */}
+            {/* ── Mega Menu — light glass, brand colors ── */}
             {createPortal(
                 <AnimatePresence>
                     {isMegaMenuOpen && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                            initial={{ opacity: 0, y: -8, scale: 0.97 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+                            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
                             onMouseEnter={cancelClose}
                             onMouseLeave={scheduledClose}
                             dir="rtl"
@@ -295,32 +303,32 @@ const Header = () => {
                                 left: dropdownPos.centerX,
                                 transform: 'translateX(-50%)',
                                 zIndex: 9999,
-                                width: 520,
-                                background: 'rgba(13, 14, 22, 0.97)',
-                                backdropFilter: 'blur(64px) saturate(1.6)',
-                                WebkitBackdropFilter: 'blur(64px) saturate(1.6)',
-                                border: '1px solid rgba(255,255,255,0.09)',
-                                boxShadow: '0 40px 80px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.04) inset',
+                                width: 500,
+                                background: 'rgba(255,255,255,0.86)',
+                                backdropFilter: 'blur(56px) saturate(200%)',
+                                WebkitBackdropFilter: 'blur(56px) saturate(200%)',
+                                border: '1px solid rgba(255,255,255,0.75)',
+                                boxShadow: '0 24px 60px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
                                 borderRadius: '2.25rem',
-                                padding: '12px',
+                                padding: '10px',
                                 overflow: 'hidden',
                             }}
                         >
                             {/* Ambient glow blobs */}
-                            <div className="absolute -top-16 right-8 w-36 h-36 bg-[#007AFF]/14 blur-[56px] rounded-full pointer-events-none" />
-                            <div className="absolute -bottom-16 left-8 w-32 h-32 bg-[#BF5AF2]/10 blur-[56px] rounded-full pointer-events-none" />
+                            <div className="absolute -top-20 right-10 w-48 h-48 bg-[#007AFF]/10 blur-[70px] rounded-full pointer-events-none" />
+                            <div className="absolute -bottom-20 left-10 w-40 h-40 bg-[#5856D6]/08 blur-[70px] rounded-full pointer-events-none" />
 
                             {/* Header row */}
-                            <div className="flex items-center justify-between px-4 py-2.5 mb-1">
+                            <div className="flex items-center justify-between px-4 py-2.5 mb-0.5">
                                 <Link
                                     to="/catalog"
                                     onClick={handleMegaMenuLinkClick}
-                                    className="flex items-center gap-1 text-[#007AFF] font-bold text-[11px] tracking-tight hover:opacity-75 transition-opacity"
+                                    className="flex items-center gap-1 text-[#007AFF] font-bold text-[11px] tracking-tight hover:opacity-70 transition-opacity"
                                 >
                                     {getSetting('nav_mega_all', 'ראה הכל')}
                                     <ChevronLeft size={12} />
                                 </Link>
-                                <span className="text-[10px] font-black uppercase tracking-[0.35em] text-white/30">
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#AEAEB2]">
                                     {getSetting('nav_mega_label', 'פתרונות לחינוך')}
                                 </span>
                             </div>
@@ -337,26 +345,25 @@ const Header = () => {
                                             key={slug}
                                             to={`/catalog?category=${encodeURIComponent(slug)}`}
                                             onClick={handleMegaMenuLinkClick}
-                                            className="group relative flex items-center gap-3.5 px-4 py-3 rounded-[1.25rem] transition-all duration-200 hover:bg-white/[0.07]"
+                                            className="group relative flex items-center gap-3.5 px-4 py-2.5 rounded-[1.15rem] transition-all duration-200 hover:bg-black/[0.04]"
                                             style={{ borderRight: '2.5px solid transparent' }}
                                             onMouseEnter={e => { e.currentTarget.style.borderRightColor = accent; }}
                                             onMouseLeave={e => { e.currentTarget.style.borderRightColor = 'transparent'; }}
                                         >
                                             {/* Icon */}
                                             <div
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
-                                                style={{ background: `${accent}1E` }}
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
+                                                style={{ background: `${accent}18` }}
                                             >
-                                                <IconComp size={17} style={{ color: accent }} strokeWidth={1.8} />
+                                                <IconComp size={16} style={{ color: accent }} strokeWidth={1.8} />
                                             </div>
 
                                             {/* Text */}
                                             <div className="flex-1 text-right min-w-0">
-                                                <p className="text-[13.5px] font-bold leading-snug truncate transition-colors duration-200"
-                                                    style={{ color: 'rgba(255,255,255,0.88)' }}>
+                                                <p className="text-[13px] font-bold leading-snug truncate text-[#1D1D1F] transition-colors duration-200 group-hover:text-[#007AFF]">
                                                     {label}
                                                 </p>
-                                                <p className="text-[11px] font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+                                                <p className="text-[11px] font-medium mt-0.5 text-[#86868B]">
                                                     {meta.count > 0 ? `${meta.count} פתרונות` : getSetting('nav_mega_hint', 'לחץ לצפייה')}
                                                 </p>
                                             </div>
@@ -364,18 +371,17 @@ const Header = () => {
                                             {/* Product thumbnail */}
                                             {meta.topImage && (
                                                 <div
-                                                    className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shrink-0 opacity-50 group-hover:opacity-100 transition-opacity duration-300"
-                                                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}
+                                                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-300"
+                                                    style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }}
                                                 >
-                                                    <img src={meta.topImage} alt="" className="w-9 h-9 object-contain" loading="lazy" />
+                                                    <img src={meta.topImage} alt="" className="w-8 h-8 object-contain" loading="lazy" />
                                                 </div>
                                             )}
 
                                             {/* Chevron */}
                                             <ChevronLeft
                                                 size={13}
-                                                className="shrink-0 opacity-0 translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all duration-200"
-                                                style={{ color: accent }}
+                                                className="shrink-0 opacity-0 translate-x-1 group-hover:opacity-40 group-hover:translate-x-0 transition-all duration-200 text-[#86868B]"
                                             />
                                         </Link>
                                     );
@@ -383,11 +389,11 @@ const Header = () => {
                             </div>
 
                             {/* Footer CTAs */}
-                            <div className="mt-3 pt-3 flex gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div className="mt-2.5 pt-2.5 flex gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                                 <Link
                                     to="/catalog"
                                     onClick={handleMegaMenuLinkClick}
-                                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-[1.1rem] font-bold text-[13px] text-white transition-all hover:opacity-90"
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[1rem] font-bold text-[13px] text-white transition-all hover:opacity-90 shadow-sm"
                                     style={{ background: '#007AFF' }}
                                 >
                                     כל הקטלוג
@@ -396,8 +402,8 @@ const Header = () => {
                                 <Link
                                     to="/discover"
                                     onClick={handleMegaMenuLinkClick}
-                                    className="flex-1 flex items-center justify-center py-3 rounded-[1.1rem] font-bold text-[13px] transition-all hover:bg-white/10"
-                                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                    className="flex-1 flex items-center justify-center py-2.5 rounded-[1rem] font-bold text-[13px] text-[#1D1D1F] transition-all hover:bg-black/[0.05]"
+                                    style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }}
                                 >
                                     {getSetting('nav_mega_discover', 'גלה פתרונות')}
                                 </Link>
