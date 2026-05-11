@@ -1,398 +1,614 @@
-/* eslint-disable no-unused-vars */
-
-import { useState, useMemo } from 'react';
+/* eslint-disable */
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Lock, CreditCard } from 'lucide-react';
-import PageTransition from '../components/PageTransition';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
-import { doc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import PageTransition from '../components/PageTransition';
+import {
+    ArrowLeft, ArrowRight, CheckCircle, Building2, Phone, MessageSquare,
+    Sparkles, ShoppingBag, Trash2,
+    MessageCircle, Mail, PhoneCall, Send, Star, Zap
+} from 'lucide-react';
 
-const HyperGlassCard = ({ children, className = "" }) => (
-    <div className={`bg-white/60 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_20px_40px_rgb(0_0_0/0.08)] rounded-[2rem] p-8 ${className}`}>
-        {children}
-    </div>
-);
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STEPS = [
+    { id: 1, label: 'המוסד שלך', icon: Building2 },
+    { id: 2, label: 'יצירת קשר', icon: Phone },
+    { id: 3, label: 'פרטים', icon: MessageSquare },
+];
 
-const GlassInput = ({ label, type = "text", id, value, onChange, placeholder = "" }) => (
-    <div className="space-y-2">
-        <label htmlFor={id} className="text-sm font-bold text-gray-500 pr-1">{label}</label>
-        <input
-            type={type}
-            id={id}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            className="w-full bg-white/50 border border-white/80 focus:border-[#007AFF] focus:bg-white focus:ring-4 focus:ring-[#007AFF]/10 rounded-xl px-5 py-4 text-[#1D1D1F] transition-all outline-none placeholder-gray-400 font-medium"
-            required
-        />
-    </div>
-);
+const ROLES = ['מנהל/ת', 'סגן/ית מנהל', 'מורה', 'IT / מחשוב', 'רכש / גזברות', 'אחר'];
+const INSTITUTION_TYPES = ['יסודי', 'חטיבת ביניים', 'תיכון', 'אוניברסיטה / מכללה', 'עירייה / מוניציפלי', 'גן ילדים', 'אחר'];
+const BUDGET_RANGES = ['עד ₪10,000', '₪10,000–50,000', '₪50,000–150,000', '₪150,000+', 'לא רלוונטי כרגע'];
+const URGENCY_OPTS = [
+    { id: 'flexible', label: 'גמיש', sub: 'ללא לחץ זמן', icon: '😊' },
+    { id: 'month',    label: 'תוך חודש', sub: 'תכנון שנת לימודים', icon: '📅' },
+    { id: 'urgent',   label: 'דחוף', sub: 'צריך בשבוע הקרוב', icon: '⚡' },
+];
+const CONTACT_PREFS = [
+    { id: 'whatsapp', label: 'וואטסאפ', Icon: MessageCircle, color: '#25D366' },
+    { id: 'phone',    label: 'שיחה',    Icon: PhoneCall,      color: '#007AFF' },
+    { id: 'email',    label: 'מייל',    Icon: Mail,           color: '#5856D6' },
+];
+const BEST_TIMES = [
+    { id: 'morning',   label: 'בוקר', sub: '08:00–12:00' },
+    { id: 'afternoon', label: 'צהריים', sub: '12:00–16:00' },
+    { id: 'evening',   label: 'אחה"צ', sub: '16:00–20:00' },
+];
 
-const CheckoutPage = () => {
-    const { getSetting } = useSettings();
-    const allowOrders = getSetting('allow_orders', true);
-
-    const content = useMemo(() => ({
-        title:        getSetting('check_title', 'סיום קנייה'),
-        subtitle:     getSetting('check_subtitle', 'בוא נסיים את ההזמנה שלך ונתחיל לעבוד.'),
-        shipTitle:    getSetting('check_shipping_title', 'פרטי משלוח'),
-        fname:        getSetting('check_fname', 'שם פרטי'),
-        lname:        getSetting('check_lname', 'שם משפחה'),
-        city:         getSetting('check_city', 'עיר'),
-        street:       getSetting('check_street', 'רחוב ומספר בית'),
-        phone:        getSetting('check_phone_label', 'טלפון'),
-        email:        getSetting('check_email_label', 'אימייל'),
-        payTitle:     getSetting('check_payment_title', 'אמצעי תשלום'),
-        credit:       getSetting('check_credit_card', 'אשראי'),
-        ccNum:        getSetting('check_cc_num', 'מספר כרטיס'),
-        ccExp:        getSetting('check_cc_exp', 'תוקף'),
-        ccCvv:        getSetting('check_cc_cvv', 'CVV'),
-        applePay:     getSetting('check_apple_pay', 'Double Click to Pay'),
-        appleSub:     getSetting('check_apple_sub', 'המשך לתשלום מהיר ומאובטח עם Apple Pay'),
-        bitPay:       getSetting('check_bit_pay', 'בקשת תשלום תישלח לאפליקציה'),
-        bitSub:       getSetting('check_bit_sub', 'הזן את מספר הטלפון המזוהה עם חשבון ה-bit שלך'),
-        paypalPay:    getSetting('check_paypal_pay', 'Redirecting to PayPal'),
-        paypalSub:    getSetting('check_paypal_sub', 'לאחר הלחיצה על "שלם עכשיו", תועבר לאתר PayPal להשלמת הרכישה'),
-        summary:      getSetting('cart_summary_title', 'סיכום הזמנה'),
-        qtyLabel:     getSetting('check_qty_label', 'כמות: '),
-        empty:        getSetting('check_empty', 'העגלה שלך ריקה...'),
-        subtotal:     getSetting('cart_subtotal_label', 'סיכום ביניים'),
-        shipping:     getSetting('check_shipping_cost', 'משלוח'),
-        free:         getSetting('check_free', 'חינם'),
-        total:        getSetting('cart_total_label', 'סה״כ לתשלום'),
-        taxInc:       getSetting('check_tax_inc', 'כולל מע״מ'),
-        payNow:       getSetting('check_pay_now', 'שלח פנייה ושלם'),
-        sslNote:      getSetting('check_ssl_note', 'חיבור מאובטח בתקן SSL 256-bit'),
-        disabledMsg:  getSetting('check_orders_disabled', 'קבלת הזמנות מושהית כרגע. אנא נסו שוב מאוחר יותר.'),
-    }), [getSetting]);
-
-    const subtotal = useMemo(() => {
-        return cartItems.reduce((acc, item) => {
-            const price = typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price;
-            return acc + (price * item.qty);
-        }, 0);
-    }, [cartItems]);
-
-    const total = subtotal; // Assuming shipping is free as per requirements
-
-    const handleInputChange = (e) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
-    };
-
-    const handleCheckout = async (e) => {
-        e.preventDefault();
-        
-        try {
-            // Generate order ID
-            const orderId = `NC-${Math.floor(10000 + Math.random() * 90000)}`;
-            
-            // Create a structured order matching the Admin's schema
-            const newOrder = {
-                id: orderId,
-                date: new Date().toLocaleDateString('he-IL'),
-                dateTs: Date.now(),
-                customer: `${formData.firstName} ${formData.lastName}`,
-                email: formData.email,
-                phone: formData.phone,
-                city: formData.city,
-                address: formData.street,
-                product: cartItems.map(i => i.title).join(', '),
-                productId: cartItems[0]?.id || 'unknown',
-                productImage: cartItems[0]?.imageUrl || cartItems[0]?.image,
-                qty: cartItems.reduce((acc, i) => acc + i.qty, 0),
-                total: total,
-                status: 'חדש',
-                notes: `שולם באמצעות: ${paymentMethod}`,
-                history: [
-                    { status: 'חדש', date: new Date().toLocaleDateString('he-IL'), time: new Date().toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'}) }
-                ],
-                items: cartItems 
-            };
-            
-            // Save order to Firebase
-            await setDoc(doc(db, 'orders', orderId), newOrder);
-            
-            // Decrement Inventory Stock in Firebase
-            for (const item of cartItems) {
-                if (item.id) {
-                    await updateDoc(doc(db, 'products', item.id.toString()), {
-                        stock: increment(-item.qty),
-                        sold: increment(item.qty)
-                    });
-                }
-            }
-        } catch (err) {
-            console.error('Failed to save order to Firebase database', err);
-        }
-
-        clearCart();
-        navigate('/');
-    };
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function Chip({ label, sub, icon, active, onClick, color }) {
     return (
-        <PageTransition>
-            <div className="min-h-screen bg-[#F5F5F7] pt-32 pb-24 px-4 md:px-8 max-w-7xl mx-auto">
-                <form onSubmit={handleCheckout} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        <button
+            type="button"
+            onClick={onClick}
+            className="flex-1 min-w-[100px] flex flex-col items-center gap-1.5 px-3 py-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer text-center"
+            style={{
+                borderColor: active ? (color || '#007AFF') : '#E5E5EA',
+                background:  active ? `${color || '#007AFF'}12` : '#FAFAFA',
+            }}
+        >
+            {icon && <span className="text-xl">{icon}</span>}
+            <span className="text-[12px] font-black text-[#1D1D1F]">{label}</span>
+            {sub && <span className="text-[10px] text-[#86868B] font-medium">{sub}</span>}
+        </button>
+    );
+}
 
-                    {/* RIGHT COLUMN: Shipping & Payment (7 cols) — order-2 on mobile */}
-                    <div className="col-span-12 lg:col-span-7 space-y-8 order-2 lg:order-1">
+function FormField({ label, type = 'text', value, onChange, placeholder, dir = 'rtl', required }) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest">{label}{required && <span className="text-[#FF375F] ml-1">*</span>}</label>
+            <input
+                type={type}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                dir={dir}
+                className="w-full h-12 px-4 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)]"
+            />
+        </div>
+    );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+export default function CheckoutPage() {
+    const { cartItems, clearCart, removeFromCart, increaseQuantity, decreaseQuantity } = useCart();
+    const { getSetting, isVisible } = useSettings();
+    const allowPayments = isVisible('allow_payments', false);
+
+    const [step, setStep]         = useState(1);
+    const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [quoteId, setQuoteId]   = useState('');
+    const [errors, setErrors]     = useState({});
+
+    const [form, setForm] = useState({
+        // Step 1
+        contactName: '',
+        contactRole: '',
+        institution: '',
+        institutionType: '',
+        // Step 2
+        phone: '',
+        email: '',
+        preferredContact: 'whatsapp',
+        bestTime: 'morning',
+        // Step 3
+        budgetRange: '',
+        urgency: 'flexible',
+        notes: '',
+    });
+
+    const set = useCallback((key) => (val) => setForm(p => ({ ...p, [key]: val })), []);
+
+    const subtotal = useMemo(() =>
+        (cartItems ?? []).reduce((sum, item) => {
+            const raw = item.salePrice ?? item.price;
+            const p = Number(String(raw).replace(/[^0-9.]/g, ''));
+            return sum + (p || 0) * (item.qty ?? 1);
+        }, 0),
+    [cartItems]);
+
+    const validate = useCallback(() => {
+        const e = {};
+        if (step === 1) {
+            if (!form.contactName.trim()) e.contactName = 'שדה חובה';
+            if (!form.institution.trim()) e.institution = 'שדה חובה';
+            if (!form.contactRole) e.contactRole = 'בחר תפקיד';
+            if (!form.institutionType) e.institutionType = 'בחר סוג מוסד';
+        }
+        if (step === 2) {
+            if (!form.phone.trim()) e.phone = 'שדה חובה';
+            if (!form.email.trim() || !form.email.includes('@')) e.email = 'מייל לא תקין';
+        }
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    }, [step, form]);
+
+    const next = useCallback(() => {
+        if (!validate()) return;
+        setStep(s => Math.min(s + 1, 3));
+    }, [validate]);
+
+    const back = useCallback(() => {
+        setErrors({});
+        setStep(s => Math.max(s - 1, 1));
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        if (!validate()) return;
+        setSubmitting(true);
+        try {
+            const id = `Q-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+            const now = new Date();
+            const quote = {
+                id,
+                type: 'quote',
+                dateTs: now.getTime(),
+                date: now.toLocaleDateString('he-IL'),
+                time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+                // Contact
+                contactName:      form.contactName,
+                contactRole:      form.contactRole,
+                institution:      form.institution,
+                institutionType:  form.institutionType,
+                email:            form.email,
+                phone:            form.phone,
+                preferredContact: form.preferredContact,
+                bestTime:         form.bestTime,
+                // Extra
+                budgetRange:      form.budgetRange,
+                urgency:          form.urgency,
+                notes:            form.notes,
+                // Cart
+                items: (cartItems ?? []).map(i => ({
+                    id: i.id, title: i.title, price: i.price, image: i.image || i.imageUrl || '',
+                    category: i.category, qty: i.qty ?? 1,
+                })),
+                subtotal,
+                // Admin fields
+                status: 'חדש',
+                adminNotes: [],
+                history: [{ status: 'חדש', date: now.toLocaleDateString('he-IL'), time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) }],
+            };
+            await setDoc(doc(db, 'quotes', id), quote);
+            setQuoteId(id);
+            clearCart();
+            setSubmitted(true);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSubmitting(false);
+        }
+    }, [form, cartItems, subtotal, clearCart, validate]);
+
+    const waMsg = encodeURIComponent(`שלום! שלחתי הצעה ${quoteId} דרך האתר. אשמח לתיאום 🙏`);
+    const waUrl = `https://wa.me/${getSetting('whatsapp_number', '972585856356')}?text=${waMsg}`;
+
+    // Empty cart guard
+    if (!submitted && (!cartItems || cartItems.length === 0)) {
+        return (
+            <PageTransition>
+                <div className="min-h-screen flex flex-col items-center justify-center gap-8 bg-[#F5F5F7] px-6" dir="rtl">
+                    <ShoppingBag size={64} className="text-[#C7C7CC]" strokeWidth={1} />
+                    <div className="text-center">
+                        <h2 className="text-3xl font-black text-[#1D1D1F] mb-2">העגלה ריקה</h2>
+                        <p className="text-[#86868B] font-medium">הוסף מוצרים לעגלה לפני שמגישים הצעה.</p>
+                    </div>
+                    <Link to="/catalog" className="px-8 py-4 bg-[#007AFF] text-white font-black rounded-full text-sm shadow-xl">
+                        לקטלוג המוצרים
+                    </Link>
+                </div>
+            </PageTransition>
+        );
+    }
+
+    // ── Success screen ──────────────────────────────────────────────────────
+    if (submitted) {
+        return (
+            <PageTransition>
+                <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] px-6 py-16" dir="rtl">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                        className="max-w-lg w-full bg-white rounded-[3rem] p-10 shadow-2xl text-center"
+                    >
+                        {/* Check animation */}
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.3, type: 'spring', stiffness: 500, damping: 25 }}
+                            className="w-24 h-24 bg-gradient-to-br from-[#34C759] to-[#30D158] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl"
                         >
-                            <h1 className="text-4xl lg:text-5xl font-black text-[#1D1D1F] tracking-tighter mb-4 leading-tight">
-                                {content.title}
-                            </h1>
-                            <p className="text-gray-500 font-medium mb-8">{content.subtitle}</p>
+                            <CheckCircle size={44} className="text-white" strokeWidth={2.5} />
                         </motion.div>
 
-                        {/* Step 1: Shipping Details */}
-                        <motion.section
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            <HyperGlassCard>
-                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">{content.shipTitle}</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <GlassInput label={content.fname} id="firstName" value={formData.firstName} onChange={handleInputChange} />
-                                    <GlassInput label={content.lname} id="lastName" value={formData.lastName} onChange={handleInputChange} />
-                                    <GlassInput label={content.city} id="city" value={formData.city} onChange={handleInputChange} />
-                                    <GlassInput label={content.street} id="street" value={formData.street} onChange={handleInputChange} />
-                                    <GlassInput label={content.phone} id="phone" type="tel" value={formData.phone} onChange={handleInputChange} />
-                                    <GlassInput label={content.email} id="email" type="email" value={formData.email} onChange={handleInputChange} />
-                                </div>
-                            </HyperGlassCard>
-                        </motion.section>
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F5F5F7] rounded-full text-[11px] font-black text-[#86868B] uppercase tracking-widest mb-4">
+                                מזהה הצעה: {quoteId}
+                            </div>
+                            <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-3">
+                                הצעתך התקבלה! 🎉
+                            </h2>
+                            <p className="text-[#86868B] text-base font-medium leading-relaxed mb-8">
+                                נציג NextClass יחזור אליך {form.bestTime === 'morning' ? 'בשעות הבוקר' : form.bestTime === 'afternoon' ? 'בשעות הצהריים' : 'אחרי הצהריים'} דרך {form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'שיחה טלפונית' : 'מייל'}.<br />
+                                <strong className="text-[#1D1D1F]">זמן מענה: עד 4 שעות בימי עסקים.</strong>
+                            </p>
 
-                        {/* Step 2: Payment Methods */}
-                        <motion.section
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            <HyperGlassCard>
-                                <h2 className="text-2xl font-bold text-[#1D1D1F] mb-6 tracking-tight">{content.payTitle}</h2>
+                            {/* Next steps */}
+                            <div className="text-right space-y-3 mb-8 bg-[#F5F5F7] rounded-2xl p-5">
+                                {[
+                                    { n: '1', t: 'קיבלנו את פרטי הצעתך', s: 'מעובדת כרגע על ידי הצוות שלנו' },
+                                    { n: '2', t: 'ניצור איתך קשר', s: `דרך ${form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'טלפון' : 'מייל'}` },
+                                    { n: '3', t: 'נציג מומחה יתאים לך הצעה', s: 'מותאמת אישית לתקציב ולצרכים שלך' },
+                                ].map(s => (
+                                    <div key={s.n} className="flex items-center gap-4">
+                                        <div className="w-7 h-7 rounded-full bg-[#007AFF] text-white font-black text-xs flex items-center justify-center shrink-0">{s.n}</div>
+                                        <div>
+                                            <p className="font-black text-[13px] text-[#1D1D1F]">{s.t}</p>
+                                            <p className="text-[11px] text-[#86868B]">{s.s}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
 
-                                {/* Gestalt-Synchronized Payment Badges */}
-                                <div className="flex flex-wrap gap-4 mb-10">
-                                    {/* Apple Pay */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentMethod('apple')}
-                                        className={`bg-black text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-1 font-semibold text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'apple'
-                                            ? 'ring-4 ring-offset-2 ring-[#007AFF] scale-[1.05]'
-                                            : 'opacity-50 hover:opacity-100'
-                                            }`}
-                                    >
-                                        <span className="text-2xl"></span> Pay
-                                    </button>
+                            <div className="flex flex-col gap-3">
+                                <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-white text-sm shadow-xl"
+                                    style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' }}>
+                                    <MessageCircle size={18} />
+                                    דברו איתנו עכשיו בוואטסאפ
+                                </a>
+                                <Link to="/catalog"
+                                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-[#1D1D1F] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">
+                                    <ArrowRight size={15} />
+                                    המשך לגלות מוצרים
+                                </Link>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                </div>
+            </PageTransition>
+        );
+    }
 
-                                    {/* Bit */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentMethod('bit')}
-                                        className={`bg-white border-2 border-gray-100 text-[#00B4E6] px-6 py-3 rounded-2xl flex items-center justify-center font-black text-2xl tracking-tighter shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'bit'
-                                            ? 'ring-4 ring-offset-2 ring-[#00B4E6] scale-[1.05]'
-                                            : 'opacity-50 hover:opacity-100'
-                                            }`}
-                                    >
-                                        bit
-                                    </button>
+    // ── Main checkout layout ──────────────────────────────────────────────────
+    return (
+        <PageTransition>
+            <div className="min-h-screen bg-[#F5F5F7] pt-24 pb-16" dir="rtl">
+                <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-                                    {/* PayPal */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentMethod('paypal')}
-                                        className={`bg-[#00457C] text-white px-6 py-3 rounded-2xl flex items-center justify-center font-bold italic text-xl shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'paypal'
-                                            ? 'ring-4 ring-offset-2 ring-[#00457C] scale-[1.05]'
-                                            : 'opacity-50 hover:opacity-100'
-                                            }`}
-                                    >
-                                        PayPal
-                                    </button>
+                    {/* Page header */}
+                    <div className="text-center mb-10">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white rounded-full text-[11px] font-black text-[#007AFF] uppercase tracking-widest mb-4 shadow-sm">
+                            <Sparkles size={10} strokeWidth={3} />
+                            {allowPayments ? 'צ׳ק-אאוט ותשלום' : 'בניית הצעת מחיר'}
+                        </div>
+                        <h1 className="text-4xl font-black text-[#1D1D1F] tracking-tight mb-2">
+                            {allowPayments ? 'השלמת הרכישה' : 'נבנה את הפתרון המושלם עבורך'}
+                        </h1>
+                        <p className="text-[#86868B] font-medium">
+                            {allowPayments
+                                ? 'מלא את הפרטים לאישור ההזמנה ולמעבר לתשלום.'
+                                : 'מלא את הפרטים ונציג שלנו יחזור עם הצעה מותאמת אישית.'}
+                        </p>
+                    </div>
 
-                                    {/* Credit Card */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentMethod('credit')}
-                                        className={`bg-white border-2 border-gray-100 text-[#1D1D1F] px-6 py-3 rounded-2xl flex items-center justify-center gap-3 font-semibold text-lg shadow-lg transition-all min-h-[52px] active:scale-95 ${paymentMethod === 'credit'
-                                            ? 'ring-4 ring-offset-2 ring-[#1D1D1F] scale-[1.05]'
-                                            : 'opacity-50 hover:opacity-100'
-                                            }`}
-                                    >
-                                        <CreditCard size={24} />
-                                        <span>{content.credit}</span>
-                                    </button>
-                                </div>
+                    {/* Main 2-col grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 items-start">
 
+                        {/* ── Left: Form area ──────────────────────────────── */}
+                        <div>
+                            {/* Step progress */}
+                            <div className="flex items-center gap-0 mb-8 bg-white rounded-2xl p-4 shadow-sm">
+                                {STEPS.map((s, i) => {
+                                    const Icon = s.icon;
+                                    const done  = step > s.id;
+                                    const active = step === s.id;
+                                    return (
+                                        <div key={s.id} className="flex-1 flex items-center">
+                                            <div className="flex items-center gap-2.5 flex-1">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                                                    done   ? 'bg-[#34C759] text-white' :
+                                                    active ? 'bg-[#007AFF] text-white shadow-[0_4px_12px_rgba(0,122,255,0.4)]' :
+                                                             'bg-[#F5F5F7] text-[#C7C7CC]'
+                                                }`}>
+                                                    {done ? <CheckCircle size={16} strokeWidth={3} /> : <Icon size={16} strokeWidth={2.5} />}
+                                                </div>
+                                                <span className={`text-[12px] font-black hidden sm:block ${active ? 'text-[#007AFF]' : done ? 'text-[#34C759]' : 'text-[#C7C7CC]'}`}>
+                                                    {s.label}
+                                                </span>
+                                            </div>
+                                            {i < STEPS.length - 1 && (
+                                                <div className={`h-0.5 flex-1 mx-2 rounded-full transition-all duration-500 ${step > s.id ? 'bg-[#34C759]' : 'bg-[#E5E5EA]'}`} />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Step form card */}
+                            <div className="bg-white rounded-[2rem] shadow-sm overflow-hidden">
                                 <AnimatePresence mode="wait">
-                                    {paymentMethod === 'credit' && (
-                                        <motion.div
-                                            key="credit-form"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.4, ease: "circOut" }}
-                                            className="overflow-hidden"
+                                    {step === 1 && (
+                                        <motion.div key="step1"
+                                            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3, ease: [0.22,1,0.36,1] }}
+                                            className="p-8 md:p-10"
                                         >
-                                            <div className="space-y-6 pt-6 border-t border-white/20">
-                                                <GlassInput label={content.ccNum} id="cc_number" placeholder="0000 0000 0000 0000" />
-                                                <div className="grid grid-cols-2 gap-6">
-                                                    <GlassInput label={content.ccExp} id="cc_expiry" placeholder="MM/YY" />
-                                                    <GlassInput label={content.ccCvv} id="cc_cvv" placeholder="123" />
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="w-10 h-10 bg-[#007AFF]/10 rounded-2xl flex items-center justify-center">
+                                                    <Building2 size={20} className="text-[#007AFF]" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black text-[#1D1D1F]">המוסד שלך</h2>
+                                                    <p className="text-[12px] text-[#86868B]">ספר לנו על המוסד ועל תפקידך</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-5">
+                                                <FormField label="שם מלא" value={form.contactName} onChange={set('contactName')} placeholder="ישראל ישראלי" required />
+                                                {errors.contactName && <p className="text-[11px] text-[#FF375F] -mt-3 font-bold">{errors.contactName}</p>}
+
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-2">תפקיד <span className="text-[#FF375F]">*</span></label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {ROLES.map(r => (
+                                                            <button key={r} type="button" onClick={() => set('contactRole')(r)}
+                                                                className={`px-4 py-2 rounded-full text-[12px] font-bold border-2 transition-all cursor-pointer ${form.contactRole === r ? 'bg-[#007AFF] border-[#007AFF] text-white' : 'bg-[#F5F5F7] border-transparent text-[#1D1D1F] hover:border-[#007AFF]/30'}`}>
+                                                                {r}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {errors.contactRole && <p className="text-[11px] text-[#FF375F] mt-1 font-bold">{errors.contactRole}</p>}
+                                                </div>
+
+                                                <FormField label="שם המוסד" value={form.institution} onChange={set('institution')} placeholder="בית ספר / עירייה / מכללה..." required />
+                                                {errors.institution && <p className="text-[11px] text-[#FF375F] -mt-3 font-bold">{errors.institution}</p>}
+
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-2">סוג מוסד <span className="text-[#FF375F]">*</span></label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {INSTITUTION_TYPES.map(t => (
+                                                            <button key={t} type="button" onClick={() => set('institutionType')(t)}
+                                                                className={`px-4 py-2 rounded-full text-[12px] font-bold border-2 transition-all cursor-pointer ${form.institutionType === t ? 'bg-[#5856D6] border-[#5856D6] text-white' : 'bg-[#F5F5F7] border-transparent text-[#1D1D1F] hover:border-[#5856D6]/30'}`}>
+                                                                {t}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {errors.institutionType && <p className="text-[11px] text-[#FF375F] mt-1 font-bold">{errors.institutionType}</p>}
                                                 </div>
                                             </div>
                                         </motion.div>
                                     )}
-                                    {paymentMethod === 'apple' && (
-                                        <motion.div
-                                            key="apple-form"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="text-center py-10 border-t border-white/20"
+
+                                    {step === 2 && (
+                                        <motion.div key="step2"
+                                            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3, ease: [0.22,1,0.36,1] }}
+                                            className="p-8 md:p-10"
                                         >
-                                            <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-2xl animate-bounce"></div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.applePay}</h4>
-                                            <p className="text-gray-400 font-medium">{content.appleSub}</p>
-                                        </motion.div>
-                                    )}
-                                    {paymentMethod === 'bit' && (
-                                        <motion.div
-                                            key="bit-form"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="text-center py-10 border-t border-white/20"
-                                        >
-                                            <div className="w-20 h-20 bg-white border-2 border-[#00B4E6] text-[#00B4E6] rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-xl">bit</div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.bitPay}</h4>
-                                            <p className="text-gray-400 font-medium">{content.bitSub}</p>
-                                            <div className="max-w-xs mx-auto mt-6">
-                                                <GlassInput label={content.phone} id="bit_phone" placeholder="050-0000000" />
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="w-10 h-10 bg-[#BF5AF2]/10 rounded-2xl flex items-center justify-center">
+                                                    <Phone size={20} className="text-[#BF5AF2]" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black text-[#1D1D1F]">יצירת קשר</h2>
+                                                    <p className="text-[12px] text-[#86868B]">איך הכי נוח לך שנחזור אליך?</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-5">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <FormField label="טלפון" type="tel" value={form.phone} onChange={set('phone')} placeholder="050-0000000" dir="ltr" required />
+                                                        {errors.phone && <p className="text-[11px] text-[#FF375F] mt-1 font-bold">{errors.phone}</p>}
+                                                    </div>
+                                                    <div>
+                                                        <FormField label="מייל" type="email" value={form.email} onChange={set('email')} placeholder="name@school.ac.il" dir="ltr" required />
+                                                        {errors.email && <p className="text-[11px] text-[#FF375F] mt-1 font-bold">{errors.email}</p>}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">אמצעי קשר מועדף</label>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        {CONTACT_PREFS.map(cp => {
+                                                            const Icon = cp.Icon;
+                                                            const active = form.preferredContact === cp.id;
+                                                            return (
+                                                                <button key={cp.id} type="button" onClick={() => set('preferredContact')(cp.id)}
+                                                                    className="flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 transition-all cursor-pointer"
+                                                                    style={{ borderColor: active ? cp.color : '#E5E5EA', background: active ? `${cp.color}10` : '#FAFAFA' }}>
+                                                                    <Icon size={22} style={{ color: active ? cp.color : '#86868B' }} />
+                                                                    <span className="text-[12px] font-black" style={{ color: active ? cp.color : '#86868B' }}>{cp.label}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">שעת יצירת קשר מועדפת</label>
+                                                    <div className="flex gap-3">
+                                                        {BEST_TIMES.map(bt => (
+                                                            <Chip key={bt.id} label={bt.label} sub={bt.sub}
+                                                                active={form.bestTime === bt.id}
+                                                                onClick={() => set('bestTime')(bt.id)} />
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     )}
-                                    {paymentMethod === 'paypal' && (
-                                        <motion.div
-                                            key="paypal-form"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="text-center py-10 border-t border-white/20"
+
+                                    {step === 3 && (
+                                        <motion.div key="step3"
+                                            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3, ease: [0.22,1,0.36,1] }}
+                                            className="p-8 md:p-10"
                                         >
-                                            <div className="w-20 h-20 bg-[#00457C] text-white rounded-3xl flex items-center justify-center text-2xl font-black italic mx-auto mb-6 shadow-xl">PP</div>
-                                            <h4 className="text-xl font-black text-[#1D1D1F] mb-2">{content.paypalPay}</h4>
-                                            <p className="text-gray-400 font-medium">{content.paypalSub}</p>
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="w-10 h-10 bg-[#FF9F0A]/10 rounded-2xl flex items-center justify-center">
+                                                    <Sparkles size={20} className="text-[#FF9F0A]" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black text-[#1D1D1F]">ספר לנו עוד (אופציונלי)</h2>
+                                                    <p className="text-[12px] text-[#86868B]">ייעוץ מותאם ממש עבורך — ניתן לדלג</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">טווח תקציב משוער</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {BUDGET_RANGES.map(b => (
+                                                            <button key={b} type="button" onClick={() => set('budgetRange')(form.budgetRange === b ? '' : b)}
+                                                                className={`px-4 py-2 rounded-full text-[12px] font-bold border-2 transition-all cursor-pointer ${form.budgetRange === b ? 'bg-[#FF9F0A] border-[#FF9F0A] text-white' : 'bg-[#F5F5F7] border-transparent text-[#1D1D1F] hover:border-[#FF9F0A]/30'}`}>
+                                                                {b}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">דחיפות הרכישה</label>
+                                                    <div className="flex gap-3">
+                                                        {URGENCY_OPTS.map(u => (
+                                                            <Chip key={u.id} label={u.label} sub={u.sub} icon={u.icon}
+                                                                color={u.id === 'urgent' ? '#FF375F' : u.id === 'month' ? '#FF9F0A' : '#34C759'}
+                                                                active={form.urgency === u.id}
+                                                                onClick={() => set('urgency')(u.id)} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest">הערות / דרישות מיוחדות</label>
+                                                    <textarea
+                                                        value={form.notes}
+                                                        onChange={e => set('notes')(e.target.value)}
+                                                        placeholder="ספר לנו על הצרכים המיוחדים שלך, מגבלות התקנה, כמויות גדולות במיוחד וכו׳..."
+                                                        rows={4}
+                                                        className="w-full px-4 py-3 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)] resize-none"
+                                                    />
+                                                </div>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-                            </HyperGlassCard>
-                        </motion.section>
-                    </div>
 
-                    {/* LEFT COLUMN: Order Summary (5 cols) — order-1 on mobile (shows ABOVE form) */}
-                    <div className="col-span-12 lg:col-span-5 lg:sticky lg:top-32 order-1 lg:order-2">
-                        <motion.section
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <HyperGlassCard className="!p-10 space-y-8">
-                                <h3 className="text-2xl font-black text-[#1D1D1F] tracking-tight">{content.summary}</h3>
+                                {/* Step nav buttons */}
+                                <div className="px-8 md:px-10 pb-8 flex items-center justify-between gap-4 border-t border-[#F5F5F7] pt-6">
+                                    {step > 1 ? (
+                                        <button type="button" onClick={back}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm text-[#1D1D1F] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors cursor-pointer">
+                                            <ArrowRight size={15} />
+                                            חזרה
+                                        </button>
+                                    ) : (
+                                        <Link to="/catalog"
+                                            className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm text-[#86868B] hover:text-[#1D1D1F] transition-colors">
+                                            <ArrowRight size={15} />
+                                            חזור לקטלוג
+                                        </Link>
+                                    )}
 
-                                {/* Items List */}
-                                <div className="space-y-6 max-h-[220px] lg:max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {cartItems.map((item) => (
-                                        <div key={item.id} className="flex gap-4 items-center">
-                                            <div className="w-16 h-16 rounded-xl bg-white/40 overflow-hidden border border-white/60 shadow-sm shrink-0">
-                                                <img
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }}
-                                                    src={item.image || item.imageUrl}
-                                                    alt={item.title}
-                                                    className="w-full h-full object-cover mix-blend-multiply"
-                                                />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <h4 className="text-sm font-bold text-[#1D1D1F] leading-tight line-clamp-2">{item.title}</h4>
-                                                <p className="text-xs font-bold text-gray-400">{content.qtyLabel}{item.qty}</p>
-                                            </div>
-                                            <span className="text-sm font-black text-[#1D1D1F] tracking-tighter shrink-0">
-                                                ₪{(typeof item.price === 'string' ? parseInt(item.price.replace(/[^\d]/g, '')) : item.price).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    ))}
-
-                                    {cartItems.length === 0 && (
-                                        <div className="text-center py-10">
-                                            <p className="text-gray-400 font-bold italic">{content.empty}</p>
-                                        </div>
+                                    {step < 3 ? (
+                                        <button type="button" onClick={next}
+                                            className="flex items-center gap-2 px-8 py-3 rounded-full font-black text-sm text-white bg-[#007AFF] hover:bg-blue-600 transition-colors shadow-xl cursor-pointer">
+                                            המשך
+                                            <ArrowLeft size={15} />
+                                        </button>
+                                    ) : (
+                                        <motion.button
+                                            type="button"
+                                            onClick={handleSubmit}
+                                            disabled={submitting}
+                                            whileTap={{ scale: 0.97 }}
+                                            className="flex items-center gap-2 px-8 py-3 rounded-full font-black text-sm text-white shadow-xl cursor-pointer"
+                                            style={{ background: submitting ? '#C7C7CC' : 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+                                        >
+                                            {submitting ? 'שולח...' : allowPayments ? 'אשר הזמנה ועבור לתשלום' : 'שלח הצעת מחיר'}
+                                            <Send size={14} />
+                                        </motion.button>
                                     )}
                                 </div>
+                            </div>
+                        </div>
 
-                                {/* Calculation Breakdown */}
-                                <div className="pt-8 border-t border-white/20 space-y-4">
-                                    <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                                        <span>{content.subtotal}</span>
-                                        <span className="text-[#1D1D1F]">₪{subtotal.toLocaleString()}</span>
+                        {/* ── Right: Sticky cart summary ────────────────────── */}
+                        <div className="lg:sticky lg:top-28">
+                            <div className="rounded-[2rem] overflow-hidden shadow-xl"
+                                style={{ background: 'linear-gradient(160deg, #1C1C1E 0%, #2C2C2E 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+
+                                {/* Header */}
+                                <div className="px-6 pt-6 pb-4 border-b border-white/10">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[11px] font-black text-[#636366] uppercase tracking-widest">סל הקניות שלך</span>
+                                        <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-[#007AFF]/20 text-[#007AFF]">
+                                            {(cartItems ?? []).reduce((s, i) => s + (i.qty ?? 1), 0)} פריטים
+                                        </span>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                                        <span>{content.shipping}</span>
-                                        <span className="text-green-600 font-bold">{content.free}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-4">
-                                        <span className="text-xl font-black text-[#1D1D1F]">{content.total}</span>
-                                        <div className="text-right">
-                                            <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">
-                                                ₪{total.toLocaleString()}
-                                            </span>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{content.taxInc}</p>
-                                        </div>
-                                    </div>
+                                    <p className="text-white font-black text-lg">הצעת המחיר שלך</p>
                                 </div>
 
-                                {!allowOrders && (
-                                    <div className="mt-6 bg-[#FF3B30]/08 border border-[#FF3B30]/20 rounded-2xl px-4 py-3 text-right">
-                                        <p className="text-[#FF3B30] text-sm font-bold">{content.disabledMsg}</p>
-                                    </div>
-                                )}
-                                <motion.button
-                                    type="submit"
-                                    disabled={!allowOrders}
-                                    whileHover={allowOrders ? { scale: 1.02 } : {}}
-                                    whileTap={allowOrders ? { scale: 0.98 } : {}}
-                                    className="w-full bg-[#1D1D1F] text-white py-5 rounded-2xl text-lg font-bold flex items-center justify-center gap-3 mt-4 shadow-[0_20px_40px_rgb(29_29_31/0.2)] hover:bg-black transition-all duration-300 min-h-[56px] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-                                >
-                                    <Lock className="w-5 h-5" strokeWidth={2.5} />
-                                    <span>{content.payNow} ₪{total.toLocaleString()}</span>
-                                </motion.button>
+                                {/* Items */}
+                                <div className="px-4 py-4 space-y-3 max-h-72 overflow-y-auto">
+                                    {(cartItems ?? []).map(item => (
+                                        <motion.div key={item.id} layout
+                                            className="flex items-center gap-3 p-3 rounded-2xl"
+                                            style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 shrink-0">
+                                                <img src={item.image || item.imageUrl} alt={item.title}
+                                                    className="w-full h-full object-cover"
+                                                    onError={e => { e.target.onerror=null; e.target.src='https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=200'; }} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white font-bold text-[12px] line-clamp-1">{item.title}</p>
+                                                <p className="text-[#636366] text-[10px] font-medium">₪{Number(item.price).toLocaleString()} × {item.qty ?? 1}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <button onClick={() => decreaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-white/10 text-white text-xs font-black flex items-center justify-center hover:bg-white/20 cursor-pointer">−</button>
+                                                <span className="text-white font-black text-[12px] w-5 text-center">{item.qty ?? 1}</span>
+                                                <button onClick={() => increaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-white/10 text-white text-xs font-black flex items-center justify-center hover:bg-white/20 cursor-pointer">+</button>
+                                                <button onClick={() => removeFromCart(item.id)} className="w-6 h-6 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 cursor-pointer mr-1">
+                                                    <Trash2 size={10} />
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
 
-                                {/* Secure Payment Section */}
-                                <div className="pt-6 mt-6 border-t border-white/20">
-                                    <div className="flex justify-center gap-4 mb-6">
-                                        <img src="/apple-pay-logo.svg" alt="Apple Pay" className="h-8 rounded-lg shadow-sm" />
-                                        <img src="/bit-logo.svg" alt="Bit" className="h-8 rounded-lg shadow-sm" />
-                                        <img src="/paypal-logo.svg" alt="PayPal" className="h-8 rounded-lg shadow-sm" />
-                                        <img src="/credit-card-logo.svg" alt="Credit Card" className="h-8 rounded-lg shadow-sm" />
+                                {/* Total + info */}
+                                <div className="px-6 py-5 border-t border-white/10">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-[#636366] text-sm font-bold">סה"כ משוער</span>
+                                        <span className="text-white font-black text-2xl tracking-tight">₪{subtotal.toLocaleString()}</span>
                                     </div>
-                                    <div className="flex items-center justify-center gap-2 text-[10px] font-black tracking-widest text-[#1D1D1F] opacity-40">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        {content.sslNote}
+                                    <div className="space-y-2.5">
+                                        {[
+                                            { icon: Star, text: 'מחיר סופי לפי הצעה מותאמת', color: '#FF9F0A' },
+                                            { icon: Zap, text: 'מענה מנציג תוך 4 שעות', color: '#34C759' },
+                                            { icon: CheckCircle, text: 'ייעוץ חינמי ללא התחייבות', color: '#007AFF' },
+                                        ].map(({ icon: Icon, text, color }) => (
+                                            <div key={text} className="flex items-center gap-2.5">
+                                                <Icon size={13} style={{ color }} strokeWidth={2.5} />
+                                                <span className="text-[11px] font-bold text-[#86868B]">{text}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </HyperGlassCard>
-                        </motion.section>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
         </PageTransition>
     );
-};
-
-export default CheckoutPage;
+}

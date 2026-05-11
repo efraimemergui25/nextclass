@@ -40,6 +40,7 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_accessibility_widget', label: 'ווידג׳ט נגישות',     desc: 'כפתור נגישות צף בפינת המסך', icon: '♿' },
     { key: 'vis_product_qa',    label: 'שאלות גולשים (מוצר)',      desc: 'מדור ש&א בכל דף מוצר',       icon: '❓' },
     { key: 'sidebar_visible',   label: 'תפריט צד (Product Page)',   desc: 'הניווט הצף בדפי המוצר',       icon: '📌' },
+    { key: 'allow_payments',    label: 'תשלום מקוון (Checkout)',     desc: 'הפעלת שלב תשלום מקוון בצ׳ק-אאוט', icon: '💳' },
 ];
 
 const FIELD_SECTIONS = [
@@ -53,7 +54,8 @@ const FIELD_SECTIONS = [
             { key: 'site_logo_url',     label: 'לוגו (URL)',          type: 'text',     default: '' },
             { key: 'site_tagline',      label: 'סלוגן ראשי (Footer)',  type: 'textarea', default: 'אנחנו מעצבים את הכלים שמעצימים את דור המחר. חדשנות, איכות וחזון בכל כיתה.' },
             { key: 'announcement_text',  label: 'בר הכרזות',           type: 'text',     default: '' },
-            { key: 'allow_orders',       label: 'אפשר הזמנות באתר',      type: 'boolean',  default: true },
+            { key: 'allow_orders',       label: 'אפשר בניית עגלה ושליחת בקשות', type: 'boolean', default: true },
+            { key: 'allow_payments',     label: 'אפשר תשלום מקוון (כרטיס אשראי)', type: 'boolean', default: false },
             { key: 'maintenance_mode',   label: 'מצב תחזוקה',           type: 'boolean',  default: false },
             { key: 'maintenance_title',  label: 'כותרת תחזוקה',         type: 'text',     default: 'האתר בתחזוקה' },
             { key: 'maintenance_msg',    label: 'הודעת תחזוקה',         type: 'textarea', default: 'אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.' },

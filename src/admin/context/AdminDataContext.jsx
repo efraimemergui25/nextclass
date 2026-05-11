@@ -46,13 +46,14 @@ export function AdminDataProvider({ children }) {
     
     // ─── Firebase State ────────────────────────────────────────────────────
     const [orders, setOrders] = useState([]);
+    const [quotes, setQuotes] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [inventory, setInventory] = useState([]);
     const [coupons, setCoupons] = useState([]);
     const [activityLog, setActivityLog] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const isInitialized = useRef({ orders: false, contacts: false, inventory: false });
+    const isInitialized = useRef({ orders: false, quotes: false, contacts: false, inventory: false });
 
     const analytics = React.useMemo(() => computeRealAnalytics(orders), [orders]);
     const products = inventory;
@@ -145,12 +146,29 @@ export function AdminDataProvider({ children }) {
             setCoupons(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
         });
 
+        const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snap) => {
+            const newQuotes = snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => b.dateTs - a.dateTs);
+            if (isInitialized.current.quotes) {
+                snap.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const q = change.doc.data();
+                        const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
+                        if (settings.notifOrders !== false) {
+                            showToast(`בקשת הצעת מחיר חדשה מ${q.contactName || q.institution || 'לקוח'}`, 'info');
+                        }
+                    }
+                });
+            }
+            setQuotes(newQuotes);
+            isInitialized.current.quotes = true;
+        });
+
         const unsubActivity = onSnapshot(collection(db, 'activity'), (snap) => {
             setActivityLog(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a,b) => b.ts - a.ts));
         });
 
         return () => {
-            unsubOrders(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity();
+            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity();
         };
     }, []);
 
@@ -192,6 +210,23 @@ export function AdminDataProvider({ children }) {
             sold: 0,
         });
         addActivity(`מוצר חדש נוסף: ${newProduct.title}`, 'product');
+    };
+
+    const updateQuoteStatus = async (quoteId, newStatus) => {
+        const now = new Date();
+        const date = now.toLocaleDateString('he-IL');
+        const time = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        const quote = quotes.find(q => q.id === quoteId);
+        const historyEntry = { status: newStatus, date, time };
+        const history = [...(quote?.history || []), historyEntry];
+        await setDoc(doc(db, 'quotes', quoteId), { status: newStatus, history }, { merge: true });
+        addActivity(`הצעת מחיר ${quoteId} עודכנה ל"${newStatus}"`, 'order');
+    };
+
+    const addQuoteNote = async (quoteId, note) => {
+        const quote = quotes.find(q => q.id === quoteId);
+        const adminNotes = [...(quote?.adminNotes || []), { note, ts: Date.now(), date: new Date().toLocaleDateString('he-IL') }];
+        await setDoc(doc(db, 'quotes', quoteId), { adminNotes }, { merge: true });
     };
 
     const updateContactStatus = async (id, status) => {
@@ -289,8 +324,9 @@ export function AdminDataProvider({ children }) {
 
     return (
         <AdminDataContext.Provider value={{
-            orders, contacts, inventory, analytics, coupons, kpis, products, activityLog,
-            updateOrderStatus, updateStock, updateProductDetails, addProduct, deleteProduct, updateContactStatus,
+            orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
+            updateOrderStatus, updateQuoteStatus, addQuoteNote, updateStock, updateProductDetails,
+            addProduct, deleteProduct, updateContactStatus,
             addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
             repairProductImages, reseedDatabase
         }}>

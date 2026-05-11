@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Mail, MapPin, MessageSquare, Clock, Send, Sparkles, CheckCircle2, ShieldCheck, Heart, User } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const GLASS_CARD = "glass-apple gestalt-card p-10 flex flex-col gap-6 relative overflow-hidden group border border-white/40 shadow-sm transition-apple-fluid";
 
@@ -103,12 +105,12 @@ const ContactPage = () => {
         return () => clearInterval(timer);
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Build contact record matching AdminDataContext schema
+        const id = `CNT-${Date.now()}`;
         const contact = {
-            id: `CNT-${Date.now()}`,
+            id,
             name: formData.name.trim() || 'לא ידוע',
             subject: formData.inst.trim() ? `${formData.inst.trim()} — פנייה חדשה` : 'פנייה מהאתר',
             email: formData.email.trim(),
@@ -120,10 +122,13 @@ const ContactPage = () => {
         };
 
         try {
-            const existing = JSON.parse(localStorage.getItem('nextclass_contacts') || '[]');
-            localStorage.setItem('nextclass_contacts', JSON.stringify([contact, ...existing]));
+            await setDoc(doc(db, 'contacts', id), contact);
         } catch {
-            // Fail silently — form UX shouldn't break
+            // Firestore unavailable — store locally as fallback
+            try {
+                const existing = JSON.parse(localStorage.getItem('nextclass_contacts') || '[]');
+                localStorage.setItem('nextclass_contacts', JSON.stringify([contact, ...existing]));
+            } catch {}
         }
 
         setIsSubmitted(true);

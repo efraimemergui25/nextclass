@@ -12,13 +12,13 @@ import QuoteWizard from '../components/QuoteWizard';
 import { useSettings } from '../context/SettingsContext';
 
 const SECTION_DEFS = [
-    { key: 'vis_hero',         Component: HeroSection },
-    { key: 'vis_social_proof', Component: SocialProofStrip },
-    { key: 'vis_catalog',      Component: HomeProductsSection },
-    { key: 'vis_ecosystem',    Component: EcosystemVisualizer },
-    { key: 'vis_shoppable',    Component: ShoppableImage },
-    { key: 'vis_quote_wizard', Component: QuoteWizard },
-    { key: 'vis_value_props',  Component: ValueProps },
+    { key: 'vis_hero',         Component: HeroSection },       // 1. Cinematic intro
+    { key: 'vis_social_proof', Component: SocialProofStrip },  // 2. Immediate trust
+    { key: 'vis_value_props',  Component: ValueProps },         // 3. Why us — context before products
+    { key: 'vis_catalog',      Component: HomeProductsSection }, // 4. Product discovery
+    { key: 'vis_ecosystem',    Component: EcosystemVisualizer }, // 5. Ecosystem deep-dive
+    { key: 'vis_shoppable',    Component: ShoppableImage },     // 6. Interactive shop
+    { key: 'vis_quote_wizard', Component: QuoteWizard },        // 7. Conversion CTA
 ];
 
 const LandingPage = () => {
