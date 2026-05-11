@@ -64,6 +64,16 @@ const Header = () => {
             }));
     }, [getSetting]);
 
+    const navFontSize = useMemo(() => {
+        const n = navLinks.length;
+        if (n <= 2) return '18px';
+        if (n === 3) return '16px';
+        if (n === 4) return '15px';
+        if (n === 5) return '13px';
+        if (n === 6) return '12px';
+        return '11px';
+    }, [navLinks.length]);
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -181,7 +191,8 @@ const Header = () => {
                                 onMouseEnter={openMegaMenu}
                                 onMouseLeave={scheduledClose}
                                 onClick={() => { handleMegaMenuLinkClick(); navigate(link.path); }}
-                                className={`flex items-center gap-1 font-semibold text-[13px] whitespace-nowrap transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
+                                style={{ fontSize: navFontSize }}
+                                className={`flex items-center gap-1 font-semibold whitespace-nowrap transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
                             >
                                 {link.label}
                                 <svg
@@ -195,7 +206,8 @@ const Header = () => {
                             <Link
                                 key={link.path}
                                 to={link.path}
-                                className="text-[#1D1D1F] font-semibold text-[13px] whitespace-nowrap hover:text-[#007AFF] transition-colors duration-300"
+                                style={{ fontSize: navFontSize }}
+                                className="text-[#1D1D1F] font-semibold whitespace-nowrap hover:text-[#007AFF] transition-colors duration-300"
                             >
                                 {link.label}
                             </Link>
