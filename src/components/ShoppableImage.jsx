@@ -82,10 +82,10 @@ const ShoppableImage = () => {
                     <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-4">
                         {content.eyebrow}
                     </span>
-                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.1]">
+                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4 leading-[1.1]">
                         {content.title}
                     </h2>
-                    <p className="text-xl text-gray-400 font-normal leading-relaxed">
+                    <p className="text-base text-gray-400 font-normal leading-relaxed">
                         {content.subtitle}
                     </p>
                 </div>
