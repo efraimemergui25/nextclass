@@ -10,6 +10,8 @@ import initialProducts from '../../data/products';
 
 const FILTERS = ['הכל', 'נמוך', 'אזל', 'תקין'];
 
+const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
+
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
     background: 'rgba(255,255,255,0.88)',
@@ -210,16 +212,19 @@ export default function AdminInventory() {
                             {/* Thumbnail */}
                             <div className="w-12 h-12 rounded-[14px] overflow-hidden shrink-0 bg-[#F5F5F7]">
                                 {product.image
-                                    ? <img 
-                                        src={product.image} 
-                                        alt={product.title} 
+                                    ? <img
+                                        src={product.image}
+                                        alt={product.title}
                                         onError={(e) => {
-                                            const original = initialProducts.find(ip => String(ip.id) === String(product.id));
-                                            if (original && e.target.src !== original.image) {
-                                                e.target.src = original.image;
+                                            if (!e.target.dataset.tried1) {
+                                                e.target.dataset.tried1 = 'true';
+                                                const orig = initialProducts.find(ip => String(ip.id) === String(product.id));
+                                                if (orig?.image) { e.target.src = orig.image; return; }
                                             }
+                                            e.target.onerror = null;
+                                            e.target.src = IMG_FALLBACK;
                                         }}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                       />
                                     : <div className="w-full h-full flex items-center justify-center text-lg opacity-40">📦</div>}
                             </div>
@@ -330,7 +335,8 @@ function ProductModal({ product, onClose, onSave }) {
                     <div className="space-y-6">
                         <div className="flex gap-6">
                             <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
-                                <img src={image} className="w-full h-full object-cover" alt="" />
+                                <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
+                                    onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
                             </div>
                             <div className="flex-1 space-y-4">
                                 <AdminInput label="שם המוצר" value={title} onChange={setTitle} />

@@ -11,6 +11,8 @@ const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנ�
 
 const EMPTY_FORM = { title: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], isActive: true, isNew: false, isFeatured: false };
 
+const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
+
 const STATUS_FILTERS = ['הכל', 'פעיל', 'לא פעיל'];
 
 function ActiveBadge({ isActive }) {
@@ -57,10 +59,13 @@ function ProductCard({ product, onEdit }) {
                 {product.image ? (
                     <img src={product.image} alt={product.title}
                         onError={(e) => {
-                            const original = initialProducts.find(ip => String(ip.id) === String(product.id));
-                            if (original && e.target.src !== original.image) {
-                                e.target.src = original.image;
+                            if (!e.target.dataset.tried1) {
+                                e.target.dataset.tried1 = 'true';
+                                const orig = initialProducts.find(ip => String(ip.id) === String(product.id));
+                                if (orig?.image) { e.target.src = orig.image; return; }
                             }
+                            e.target.onerror = null;
+                            e.target.src = IMG_FALLBACK;
                         }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
@@ -127,16 +132,19 @@ function ProductRow({ product, onEdit }) {
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image
-                    ? <img 
-                        src={product.image} 
-                        alt={product.title} 
+                    ? <img
+                        src={product.image}
+                        alt={product.title}
                         onError={(e) => {
-                            const original = initialProducts.find(ip => String(ip.id) === String(product.id));
-                            if (original && e.target.src !== original.image) {
-                                e.target.src = original.image;
+                            if (!e.target.dataset.tried1) {
+                                e.target.dataset.tried1 = 'true';
+                                const orig = initialProducts.find(ip => String(ip.id) === String(product.id));
+                                if (orig?.image) { e.target.src = orig.image; return; }
                             }
+                            e.target.onerror = null;
+                            e.target.src = IMG_FALLBACK;
                         }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🛍️</div>}
             </div>
@@ -423,16 +431,19 @@ export default function AdminProducts() {
                     <AdminInput label="כתובת תמונה (URL)" value={editForm.image} onChange={v => setField('image', v)} placeholder="https://..." dir="ltr" />
                     {editForm.image && (
                         <div className="w-full h-40 rounded-xl overflow-hidden bg-[#F5F5F7]">
-                            <img 
-                                src={editForm.image} 
-                                alt="תצוגה מקדימה" 
+                            <img
+                                src={editForm.image}
+                                alt="תצוגה מקדימה"
                                 onError={(e) => {
-                                    const original = initialProducts.find(ip => String(ip.id) === String(editingProduct?.id));
-                                    if (original && e.target.src !== original.image) {
-                                        e.target.src = original.image;
+                                    if (!e.target.dataset.tried1) {
+                                        e.target.dataset.tried1 = 'true';
+                                        const orig = initialProducts.find(ip => String(ip.id) === String(editingProduct?.id));
+                                        if (orig?.image) { e.target.src = orig.image; return; }
                                     }
+                                    e.target.onerror = null;
+                                    e.target.src = IMG_FALLBACK;
                                 }}
-                                className="w-full h-full object-cover" 
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     )}

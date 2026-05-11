@@ -7,6 +7,8 @@ import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 
+const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
+
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
     background: 'rgba(255,255,255,0.88)',
@@ -358,7 +360,15 @@ function QuotesPipeline() {
                                         <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right"
                                             style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
                                             <img src={item.image || item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover bg-[#F5F5F7] shrink-0"
-                                                onError={e => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?w=100"; }} />
+                                                onError={(e) => {
+                                                    if (!e.target.dataset.tried1) {
+                                                        e.target.dataset.tried1 = 'true';
+                                                        const orig = initialProducts.find(ip => String(ip.id) === String(item.id));
+                                                        if (orig?.image) { e.target.src = orig.image; return; }
+                                                    }
+                                                    e.target.onerror = null;
+                                                    e.target.src = IMG_FALLBACK;
+                                                }} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[#1D1D1F] font-bold text-sm truncate">{item.title}</p>
                                                 <p className="text-[#86868B] text-xs">כמות: {item.qty ?? item.quantity ?? 1} · ₪{(item.salePrice ?? item.price)?.toLocaleString()}</p>

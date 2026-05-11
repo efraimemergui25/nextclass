@@ -1,4 +1,6 @@
 import React from 'react';
+
+const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
@@ -95,7 +97,8 @@ const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
                                                 <td className="py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden border border-gray-200 shrink-0">
-                                                            {item.image && <img src={item.image} alt={item.title} className="w-full h-full object-cover mix-blend-multiply" />}
+                                                            <img src={item.image || IMG_FALLBACK} alt={item.title} className="w-full h-full object-cover mix-blend-multiply"
+                                                onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-[#1D1D1F] text-sm md:text-base">{item.title}</p>
