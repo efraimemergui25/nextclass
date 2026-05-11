@@ -25,6 +25,9 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminContent from './pages/AdminContent';
 import AdminSettings from './pages/AdminSettings';
+import AdminQA from './pages/AdminQA';
+import AdminFulfillment from './pages/AdminFulfillment';
+import AdminCommunity from './pages/AdminCommunity';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -81,6 +84,9 @@ function AdminShell() {
                                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                                     <Route path="/admin/marketing" element={<AdminMarketing />} />
                                     <Route path="/admin/content" element={<AdminContent />} />
+                                    <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
+                                    <Route path="/admin/community" element={<AdminCommunity />} />
+                                    <Route path="/admin/qa" element={<AdminQA />} />
                                     <Route path="/admin/settings" element={<AdminSettings />} />
                                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                                 </Routes>

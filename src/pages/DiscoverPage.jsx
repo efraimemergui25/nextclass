@@ -114,23 +114,29 @@ const DiscoverPage = () => {
 
     return (
         <PageTransition>
-            <div className="min-h-screen bg-[#F5F5F7] pt-28 pb-24 w-full overflow-x-hidden">
+            <div className="min-h-screen pt-28 pb-24 w-full overflow-x-hidden">
                 <div className="max-w-[1400px] mx-auto px-6">
 
                     {/* ── Page Header ─────────────────────────────────── */}
-                    <div className="max-w-2xl pt-16 mb-24 relative z-10">
-                        <motion.span
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-[9px] font-black uppercase tracking-[0.6em] text-[#007AFF]/60 mb-10 block"
+                    <div className="max-w-3xl pt-16 mb-24 relative z-10">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
+                            style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)' }}
                         >
-                            NextClass Discovery
-                        </motion.span>
+                            <Sparkles size={11} className="text-[#007AFF]" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#007AFF]">
+                                NextClass Discovery
+                            </span>
+                        </motion.div>
                         <motion.h1
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                            className="text-5xl md:text-[5.5rem] font-bold tracking-tight leading-[1.1] text-[#1D1D1F] whitespace-nowrap"
+                            className="text-5xl md:text-[5.5rem] font-black tracking-tight leading-[1.05] text-[#1D1D1F]"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}
                         >
                             {getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.')}
                         </motion.h1>
@@ -138,10 +144,14 @@ const DiscoverPage = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6, duration: 1 }}
-                            className="text-lg md:text-xl text-[#86868B] font-medium leading-relaxed max-w-2xl mt-8 tracking-tight"
+                            className="text-lg md:text-xl text-[#6E6E73] font-medium leading-relaxed max-w-2xl mt-8 tracking-tight"
                         >
                             {getSetting('discover_desc', 'אוסף נבחר של הכלים המתקדמים ביותר לחינוך, מחשוב ותשתיות למידה. כל מה שצריך כדי להפוך חזון למציאות.')}
                         </motion.p>
+
+                        {/* Ambient glow behind headline */}
+                        <div className="absolute top-12 right-0 w-[500px] h-[300px] bg-[#007AFF]/8 blur-[100px] rounded-full pointer-events-none -z-10" />
+                        <div className="absolute top-24 left-0 w-[300px] h-[200px] bg-[#30D158]/6 blur-[80px] rounded-full pointer-events-none -z-10" />
                     </div>
 
                     {/* ── Hero Spotlight — admin-controlled featured product ── */}

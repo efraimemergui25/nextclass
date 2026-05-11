@@ -42,7 +42,6 @@ import DynamicIsland from './components/DynamicIsland';
 import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
-import AccessibilityWidget from './components/AccessibilityWidget';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
@@ -187,7 +186,6 @@ function AppContent() {
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
-            <AccessibilityWidget />
         </div>
     );
 }

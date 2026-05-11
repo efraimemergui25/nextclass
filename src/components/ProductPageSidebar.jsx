@@ -46,13 +46,22 @@ const ProductPageSidebar = ({ visible = true }) => {
 
     const sidebarEnabled = isVisible('sidebar_visible', true);
 
-    const sections = DEFAULT_SECTIONS
+    const savedOrder = getSetting('sidebar_sections_order', null);
+    const orderedSections = Array.isArray(savedOrder)
+        ? savedOrder.map(id => DEFAULT_SECTIONS.find(s => s.id === id)).filter(Boolean)
+        : DEFAULT_SECTIONS;
+    const sections = orderedSections
         .filter(s => isVisible(s.visKey, true))
         .map(s => ({ ...s, label: getSetting(s.labelKey, s.defaultLabel) }));
 
-    // Show after hero scrolls away
+    // Show after hero scrolls away; hide when near page bottom (footer area)
     useEffect(() => {
-        const handle = () => setShowSidebar(window.scrollY > 380);
+        const handle = () => {
+            const scrollBottom = window.scrollY + window.innerHeight;
+            const pageHeight = document.documentElement.scrollHeight;
+            const nearBottom = scrollBottom > pageHeight - 520;
+            setShowSidebar(window.scrollY > 380 && !nearBottom);
+        };
         window.addEventListener('scroll', handle, { passive: true });
         handle();
         return () => window.removeEventListener('scroll', handle);

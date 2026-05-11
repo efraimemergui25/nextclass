@@ -153,7 +153,7 @@ const Header = () => {
                 </Link>
 
                 {/* ═══ CENTER ZONE — Navigation ═══ */}
-                <nav className="hidden md:flex flex-1 items-center justify-center gap-6 text-[13px]">
+                <nav className="hidden md:flex flex-1 items-center justify-center gap-3 lg:gap-5">
                     {navLinks.map((link) => (
                         link.isMega ? (
                             <button
@@ -162,21 +162,21 @@ const Header = () => {
                                 onMouseEnter={openMegaMenu}
                                 onMouseLeave={scheduledClose}
                                 onClick={() => { handleMegaMenuLinkClick(); navigate(link.path); }}
-                                className={`flex items-center gap-1.5 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
+                                className={`flex items-center gap-1 font-semibold text-[13px] whitespace-nowrap transition-colors duration-300 bg-transparent border-none cursor-pointer ${isMegaMenuOpen ? 'text-[#007AFF]' : 'text-[#1D1D1F] hover:text-[#007AFF]'}`}
                             >
                                 {link.label}
                                 <svg
-                                    className={`w-3.5 h-3.5 transition-transform duration-300 pointer-events-none ${isMegaMenuOpen ? 'rotate-180' : ''}`}
+                                    className={`w-3 h-3 transition-transform duration-300 pointer-events-none shrink-0 ${isMegaMenuOpen ? 'rotate-180' : ''}`}
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
                                 >
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
                         ) : (
-                            <Link 
-                                key={link.path} 
-                                to={link.path} 
-                                className="text-[#1D1D1F] font-semibold tracking-wide text-sm md:text-base hover:text-[#007AFF] transition-colors duration-300"
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                className="text-[#1D1D1F] font-semibold text-[13px] whitespace-nowrap hover:text-[#007AFF] transition-colors duration-300"
                             >
                                 {link.label}
                             </Link>

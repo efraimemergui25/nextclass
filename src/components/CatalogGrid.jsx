@@ -61,10 +61,35 @@ const CatalogGrid = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [sortBy, setSortBy] = useState('default');
     const [priceRange, setPriceRange] = useState([0, content.priceMax]);
+    const [selectedTags, setSelectedTags] = useState([]);
 
     const { activeProducts: products } = useProducts();
 
     const categories = content.categories;
+
+    // Reset selected category if it was removed from the categories list
+    useEffect(() => {
+        if (selectedCategory !== "הכל" && !categories.includes(selectedCategory)) {
+            setSelectedCategory("הכל");
+        }
+    }, [categories, selectedCategory]);
+
+    const toggleTag = (tag) => {
+        setSelectedTags(prev =>
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+        );
+    };
+
+    const activeFilterCount = (sortBy !== 'default' ? 1 : 0) +
+        (priceRange[1] < content.priceMax ? 1 : 0) +
+        selectedTags.length;
+
+    const resetFilters = () => {
+        setSortBy('default');
+        setPriceRange([0, content.priceMax]);
+        setSelectedCategory('הכל');
+        setSelectedTags([]);
+    };
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
@@ -72,13 +97,22 @@ const CatalogGrid = () => {
             result = result.filter(p => p.category === selectedCategory);
         }
         result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
-        
+        if (selectedTags.length > 0) {
+            result = result.filter(p => {
+                const haystack = [
+                    p.title || '',
+                    p.description || '',
+                    ...(p.specs || []).map(s => `${s.label || ''} ${s.value || ''}`),
+                ].join(' ').toLowerCase();
+                return selectedTags.some(tag => haystack.includes(tag.toLowerCase()));
+            });
+        }
         if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price);
         else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price);
         else if (sortBy === 'name') result.sort((a, b) => a.title.localeCompare(b.title));
-        
+
         return result;
-    }, [selectedCategory, sortBy, priceRange, products]);
+    }, [selectedCategory, sortBy, priceRange, selectedTags, products]);
 
     return (
         <section className="w-full max-w-[1440px] mx-auto px-6 md:px-24 pt-20 pb-32 bg-[#F5F5F7] relative z-10">
@@ -113,11 +147,10 @@ const CatalogGrid = () => {
                     <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#F5F5F7] to-transparent z-10 pointer-events-none" />
 
                     <div
-                        className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-2"
+                        className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-2"
                         style={{ WebkitOverflowScrolling: 'touch' }}
                     >
-                        {/* Left safe-area spacer */}
-                        <div className="shrink-0 w-8" />
+                        <div className="shrink-0 w-6" />
                         {categories.map((category) => {
                             const isActive = selectedCategory === category;
                             return (
@@ -136,8 +169,7 @@ const CatalogGrid = () => {
                                 </button>
                             );
                         })}
-                        {/* Right safe-area spacer */}
-                        <div className="shrink-0 w-20" />
+                        <div className="shrink-0 w-6" />
                     </div>
                 </div>
 
@@ -171,8 +203,10 @@ const CatalogGrid = () => {
                         >
                             <div className="relative flex items-center justify-center">
                                 <SlidersHorizontal size={18} strokeWidth={2.5} className="text-[#007AFF]" />
-                                {(sortBy !== 'default' || priceRange[1] < content.priceMax) && (
-                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#007AFF] rounded-full ring-2 ring-black animate-pulse" />
+                                {activeFilterCount > 0 && (
+                                    <span className="absolute -top-2 -right-2 min-w-[16px] h-4 px-1 bg-[#007AFF] rounded-full ring-2 ring-[#1D1D1F] flex items-center justify-center text-[9px] font-black text-white">
+                                        {activeFilterCount}
+                                    </span>
                                 )}
                             </div>
                             <span>{content.filterBtn}</span>
@@ -185,14 +219,20 @@ const CatalogGrid = () => {
             {/* ── Product Display ── */}
             <AnimatePresence mode='wait'>
                 <motion.div
-                    key={`${selectedCategory}-${viewMode}-${sortBy}-${priceRange[1]}`}
+                    key={`${selectedCategory}-${viewMode}-${sortBy}-${priceRange[1]}-${selectedTags.join(',')}`}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -30 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className={
                         viewMode === 'grid'
-                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-16"
+                            ? `grid gap-10 lg:gap-16 ${
+                                filteredProducts.length === 1
+                                    ? 'grid-cols-1 max-w-md mx-auto'
+                                    : filteredProducts.length === 2
+                                    ? 'grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto'
+                                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                              }`
                             : "flex flex-col gap-6 max-w-5xl mx-auto"
                     }
                 >
@@ -294,31 +334,54 @@ const CatalogGrid = () => {
                                         </div>
                                     </section>
 
-                                    {/* Special Filters */}
+                                    {/* Feature Tag Filters */}
                                     <section className="mb-14">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">{content.tagsLabel}</p>
-                                        <div className="flex flex-wrap gap-2.5">
-                                            {content.tags.map(tag => (
-                                                <button key={tag} className="px-5 py-2.5 rounded-full border border-black/5 bg-white/30 text-xs font-bold text-gray-600 hover:bg-white hover:border-black/20 transition-all">
-                                                    {tag}
+                                        <div className="flex items-center justify-between mb-6">
+                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">{content.tagsLabel}</p>
+                                            {selectedTags.length > 0 && (
+                                                <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold text-gray-400 hover:text-[#1D1D1F] transition-colors">
+                                                    נקה הכל
                                                 </button>
-                                            ))}
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2.5">
+                                            {content.tags.map(tag => {
+                                                const active = selectedTags.includes(tag);
+                                                return (
+                                                    <button
+                                                        key={tag}
+                                                        onClick={() => toggleTag(tag)}
+                                                        className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold transition-all ${
+                                                            active
+                                                                ? 'bg-[#007AFF] text-white border border-[#007AFF] shadow-md'
+                                                                : 'border border-black/5 bg-white/30 text-gray-600 hover:bg-white hover:border-black/20'
+                                                        }`}
+                                                    >
+                                                        {active && <Check size={10} strokeWidth={3} />}
+                                                        {tag}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </section>
                                 </div>
 
-                                <div className="mt-auto pt-10 flex gap-4 border-t border-black/5">
-                                    <button 
-                                        onClick={() => { setSortBy('default'); setPriceRange([0, content.priceMax]); setSelectedCategory('הכל'); }}
-                                        className="flex-1 py-5 rounded-2xl font-bold text-sm text-gray-400 hover:text-[#1D1D1F] transition-colors"
+                                <div className="mt-auto pt-6 flex gap-4 border-t border-black/5">
+                                    <button
+                                        onClick={resetFilters}
+                                        className={`flex-1 py-4 rounded-2xl font-bold text-sm transition-colors ${activeFilterCount > 0 ? 'text-[#1D1D1F] hover:text-red-500' : 'text-gray-300 cursor-default'}`}
+                                        disabled={activeFilterCount === 0}
                                     >
                                         {content.resetBtn}
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setIsFilterOpen(false)}
-                                        className="flex-[2] py-5 rounded-2xl bg-[#007AFF] text-white font-black text-[15px] shadow-[0_12px_30px_rgba(0,122,255,0.4)] hover:scale-[1.02] active:scale-95 transition-all"
+                                        className="flex-[2] py-4 rounded-2xl bg-[#007AFF] text-white font-black text-[14px] shadow-[0_12px_30px_rgba(0,122,255,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                                     >
-                                        {content.applyBtn}
+                                        <span>{content.applyBtn}</span>
+                                        <span className="bg-white/20 text-white text-[11px] font-black px-2 py-0.5 rounded-full">
+                                            {filteredProducts.length}
+                                        </span>
                                     </button>
                                 </div>
                             </div>
@@ -346,6 +409,7 @@ const ListCard = ({ product }) => {
     const { id, category, title, price, image, description, specs } = product ?? {};
     const [imgError, setImgError] = React.useState(false);
 
+    const { getSetting } = useSettings();
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
     const { cartItems, addToCart, removeFromCart } = useCart();
     const { state: popState, trigger } = useCartPop();

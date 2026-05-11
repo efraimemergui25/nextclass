@@ -37,6 +37,9 @@ const VISIBILITY_ITEMS = [
     { key: 'vis_magazine',        label: 'מגזין חדשנות',           desc: 'הפעלה/השבתה של בלוג האתר', icon: '📰' },
     { key: 'vis_compare_page',    label: 'עמוד השוואת דגמים',       desc: 'הפעלה/השבתה של כלי ההשוואה', icon: '⚖️' },
     { key: 'vis_ai_assistant',    label: 'עוזר אישי (AI)',         desc: 'הפעלה/השבתה של הווידג׳ט הצף', icon: '🤖' },
+    { key: 'vis_accessibility_widget', label: 'ווידג׳ט נגישות',     desc: 'כפתור נגישות צף בפינת המסך', icon: '♿' },
+    { key: 'vis_product_qa',    label: 'שאלות גולשים (מוצר)',      desc: 'מדור ש&א בכל דף מוצר',       icon: '❓' },
+    { key: 'sidebar_visible',   label: 'תפריט צד (Product Page)',   desc: 'הניווט הצף בדפי המוצר',       icon: '📌' },
 ];
 
 const FIELD_SECTIONS = [
@@ -62,19 +65,21 @@ const FIELD_SECTIONS = [
         icon: '🧭',
         accent: '#007AFF',
         fields: [
-            { key: 'nav_home',          label: 'בית',                 type: 'text',     default: 'דף הבית' },
-            { key: 'nav_catalog',       label: 'קטלוג',               type: 'text',     default: 'המוצרים שלנו' },
-            { key: 'nav_compare',       label: 'השוואה',              type: 'text',     default: 'השוואת דגמים' },
-            { key: 'nav_about',         label: 'סיפורנו',             type: 'text',     default: 'הסיפור שלנו' },
-            { key: 'nav_vod',           label: 'הדרכה',               type: 'text',     default: 'מרכז הדרכה' },
-            { key: 'nav_magazine',      label: 'מגזין',               type: 'text',     default: 'מגזין' },
-            { key: 'nav_contact',       label: 'קשר',                 type: 'text',     default: 'צור קשר' },
-            { key: 'nav_mega_hint',     label: 'רמז מגה-מניו',         type: 'text',     default: 'לחץ לצפייה בדגמים' },
-            { key: 'nav_mega_all',      label: 'כפתור "כל הקטלוג"',    type: 'text',     default: 'לכל קטלוג הפתרונות' },
-            { key: 'aria_cart',         label: 'עגלה (Aria)',          type: 'text',     default: 'עגלת קניות' },
-            { key: 'aria_search',       label: 'חיפוש (Aria)',         type: 'text',     default: 'חיפוש' },
-            { key: 'aria_menu',         label: 'תפריט (Aria)',         type: 'text',     default: 'תפריט' },
-            { key: 'aria_back',         label: 'חזור (Aria)',          type: 'text',     default: 'חזור' },
+            { key: 'nav_home',            label: 'בית — תווית',                    type: 'text', default: 'דף הבית' },
+            { key: 'nav_catalog',         label: 'קטלוג — תווית',                  type: 'text', default: 'המוצרים שלנו' },
+            { key: 'nav_catalog_sub',     label: 'קטלוג — תיאור (תפריט נייד)',     type: 'text', default: 'כל הפתרונות הטכנולוגיים לחינוך' },
+            { key: 'nav_compare',         label: 'השוואה — תווית',                 type: 'text', default: 'השוואת דגמים' },
+            { key: 'nav_compare_sub',     label: 'השוואה — תיאור (תפריט נייד)',    type: 'text', default: 'השווה בין מוצרים בקלות' },
+            { key: 'nav_about',           label: 'סיפורנו — תווית',               type: 'text', default: 'הסיפור שלנו' },
+            { key: 'nav_story_sub',       label: 'סיפורנו — תיאור (תפריט נייד)', type: 'text', default: 'מי אנחנו ולמה זה חשוב' },
+            { key: 'nav_vod',             label: 'הדרכה — תווית',                  type: 'text', default: 'מרכז הדרכה' },
+            { key: 'nav_vod_sub',         label: 'הדרכה — תיאור (תפריט נייד)',    type: 'text', default: 'מדריכי וידאו ומרכז ידע חינמי' },
+            { key: 'nav_magazine',        label: 'מגזין — תווית',                  type: 'text', default: 'מגזין' },
+            { key: 'nav_magazine_sub',    label: 'מגזין — תיאור (תפריט נייד)',    type: 'text', default: 'תוכן מקצועי לאנשי חינוך' },
+            { key: 'nav_contact',         label: 'קשר — תווית',                    type: 'text', default: 'צור קשר' },
+            { key: 'nav_contact_sub',     label: 'קשר — תיאור (תפריט נייד)',      type: 'text', default: 'דבר איתנו עכשיו' },
+            { key: 'nav_mega_hint',       label: 'רמז מגה-מניו',                   type: 'text', default: 'לחץ לצפייה בדגמים' },
+            { key: 'nav_mega_all',        label: 'כפתור "כל הקטלוג"',              type: 'text', default: 'לכל קטלוג הפתרונות' },
         ],
     },
     {
@@ -171,14 +176,26 @@ const FIELD_SECTIONS = [
         label: 'סרגל ניווט מוצר',
         icon: '📋',
         accent: '#5856D6',
+    },
+    {
+        id: 'pd_dims_section',
+        label: 'מידות המוצר',
+        icon: '📏',
+        accent: '#5856D6',
         fields: [
-            { key: 'sidebar_label_features', label: 'תווית: תכונות בולטות',      type: 'text', default: 'תכונות בולטות' },
-            { key: 'sidebar_label_dims',     label: 'תווית: מידות המוצר',         type: 'text', default: 'מידות המוצר' },
-            { key: 'sidebar_label_specs',    label: 'תווית: מפרט טכני',           type: 'text', default: 'מפרט טכני' },
-            { key: 'sidebar_label_warranty', label: 'תווית: תנאי רכישה ואחריות',  type: 'text', default: 'תנאי רכישה ואחריות' },
-            { key: 'sidebar_label_support',  label: 'תווית: שירות ותמיכה',         type: 'text', default: 'שירות ותמיכה' },
-            { key: 'sidebar_label_faq',      label: 'תווית: שאלות נפוצות',        type: 'text', default: 'שאלות נפוצות' },
-            { key: 'sidebar_label_reviews',  label: 'תווית: חוות דעת',            type: 'text', default: 'חוות דעת' },
+            { key: 'pd_dims_title',   label: 'כותרת קטע מידות',         type: 'text', default: 'מידות המוצר' },
+            { key: 'pd_dims_label1',  label: 'שדה 1: תווית',             type: 'text', default: 'רוחב' },
+            { key: 'pd_dims_value1',  label: 'שדה 1: ערך',               type: 'text', default: '' },
+            { key: 'pd_dims_label2',  label: 'שדה 2: תווית',             type: 'text', default: 'גובה' },
+            { key: 'pd_dims_value2',  label: 'שדה 2: ערך',               type: 'text', default: '' },
+            { key: 'pd_dims_label3',  label: 'שדה 3: תווית',             type: 'text', default: 'עומק' },
+            { key: 'pd_dims_value3',  label: 'שדה 3: ערך',               type: 'text', default: '' },
+            { key: 'pd_dims_label4',  label: 'שדה 4: תווית',             type: 'text', default: 'משקל' },
+            { key: 'pd_dims_value4',  label: 'שדה 4: ערך',               type: 'text', default: '' },
+            { key: 'pd_dims_label5',  label: 'שדה 5: תווית (אופציונלי)', type: 'text', default: '' },
+            { key: 'pd_dims_value5',  label: 'שדה 5: ערך (אופציונלי)',   type: 'text', default: '' },
+            { key: 'pd_dims_label6',  label: 'שדה 6: תווית (אופציונלי)', type: 'text', default: '' },
+            { key: 'pd_dims_value6',  label: 'שדה 6: ערך (אופציונלי)',   type: 'text', default: '' },
         ],
     },
     {
@@ -367,6 +384,53 @@ const FIELD_SECTIONS = [
         ],
     },
     {
+        id: 'wishlist_section',
+        label: 'עמוד מועדפים',
+        icon: '❤️',
+        accent: '#FF2D55',
+        fields: [
+            { key: 'wishlist_badge',        label: 'תווית עליונה',          type: 'text',     default: 'המוצרים שלי' },
+            { key: 'wishlist_title',         label: 'כותרת העמוד',           type: 'text',     default: 'המוצרים שאהבתי' },
+            { key: 'wishlist_count_label',   label: 'תווית מונה פריטים',     type: 'text',     default: 'פריטים שמורים' },
+            { key: 'wishlist_empty_title',   label: 'כותרת מצב ריק',         type: 'text',     default: 'הרשימה שלך ריקה' },
+            { key: 'wishlist_empty_desc',    label: 'תיאור מצב ריק',         type: 'textarea', default: 'לחץ על הלב על כרטיס המוצר כדי לשמור אותו כאן' },
+            { key: 'wishlist_browse_btn',    label: 'כפתור "עיין בקטלוג"',    type: 'text',     default: 'עיין בקטלוג' },
+        ],
+    },
+    {
+        id: 'accessibility_section',
+        label: 'ווידג׳ט נגישות',
+        icon: '♿',
+        accent: '#34C759',
+        fields: [
+            { key: 'a11y_widget_title',      label: 'כותרת הפאנל',           type: 'text',     default: 'מרכז נגישות' },
+            { key: 'a11y_widget_subtitle',   label: 'כותרת משנה',             type: 'text',     default: 'התאם את חוויית הגלישה שלך' },
+            { key: 'a11y_font_label',        label: 'תווית גודל גופן',        type: 'text',     default: 'גודל גופן' },
+            { key: 'a11y_contrast_label',    label: 'תווית ניגוד גבוה',       type: 'text',     default: 'ניגוד גבוה' },
+            { key: 'a11y_motion_label',      label: 'תווית ביטול אנימציות',   type: 'text',     default: 'ביטול אנימציות' },
+            { key: 'a11y_links_label',       label: 'תווית הדגשת קישורים',    type: 'text',     default: 'הדגשת קישורים' },
+            { key: 'a11y_grayscale_label',   label: 'תווית גווני אפור',       type: 'text',     default: 'גווני אפור' },
+            { key: 'a11y_reset_label',       label: 'כפתור איפוס',            type: 'text',     default: 'איפוס הגדרות נגישות' },
+        ],
+    },
+    {
+        id: 'qa_section',
+        label: 'שאלות גולשים (Q&A)',
+        icon: '❓',
+        accent: '#007AFF',
+        fields: [
+            { key: 'pd_qa_title',            label: 'כותרת הסקציה',           type: 'text',     default: 'שאלות ותשובות מהקהילה' },
+            { key: 'qa_form_title',          label: 'כותרת הטופס',            type: 'text',     default: 'יש לך שאלה?' },
+            { key: 'qa_form_desc',           label: 'תיאור הטופס',            type: 'textarea', default: 'שאל את הקהילה ואת המומחים שלנו. מנהלי בתי ספר משתפים מהניסיון שלהם.' },
+            { key: 'qa_name_placeholder',    label: 'placeholder שם',         type: 'text',     default: 'השם שלך (אופציונלי)' },
+            { key: 'qa_question_placeholder', label: 'placeholder שאלה',      type: 'text',     default: 'מה תרצה לדעת על המוצר?' },
+            { key: 'qa_submit_label',        label: 'כפתור שליחה',            type: 'text',     default: 'פרסם שאלה' },
+            { key: 'qa_submitted_msg',       label: 'הודעת הצלחה',            type: 'textarea', default: 'תודה! השאלה שלך פורסמה.' },
+            { key: 'qa_empty_msg',           label: 'הודעת ריק',              type: 'text',     default: 'עדיין אין שאלות על המוצר הזה. היה הראשון לשאול!' },
+            { key: 'qa_team_label',          label: 'תווית "צוות NextClass"',  type: 'text',     default: 'תשובת צוות NextClass' },
+        ],
+    },
+    {
         id: 'footer_config',
         label: 'פוטר (Footer)',
         icon: '🦶',
@@ -387,8 +451,8 @@ const FIELD_SECTIONS = [
 ];
 
 const ALL_SECTIONS = [
-    { id: 'visibility', label: 'נראות רכיבים', icon: '👁️', accent: '#FF2D55', type: 'visibility' },
-    { id: 'menu_reorder', label: 'סידור תפריט', icon: '↔️', accent: '#007AFF', type: 'menu_reorder' },
+    { id: 'visibility',    label: 'נראות רכיבים',           icon: '👁️', accent: '#FF2D55', type: 'visibility' },
+    { id: 'menu_reorder',  label: 'ניווט ראשי — סדר וגרירה', icon: '☰',  accent: '#007AFF', type: 'menu_reorder' },
     ...FIELD_SECTIONS,
     { id: 'videos', label: 'ספריית VOD', icon: '🎬', accent: '#FF3B30', type: 'videos' },
 ];
@@ -549,6 +613,120 @@ const VisibilitySection = ({ content, onChange }) => (
     </div>
 );
 
+// ── Sidebar Section Manager ───────────────────────────────────────────────────
+
+const DEFAULT_SIDEBAR_SECTIONS = [
+    { id: 'pd-features', labelKey: 'sidebar_label_features', defaultLabel: 'תכונות בולטות',       emoji: '⚡', visKey: 'sidebar_vis_features' },
+    { id: 'pd-dims',     labelKey: 'sidebar_label_dims',     defaultLabel: 'מידות המוצר',          emoji: '📏', visKey: 'sidebar_vis_dims'    },
+    { id: 'pd-specs',    labelKey: 'sidebar_label_specs',    defaultLabel: 'מפרט טכני',            emoji: '🔧', visKey: 'sidebar_vis_specs'   },
+    { id: 'pd-warranty', labelKey: 'sidebar_label_warranty', defaultLabel: 'תנאי רכישה ואחריות',  emoji: '📋', visKey: 'sidebar_vis_warranty' },
+    { id: 'pd-support',  labelKey: 'sidebar_label_support',  defaultLabel: 'שירות ותמיכה',         emoji: '🎧', visKey: 'sidebar_vis_support' },
+    { id: 'pd-qa',       labelKey: 'sidebar_label_qa',       defaultLabel: 'שאלות גולשים',         emoji: '❓', visKey: 'sidebar_vis_qa'      },
+    { id: 'pd-reviews',  labelKey: 'sidebar_label_reviews',  defaultLabel: 'חוות דעת',             emoji: '⭐', visKey: 'sidebar_vis_reviews' },
+];
+
+const SidebarSectionManager = ({ showToast }) => {
+    const { getSetting, updateGlobalSettings } = useSettings();
+
+    const buildItems = () => {
+        const order = getSetting('sidebar_sections_order', null);
+        const base = Array.isArray(order)
+            ? order.map(id => DEFAULT_SIDEBAR_SECTIONS.find(s => s.id === id)).filter(Boolean)
+            : DEFAULT_SIDEBAR_SECTIONS;
+        return base.map(s => ({
+            ...s,
+            visible: getSetting(s.visKey, true),
+            label: getSetting(s.labelKey, s.defaultLabel),
+        }));
+    };
+
+    const [items, setItems] = useState(buildItems);
+    const itemsRef = React.useRef(items);
+
+    useEffect(() => {
+        const updated = buildItems();
+        setItems(updated);
+        itemsRef.current = updated;
+    }, [getSetting]);
+
+    const persist = async (newItems) => {
+        const updates = { sidebar_sections_order: newItems.map(s => s.id) };
+        newItems.forEach(s => {
+            updates[s.visKey] = s.visible;
+            updates[s.labelKey] = s.label;
+        });
+        try {
+            await updateGlobalSettings(updates);
+            showToast('סרגל הניווט עודכן', 'success');
+        } catch {
+            showToast('שגיאה בשמירה', 'error');
+        }
+    };
+
+    const handleReorder = (newItems) => { setItems(newItems); itemsRef.current = newItems; };
+    const handleDragEnd = () => persist(itemsRef.current);
+
+    const toggleVisibility = async (id) => {
+        const newItems = items.map(s => s.id === id ? { ...s, visible: !s.visible } : s);
+        setItems(newItems); itemsRef.current = newItems;
+        await persist(newItems);
+    };
+
+    const updateLabel = (id, label) => {
+        const newItems = items.map(s => s.id === id ? { ...s, label } : s);
+        setItems(newItems); itemsRef.current = newItems;
+    };
+
+    const handleReset = async () => {
+        const reset = DEFAULT_SIDEBAR_SECTIONS.map(s => ({ ...s, visible: true, label: s.defaultLabel }));
+        setItems(reset); itemsRef.current = reset;
+        await persist(reset);
+    };
+
+    return (
+        <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5856D6] transition-colors font-bold">
+                    איפוס לברירת מחדל
+                </button>
+                <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right">
+                    גרור לשינוי סדר • מתג להסתרה / הצגה
+                </p>
+            </div>
+            <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {items.map((item) => (
+                    <Reorder.Item
+                        key={item.id}
+                        value={item}
+                        onDragEnd={handleDragEnd}
+                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none' }}
+                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#5856D6]/30 transition-colors select-none"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5856D6] transition-colors">
+                            <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" />
+                            <rect x="3" y="7.25" width="10" height="1.5" rx="0.75" />
+                            <rect x="3" y="11" width="10" height="1.5" rx="0.75" />
+                        </svg>
+                        <span className="text-xl shrink-0">{item.emoji}</span>
+                        <div className="flex-1 text-right">
+                            <input
+                                type="text"
+                                value={item.label}
+                                onChange={e => updateLabel(item.id, e.target.value)}
+                                onBlur={() => persist(itemsRef.current)}
+                                className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5856D6] focus:outline-none transition-colors text-right px-0"
+                                placeholder={item.defaultLabel}
+                            />
+                            <p className="text-[10px] text-gray-400 font-mono mt-0.5">{item.id}</p>
+                        </div>
+                        <AdminToggle value={item.visible !== false} onChange={() => toggleVisibility(item.id)} />
+                    </Reorder.Item>
+                ))}
+            </Reorder.Group>
+        </div>
+    );
+};
+
 const VideosSection = ({ showToast }) => {
     const INITIAL_VIDEOS = [
         { id: 1, title: 'הדרכת מסכי CleverTouch', category: 'מסכים אינטראקטיביים', duration: '12:45', visible: true, thumbnail: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=300' },
@@ -698,10 +876,13 @@ export default function AdminContent({ showToast }) {
                             {activeSection === 'menu_reorder' && (
                                 <NavMenuManager showToast={showToast} />
                             )}
+                            {activeSection === 'sidebar_sections' && (
+                                <SidebarSectionManager showToast={showToast} />
+                            )}
                             {activeSection === 'videos' && (
                                 <VideosSection showToast={showToast} />
                             )}
-                            {currentDef && currentDef.fields && (
+                            {currentDef && currentDef.fields && activeSection !== 'sidebar_sections' && (
                                 <div className="p-8">
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="text-right">

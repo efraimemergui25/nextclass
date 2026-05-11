@@ -553,10 +553,6 @@ const ProductDetailPage = () => {
                                             </div>
                                         </div>
                                     ) : imgError || !product.image ? (
-                                        /* ── Community Q&A Section ─────────────────────────────── */
-                                        <ProductQA productId={product.id} />
-
-                                        /* ─── Testimonials / Reviews ────────────────────────────────── */
                                         <div className="w-full aspect-square md:aspect-[4/3]"><ImageFallback /></div>
                                     ) : (
                                         /* ── Static Image Mode ─────────────────────────── */
@@ -609,8 +605,8 @@ const ProductDetailPage = () => {
                                 </div>
                             </section>
 
-                            {/* Accessories - Dimensions anchor for sidebar */}
-                            <section id="pd-dims" className="mb-12">
+                            {/* Accessories */}
+                            <section className="mb-12">
                                 <div className="flex items-center justify-between mb-5">
                                     <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
                                     <span className="text-xs font-bold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full">{content.accOptional}</span>
@@ -785,6 +781,43 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
+                    {/* ─── Product Dimensions ─────────────────────────────────────── */}
+                    <section id="pd-dims" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 mt-16">
+                        <div className="flex items-center gap-3 justify-end mb-5">
+                            <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
+                                {getSetting('pd_dims_title', 'מידות המוצר')}
+                            </h3>
+                            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.15)' }}>
+                                <svg className="w-5 h-5 text-[#5856D6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5 5 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5 5 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="h-1 w-10 bg-[#5856D6] rounded-full mb-7 mr-0 ml-auto" />
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {[
+                                { label: getSetting('pd_dims_label1', 'רוחב'),  value: getSetting('pd_dims_value1', '') },
+                                { label: getSetting('pd_dims_label2', 'גובה'),  value: getSetting('pd_dims_value2', '') },
+                                { label: getSetting('pd_dims_label3', 'עומק'),  value: getSetting('pd_dims_value3', '') },
+                                { label: getSetting('pd_dims_label4', 'משקל'),  value: getSetting('pd_dims_value4', '') },
+                                { label: getSetting('pd_dims_label5', ''),      value: getSetting('pd_dims_value5', '') },
+                                { label: getSetting('pd_dims_label6', ''),      value: getSetting('pd_dims_value6', '') },
+                            ].filter(d => d.label && d.value).map((d, i) => (
+                                <motion.div key={i}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.35, delay: i * 0.07 }}
+                                    className="p-5 rounded-2xl text-right"
+                                    style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-2">{d.label}</p>
+                                    <p className="text-xl font-black text-[#1D1D1F] tracking-tight">{d.value}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
                     <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
@@ -852,36 +885,42 @@ const ProductDetailPage = () => {
 
                     {/* ─── Technical Specs Grid ──────────────────────────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-16 md:mt-24 mb-24 px-6 md:px-12">
-                            <div
-                                className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[4rem] border border-white/60 shadow-[0_20px_80px_-20px_rgba(0,0,0,0.08)] overflow-hidden relative"
-                            >
-                                {/* Ambient subtle glow for liveliness */}
-                                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#007AFF]/10 rounded-full blur-[100px] pointer-events-none -z-10 translate-x-1/3 -translate-y-1/3" />
-                                
-                                <div className="p-8 md:p-16 lg:p-24 relative z-10">
-                                    <div className="text-right mb-12 md:mb-20">
-                                        <h3 className="text-4xl md:text-6xl font-black tracking-tighter text-[#1D1D1F] mb-4">מפרט טכני</h3>
-                                        <div className="h-1.5 w-16 bg-[#007AFF] rounded-full mb-6"></div>
-                                        <p className="text-gray-500 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">הפרטים המדויקים שהופכים את המערכת הזו למובילה מסוגה.</p>
+                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-12 md:mt-16 mb-16 px-6 md:px-12">
+                            <div className="rounded-[2rem] overflow-hidden"
+                                style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(40px) saturate(2)', WebkitBackdropFilter: 'blur(40px) saturate(2)', border: '1px solid rgba(255,255,255,0.75)', boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+                                <div className="p-6 md:p-10">
+                                    {/* Header */}
+                                    <div className="text-right mb-6">
+                                        <div className="flex items-center gap-3 justify-end mb-3">
+                                            <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{content.specsTitle}</h3>
+                                            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                                                style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.15)' }}>
+                                                <svg className="w-5 h-5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 justify-end">
+                                            <div className="h-1 w-10 bg-[#007AFF] rounded-full" />
+                                            {product.specs?.length > 0 && (
+                                                <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest">{product.specs.length} פרמטרים</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    
-                                    <div className="flex flex-col w-full divide-y divide-gray-200/60">
+
+                                    {/* Compact 2-column spec grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                                         {product.specs.map((spec, idx) => (
-                                            <motion.div 
-                                                key={idx}
-                                                initial={{ opacity: 0, x: 20 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                viewport={{ once: true, margin: "-50px" }}
-                                                transition={{ duration: 0.5, delay: idx * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                                                className="flex flex-col md:flex-row py-6 md:py-8 gap-3 md:gap-12 group hover:bg-black/[0.02] transition-colors duration-400 rounded-2xl px-6 -mx-6"
+                                            <motion.div key={idx}
+                                                initial={{ opacity: 0, y: 6 }}
+                                                whileInView={{ opacity: 1, y: 0 }}
+                                                viewport={{ once: true, margin: '-40px' }}
+                                                transition={{ duration: 0.3, delay: idx * 0.04 }}
+                                                className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-colors"
+                                                style={{ background: idx % 2 === 0 ? 'rgba(0,0,0,0.025)' : 'transparent' }}
                                             >
-                                                <div className="w-full md:w-1/3 text-right flex items-center">
-                                                    <span className="text-sm md:text-base font-bold text-gray-500 uppercase tracking-widest">{spec?.label}</span>
-                                                </div>
-                                                <div className="w-full md:w-2/3 text-right flex items-center">
-                                                    <span className="text-xl md:text-2xl font-black text-[#1D1D1F] tracking-tight">{spec?.value}</span>
-                                                </div>
+                                                <span className="text-sm font-black text-[#1D1D1F] tracking-tight">{spec?.value}</span>
+                                                <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide shrink-0">{spec?.label}</span>
                                             </motion.div>
                                         ))}
                                     </div>
