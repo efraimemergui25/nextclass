@@ -2,14 +2,19 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from '
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Search } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Search, Monitor, Laptop2, FlaskConical, Volume2, Zap, Globe } from 'lucide-react';
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductsContext';
 import { Heart } from 'lucide-react';
+
+// Cycling per-category visual identity — matches HomeDiscoverSection palette
+const CAT_ACCENTS = ['#007AFF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF375F', '#64D2FF'];
+const CAT_ICONS   = [Monitor, Laptop2, FlaskConical, Volume2, Zap, Globe];
 
 // Remove static helpers
 
@@ -25,6 +30,7 @@ const DEFAULT_NAV_ITEMS = [
 
 const Header = () => {
     const { getSetting } = useSettings();
+    const { activeProducts } = useProducts();
     const siteName = getSetting('site_name', 'NextClass');
     const siteLogo = getSetting('site_logo_url', '');
 
@@ -32,6 +38,19 @@ const Header = () => {
         const raw = getSetting('catalog_categories', 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה');
         return raw.split(',').map(s => ({ label: s.trim(), slug: s.trim() }));
     }, [getSetting]);
+
+    // Per-category: product count + top product image for mega menu
+    const categoryMeta = useMemo(() => {
+        const map = {};
+        CATEGORIES.forEach(({ slug }) => {
+            const prods = activeProducts.filter(p => p.category === slug);
+            map[slug] = {
+                count: prods.length,
+                topImage: prods.find(p => p.image)?.image ?? null,
+            };
+        });
+        return map;
+    }, [CATEGORIES, activeProducts]);
 
     const navLinks = useMemo(() => {
         const saved = getSetting('nav_items', null);
@@ -246,81 +265,130 @@ const Header = () => {
                 </div>
             </motion.header>
 
-            {/* ── Mega Menu — rendered via Portal to bypass header stacking context ── */}
+            {/* ── Mega Menu — premium dark Apple-style, rendered via Portal ── */}
             {createPortal(
                 <AnimatePresence>
                     {isMegaMenuOpen && (
                         <motion.div
-                            initial={{ opacity: 0, y: 8, scale: 0.98, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                            exit={{ opacity: 0, y: 6, scale: 0.98, filter: 'blur(10px)' }}
-                            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
                             onMouseEnter={cancelClose}
                             onMouseLeave={scheduledClose}
+                            dir="rtl"
                             style={{
                                 position: 'fixed',
                                 top: dropdownPos.top,
                                 left: dropdownPos.centerX,
                                 transform: 'translateX(-50%)',
                                 zIndex: 9999,
-                                width: '360px',
-                                background: 'rgba(255, 255, 255, 0.55)',
-                                backdropFilter: 'blur(54px) saturate(2)',
-                                WebkitBackdropFilter: 'blur(54px) saturate(2)',
-                                border: '1px solid rgba(255, 255, 255, 0.7)',
-                                boxShadow: '0 30px 70px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+                                width: 520,
+                                background: 'rgba(13, 14, 22, 0.97)',
+                                backdropFilter: 'blur(64px) saturate(1.6)',
+                                WebkitBackdropFilter: 'blur(64px) saturate(1.6)',
+                                border: '1px solid rgba(255,255,255,0.09)',
+                                boxShadow: '0 40px 80px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.04) inset',
                                 borderRadius: '2.25rem',
-                                padding: '10px',
-                                overflow: 'hidden'
+                                padding: '12px',
+                                overflow: 'hidden',
                             }}
                         >
-                            {/* Ambient background glow inside the menu */}
-                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#007AFF]/10 blur-[60px] rounded-full pointer-events-none" />
-                            
-                            <div className="relative flex flex-col gap-1.5">
-                                {CATEGORIES.map((cat, idx) => {
-                                    const moods = [
-                                        { bg: 'bg-blue-500/10', icon: 'text-blue-600', glow: 'shadow-blue-500/20' },
-                                        { bg: 'bg-indigo-500/10', icon: 'text-indigo-600', glow: 'shadow-indigo-500/20' },
-                                        { bg: 'bg-emerald-500/10', icon: 'text-emerald-600', glow: 'shadow-emerald-500/20' },
-                                        { bg: 'bg-orange-500/10', icon: 'text-orange-600', glow: 'shadow-orange-500/20' },
-                                        { bg: 'bg-sky-500/10', icon: 'text-sky-600', glow: 'shadow-sky-500/20' }
-                                    ];
-                                    const mood = moods[idx % moods.length];
-                                    
+                            {/* Ambient glow blobs */}
+                            <div className="absolute -top-16 right-8 w-36 h-36 bg-[#007AFF]/14 blur-[56px] rounded-full pointer-events-none" />
+                            <div className="absolute -bottom-16 left-8 w-32 h-32 bg-[#BF5AF2]/10 blur-[56px] rounded-full pointer-events-none" />
+
+                            {/* Header row */}
+                            <div className="flex items-center justify-between px-4 py-2.5 mb-1">
+                                <Link
+                                    to="/catalog"
+                                    onClick={handleMegaMenuLinkClick}
+                                    className="flex items-center gap-1 text-[#007AFF] font-bold text-[11px] tracking-tight hover:opacity-75 transition-opacity"
+                                >
+                                    {getSetting('nav_mega_all', 'ראה הכל')}
+                                    <ChevronLeft size={12} />
+                                </Link>
+                                <span className="text-[10px] font-black uppercase tracking-[0.35em] text-white/30">
+                                    {getSetting('nav_mega_label', 'פתרונות לחינוך')}
+                                </span>
+                            </div>
+
+                            {/* Category rows */}
+                            <div className="flex flex-col gap-0.5">
+                                {CATEGORIES.map(({ label, slug }, idx) => {
+                                    const accent   = CAT_ACCENTS[idx % CAT_ACCENTS.length];
+                                    const IconComp = CAT_ICONS[idx % CAT_ICONS.length];
+                                    const meta     = categoryMeta[slug] ?? { count: 0, topImage: null };
+
                                     return (
                                         <Link
-                                            key={cat.slug}
-                                            to={`/catalog?category=${encodeURIComponent(cat.slug)}`}
+                                            key={slug}
+                                            to={`/catalog?category=${encodeURIComponent(slug)}`}
                                             onClick={handleMegaMenuLinkClick}
-                                            className="group relative flex items-center gap-4 p-3.5 rounded-[1.5rem] transition-all duration-300 hover:bg-white/80 hover:shadow-lg hover:shadow-black/5"
+                                            className="group relative flex items-center gap-3.5 px-4 py-3 rounded-[1.25rem] transition-all duration-200 hover:bg-white/[0.07]"
+                                            style={{ borderRight: '2.5px solid transparent' }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderRightColor = accent; }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderRightColor = 'transparent'; }}
                                         >
-                                            <div className={`w-11 h-11 rounded-2xl ${mood.bg} flex items-center justify-center ${mood.icon} transition-all duration-500 group-hover:scale-110 group-hover:bg-white group-hover:shadow-lg ${mood.glow}`}>
-                                                {idx === 0 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
-                                                {idx === 1 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}
-                                                {idx === 2 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.691.34a2 2 0 00-1.136 1.435l-.133.665c-.066.331.02.67.236.926l.464.55c.3.358.41.85.291 1.32l-.164.653a2 2 0 001.076 2.24l.582.291a2 2 0 002.324-.316l.432-.432a2 2 0 011.831-.513l.635.159a2 2 0 002.263-1.127l.192-.48a2 2 0 00-.28-1.92l-.46-.575a2 2 0 01-.397-1.468l.112-.672a2 2 0 00-1.03-2.14l-1.01-.505a2 2 0 00-2.316.326l-.42.42a2 2 0 01-1.84.511l-.64-.16a2 2 0 00-2.28 1.138l-.18.448a2 2 0 00.286 1.933l.466.582c.21.261.291.604.22.934l-.14.657a2 2 0 001.082 2.222l.585.292a2 2 0 002.31-.322l.42-.42a2 2 0 011.841-.511l.64.16a2 2 0 002.28-1.138l.18-.448a2 2 0 00-.286-1.933l-.466-.582z" /></svg>}
-                                                {idx === 3 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>}
-                                                {idx === 4 && <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
+                                            {/* Icon */}
+                                            <div
+                                                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
+                                                style={{ background: `${accent}1E` }}
+                                            >
+                                                <IconComp size={17} style={{ color: accent }} strokeWidth={1.8} />
                                             </div>
-                                            <div className="flex flex-col text-right">
-                                                <span className="text-[14px] font-bold text-[#1D1D1F] leading-tight transition-colors group-hover:text-[#007AFF]">{cat.label}</span>
-                                                <span className="text-[10px] font-semibold text-gray-400 mt-0.5 tracking-tight">{getSetting('nav_mega_hint', 'לחץ לצפייה בדגמים')}</span>
+
+                                            {/* Text */}
+                                            <div className="flex-1 text-right min-w-0">
+                                                <p className="text-[13.5px] font-bold leading-snug truncate transition-colors duration-200"
+                                                    style={{ color: 'rgba(255,255,255,0.88)' }}>
+                                                    {label}
+                                                </p>
+                                                <p className="text-[11px] font-medium mt-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+                                                    {meta.count > 0 ? `${meta.count} פתרונות` : getSetting('nav_mega_hint', 'לחץ לצפייה')}
+                                                </p>
                                             </div>
-                                            <ChevronLeft className="w-4 h-4 mr-auto opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 text-[#007AFF]" />
+
+                                            {/* Product thumbnail */}
+                                            {meta.topImage && (
+                                                <div
+                                                    className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shrink-0 opacity-50 group-hover:opacity-100 transition-opacity duration-300"
+                                                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}
+                                                >
+                                                    <img src={meta.topImage} alt="" className="w-9 h-9 object-contain" />
+                                                </div>
+                                            )}
+
+                                            {/* Chevron */}
+                                            <ChevronLeft
+                                                size={13}
+                                                className="shrink-0 opacity-0 translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all duration-200"
+                                                style={{ color: accent }}
+                                            />
                                         </Link>
                                     );
                                 })}
+                            </div>
 
-                                <div className="mt-2 pt-2 border-t border-black/[0.03]">
-                                    <Link
-                                        to="/catalog"
-                                        onClick={handleMegaMenuLinkClick}
-                                        className="flex items-center justify-between w-full p-4 bg-[#1D1D1F] text-white rounded-[1.5rem] font-bold text-[13px] tracking-tight shadow-xl hover:bg-black transition-all group"
-                                    >
-                                        <span>{getSetting('nav_mega_all', 'לכל קטלוג הפתרונות')}</span>
-                                        <ChevronLeft size={16} className="group-hover:translate-x-[-4px] transition-transform" />
-                                    </Link>
-                                </div>
+                            {/* Footer CTAs */}
+                            <div className="mt-3 pt-3 flex gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                <Link
+                                    to="/catalog"
+                                    onClick={handleMegaMenuLinkClick}
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-[1.1rem] font-bold text-[13px] text-white transition-all hover:opacity-90"
+                                    style={{ background: '#007AFF' }}
+                                >
+                                    כל הקטלוג
+                                    <ChevronLeft size={13} />
+                                </Link>
+                                <Link
+                                    to="/discover"
+                                    onClick={handleMegaMenuLinkClick}
+                                    className="flex-1 flex items-center justify-center py-3 rounded-[1.1rem] font-bold text-[13px] transition-all hover:bg-white/10"
+                                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                >
+                                    {getSetting('nav_mega_discover', 'גלה פתרונות')}
+                                </Link>
                             </div>
                         </motion.div>
                     )}
