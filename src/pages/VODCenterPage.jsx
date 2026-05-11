@@ -72,7 +72,7 @@ const VideoCard = ({ video }) => {
             </div>
 
             {/* Title */}
-            <h3 className="font-bold text-[#1D1D1F] text-[14px] leading-snug group-hover:text-[#007AFF] tracking-tight transition-colors">
+            <h3 className="font-bold text-[#1D1D1F] text-[15px] leading-snug group-hover:text-[#007AFF] tracking-tight transition-colors">
                 {video.title}
             </h3>
         </motion.div>
@@ -97,7 +97,7 @@ const VODCenterPage = () => {
             <div className="min-h-screen bg-[#F5F5F7]" dir="rtl">
 
                 {/* ── Hero ──────────────────────────────────────────────── */}
-                <div className="pt-28 pb-10 px-6 text-center">
+                <div className="pt-20 pb-8 px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -130,11 +130,11 @@ const VODCenterPage = () => {
 
                 {/* ── Divider ───────────────────────────────────────────── */}
                 <div className="max-w-[1100px] mx-auto px-6">
-                    <div className="h-px bg-black/[0.07] mb-10" />
+                    <div className="h-px bg-black/[0.07] mb-8" />
                 </div>
 
                 {/* ── Grid ──────────────────────────────────────────────── */}
-                <div className="max-w-[1100px] mx-auto px-6 pb-24">
+                <div className="max-w-[1100px] mx-auto px-6 pb-16">
                     {visible.length === 0 ? (
                         <div className="text-center py-20 text-[#AEAEB2] font-medium">אין סרטונים להצגה כרגע.</div>
                     ) : (
@@ -145,7 +145,7 @@ const VODCenterPage = () => {
                                 hidden: { opacity: 0 },
                                 show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
                             }}
-                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10"
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
                         >
                             {visible.map(video => (
                                 <motion.div key={video.id}

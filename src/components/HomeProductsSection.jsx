@@ -92,7 +92,7 @@ const HomeProductsSection = () => {
     const sub     = getSetting('home_products_sub',     'בחרו קטגוריה וגלו את הפתרונות הטכנולוגיים המתאימים למוסד שלכם.');
 
     return (
-        <section className="w-full bg-[#F5F5F7] pt-28 pb-32 overflow-hidden relative">
+        <section className="w-full bg-[#F5F5F7] pt-16 pb-16 overflow-hidden relative">
 
             {/* Ambient gradient blobs */}
             <div className="absolute top-0 right-1/3 w-[500px] h-[350px] bg-[#007AFF]/5 blur-[120px] rounded-full pointer-events-none" />

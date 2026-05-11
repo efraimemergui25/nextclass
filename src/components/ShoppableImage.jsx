@@ -74,24 +74,24 @@ const ShoppableImage = () => {
     });
 
     return (
-        <section className="w-full bg-[#1D1D1F] py-24 px-6 md:px-12 overflow-hidden">
-            <div className="max-w-[1400px] mx-auto flex flex-col items-center">
+        <section className="w-full bg-[#F5F5F7] py-10 sm:py-14 px-6 md:px-12 overflow-hidden">
+            <div className="max-w-7xl mx-auto flex flex-col items-center">
 
                 {/* Section Header */}
-                <div className="text-center mb-16 max-w-3xl">
-                    <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-4">
+                <div className="text-right mb-8 max-w-3xl w-full" dir="rtl">
+                    <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-3">
                         {content.eyebrow}
                     </span>
-                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tighter mb-4 leading-[1.1]">
+                    <h2 className="text-2xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter mb-3 leading-[1.1]">
                         {content.title}
                     </h2>
-                    <p className="text-base text-gray-400 font-normal leading-relaxed">
+                    <p className="text-[15px] text-[#86868B] font-medium leading-relaxed">
                         {content.subtitle}
                     </p>
                 </div>
 
                 {/* Interactive Canvas */}
-                <div className="relative w-full aspect-[4/3] md:aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl bg-gray-900">
+                <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-[0_24px_64px_rgb(0_0_0/0.10)] bg-gray-900">
                     <img
                         src={content.bgImage}
                         alt="Smart Classroom Environment"

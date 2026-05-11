@@ -303,7 +303,7 @@ const Header = () => {
                                 left: dropdownPos.centerX,
                                 transform: 'translateX(-50%)',
                                 zIndex: 9999,
-                                width: 500,
+                                width: 360,
                                 background: 'rgba(255,255,255,0.86)',
                                 backdropFilter: 'blur(56px) saturate(200%)',
                                 WebkitBackdropFilter: 'blur(56px) saturate(200%)',
