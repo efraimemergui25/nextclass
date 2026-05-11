@@ -10,6 +10,7 @@ import TrustBadges from '../components/TrustBadges';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
 import ProductPageSidebar from '../components/ProductPageSidebar';
+import ProductQA from '../components/ProductQA';
 import Magnetic from '../components/Magnetic';
 import { useSettings } from '../context/SettingsContext';
 
@@ -51,7 +52,7 @@ function ProductFAQ({ getSetting }) {
         <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
             <div className="text-right mb-10">
                 <div className="flex items-center gap-3 justify-end mb-4">
-                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות גולשים')}</h3>
+                    <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות נפוצות')}</h3>
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.18)' }}>
                         <svg className="w-6 h-6 text-[#5856D6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -552,7 +553,10 @@ const ProductDetailPage = () => {
                                             </div>
                                         </div>
                                     ) : imgError || !product.image ? (
-                                        /* ── Fallback ──────────────────────────────────── */
+                                        /* ── Community Q&A Section ─────────────────────────────── */
+                                        <ProductQA productId={product.id} />
+
+                                        /* ─── Testimonials / Reviews ────────────────────────────────── */
                                         <div className="w-full aspect-square md:aspect-[4/3]"><ImageFallback /></div>
                                     ) : (
                                         /* ── Static Image Mode ─────────────────────────── */
@@ -973,6 +977,11 @@ const ProductDetailPage = () => {
 
                 {/* ─── FAQ — Frequently Asked Questions ───────────────────────── */}
                 <ProductFAQ getSetting={getSetting} />
+
+                {/* ─── Community Q&A Section ─────────────────────────────────── */}
+                <div id="pd-qa" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+                    <ProductQA productId={product.id} />
+                </div>
 
                 {/* ─── Reviews ────────────────────────────────────────────────── */}
                 <ProductReviews getSetting={getSetting} product={product} />

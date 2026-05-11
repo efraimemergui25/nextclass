@@ -3,8 +3,9 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 import { Link } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import useCartPop from '../hooks/useCartPop';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Heart } from 'lucide-react';
 
 // ─── Cart pop animation variants ─────────────────────────────────────────────
 const cartBtnVariants = {
@@ -48,6 +49,7 @@ const ProductCard = ({ product }) => {
 
     const { addToCompare, removeFromCompare, isSelected } = useCompare();
     const { cartItems, addToCart, removeFromCart } = useCart();
+    const { toggleWishlist, isInWishlist } = useWishlist();
     const { state: popState, trigger } = useCartPop();
 
     // ─── Spatial tilt motion values ───────────────────────────────────────────
@@ -107,6 +109,8 @@ const ProductCard = ({ product }) => {
     const formattedPrice = useMemo(() => `₪${effectivePrice.toLocaleString()}`, [effectivePrice]);
     const selected = useMemo(() => isSelected(id), [isSelected, id]);
     const isInCart = useMemo(() => (cartItems ?? []).some(item => item?.id === id), [cartItems, id]);
+    const isFavorite = useMemo(() => isInWishlist(id), [isInWishlist, id]);
+    
     const [siteSettings, setSiteSettings] = useState(() => {
         try {
             const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
@@ -159,6 +163,12 @@ const ProductCard = ({ product }) => {
         else trigger(() => addToCart(product))();
     }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
 
+    const handleWishlistToggle = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWishlist(product);
+    }, [product, toggleWishlist]);
+
     return (
         /* ── Perspective wrapper ──────────────────────────────────────────── */
         <div
@@ -195,6 +205,24 @@ const ProductCard = ({ product }) => {
                             />
                         )}
                         
+                        {/* Wishlist Button */}
+                        <div className="absolute top-4 left-4 z-10">
+                            <Magnetic strength={0.2}>
+                                <motion.button
+                                    onClick={handleWishlistToggle}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg ${
+                                        isFavorite 
+                                            ? 'bg-red-500 text-white' 
+                                            : 'bg-white/70 text-gray-400 hover:text-red-500 hover:bg-white'
+                                    }`}
+                                >
+                                    <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} />
+                                </motion.button>
+                            </Magnetic>
+                        </div>
+
                         {/* Product badges — data-driven */}
                         {(_isBestSeller || isNew) && (
                             <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${

@@ -49,7 +49,7 @@ const FIELD_SECTIONS = [
             { key: 'site_name',         label: 'שם האתר',             type: 'text',     default: 'NextClass' },
             { key: 'site_logo_url',     label: 'לוגו (URL)',          type: 'text',     default: '' },
             { key: 'site_tagline',      label: 'סלוגן ראשי (Footer)',  type: 'textarea', default: 'אנחנו מעצבים את הכלים שמעצימים את דור המחר. חדשנות, איכות וחזון בכל כיתה.' },
-            { key: 'announcement_text',  label: 'בר הכרזות',           type: 'text',     default: 'משלוחים חינם לכל רחבי הארץ' },
+            { key: 'announcement_text',  label: 'בר הכרזות',           type: 'text',     default: '' },
             { key: 'allow_orders',       label: 'אפשר הזמנות באתר',      type: 'boolean',  default: true },
             { key: 'maintenance_mode',   label: 'מצב תחזוקה',           type: 'boolean',  default: false },
             { key: 'maintenance_title',  label: 'כותרת תחזוקה',         type: 'text',     default: 'האתר בתחזוקה' },

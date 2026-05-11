@@ -36,15 +36,18 @@ import VODCenterPage from './pages/VODCenterPage';
 import MagazinePage from './pages/MagazinePage';
 import ComparePage from './pages/ComparePage';
 import DiscoverPage from './pages/DiscoverPage';
+import WishlistPage from './pages/WishlistPage';
 import AnnouncementBar from './components/AnnouncementBar';
 import DynamicIsland from './components/DynamicIsland';
 import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
+import AccessibilityWidget from './components/AccessibilityWidget';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { WishlistProvider } from './context/WishlistContext';
 import AdminApp from './admin/AdminApp';
 
 // ─── Analytics Tracker ──────────────────────────────────────────────────────
@@ -94,6 +97,7 @@ function AnimatedRoutes() {
                 <Route path="/magazine"   element={<MagazinePage />} />
                 <Route path="/compare"    element={<ComparePage />} />
                 <Route path="/discover"   element={<DiscoverPage />} />
+                <Route path="/favorites"  element={<WishlistPage />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -106,11 +110,13 @@ function App() {
             <SettingsProvider>
                 <CartProvider>
                     <ProductsProvider>
-                        <CompareProvider>
-                            <Router>
-                                <AppContent />
-                            </Router>
-                        </CompareProvider>
+                        <WishlistProvider>
+                            <CompareProvider>
+                                <Router>
+                                    <AppContent />
+                                </Router>
+                            </CompareProvider>
+                        </WishlistProvider>
                     </ProductsProvider>
                 </CartProvider>
             </SettingsProvider>
@@ -181,6 +187,7 @@ function AppContent() {
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
+            <AccessibilityWidget />
         </div>
     );
 }

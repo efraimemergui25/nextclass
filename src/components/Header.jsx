@@ -7,7 +7,9 @@ import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
+import { Heart } from 'lucide-react';
 
 // Remove static helpers
 
@@ -54,6 +56,7 @@ const Header = () => {
     const closeTimerRef = useRef(null);
 
     const { cartItems } = useCart();
+    const { wishlistCount } = useWishlist();
     const navigate = useNavigate();
 
     const cartCount = useMemo(
@@ -206,6 +209,20 @@ const Header = () => {
                         aria-label={getSetting('aria_search', 'חיפוש')}
                     >
                         <Search className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
+                    </motion.button>
+
+                    <motion.button
+                        onClick={() => navigate('/favorites')}
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 hover:text-[#FF2D55] transition-all flex items-center justify-center shrink-0 z-[120]"
+                        aria-label="מועדפים"
+                    >
+                        <Heart className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
+                        {wishlistCount > 0 && (
+                            <span className="absolute top-1 right-1 bg-[#FF2D55] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
+                                {wishlistCount}
+                            </span>
+                        )}
                     </motion.button>
 
                     <button

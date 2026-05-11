@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Globe, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Globe, Mail, Phone, MapPin, Sparkles, Send, CheckCircle2 } from 'lucide-react';
 
 // Removed readFooterContent helper
 
@@ -27,6 +30,33 @@ const Footer = () => {
         terms:     getSetting('footer_terms', 'Terms'),
         location:  getSetting('footer_location', 'ISRAEL | HEBREW'),
     }), [getSetting]);
+
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState('idle'); // idle, loading, success, error
+
+    const handleSubscribe = async (e) => {
+        e.preventDefault();
+        if (!email || !email.includes('@')) {
+            setStatus('error');
+            return;
+        }
+
+        setStatus('loading');
+        try {
+            await addDoc(collection(db, 'newsletter_subs'), {
+                email: email.trim().toLowerCase(),
+                timestamp: serverTimestamp(),
+                source: 'footer_newsletter'
+            });
+            setStatus('success');
+            setEmail('');
+            setTimeout(() => setStatus('idle'), 5000);
+        } catch (err) {
+            console.error('Newsletter error:', err);
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 3000);
+        }
+    };
 
     const handleLogoClick = useCallback((e) => {
         e.preventDefault();
@@ -67,6 +97,61 @@ const Footer = () => {
                              <Sparkles size={16} className="text-[#007AFF] animate-glow-pulse" />
                             <div className="w-px h-6 bg-gray-200" />
                             <p className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-400">{content.loveMsg}</p>
+                        </div>
+
+                        {/* Newsletter — LEAD COLLECTION */}
+                        <div className="mt-8 relative max-w-sm">
+                            <h4 className="text-[10px] font-black text-[#1D1D1F] mb-4 uppercase tracking-[0.2em]">בואו נישאר מחוברים</h4>
+                            <p className="text-sm text-gray-500 font-medium mb-5">קבלו עדכונים על פתרונות למידה חדשים, מדריכים והטבות בלעדיות למוסדות חינוך.</p>
+                            
+                            <form onSubmit={handleSubscribe} className="relative group">
+                                <input 
+                                    type="email" 
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="הכנס כתובת אימייל..."
+                                    disabled={status === 'loading' || status === 'success'}
+                                    className="w-full h-14 bg-white rounded-2xl px-6 py-4 text-sm font-bold border border-gray-100 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] group-hover:shadow-lg disabled:opacity-50"
+                                />
+                                <button 
+                                    type="submit"
+                                    disabled={status === 'loading' || status === 'success'}
+                                    className="absolute left-2 top-2 bottom-2 px-4 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center transition-all hover:bg-black active:scale-95 disabled:bg-gray-400"
+                                >
+                                    <AnimatePresence mode="wait">
+                                        {status === 'success' ? (
+                                            <motion.div key="success" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                                                <CheckCircle2 size={18} />
+                                            </motion.div>
+                                        ) : status === 'loading' ? (
+                                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <motion.div key="send" initial={{ x: 5, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+                                                <Send size={16} className="-rotate-45" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </button>
+                            </form>
+                            
+                            {status === 'success' && (
+                                <motion.p 
+                                    initial={{ opacity: 0, y: 5 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    className="mt-3 text-[11px] font-bold text-green-500"
+                                >
+                                    נרשמת בהצלחה! אנחנו נהיה בקשר.
+                                </motion.p>
+                            )}
+                            {status === 'error' && (
+                                <motion.p 
+                                    initial={{ opacity: 0, y: 5 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    className="mt-3 text-[11px] font-bold text-red-500"
+                                >
+                                    חלה שגיאה. בדוק את האימייל ונסה שוב.
+                                </motion.p>
+                            )}
                         </div>
                     </div>
 
