@@ -7,8 +7,8 @@ import { ListCard } from './CatalogGrid';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 
-// How many products to show per category on the homepage
-const HOMEPAGE_PREVIEW = 15;
+// Show products in clean full rows of 4 (8 = 2 rows, clean gestalt)
+const HOMEPAGE_PREVIEW = 8;
 
 // Accent color per category (same palette as mega menu & discover page)
 const CAT_ACCENTS = ['#007AFF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF375F', '#64D2FF'];

@@ -35,11 +35,18 @@ export function ProductsProvider({ children }) {
     const [rawProducts, setRawProducts] = useState(defaultProducts);
 
     useEffect(() => {
-        const unsub = onSnapshot(collection(db, 'products'), (snap) => {
-            if (!snap.empty) {
-                setRawProducts(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+        const unsub = onSnapshot(
+            collection(db, 'products'),
+            (snap) => {
+                if (!snap.empty) {
+                    setRawProducts(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+                }
+            },
+            (err) => {
+                // Firestore unavailable — keep using local seed data silently
+                console.warn('ProductsContext: Firestore unavailable, using local data', err.code);
             }
-        });
+        );
         return () => unsub();
     }, []);
 
