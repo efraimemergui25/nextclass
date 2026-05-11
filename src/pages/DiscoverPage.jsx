@@ -19,7 +19,6 @@ const CategorySection = memo(({ cat, products, accent, sectionRef }) => {
         <section ref={sectionRef} className="mb-14 scroll-mt-28">
             <div className="flex items-end justify-between mb-6" dir="rtl">
                 <div>
-                    <div className="inline-block w-1 h-6 rounded-full mb-2" style={{ background: accent }} />
                     <h2 className="text-2xl md:text-3xl font-black tracking-tight text-[#1D1D1F] leading-none">
                         {cat}
                     </h2>
@@ -79,66 +78,62 @@ const CategorySection = memo(({ cat, products, accent, sectionRef }) => {
 });
 CategorySection.displayName = 'CategorySection';
 
-// ── Swimlane tab section ──────────────────────────────────────────────────────
+// ── Swimlane stacked section ──────────────────────────────────────────────────
 const LANE_STYLES = {
     trending: { from: '#FF375F', to: '#FF9F0A' },
     new:      { from: '#007AFF', to: '#5856D6' },
-    deal:     { from: '#30D158', to: '#34C759' },
+    deal:     { from: '#34C759', to: '#30B950' },
 };
 
-function SwimlaneTabs({ swimlanes }) {
-    const [activeId, setActiveId] = useState(swimlanes[0]?.id ?? '');
-    const activeLane = swimlanes.find(l => l.id === activeId) ?? swimlanes[0];
-
-    if (!activeLane) return null;
-
+function SwimlaneSection({ lane }) {
+    const style = LANE_STYLES[lane.badge] ?? LANE_STYLES.new;
     return (
-        <div className="mb-12" dir="rtl">
-            {/* Tab row */}
-            <div className="flex items-center gap-2 mb-7 flex-wrap">
-                {swimlanes.map(lane => {
-                    const isActive = lane.id === activeId;
-                    const style = LANE_STYLES[lane.badge] ?? LANE_STYLES.new;
-                    return (
-                        <button
-                            key={lane.id}
-                            onClick={() => setActiveId(lane.id)}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-widest transition-all cursor-pointer"
-                            style={isActive
-                                ? { background: `linear-gradient(135deg, ${style.from}, ${style.to})`, color: '#fff', boxShadow: `0 4px 16px ${style.from}44` }
-                                : { background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }
-                            }
-                        >
-                            {lane.icon}
+        <section className="mb-14" dir="rtl">
+            <div className="flex items-end justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div
+                        className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${style.from}, ${style.to})` }}
+                    >
+                        <span className="text-white [&>svg]:w-4 [&>svg]:h-4">{lane.icon}</span>
+                    </div>
+                    <div>
+                        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-[#1D1D1F] leading-none">
                             {lane.label}
-                        </button>
-                    );
-                })}
+                        </h2>
+                        <p className="text-xs text-[#86868B] font-medium mt-1">
+                            {lane.items.length} מוצרים
+                        </p>
+                    </div>
+                </div>
+                <Link
+                    to="/catalog"
+                    className="group flex items-center gap-2 font-bold text-sm transition-all"
+                    style={{ color: style.from }}
+                >
+                    לכל הקטלוג
+                    <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center transition-all group-hover:scale-110 group-hover:-translate-x-1"
+                        style={{ background: `${style.from}18` }}
+                    >
+                        <ChevronLeft size={13} />
+                    </div>
+                </Link>
             </div>
 
-            {/* Product grid — switches with tab */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={activeId}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-                >
-                    {activeLane.items.slice(0, 4).map((product, i) => (
-                        <motion.div
-                            key={product.id}
-                            initial={{ opacity: 0, y: 14 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.045, duration: 0.45 }}
-                        >
-                            <ProductCard product={product} />
-                        </motion.div>
-                    ))}
-                </motion.div>
-            </AnimatePresence>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {lane.items.slice(0, 4).map((product, i) => (
+                    <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.045, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                        <ProductCard product={product} />
+                    </motion.div>
+                ))}
+            </div>
+        </section>
     );
 }
 
@@ -230,26 +225,7 @@ const DiscoverPage = () => {
                             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                             className="text-4xl md:text-[60px] font-black tracking-tight leading-[1.06] text-[#1D1D1F]"
                         >
-                            {(() => {
-                                const t = getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.');
-                                const words = t.split(' ');
-                                if (words.length < 2) return t;
-                                const plain    = words.slice(0, -2).join(' ');
-                                const accented = words.slice(-2).join(' ');
-                                return (
-                                    <>
-                                        {plain}{' '}
-                                        <span className="whitespace-nowrap" style={{
-                                            background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
-                                            WebkitBackgroundClip: 'text',
-                                            WebkitTextFillColor: 'transparent',
-                                            backgroundClip: 'text',
-                                        }}>
-                                            {accented}
-                                        </span>
-                                    </>
-                                );
-                            })()}
+                            {getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.')}
                         </motion.h1>
 
                         <motion.p
@@ -321,10 +297,10 @@ const DiscoverPage = () => {
                         </motion.div>
                     )}
 
-                    {/* ── Swimlane tabs (best sellers / new / deals) ────── */}
-                    {swimlanes.length > 0 && (
-                        <SwimlaneTabs swimlanes={swimlanes} />
-                    )}
+                    {/* ── Swimlane sections (best sellers / new / deals) ── */}
+                    {swimlanes.map(lane => (
+                        <SwimlaneSection key={lane.id} lane={lane} />
+                    ))}
 
                     {/* ── Sticky category tabs ────────────────────────────── */}
                     {categoryData.length > 1 && (
