@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
 import HeroSection from '../components/HeroSection';
 import SocialProofStrip from '../components/SocialProofStrip';
-import CatalogGrid from '../components/CatalogGrid';
+import HomeDiscoverSection from '../components/HomeDiscoverSection';
 import ShoppableImage from '../components/ShoppableImage';
 import EcosystemVisualizer from '../components/EcosystemVisualizer';
 import ValueProps from '../components/ValueProps';
@@ -15,7 +14,7 @@ import { useSettings } from '../context/SettingsContext';
 const SECTION_DEFS = [
     { key: 'vis_hero',         Component: HeroSection },
     { key: 'vis_social_proof', Component: SocialProofStrip },
-    { key: 'vis_catalog',      Component: CatalogGrid },
+    { key: 'vis_catalog',      Component: HomeDiscoverSection },
     { key: 'vis_ecosystem',    Component: EcosystemVisualizer },
     { key: 'vis_shoppable',    Component: ShoppableImage },
     { key: 'vis_quote_wizard', Component: QuoteWizard },
