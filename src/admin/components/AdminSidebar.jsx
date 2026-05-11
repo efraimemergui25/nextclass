@@ -84,11 +84,11 @@ export default function AdminSidebar({ collapsed, onToggle }) {
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className="h-full flex flex-col shrink-0 relative"
             style={{
-                background: 'rgba(255,255,255,0.82)',
-                backdropFilter: 'blur(56px) saturate(220%)',
-                WebkitBackdropFilter: 'blur(56px) saturate(220%)',
-                borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.08)'}`,
-                boxShadow: '6px 0 40px rgba(0,0,0,0.07), inset -1px 0 0 rgba(255,255,255,0.7)',
+                background: 'rgba(248,248,252,0.88)',
+                backdropFilter: 'blur(64px) saturate(240%)',
+                WebkitBackdropFilter: 'blur(64px) saturate(240%)',
+                borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.07)'}`,
+                boxShadow: '4px 0 32px rgba(0,0,0,0.05), inset -1px 0 0 rgba(255,255,255,0.85)',
                 transition: 'border-color 2s ease',
             }}
         >
@@ -177,7 +177,7 @@ export default function AdminSidebar({ collapsed, onToggle }) {
                                     <AnimatePresence>
                                         {!collapsed && (
                                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                                className={`text-[13px] font-semibold whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1 ${isActive ? 'text-[#007AFF]' : 'text-[#6E6E73]'}`}>
+                                                className={`text-[13px] whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1 ${isActive ? 'font-black text-[#007AFF]' : 'font-medium text-[#6E6E73]'}`}>
                                                 {item.label}
                                             </motion.span>
                                         )}

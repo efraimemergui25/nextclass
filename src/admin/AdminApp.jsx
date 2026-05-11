@@ -43,14 +43,13 @@ function AdminShell() {
             <AdminDataProvider>
             <AdminNotificationWatcher />
             <div className="flex h-screen overflow-hidden" dir="rtl"
-            style={{ background: 'linear-gradient(145deg, #EBF0FF 0%, #EEE8FF 22%, #F7E8FF 50%, #FFF0F5 75%, #FFF8EE 100%)' }}>
-                {/* Ambient floating orbs — admin atmosphere */}
+            style={{ background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 35%, #F2EEFF 65%, #F5F0FF 100%)' }}>
+                {/* Ambient orbs — subtle brand atmosphere */}
                 <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-                    <div style={{ position: 'absolute', top: '-8%', right: '-4%', width: 600, height: 600, borderRadius: '50%', background: '#007AFF', filter: 'blur(120px)', opacity: 0.045, willChange: 'transform' }} />
-                    <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: 500, height: 500, borderRadius: '50%', background: '#5856D6', filter: 'blur(130px)', opacity: 0.04, willChange: 'transform' }} />
-                    <div style={{ position: 'absolute', top: '45%', left: '35%', width: 400, height: 400, borderRadius: '50%', background: '#FF9500', filter: 'blur(150px)', opacity: 0.025 }} />
+                    <div style={{ position: 'absolute', top: '-6%', right: '-3%', width: 560, height: 560, borderRadius: '50%', background: '#007AFF', filter: 'blur(140px)', opacity: 0.055 }} />
+                    <div style={{ position: 'absolute', bottom: '-8%', left: '-4%', width: 480, height: 480, borderRadius: '50%', background: '#5856D6', filter: 'blur(150px)', opacity: 0.045 }} />
                     {/* Noise grain */}
-                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.025, mixBlendMode: 'overlay' }}>
+                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.018, mixBlendMode: 'overlay' }}>
                         <filter id="admin-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /></filter>
                         <rect width="100%" height="100%" filter="url(#admin-noise)" />
                     </svg>
