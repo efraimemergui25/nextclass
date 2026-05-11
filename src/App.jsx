@@ -43,12 +43,30 @@ import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
 import PageErrorBoundary from './components/PageErrorBoundary';
+import ExitIntentPopup from './components/ExitIntentPopup';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import AdminApp from './admin/AdminApp';
+
+// ─── Crisp Live Chat ─────────────────────────────────────────────────────────
+// Set VITE_CRISP_ID in .env + Vercel to enable the live chat widget.
+// Get your Website ID at: https://app.crisp.chat → Settings → Website Settings → Setup Instructions
+function CrispChat() {
+    useEffect(() => {
+        const id = import.meta.env.VITE_CRISP_ID;
+        if (!id || window.$crisp) return;
+        window.$crisp = [];
+        window.CRISP_WEBSITE_ID = id;
+        const s = document.createElement('script');
+        s.src = 'https://client.crisp.chat/l.js';
+        s.async = true;
+        document.head.appendChild(s);
+    }, []);
+    return null;
+}
 
 // ─── Analytics helpers ───────────────────────────────────────────────────────
 export function trackEvent(name, params = {}) {
@@ -199,6 +217,8 @@ function AppContent() {
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
+            <ExitIntentPopup />
+            <CrispChat />
         </div>
     );
 }

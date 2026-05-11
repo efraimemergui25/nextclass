@@ -42,6 +42,7 @@ const ProductCard = ({ product }) => {
         description = '',
         specs,
         stock,
+        sold = 0,
         isNew = false,
         _isBestSeller = false,
     } = product ?? {};
@@ -277,6 +278,12 @@ const ProductCard = ({ product }) => {
                             }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#30D158]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
                                 {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
+                            </div>
+                        )}
+                        {sold > 0 && (
+                            <div className="text-[9px] font-black text-[#86868B] mb-1 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#FF9F0A]" />
+                                נמכרו {sold}+ יחידות
                             </div>
                         )}
                         {showPrices && (salePrice ? (

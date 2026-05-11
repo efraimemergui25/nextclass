@@ -117,10 +117,10 @@ const AboutPage = () => {
                         className="absolute inset-0 z-0"
                     >
                         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-[#F5F5F7] z-10" />
-                        <img 
-                            src={aboutContent.heroImg} 
+                        <img
+                            src={aboutContent.heroImg}
                             className="w-full h-full object-cover"
-                            alt="The Vision"
+                            alt="The Vision" loading="lazy"
                         />
                     </motion.div>
 
@@ -198,10 +198,10 @@ const AboutPage = () => {
                                 className="order-1 lg:order-2 relative group"
                             >
                                 <div className="absolute inset-0 bg-[#007AFF] rounded-[4rem] blur-3xl opacity-10 group-hover:opacity-20 transition-opacity" />
-                                <img 
-                                    src="/assets/modern_classroom_israel_1777475880301.png" 
+                                <img
+                                    src="/assets/modern_classroom_israel_1777475880301.png"
                                     className="relative z-10 w-full aspect-[4/5] object-cover rounded-[4rem] shadow-2xl transition-transform duration-700 group-hover:scale-[1.02]"
-                                    alt="Modern Classroom"
+                                    alt="Modern Classroom" loading="lazy"
                                 />
                                 <div className="absolute -bottom-6 -right-6 glass-apple p-6 rounded-3xl z-20 shadow-xl border border-white/50 hidden md:block">
                                     <div className="flex items-center gap-4">
@@ -262,15 +262,15 @@ const AboutPage = () => {
                                              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{aboutContent.founderRole}</p>
                                          </div>
                                          <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-md">
-                                             <img src={aboutContent.founderImg} alt={aboutContent.founderName} className="w-full h-full object-cover" />
+                                             <img src={aboutContent.founderImg} alt={aboutContent.founderName} className="w-full h-full object-cover" loading="lazy" />
                                          </div>
                                      </div>
                                 </div>
                                 <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
-                                    <img 
-                                        src="/assets/visionary_founder_israel_1777475864564.png" 
-                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
-                                        alt="Visionary Founder" 
+                                    <img
+                                        src="/assets/visionary_founder_israel_1777475864564.png"
+                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                                        alt="Visionary Founder" loading="lazy"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent" />
                                 </div>

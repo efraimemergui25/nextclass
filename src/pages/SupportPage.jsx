@@ -9,7 +9,7 @@ const AcademyCard = ({ title, duration, category, image, level }) => (
         className="glass-apple gestalt-card overflow-hidden group cursor-pointer border border-white/50 shadow-sm bg-white/40"
     >
         <div className="aspect-[16/10] relative overflow-hidden">
-            <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={title} />
+            <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" alt={title} loading="lazy" />
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 backdrop-blur-[1px]">
                 <div className="w-14 h-14 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-[#007AFF] shadow-2xl scale-90 group-hover:scale-100 transition-transform duration-500">
                     <Play fill="currentColor" size={20} className="ml-1" />

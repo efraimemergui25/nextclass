@@ -178,6 +178,19 @@ export default function CheckoutPage() {
             };
             await setDoc(doc(db, 'quotes', id), quote);
             trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
+
+            // Fire-and-forget: push to HubSpot CRM + send confirmation email
+            fetch('/api/crm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quote }),
+            }).catch(() => {});
+            fetch('/api/send-quote-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quote }),
+            }).catch(() => {});
+
             setQuoteId(id);
             clearCart();
             setSubmitted(true);
@@ -568,7 +581,7 @@ export default function CheckoutPage() {
                                             style={{ background: 'rgba(255,255,255,0.05)' }}>
                                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 shrink-0">
                                                 <img src={item.image || item.imageUrl} alt={item.title}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover" loading="lazy"
                                                     onError={e => { e.target.onerror=null; e.target.src='https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=200'; }} />
                                             </div>
                                             <div className="flex-1 min-w-0">

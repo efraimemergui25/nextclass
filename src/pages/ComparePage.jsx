@@ -120,7 +120,7 @@ const ComparePage = () => {
                                                     <div className="w-full aspect-[4/3] bg-white rounded-2xl mb-4 p-3 shadow-sm border border-gray-100 flex items-center justify-center overflow-hidden">
                                                         <img onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop"; }}
                                                             src={product.imageUrl || product.image}
-                                                            alt={product.title}
+                                                            alt={product.title} loading="lazy"
                                                             className="max-h-full max-w-full object-contain"
                                                         />
                                                     </div>

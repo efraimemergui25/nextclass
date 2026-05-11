@@ -355,7 +355,7 @@ const Header = () => {
                                                     className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shrink-0 opacity-50 group-hover:opacity-100 transition-opacity duration-300"
                                                     style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}
                                                 >
-                                                    <img src={meta.topImage} alt="" className="w-9 h-9 object-contain" />
+                                                    <img src={meta.topImage} alt="" className="w-9 h-9 object-contain" loading="lazy" />
                                                 </div>
                                             )}
 

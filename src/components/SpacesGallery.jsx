@@ -177,7 +177,7 @@ const SpacesGallery = () => {
                                         >
                                             {/* Product Thumbnail (Right Side) */}
                                             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-white/40 bg-white/20 backdrop-blur-lg">
-                                                <img src={hotspot.thumbnail} alt={hotspot.product} className="w-full h-full object-cover mix-blend-multiply" />
+                                                <img src={hotspot.thumbnail} alt={hotspot.product} className="w-full h-full object-cover mix-blend-multiply" loading="lazy" />
                                             </div>
 
                                             {/* Content Area (Center/Left) */}
