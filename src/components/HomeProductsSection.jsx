@@ -218,19 +218,22 @@ const HomeProductsSection = () => {
                                         className="absolute top-full mt-2 left-0 w-72 bg-white rounded-2xl shadow-xl border border-[#E5E5EA] overflow-hidden z-50 p-4"
                                         dir="rtl"
                                     >
+                                        {/* Header: price on right (RTL primary), reset on left */}
                                         <div className="flex justify-between items-center mb-3">
+                                            <span className="text-[12px] font-black text-[#1D1D1F]">
+                                                {priceMax >= tabCeiling ? 'כל התקציבים' : `עד ₪${priceMax.toLocaleString()}`}
+                                            </span>
                                             <button
                                                 onClick={() => setPriceMax(30000)}
                                                 className={`text-[11px] font-bold transition-colors ${priceMax < tabCeiling ? 'text-[#007AFF] hover:underline' : 'text-[#AEAEB2] pointer-events-none'}`}
                                             >
                                                 איפוס
                                             </button>
-                                            <span className="text-[12px] font-black text-[#1D1D1F]">
-                                                {priceMax >= tabCeiling ? 'הכל' : `עד ₪${priceMax.toLocaleString()}`}
-                                            </span>
                                         </div>
+                                        {/* Slider — explicit LTR so browser positions thumb correctly */}
                                         <input
                                             type="range"
+                                            dir="ltr"
                                             min={0}
                                             max={tabCeiling}
                                             step={500}
@@ -238,13 +241,14 @@ const HomeProductsSection = () => {
                                             onChange={e => setPriceMax(Number(e.target.value) >= tabCeiling ? 30000 : Number(e.target.value))}
                                             className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                                             style={{
-                                                background: `linear-gradient(to left, #E5E5EA ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%, ${accent} ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%)`,
+                                                background: `linear-gradient(to right, ${accent} ${(Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%, #E5E5EA ${(Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%)`,
                                                 accentColor: accent,
                                             }}
                                         />
-                                        <div className="flex justify-between mt-2 text-[10px] font-bold text-[#AEAEB2]">
-                                            <span>₪{tabCeiling.toLocaleString()}+</span>
+                                        {/* Labels — LTR to match physical slider: ₪0 on left, max on right */}
+                                        <div className="flex justify-between mt-2 text-[10px] font-bold text-[#AEAEB2]" dir="ltr">
                                             <span>₪0</span>
+                                            <span>+₪{tabCeiling.toLocaleString()}</span>
                                         </div>
                                     </motion.div>
                                 )}

@@ -395,9 +395,10 @@ const CatalogPage = () => {
                                                 </motion.span>
                                             </AnimatePresence>
                                         </div>
-                                        <div className="px-1" dir="ltr">
+                                        <div className="px-1">
                                             <input
                                                 type="range"
+                                                dir="ltr"
                                                 min="0"
                                                 max={maxPrice}
                                                 step={priceStep}
@@ -408,9 +409,9 @@ const CatalogPage = () => {
                                                 }}
                                                 className="w-full h-2 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_2px_10px_rgba(0,0,0,0.25)] [&::-webkit-slider-thumb]:border-[2.5px] [&::-webkit-slider-thumb]:border-[#007AFF] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
                                             />
-                                            <div className="flex justify-between mt-3 text-[11px] font-bold text-[#AEAEB2]">
+                                            <div className="flex justify-between mt-3 text-[11px] font-bold text-[#AEAEB2]" dir="ltr">
                                                 <span>₪0</span>
-                                                <span>₪{maxPrice.toLocaleString()}+</span>
+                                                <span>+₪{maxPrice.toLocaleString()}</span>
                                             </div>
                                         </div>
                                         <AnimatePresence>

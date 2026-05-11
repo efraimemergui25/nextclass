@@ -431,9 +431,9 @@ ${catalogInfo}`;
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 30, scale: 0.95, filter: 'blur(20px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: 20, scale: 0.98, filter: 'blur(20px)' }}
+                        initial={{ opacity: 0, y: 24, scale: 0.94 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 16, scale: 0.96 }}
                         transition={SPRING}
                         className="w-[380px] h-[620px] flex flex-col overflow-hidden rounded-[2.5rem] relative"
                         style={{
@@ -445,28 +445,30 @@ ${catalogInfo}`;
                         }}
                     >
                         {/* ── Panel Header ──────────────────────────────────── */}
-                        <div className="relative z-20 px-8 pt-7 pb-4 flex items-center justify-between border-b"
+                        <div className="relative z-20 px-6 pt-6 pb-4 flex items-center gap-3 border-b"
                             style={{ background: 'rgba(255,255,255,0.95)', borderColor: 'rgba(0,0,0,0.08)' }}>
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shadow-lg transform rotate-2">
-                                        <Sparkles size={22} className="text-white" />
-                                    </div>
-                                    <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
-                                </div>
-                                <div className="text-right">
-                                    <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_title', 'NextClass AI')}</h3>
-                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">{getSetting('ai_role', 'Institutional Concierge')}</p>
-                                </div>
-                            </div>
+                            {/* X — right side first in DOM = visual right in RTL */}
                             <Magnetic strength={0.3}>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all cursor-pointer"
+                                    className="w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all cursor-pointer shrink-0"
                                 >
                                     <X size={18} className="text-[#1D1D1F]" />
                                 </button>
                             </Magnetic>
+                            {/* Logo + text — takes remaining space, aligned right */}
+                            <div className="flex items-center gap-3 flex-1 justify-end">
+                                <div className="text-right">
+                                    <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_title', 'NextClass AI')}</h3>
+                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">{getSetting('ai_role', 'Institutional Concierge')}</p>
+                                </div>
+                                <div className="relative shrink-0">
+                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shadow-lg transform rotate-2">
+                                        <Sparkles size={22} className="text-white" />
+                                    </div>
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+                                </div>
+                            </div>
                         </div>
 
                         {/* ── Tab Bar ───────────────────────────────────────── */}
@@ -624,7 +626,7 @@ ${catalogInfo}`;
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`h-16 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.12)] flex items-center px-4 overflow-hidden relative group transition-all duration-500 cursor-pointer ${isOpen ? 'bg-white' : 'bg-[#1D1D1F]'}`}
+                className="h-16 rounded-[2rem] bg-[#1D1D1F] shadow-[0_15px_40px_rgba(0,0,0,0.12)] flex items-center px-4 overflow-hidden relative group transition-all duration-500 cursor-pointer"
                 style={{ minWidth: '4.5rem' }}
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#007AFF] to-[#5856D6] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -632,7 +634,7 @@ ${catalogInfo}`;
                     <AnimatePresence mode="wait">
                         {isOpen ? (
                             <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                                <X size={26} className="text-[#1D1D1F]" />
+                                <X size={26} className="text-white" />
                             </motion.div>
                         ) : (
                             <motion.div key="s" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="flex items-center gap-3">

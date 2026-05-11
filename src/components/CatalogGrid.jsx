@@ -318,18 +318,22 @@ const CatalogGrid = () => {
                                             <span className="text-base font-black text-[#1D1D1F]">עד ₪{priceRange[1].toLocaleString()}</span>
                                         </div>
                                         <div className="px-2">
-                                            <input 
-                                                type="range" 
-                                                min="0" 
+                                            <input
+                                                type="range"
+                                                dir="ltr"
+                                                min="0"
                                                 max={content.priceMax}
                                                 step="500"
                                                 value={priceRange[1]}
                                                 onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                                                className="w-full h-2.5 bg-black/10 rounded-lg appearance-none cursor-pointer accent-[#007AFF]"
+                                                className="w-full h-2.5 rounded-lg appearance-none cursor-pointer accent-[#007AFF]"
+                                                style={{
+                                                    background: `linear-gradient(to right, #007AFF ${(priceRange[1] / content.priceMax) * 100}%, rgba(0,0,0,0.1) ${(priceRange[1] / content.priceMax) * 100}%)`
+                                                }}
                                             />
-                                            <div className="flex justify-between mt-4 text-[11px] font-black text-gray-400">
+                                            <div className="flex justify-between mt-4 text-[11px] font-black text-[#AEAEB2]" dir="ltr">
                                                 <span>₪0</span>
-                                                <span>₪{content.priceMax.toLocaleString()}+</span>
+                                                <span>+₪{content.priceMax.toLocaleString()}</span>
                                             </div>
                                         </div>
                                     </section>
