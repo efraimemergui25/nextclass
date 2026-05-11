@@ -378,24 +378,16 @@ const Header = () => {
                                 })}
                             </div>
 
-                            {/* Footer CTAs */}
-                            <div className="mt-2.5 pt-2.5 flex gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                            {/* Footer CTA */}
+                            <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                                 <Link
                                     to="/catalog"
                                     onClick={handleMegaMenuLinkClick}
-                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[1rem] font-bold text-[13px] text-white transition-all hover:opacity-90 shadow-sm"
+                                    className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-[1rem] font-bold text-[13px] text-white transition-all hover:opacity-90 shadow-sm"
                                     style={{ background: '#007AFF' }}
                                 >
                                     כל הקטלוג
                                     <ChevronLeft size={13} />
-                                </Link>
-                                <Link
-                                    to="/discover"
-                                    onClick={handleMegaMenuLinkClick}
-                                    className="flex-1 flex items-center justify-center py-2.5 rounded-[1rem] font-bold text-[13px] text-[#1D1D1F] transition-all hover:bg-black/[0.05]"
-                                    style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }}
-                                >
-                                    {getSetting('nav_mega_discover', 'גלה פתרונות')}
                                 </Link>
                             </div>
                         </motion.div>
