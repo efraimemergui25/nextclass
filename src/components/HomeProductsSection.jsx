@@ -48,6 +48,7 @@ const HomeProductsSection = () => {
     const [sortBy,   setSortBy]     = useState('default');
     const [sortOpen, setSortOpen]   = useState(false);
     const [priceMax,  setPriceMax]  = useState(30000);
+    const [sliderOpen, setSliderOpen] = useState(false);
 
     const tabIndex = categories.indexOf(activeTab);
     const accent = CAT_ACCENTS[tabIndex >= 0 ? tabIndex % CAT_ACCENTS.length : 0];
@@ -259,51 +260,73 @@ const HomeProductsSection = () => {
                     </div>
                 </div>
 
-                {/* ── Budget range slider ────────────────────────────────── */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.1, duration: 0.5 }}
-                    className="mb-8 px-1"
-                    dir="rtl"
-                >
-                    <div className="bg-white rounded-2xl border border-[#E5E5EA] px-6 py-4 flex items-center gap-5">
-                        <div className="shrink-0 text-right">
-                            <p className="text-[10px] font-black text-[#86868B] uppercase tracking-[0.2em] mb-0.5">תקציב מקסימלי</p>
-                            <p className="text-[18px] font-black text-[#1D1D1F] leading-none" style={{ direction: 'ltr' }}>
-                                {priceMax >= tabCeiling ? 'הכל' : `₪${priceMax.toLocaleString()}`}
-                            </p>
-                        </div>
-                        <div className="flex-1 relative">
-                            <input
-                                type="range"
-                                min={0}
-                                max={tabCeiling}
-                                step={500}
-                                value={Math.min(priceMax, tabCeiling)}
-                                onChange={e => setPriceMax(Number(e.target.value) >= tabCeiling ? 30000 : Number(e.target.value))}
-                                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                                style={{
-                                    background: `linear-gradient(to left, #E5E5EA ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%, ${accent} ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%)`,
-                                    accentColor: accent,
-                                }}
-                            />
-                            <div className="flex justify-between mt-2 text-[10px] font-bold text-[#AEAEB2]">
-                                <span>₪{tabCeiling.toLocaleString()}+</span>
-                                <span>₪0</span>
-                            </div>
-                        </div>
-                        {priceMax < tabCeiling && (
-                            <button
-                                onClick={() => setPriceMax(30000)}
-                                className="shrink-0 px-3 py-1.5 rounded-full bg-[#F5F5F7] text-[#86868B] font-bold text-[11px] hover:bg-[#E5E5EA] transition-all cursor-pointer"
+                {/* ── Budget range slider — collapsible ──────────────────── */}
+                <div className="mb-8 px-1" dir="rtl">
+                    {/* Trigger button */}
+                    <motion.button
+                        onClick={() => setSliderOpen(v => !v)}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full bg-white rounded-2xl border border-[#E5E5EA] px-5 py-3.5 flex items-center justify-between gap-4 cursor-pointer hover:border-[#007AFF]/30 transition-all"
+                    >
+                        <div className="flex items-center gap-2">
+                            <motion.svg
+                                animate={{ rotate: sliderOpen ? 180 : 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="w-4 h-4 text-[#86868B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
                             >
-                                איפוס
-                            </button>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </motion.svg>
+                            {priceMax < tabCeiling && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); setPriceMax(30000); }}
+                                    className="text-[10px] text-[#007AFF] font-bold hover:underline"
+                                >
+                                    איפוס
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[15px] font-black text-[#1D1D1F]" style={{ direction: 'ltr' }}>
+                                {priceMax >= tabCeiling ? 'הכל' : `עד ₪${priceMax.toLocaleString()}`}
+                            </span>
+                            <span className="text-[11px] font-bold text-[#86868B] uppercase tracking-[0.15em]">תקציב</span>
+                        </div>
+                    </motion.button>
+
+                    {/* Expandable slider body */}
+                    <AnimatePresence>
+                        {sliderOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                                className="overflow-hidden"
+                            >
+                                <div className="bg-white border border-t-0 border-[#E5E5EA] rounded-b-2xl px-5 pt-4 pb-5">
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={tabCeiling}
+                                        step={500}
+                                        value={Math.min(priceMax, tabCeiling)}
+                                        onChange={e => setPriceMax(Number(e.target.value) >= tabCeiling ? 30000 : Number(e.target.value))}
+                                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                                        style={{
+                                            background: `linear-gradient(to left, #E5E5EA ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%, ${accent} ${100 - (Math.min(priceMax, tabCeiling) / tabCeiling) * 100}%)`,
+                                            accentColor: accent,
+                                        }}
+                                    />
+                                    <div className="flex justify-between mt-2 text-[10px] font-bold text-[#AEAEB2]">
+                                        <span>₪{tabCeiling.toLocaleString()}+</span>
+                                        <span>₪0</span>
+                                    </div>
+                                </div>
+                            </motion.div>
                         )}
-                    </div>
-                </motion.div>
+                    </AnimatePresence>
+                </div>
 
                 {/* ── Product display ────────────────────────────────────── */}
                 <AnimatePresence mode="wait">

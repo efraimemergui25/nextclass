@@ -243,6 +243,19 @@ const ProductCard = ({ product }) => {
                         )}
                         
                         <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none" />
+
+                        {/* Specs hover overlay — slides up from bottom of image */}
+                        {specs?.length > 0 && (
+                            <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-[0.22,1,0.36,1] pointer-events-none z-20">
+                                <div className="bg-[#1D1D1F]/80 backdrop-blur-md px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-end">
+                                    {specs.slice(0, 4).map((s, i) => (
+                                        <span key={i} className="text-[10px] font-bold text-white/90 whitespace-nowrap">
+                                            {s.label}: <span className="text-white">{s.value}</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* ── Text Content ─────────────────────────────────────── */}
@@ -255,76 +268,68 @@ const ProductCard = ({ product }) => {
                             <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
                         )}
 
-                        {/* Specs chips */}
-                        {specs?.slice(0, 2).length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                                {specs.slice(0, 2).map((s, i) => (
-                                    <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F5F5F7] text-[#6E6E73] border border-[#E5E5EA]">
-                                        {s.label}: {s.value}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </Link>
 
                 {/* ── Footer — outside Link so buttons never trigger navigation ── */}
-                <div className="px-6 pb-6 flex items-center justify-between gap-3">
-                    <div className="shrink-0">
-                        {/* Stock badge */}
-                        {stockStatus && (
-                            <div className={`text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 ${
-                                stockStatus === 'ok' ? 'text-[#30D158]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
-                            }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#30D158]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
-                                {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
-                            </div>
-                        )}
-                        {sold > 0 && (
-                            <div className="text-[9px] font-black text-[#86868B] mb-1 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#FF9F0A]" />
-                                נמכרו {sold}+ יחידות
-                            </div>
-                        )}
-                        {showPrices && (salePrice ? (
-                            <div className="flex flex-col items-start gap-0.5">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">-{discountPct}%</span>
+                <div className="px-6 pb-6 flex items-end justify-between gap-3">
+
+                    {/* LEFT: compare button */}
+                    <Magnetic strength={0.15}>
+                        <motion.button
+                            onClick={handleCompareClick}
+                            whileTap={{ scale: 0.92 }}
+                            className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-all duration-300 flex items-center justify-center shrink-0 ${selected
+                                ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
+                                : 'bg-white border-gray-100 text-gray-400 hover:border-[#007AFF]/20 hover:text-[#007AFF] hover:shadow-lg'
+                                }`}
+                            aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                            </svg>
+                        </motion.button>
+                    </Magnetic>
+
+                    {/* RIGHT: stock + sold + price + cart button stacked */}
+                    <div className="flex flex-col items-end gap-2 min-w-0">
+                        {/* Stock & sold */}
+                        <div className="flex items-center gap-3">
+                            {stockStatus && (
+                                <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${
+                                    stockStatus === 'ok' ? 'text-[#30D158]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
+                                }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#30D158]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
+                                    {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
                                 </div>
+                            )}
+                            {sold > 0 && (
+                                <div className="text-[9px] font-black text-[#86868B] flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF9F0A]" />
+                                    נמכרו {sold}+
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Price */}
+                        {showPrices && (salePrice ? (
+                            <div className="flex items-center gap-2">
                                 <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">-{discountPct}%</span>
+                                <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
                             </div>
                         ) : (
                             <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
                         ))}
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                        {/* Compare */}
-                        <Magnetic strength={0.15}>
-                            <motion.button
-                                onClick={handleCompareClick}
-                                whileTap={{ scale: 0.92 }}
-                                className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-all duration-300 flex items-center justify-center ${selected
-                                    ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
-                                    : 'bg-white border-gray-100 text-gray-400 hover:border-[#007AFF]/20 hover:text-[#007AFF] hover:shadow-lg'
-                                    }`}
-                                aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                </svg>
-                            </motion.button>
-                        </Magnetic>
-
-                        {/* Cart button / Contact button */}
+                        {/* Cart / Contact button */}
                         <Magnetic strength={0.1}>
                             {allowOrders ? (
                                 isInCart ? (
                                     <motion.button
                                         onClick={handleCartToggle}
                                         whileTap={{ scale: 0.94 }}
-                                        className="group/cart h-[44px] min-w-[90px] sm:min-w-[120px] px-3 sm:px-4 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                        className="group/cart h-[44px] px-5 rounded-full font-bold text-[11px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                                     >
                                         <div className="flex items-center gap-1.5 group-hover/cart:hidden">
                                             <svg className="w-3.5 h-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -344,33 +349,18 @@ const ProductCard = ({ product }) => {
                                         onClick={handleCartToggle}
                                         animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
                                         whileTap={popState === 'idle' ? { scale: 0.93 } : undefined}
-                                        className="h-[44px] min-w-[90px] sm:min-w-[120px] px-3 sm:px-4 rounded-full font-bold text-[11px] tracking-wide text-white flex items-center justify-center gap-1.5 focus:outline-none shadow-md hover:shadow-xl transition-shadow"
+                                        className="h-[44px] px-5 rounded-full font-bold text-[11px] tracking-wide text-white flex items-center justify-center gap-1.5 focus:outline-none shadow-md hover:shadow-xl transition-shadow"
                                         style={{ backgroundColor: '#007AFF' }}
                                         disabled={popState !== 'idle'}
                                     >
                                         <AnimatePresence mode="wait">
                                             {popState === 'success' ? (
-                                                <motion.span
-                                                    key="check"
-                                                    initial={{ scale: 0, opacity: 0 }}
-                                                    animate={{ scale: 1, opacity: 1 }}
-                                                    exit={{ scale: 0, opacity: 0 }}
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                                                    className="flex items-center gap-1"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                <motion.span key="check" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }} className="flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                                     נוסף!
                                                 </motion.span>
                                             ) : (
-                                                <motion.span
-                                                    key="add"
-                                                    initial={{ opacity: 0, y: 6 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -6 }}
-                                                    transition={{ duration: 0.15 }}
-                                                >
+                                                <motion.span key="add" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
                                                     {popState === 'loading' ? '...' : 'הוסף לעגלה'}
                                                 </motion.span>
                                             )}
