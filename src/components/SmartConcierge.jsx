@@ -410,7 +410,7 @@ ${catalogInfo}`;
     };
 
     return (
-        <div ref={rootRef} className="fixed bottom-8 right-8 z-[1000] flex flex-col items-end gap-5">
+        <div ref={rootRef} className="fixed bottom-8 right-8 z-[1000] flex flex-col items-end gap-5" dir="ltr">
 
             {/* ── Cart feedback toast ─────────────────────────────────────── */}
             <AnimatePresence>
