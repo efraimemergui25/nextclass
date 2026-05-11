@@ -363,7 +363,7 @@ function QuotesPipeline() {
                                                 <p className="text-[#1D1D1F] font-bold text-sm truncate">{item.title}</p>
                                                 <p className="text-[#86868B] text-xs">כמות: {item.qty ?? item.quantity ?? 1} · ₪{(item.salePrice ?? item.price)?.toLocaleString()}</p>
                                             </div>
-                                            <p className="font-black text-sm shrink-0">₪{((item.salePrice ?? item.price) * item.quantity).toLocaleString()}</p>
+                                            <p className="font-black text-sm shrink-0">₪{((item.salePrice ?? item.price) * (item.qty ?? item.quantity ?? 1)).toLocaleString()}</p>
                                         </div>
                                     ))}
                                     <div className="flex justify-between px-3 pt-2">
