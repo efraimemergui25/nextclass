@@ -200,7 +200,26 @@ const DiscoverPage = () => {
                             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                             className="text-4xl md:text-[60px] font-black tracking-tight leading-[1.06] text-[#1D1D1F]"
                         >
-                            {getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.')}
+                            {(() => {
+                                const t = getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.');
+                                const words = t.split(' ');
+                                if (words.length < 2) return t;
+                                const plain    = words.slice(0, -2).join(' ');
+                                const accented = words.slice(-2).join(' ');
+                                return (
+                                    <>
+                                        {plain}{' '}
+                                        <span className="whitespace-nowrap" style={{
+                                            background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                        }}>
+                                            {accented}
+                                        </span>
+                                    </>
+                                );
+                            })()}
                         </motion.h1>
 
                         <motion.p
