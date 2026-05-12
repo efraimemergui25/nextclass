@@ -13,9 +13,11 @@ const ALL_NAV_ITEMS = [
     { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר'       },
 ];
 
-const SPRING      = { type: 'spring', stiffness: 260, damping: 34, mass: 1.1 };
-const SPRING_FAST = { type: 'spring', stiffness: 460, damping: 34, mass: 0.55 };
+const SPRING      = { type: 'spring', stiffness: 240, damping: 32, mass: 1.2 };
+const SPRING_FAST = { type: 'spring', stiffness: 440, damping: 32, mass: 0.5 };
+const SPRING_ITEM = { type: 'spring', stiffness: 350, damping: 26, mass: 0.8 };
 
+/* SF Pro Display — renders at Mac quality with antialiasing */
 const SF = `-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif`;
 
 const MenuOverlay = ({ isOpen, onClose }) => {
@@ -39,87 +41,86 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                     className="fixed inset-0 z-[250] flex flex-col"
                     dir="rtl"
                     style={{
-                        background: 'rgba(246,246,250,0.9)',
-                        backdropFilter: 'blur(140px) saturate(260%) brightness(1.06)',
-                        WebkitBackdropFilter: 'blur(140px) saturate(260%) brightness(1.06)',
+                        background: 'rgba(244,244,248,0.92)',
+                        backdropFilter: 'blur(160px) saturate(280%) brightness(1.07)',
+                        WebkitBackdropFilter: 'blur(160px) saturate(280%) brightness(1.07)',
                         fontFamily: SF,
                     }}
                 >
-                    {/* ── Glass depth layers ── */}
-                    <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
-                        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,1) 25%, rgba(255,255,255,1) 75%, transparent 100%)' }} />
-                    <div className="absolute inset-x-0 bottom-0 h-px pointer-events-none"
-                        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 30%, rgba(255,255,255,0.6) 70%, transparent 100%)' }} />
-
-                    {/* Ambient glows */}
+                    {/* ── Glass layers ── */}
+                    {/* Top edge shine */}
+                    <div className="absolute inset-x-0 top-0 h-[1px] pointer-events-none"
+                        style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 20%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 80%, transparent 100%)' }} />
+                    {/* Blue ambient — upper right */}
                     <div className="absolute pointer-events-none" style={{
-                        top: '-35%', right: '-12%', width: 900, height: 900, borderRadius: '50%',
-                        background: 'radial-gradient(circle, rgba(0,122,255,0.055) 0%, rgba(0,122,255,0.018) 40%, transparent 68%)',
+                        top: '-50%', right: '-18%', width: 1000, height: 1000, borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(0,122,255,0.05) 0%, rgba(0,122,255,0.015) 42%, transparent 68%)',
                     }} />
+                    {/* Purple ambient — lower left */}
                     <div className="absolute pointer-events-none" style={{
-                        bottom: '-28%', left: '-12%', width: 750, height: 750, borderRadius: '50%',
-                        background: 'radial-gradient(circle, rgba(88,86,214,0.048) 0%, transparent 62%)',
+                        bottom: '-35%', left: '-18%', width: 850, height: 850, borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(88,86,214,0.042) 0%, transparent 62%)',
                     }} />
+                    {/* Central lift */}
                     <div className="absolute inset-0 pointer-events-none" style={{
-                        background: 'radial-gradient(ellipse 85% 65% at 50% 48%, rgba(255,255,255,0.55) 0%, transparent 100%)',
+                        background: 'radial-gradient(ellipse 88% 70% at 50% 46%, rgba(255,255,255,0.62) 0%, transparent 100%)',
                     }} />
-
-                    {/* Grain texture */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.022, mixBlendMode: 'overlay' }}>
+                    {/* Grain */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.02, mixBlendMode: 'overlay' }}>
                         <filter id="nc-grain">
-                            <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="4" stitchTiles="stitch" />
+                            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" />
                             <feColorMatrix type="saturate" values="0" />
                         </filter>
                         <rect width="100%" height="100%" filter="url(#nc-grain)" />
                     </svg>
 
                     {/* ── Top bar ── */}
-                    <div className="relative z-10 flex items-center justify-between px-7 sm:px-10 pt-7 shrink-0">
-                        {/* Close button */}
+                    <div className="relative z-10 flex items-center justify-between px-8 sm:px-12 pt-8 shrink-0">
+                        {/* Close */}
                         <motion.button
                             onClick={onClose}
-                            initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
+                            initial={{ opacity: 0, rotate: -90, scale: 0.45 }}
                             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                            exit={{ opacity: 0, rotate: 90, scale: 0.5, transition: { duration: 0.18 } }}
-                            whileHover={{ scale: 1.1, rotate: 90 }}
-                            whileTap={{ scale: 0.86 }}
-                            transition={{ ...SPRING_FAST, delay: 0.06 }}
-                            className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer"
+                            exit={{ opacity: 0, rotate: 90, scale: 0.45, transition: { duration: 0.16 } }}
+                            whileHover={{ scale: 1.12, rotate: 90 }}
+                            whileTap={{ scale: 0.84 }}
+                            transition={{ ...SPRING_FAST, delay: 0.05 }}
+                            className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer"
                             style={{
-                                background: 'rgba(255,255,255,0.82)',
-                                border: '1px solid rgba(0,0,0,0.08)',
-                                boxShadow: '0 2px 20px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)',
-                                backdropFilter: 'blur(24px)',
-                                WebkitBackdropFilter: 'blur(24px)',
+                                background: 'rgba(255,255,255,0.85)',
+                                border: '1px solid rgba(0,0,0,0.075)',
+                                boxShadow: '0 2px 18px rgba(0,0,0,0.065), inset 0 1px 0 rgba(255,255,255,1)',
+                                backdropFilter: 'blur(28px)',
+                                WebkitBackdropFilter: 'blur(28px)',
                             }}
                             aria-label="סגור"
                         >
-                            <X className="w-[15px] h-[15px]" style={{ color: '#1D1D1F', strokeWidth: 2.5 }} />
+                            <X className="w-[14px] h-[14px]" style={{ color: '#1D1D1F', strokeWidth: 2.6 }} />
                         </motion.button>
 
                         {/* Logo */}
                         <motion.div
-                            initial={{ opacity: 0, x: 16 }}
+                            initial={{ opacity: 0, x: 18 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 16, transition: { duration: 0.18 } }}
-                            transition={{ ...SPRING, delay: 0.08 }}
+                            exit={{ opacity: 0, x: 18, transition: { duration: 0.16 } }}
+                            transition={{ ...SPRING, delay: 0.07 }}
                         >
                             <Link to="/" onClick={onClose}
-                                className="flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-45"
+                                className="flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-40"
                             >
                                 {siteLogo ? (
-                                    <img src={siteLogo} alt={siteName} className="h-8 object-contain" />
+                                    <img src={siteLogo} alt={siteName} className="h-7 object-contain" />
                                 ) : (
                                     <>
-                                        <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
+                                        <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none">
                                             <circle cx="12" cy="16" r="9" stroke="#1D1D1F" strokeWidth="1.8" />
                                             <circle cx="20" cy="16" r="9" stroke="#007AFF" strokeWidth="1.8" fill="#007AFF" fillOpacity="0.13" />
                                         </svg>
-                                        <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.04em', color: '#1D1D1F' }}>
+                                        <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.04em', color: '#1D1D1F' }}>
                                             {siteName}
                                         </span>
                                     </>
@@ -129,7 +130,8 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* ── Nav items ── */}
-                    <nav className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0 pb-4">
+                    <nav className="relative z-10 flex-1 flex flex-col items-center justify-center"
+                        style={{ gap: 'clamp(2px, 0.6vh, 6px)' }}>
                         {navItems.map((item, i) => {
                             const isHovered = hoveredId === item.id;
                             const isDimmed  = anyHovered && !isHovered;
@@ -137,73 +139,62 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                             return (
                                 <motion.div
                                     key={item.id}
-                                    initial={{ opacity: 0, y: 44, filter: 'blur(14px)' }}
+                                    initial={{ opacity: 0, y: 48, filter: 'blur(16px)' }}
                                     animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                                     exit={{
                                         opacity: 0,
-                                        y: 22,
-                                        filter: 'blur(7px)',
+                                        y: 26,
+                                        filter: 'blur(8px)',
                                         transition: {
-                                            duration: 0.24,
-                                            delay: (navItems.length - 1 - i) * 0.028,
+                                            duration: 0.26,
+                                            delay: (navItems.length - 1 - i) * 0.03,
                                             ease: [0.55, 0, 1, 0.45],
                                         },
                                     }}
-                                    transition={{ ...SPRING, delay: 0.1 + i * 0.072 }}
-                                    className="relative w-full text-center"
+                                    transition={{ ...SPRING, delay: 0.08 + i * 0.075 }}
+                                    className="w-full text-center"
                                     onHoverStart={() => setHoveredId(item.id)}
                                     onHoverEnd={() => setHoveredId(null)}
                                 >
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className="group block px-10 sm:px-16 py-1 sm:py-1.5 select-none"
-                                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                                        className="block select-none"
+                                        style={{
+                                            padding: 'clamp(6px, 1.1vh, 14px) 3rem',
+                                            WebkitTapHighlightColor: 'transparent',
+                                        }}
                                     >
-                                        {/* Index number */}
-                                        <motion.span
-                                            animate={{ opacity: isHovered ? 0.45 : 0 }}
-                                            transition={{ duration: 0.22 }}
-                                            className="absolute right-8 sm:right-16 top-1/2 -translate-y-1/2 text-[11px] font-semibold tabular-nums"
-                                            style={{ color: '#1D1D1F', letterSpacing: '0.04em' }}
-                                        >
-                                            {String(i + 1).padStart(2, '0')}
-                                        </motion.span>
-
                                         <motion.span
                                             animate={{
-                                                opacity: isDimmed ? 0.14 : 1,
-                                                y: isHovered ? -3 : 0,
+                                                opacity: isDimmed ? 0.12 : 1,
+                                                y: isHovered ? -4 : 0,
+                                                scale: isHovered ? 1.025 : 1,
                                             }}
-                                            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                                            className="block leading-none"
+                                            transition={SPRING_ITEM}
+                                            className="block leading-[1]"
                                             style={{
-                                                fontWeight: 650,
-                                                letterSpacing: '-0.042em',
-                                                fontSize: 'clamp(2rem, 5.6vw, 3.8rem)',
-                                                color: isHovered ? '#1D1D1F' : 'rgba(0,0,0,0.52)',
-                                                transition: 'color 0.28s ease',
+                                                fontWeight: 700,
+                                                letterSpacing: '-0.035em',
+                                                fontSize: 'clamp(1.85rem, 4.8vw, 3.35rem)',
+                                                color: isHovered ? '#111' : 'rgba(0,0,0,0.82)',
+                                                transition: 'color 0.22s ease',
+                                                WebkitFontSmoothing: 'antialiased',
+                                                MozOsxFontSmoothing: 'grayscale',
+                                                textRendering: 'optimizeLegibility',
                                                 willChange: 'transform, opacity',
                                             }}
                                         >
                                             {item.name}
                                         </motion.span>
-
-                                        {/* Hover underline */}
-                                        <motion.span
-                                            animate={{
-                                                scaleX: isHovered ? 1 : 0,
-                                                opacity: isHovered ? 1 : 0,
-                                            }}
-                                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                            className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1.5px] w-12 rounded-full origin-center"
-                                            style={{ background: 'rgba(0,0,0,0.18)' }}
-                                        />
                                     </Link>
                                 </motion.div>
                             );
                         })}
                     </nav>
+
+                    {/* ── Bottom balance weight (mirrors top bar height) ── */}
+                    <div className="shrink-0" style={{ height: 'clamp(40px, 6vh, 72px)' }} />
                 </motion.div>
             )}
         </AnimatePresence>
