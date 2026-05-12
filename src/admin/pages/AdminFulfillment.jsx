@@ -212,6 +212,16 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
         } catch { showToast('שגיאה', 'error'); }
     }, [showToast]);
 
+    const setStatus = useCallback(async (id, status) => {
+        try {
+            await updateDoc(doc(db, 'supplier_orders', id), {
+                status,
+                [`${status}At`]: serverTimestamp(),
+            });
+            showToast('סטטוס עודכן', 'success');
+        } catch { showToast('שגיאה', 'error'); }
+    }, [showToast]);
+
     const deleteOrder = useCallback(async (id) => {
         if (!window.confirm('למחוק הזמנת ספק זו?')) return;
         try {
@@ -258,28 +268,43 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                     {displayed.map(o => {
                         const nextS = NEXT_STATUS[o.status];
                         const nextLabel = STATUSES.find(s => s.id === nextS)?.label;
+                        const currentStatus = STATUSES.find(s => s.id === o.status) || STATUSES[0];
                         return (
                             <motion.div key={o.id} layout
                                 className="rounded-[1.5rem] p-5" style={card} dir="rtl">
                                 <div className="flex items-start justify-between gap-4">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col items-end gap-2">
+                                        {/* Status quick-change */}
+                                        <div className="relative">
+                                            <select
+                                                value={o.status}
+                                                onChange={e => setStatus(o.id, e.target.value)}
+                                                className="appearance-none pr-3 pl-7 py-1.5 rounded-xl text-[11px] font-black cursor-pointer focus:outline-none border-0"
+                                                style={{ background: currentStatus.bg, color: currentStatus.color }}
+                                            >
+                                                {STATUSES.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown size={10} className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: currentStatus.color }} />
+                                        </div>
+                                        {/* Advance button */}
                                         {nextS && (
                                             <motion.button whileTap={{ scale: 0.95 }}
                                                 onClick={() => advanceStatus(o.id, o.status)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black text-white cursor-pointer"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black text-white cursor-pointer whitespace-nowrap"
                                                 style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)' }}>
                                                 <ArrowRight size={12} />
                                                 {nextLabel}
                                             </motion.button>
                                         )}
                                         <button onClick={() => deleteOrder(o.id)}
-                                            className="p-2 rounded-xl hover:bg-[#FF3B30]/10 text-[#FF3B30]/40 hover:text-[#FF3B30] transition-all cursor-pointer">
-                                            <Trash2 size={14} />
+                                            className="p-1.5 rounded-xl hover:bg-[#FF3B30]/10 text-[#FF3B30]/30 hover:text-[#FF3B30] transition-all cursor-pointer">
+                                            <Trash2 size={13} />
                                         </button>
                                     </div>
                                     <div className="flex-1 text-right">
                                         <div className="flex items-center gap-2 justify-end mb-1.5 flex-wrap">
-                                            <StatusPill statusId={o.status} />
                                             <span className="text-[11px] text-[#AEAEB2]">
                                                 {o.eta ? `ETA: ${o.eta}` : '—'}
                                             </span>
@@ -363,10 +388,8 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast }) {
         setLoading(false);
     };
 
-    if (!isOpen) return null;
-
     return (
-        <AdminModal isOpen={isOpen} onClose={onClose} title="העברה לספק" size="md">
+        <AdminModal open={isOpen} onClose={onClose} title="העברה לספק" size="md">
             <div className="space-y-5 p-6" dir="rtl">
                 <div className="space-y-2">
                     <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">הזמנת לקוח</label>
@@ -532,7 +555,7 @@ function SuppliersTab({ suppliers, showToast }) {
             )}
 
             {/* Add/Edit Modal */}
-            <AdminModal isOpen={showForm} onClose={() => setShowForm(false)} title={editId ? 'עריכת ספק' : 'הוספת ספק'} size="md">
+            <AdminModal open={showForm} onClose={() => setShowForm(false)} title={editId ? 'עריכת ספק' : 'הוספת ספק'} size="md">
                 <div className="p-6 space-y-4" dir="rtl">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">

@@ -16,7 +16,7 @@ const HOTSPOT_PRODUCT_MAP = {
 
 const RAW_HOTSPOTS = [
     { id: "touch-pro-75",   x: "48%", y: "35%", direction: "top" },
-    { id: "pc-staff-setup", x: "72%", y: "65%", direction: "bottom" },
+    { id: "pc-staff-setup", x: "72%", y: "65%", direction: "top" },
     { id: "edu-edit-basic", x: "25%", y: "75%", direction: "top" },
 ];
 
@@ -74,7 +74,7 @@ const ShoppableImage = () => {
     });
 
     return (
-        <section className="w-full bg-[#F5F5F7] py-10 sm:py-14 px-6 md:px-12 overflow-hidden">
+        <section className="w-full bg-[#F5F5F7] py-10 sm:py-14 px-6 md:px-12">
             <div className="max-w-7xl mx-auto flex flex-col items-center">
 
                 {/* Section Header */}
@@ -91,23 +91,25 @@ const ShoppableImage = () => {
                 </div>
 
                 {/* Interactive Canvas */}
-                <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-[0_24px_64px_rgb(0_0_0/0.10)] bg-gray-900">
-                    <img
-                        src={content.bgImage}
-                        alt="Smart Classroom Environment"
-                        className="w-full h-full object-cover opacity-80"
-                        onError={(e) => {
-                            if (!e.target.dataset.triedFallback) {
-                                e.target.dataset.triedFallback = 'true';
-                                e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
-                            }
-                        }}
-                    />
+                <div className="relative w-full aspect-video">
+                    {/* Image layer — rounded + clipped independently so popups can overflow */}
+                    <div className="absolute inset-0 rounded-3xl overflow-hidden shadow-[0_24px_64px_rgb(0_0_0/0.10)] bg-gray-900">
+                        <img
+                            src={content.bgImage}
+                            alt="Smart Classroom Environment"
+                            className="w-full h-full object-cover opacity-80"
+                            onError={(e) => {
+                                if (!e.target.dataset.triedFallback) {
+                                    e.target.dataset.triedFallback = 'true';
+                                    e.target.src = "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop";
+                                }
+                            }}
+                        />
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                    </div>
 
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-
-                    {/* Hotspots */}
+                    {/* Hotspots — outside overflow-hidden so popups aren't clipped */}
                     {hotspots.map((spot) => (
                         <div
                             key={spot.id}

@@ -235,29 +235,30 @@ const EcosystemVisualizer = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
-            className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-[0_24px_64px_rgb(0_0_0/0.10)]"
+            className="relative w-full aspect-video"
         >
-            {/* Background image — modern classroom/tech desk */}
-            <img
-                src={content.bgImage}
-                alt="מרחב למידה חכם"
-                className="absolute inset-0 w-full h-full object-cover"
-                draggable={false}
-            />
+            {/* Image layer — rounded + clipped independently so popups can overflow */}
+            <div className="absolute inset-0 rounded-3xl overflow-hidden shadow-[0_24px_64px_rgb(0_0_0/0.10)]">
+                {/* Background image — modern classroom/tech desk */}
+                <img
+                    src={content.bgImage}
+                    alt="מרחב למידה חכם"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    draggable={false}
+                />
+                {/* Subtle vignette overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+                {/* Legend badge */}
+                <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#007AFF] animate-pulse" />
+                    <span className="text-white text-xs font-bold">{content.hint}</span>
+                </div>
+            </div>
 
-            {/* Subtle vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
-
-            {/* Hotspots */}
+            {/* Hotspots — outside overflow-hidden so popups aren't clipped */}
             {HOTSPOTS.map(spot => (
                 <Hotspot key={spot.id} spot={spot} />
             ))}
-
-            {/* Legend badge */}
-            <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#007AFF] animate-pulse" />
-                <span className="text-white text-xs font-bold">{content.hint}</span>
-            </div>
         </motion.div>
     </section>
     );

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
-import { HardwareCatalog } from '../utils/mockData';
+import { useCart } from '../context/CartContext';
 
 // Reusable Apple-Grade Motion Button Component
 export const MotionButton = ({
@@ -40,11 +40,7 @@ export const MotionButton = ({
 
 const CartPage = () => {
     const { getSetting } = useSettings();
-    // Simulate initial cart state with 2 items from our mock data
-    const [cartItems, setCartItems] = useState([
-        { ...HardwareCatalog[0], quantity: 2 },
-        { ...HardwareCatalog[2], quantity: 1 }
-    ]);
+    const { cartItems, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
 
     const content = {
         title:        getSetting('cart_title', 'עגלת הרכש שלך'),
@@ -62,21 +58,15 @@ const CartPage = () => {
         warrantyNote: getSetting('cart_warranty_note', 'אחריות מוסדית מלאה מובטחת'),
     };
 
-    const handleQuantityChange = (id, change) => {
-        setCartItems(prev => prev.map(item => {
-            if (item.id === id) {
-                const newQuantity = Math.max(1, item.quantity + change);
-                return { ...item, quantity: newQuantity };
-            }
-            return item;
-        }));
+    const parsePrice = (p) => {
+        if (typeof p === 'number') return p;
+        return parseInt(String(p ?? '0').replace(/[^\d]/g, ''), 10) || 0;
     };
 
-    const handleRemove = (id) => {
-        setCartItems(prev => prev.filter(item => item.id !== id));
-    };
-
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.contractPrice * item.quantity), 0);
+    const subtotal = cartItems.reduce((sum, item) => {
+        const price = parsePrice(item.salePrice ?? item.price ?? item.contractPrice ?? 0);
+        return sum + price * (item.qty ?? 1);
+    }, 0);
     const vat = subtotal * 0.17; // Israeli VAT 17%
     const total = subtotal + vat;
 
@@ -171,7 +161,7 @@ const CartPage = () => {
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] leading-tight tracking-tighter">{item.title || item.name}</h3>
                                                      <button
-                                                        onClick={() => handleRemove(item.id)}
+                                                        onClick={() => removeFromCart(item.id)}
                                                         className="text-[#AEAEB2] hover:text-red-500 transition-colors p-2 -mt-2 bg-[#F5F5F7] hover:bg-red-50 rounded-full"
                                                         aria-label={content.removeAria}
                                                     >
@@ -188,16 +178,16 @@ const CartPage = () => {
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
                                                             transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                                            onClick={() => handleQuantityChange(item.id, -1)}
+                                                            onClick={() => decreaseQuantity(item.id)}
                                                             className="w-10 h-10 rounded-full flex items-center justify-center text-[#86868B] hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
                                                             -
                                                         </motion.button>
-                                                        <span className="w-12 text-center font-black text-[#1D1D1F] text-lg">{item.quantity}</span>
+                                                        <span className="w-12 text-center font-black text-[#1D1D1F] text-lg">{item.qty ?? 1}</span>
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
                                                             transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
-                                                            onClick={() => handleQuantityChange(item.id, 1)}
+                                                            onClick={() => increaseQuantity(item.id)}
                                                             className="w-10 h-10 rounded-full flex items-center justify-center text-[#86868B] hover:bg-white hover:text-[#1D1D1F] hover:shadow-md transition-all font-bold text-lg focus:outline-none"
                                                         >
                                                             +
@@ -206,7 +196,7 @@ const CartPage = () => {
 
                                                     {/* Price */}
                                                     <div className="text-left font-black text-3xl md:text-4xl tracking-tighter text-[#1D1D1F]">
-                                                        ₪{(item.contractPrice * item.quantity).toLocaleString()}
+                                                        ₪{(parsePrice(item.salePrice ?? item.price ?? item.contractPrice ?? 0) * (item.qty ?? 1)).toLocaleString()}
                                                     </div>
                                                 </div>
                                             </div>
@@ -228,7 +218,7 @@ const CartPage = () => {
 
                                 <div className="space-y-6 mb-10">
                                     <div className="flex justify-between items-center text-[#86868B] font-medium">
-                                        <span className="text-lg">{content.subtotalLabel} ({cartItems.reduce((acc, item) => acc + item.quantity, 0)} פריטים)</span>
+                                        <span className="text-lg">{content.subtotalLabel} ({cartItems.reduce((acc, item) => acc + (item.qty ?? 1), 0)} פריטים)</span>
                                         <span className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[#86868B] font-normal">

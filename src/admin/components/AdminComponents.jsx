@@ -406,7 +406,7 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
         return () => { document.body.style.overflow = ''; };
     }, [open]);
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <>
@@ -444,7 +444,8 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
 

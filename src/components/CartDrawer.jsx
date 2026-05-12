@@ -131,13 +131,13 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                 </span>
                             </div>
 
-                            <Link to="/contact" onClick={onClose} className="w-full block">
+                            <Link to="/checkout" onClick={onClose} className="w-full block">
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     className="w-full bg-[#007AFF] text-white py-4 rounded-2xl font-bold text-[15px] shadow-[0_8px_24px_rgb(0_122_255/0.3)] hover:shadow-[0_12px_32px_rgb(0_122_255/0.4)] transition-all min-h-[52px]"
                                 >
-                                    שלח פנייה לרכש
+                                    המשך לקופה
                                 </motion.button>
                             </Link>
                             <p className="mt-3 text-center text-[11px] text-[#AEAEB2] font-medium">

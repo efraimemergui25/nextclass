@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
     collection, query, orderBy, onSnapshot,
-    doc, deleteDoc
+    doc, deleteDoc, addDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader } from '../components/AdminComponents';
@@ -82,6 +82,8 @@ export default function AdminCommunity() {
     const [selected, setSelected] = useState(new Set());
     const [deletingId, setDeletingId] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+    const [addEmail, setAddEmail] = useState('');
+    const [addingEmail, setAddingEmail] = useState(false);
 
     useEffect(() => {
         const q = query(collection(db, 'newsletter_subs'), orderBy('timestamp', 'desc'));
@@ -151,6 +153,23 @@ export default function AdminCommunity() {
     const toggleAll = () => {
         if (selected.size === filtered.length) setSelected(new Set());
         else setSelected(new Set(filtered.map(s => s.id)));
+    };
+
+    const addManualSub = async (e) => {
+        e.preventDefault();
+        const email = addEmail.trim().toLowerCase();
+        if (!email || !email.includes('@')) return;
+        if (subs.some(s => s.email === email)) {
+            showToast('כתובת זו כבר קיימת ברשימה', 'error');
+            return;
+        }
+        setAddingEmail(true);
+        try {
+            await addDoc(collection(db, 'newsletter_subs'), { email, source: 'manual', timestamp: serverTimestamp() });
+            setAddEmail('');
+            showToast('מנוי נוסף בהצלחה', 'success');
+        } catch { showToast('שגיאה בהוספת המנוי', 'error'); }
+        setAddingEmail(false);
     };
 
     const recentActivity = useMemo(() => subs.slice(0, 8), [subs]);
@@ -322,11 +341,42 @@ export default function AdminCommunity() {
                 </div>
 
                 {/* Unified right panel */}
-                <div className="lg:col-span-1">
-                    <div className="rounded-[22px] overflow-hidden h-full flex flex-col" style={panelStyle}>
+                <div className="lg:col-span-1 flex flex-col gap-4">
+
+                    {/* Add subscriber card */}
+                    <div className="rounded-[22px] p-5" style={panelStyle}>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.20)' }}>
+                                <Users size={12} className="text-[#34C759]" />
+                            </div>
+                            <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הוסף מנוי ידנית</p>
+                        </div>
+                        <form onSubmit={addManualSub} className="flex gap-2">
+                            <button
+                                type="submit"
+                                disabled={addingEmail || !addEmail.includes('@')}
+                                className="shrink-0 h-9 px-4 rounded-xl text-[12px] font-black text-white transition-all disabled:opacity-40"
+                                style={{ background: 'linear-gradient(135deg, #34C759, #30B851)' }}
+                            >
+                                {addingEmail ? '...' : 'הוסף'}
+                            </button>
+                            <input
+                                type="email"
+                                value={addEmail}
+                                onChange={e => setAddEmail(e.target.value)}
+                                placeholder="email@example.com"
+                                dir="ltr"
+                                className="flex-1 h-9 px-3 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#34C759]/20 transition-all text-left"
+                            />
+                        </form>
+                    </div>
+
+                    {/* Recent activity + source breakdown card */}
+                    <div className="rounded-[22px] overflow-hidden flex-1" style={panelStyle}>
 
                         {/* Section: Recent activity */}
-                        <div className="px-5 pt-4 pb-1">
+                        <div className="px-5 pt-4 pb-2">
                             <div className="flex items-center gap-2.5 mb-3">
                                 <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
                                     style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.16)' }}>
@@ -335,9 +385,15 @@ export default function AdminCommunity() {
                                 <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הצטרפויות אחרונות</p>
                             </div>
 
-                            <div className="space-y-0.5 max-h-[220px] overflow-y-auto custom-scrollbar -mx-1 px-1">
+                            <div className="space-y-0.5 max-h-[200px] overflow-y-auto custom-scrollbar -mx-1 px-1">
                                 {recentActivity.length === 0 ? (
-                                    <p className="text-[#AEAEB2] text-xs text-center py-6 font-bold">אין הצטרפויות עדיין</p>
+                                    <div className="py-5 text-center">
+                                        <div className="w-10 h-10 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mx-auto mb-2">
+                                            <Users size={16} className="text-[#AEAEB2]" />
+                                        </div>
+                                        <p className="text-[11px] text-[#AEAEB2] font-bold">אין הצטרפויות עדיין</p>
+                                        <p className="text-[10px] text-[#C7C7CC] mt-0.5">הוסף מנוי ידנית למעלה</p>
+                                    </div>
                                 ) : recentActivity.map((sub, i) => (
                                     <motion.div
                                         key={sub.id}
@@ -358,7 +414,7 @@ export default function AdminCommunity() {
                                         </div>
                                         {daysSince(sub.timestamp) === 0 && (
                                             <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full shrink-0"
-                                                style={{ background: '#34C759/15', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                                                style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
                                                 חדש
                                             </span>
                                         )}
@@ -371,9 +427,9 @@ export default function AdminCommunity() {
                         <div className="mx-5 my-3 border-t border-black/[0.055]" />
 
                         {/* Section: Source breakdown */}
-                        {sourceCounts.length > 0 ? (
-                            <div className="px-5">
-                                <p className="text-[12px] font-black text-[#1D1D1F] mb-3 tracking-tight">מקור הרשמה</p>
+                        <div className="px-5 pb-4">
+                            <p className="text-[12px] font-black text-[#1D1D1F] mb-3 tracking-tight">מקור הרשמה</p>
+                            {sourceCounts.length > 0 ? (
                                 <div className="space-y-2.5">
                                     {sourceCounts.map(([src, count]) => {
                                         const color = sourceColors[src] || '#86868B';
@@ -403,44 +459,49 @@ export default function AdminCommunity() {
                                         );
                                     })}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="px-5">
-                                <p className="text-[12px] font-black text-[#1D1D1F] mb-1 tracking-tight">מקור הרשמה</p>
-                                <p className="text-[11px] text-[#AEAEB2]">אין נתונים עדיין</p>
-                            </div>
-                        )}
-
-                        {/* Divider */}
-                        <div className="mx-5 my-3 border-t border-black/[0.055]" />
-
-                        {/* Section: Broadcast */}
-                        <div className="px-5 pb-4 flex-1">
-                            <div className="flex items-center gap-2.5 mb-3">
-                                <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.16)' }}>
-                                    <Send size={12} className="text-[#5856D6]" />
+                            ) : (
+                                <div className="space-y-2.5">
+                                    {['Newsletter', 'Popup', 'Manual'].map((label, i) => (
+                                        <div key={label}>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] text-[#D1D1D6] font-bold">0 מנויים</span>
+                                                <span className="text-[11px] font-bold text-[#C7C7CC]">{label}</span>
+                                            </div>
+                                            <div className="h-1.5 bg-[#F2F2F7] rounded-full" />
+                                        </div>
+                                    ))}
+                                    <p className="text-[10px] text-[#AEAEB2] text-center pt-1">ייאספו נתונים עם הרשמות ראשונות</p>
                                 </div>
-                                <div className="text-right flex-1">
-                                    <p className="text-[12px] font-black text-[#1D1D1F]">שליחת ניוזלטר</p>
-                                    <p className="text-[10px] text-[#AEAEB2]">ל-{stats.total} מנויים</p>
-                                </div>
-                            </div>
-                            <textarea
-                                rows={3}
-                                placeholder="כתוב כאן את תוכן הניוזלטר שלך..."
-                                className="w-full px-3.5 py-2.5 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 transition-all resize-none text-right mb-2.5"
-                            />
-                            <button
-                                disabled
-                                className="w-full py-2.5 rounded-xl text-[12px] font-black text-white flex items-center justify-center gap-1.5 opacity-45 cursor-not-allowed"
-                                style={{ background: 'linear-gradient(135deg, #5856D6, #007AFF)' }}
-                            >
-                                <Send size={12} />
-                                שלח לכולם (בקרוב)
-                            </button>
-                            <p className="text-[9px] text-[#AEAEB2] text-center mt-1.5">חיבור ל-SendGrid / Resend — בקרוב</p>
+                            )}
                         </div>
+                    </div>
+
+                    {/* Newsletter compose card */}
+                    <div className="rounded-[22px] p-5" style={panelStyle}>
+                        <div className="flex items-center gap-2.5 mb-3">
+                            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.16)' }}>
+                                <Send size={12} className="text-[#5856D6]" />
+                            </div>
+                            <div className="text-right flex-1">
+                                <p className="text-[12px] font-black text-[#1D1D1F]">שליחת ניוזלטר</p>
+                                <p className="text-[10px] text-[#AEAEB2]">ל-{stats.total} מנויים</p>
+                            </div>
+                        </div>
+                        <textarea
+                            rows={3}
+                            placeholder="כתוב כאן את תוכן הניוזלטר שלך..."
+                            className="w-full px-3.5 py-2.5 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 transition-all resize-none text-right mb-2.5"
+                        />
+                        <button
+                            disabled
+                            className="w-full py-2.5 rounded-xl text-[12px] font-black text-white flex items-center justify-center gap-1.5 opacity-45 cursor-not-allowed"
+                            style={{ background: 'linear-gradient(135deg, #5856D6, #007AFF)' }}
+                        >
+                            <Send size={12} />
+                            שלח לכולם (בקרוב)
+                        </button>
+                        <p className="text-[9px] text-[#AEAEB2] text-center mt-1.5">חיבור ל-SendGrid / Resend — בקרוב</p>
                     </div>
                 </div>
             </div>

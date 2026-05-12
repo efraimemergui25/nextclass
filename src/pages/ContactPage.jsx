@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, Mail, MapPin, MessageSquare, Clock, Send, Sparkles, CheckCircle2, ShieldCheck, Heart, User } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageSquare, Clock, Send, Sparkles, CheckCircle2, ShieldCheck, Heart, User, Zap, Award, HeartHandshake } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
 import { doc, setDoc } from 'firebase/firestore';
@@ -251,7 +251,7 @@ const ContactPage = () => {
                         </div>
 
                         {/* ── Right Side: Interactive Hub Form ────── */}
-                        <div className="lg:col-span-7">
+                        <div className="lg:col-span-7 flex flex-col gap-6">
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 whileInView={{ opacity: 1, x: 0 }}
@@ -317,12 +317,42 @@ const ContactPage = () => {
                                     )}
                                 </AnimatePresence>
                             </motion.div>
+
+                            {/* ── Promise strip — fills the gap below the form ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.15, type: 'spring', stiffness: 280, damping: 28 }}
+                                className="grid grid-cols-3 gap-3"
+                            >
+                                {[
+                                    { icon: <Zap size={18} />, title: 'מענה תוך 24 שעות', sub: 'נציג מחכה לכם' },
+                                    { icon: <HeartHandshake size={18} />, title: 'ייעוץ ללא עלות', sub: 'אפיון מותאם אישית' },
+                                    { icon: <Award size={18} />, title: '+800 מוסדות', sub: 'בוטחים בנו כבר היום' },
+                                ].map((item, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.18 + i * 0.07, type: 'spring', stiffness: 300, damping: 28 }}
+                                        className="bg-white/70 backdrop-blur-xl rounded-2xl p-4 border border-white/80 shadow-sm text-right flex flex-col gap-2"
+                                    >
+                                        <div className="w-9 h-9 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF] self-end">
+                                            {item.icon}
+                                        </div>
+                                        <p className="text-[13px] font-black text-[#1D1D1F] leading-snug">{item.title}</p>
+                                        <p className="text-[11px] text-[#AEAEB2] font-medium">{item.sub}</p>
+                                    </motion.div>
+                                ))}
+                            </motion.div>
                         </div>
                     </div>
                 </div>
 
                 {/* ── Trust Section ────── */}
-                <section className="mt-16 sm:mt-24 md:mt-32 max-w-4xl mx-auto px-4 sm:px-6 text-center">
+                <section className="mt-12 sm:mt-16 max-w-4xl mx-auto px-4 sm:px-6 text-center">
                     <div className="inline-flex p-4 rounded-3xl bg-white shadow-sm border border-gray-100 mb-10">
                         <ShieldCheck size={32} className="text-[#007AFF]" />
                     </div>

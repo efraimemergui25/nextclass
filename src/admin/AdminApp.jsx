@@ -28,6 +28,8 @@ import AdminSettings from './pages/AdminSettings';
 import AdminQA from './pages/AdminQA';
 import AdminFulfillment from './pages/AdminFulfillment';
 import AdminCommunity from './pages/AdminCommunity';
+import AdminMedia from './pages/AdminMedia';
+import AdminCommunications from './pages/AdminCommunications';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -86,6 +88,8 @@ function AdminShell() {
                                     <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
                                     <Route path="/admin/community" element={<AdminCommunity />} />
                                     <Route path="/admin/qa" element={<AdminQA />} />
+                                    <Route path="/admin/media" element={<AdminMedia />} />
+                                    <Route path="/admin/communications" element={<AdminCommunications />} />
                                     <Route path="/admin/settings" element={<AdminSettings />} />
                                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                                 </Routes>

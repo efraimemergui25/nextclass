@@ -112,17 +112,17 @@ function ProductReviews({ getSetting, product }) {
                         </svg>
                     </div>
                 </div>
-                {/* Summary bar */}
-                <div className="flex items-center gap-6 justify-end mb-8">
-                    <div className="flex items-center gap-1.5">
+                {/* Summary bar — rating first (RTL start = right), then stars, then count */}
+                <div className="flex items-center gap-4 justify-end mb-8">
+                    <span className="text-[13px] text-[#86868B] font-medium">{reviewCount} חוות דעת</span>
+                    <div className="flex items-center gap-1">
                         {[1,2,3,4,5].map(s => (
                             <svg key={s} className="w-5 h-5" fill={s <= Math.round(avgRating) ? '#FF9500' : '#E5E5EA'} viewBox="0 0 24 24">
                                 <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
                             </svg>
                         ))}
                     </div>
-                    <span className="text-4xl font-black text-[#1D1D1F] tracking-tighter">{avgRating}</span>
-                    <span className="text-[#86868B] font-medium">{reviewCount} חוות דעת</span>
+                    <span className="text-5xl font-black text-[#1D1D1F] tracking-tighter leading-none">{avgRating}</span>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -130,7 +130,7 @@ function ProductReviews({ getSetting, product }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22,1,0.36,1] }}
-                        className="p-6 rounded-[1.75rem] text-right"
+                        className="flex flex-col p-6 rounded-[1.75rem] text-right"
                         style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
                         <div className="flex items-center gap-1 mb-4 justify-end">
                             {[1,2,3,4,5].map(s => (
@@ -139,10 +139,10 @@ function ProductReviews({ getSetting, product }) {
                                 </svg>
                             ))}
                         </div>
-                        <p className="text-[#1D1D1F] text-sm font-medium leading-relaxed mb-5">"{r.text}"</p>
-                        <div className="border-t border-gray-100 pt-4">
+                        <p className="text-[#1D1D1F] text-sm font-medium leading-relaxed flex-1">"{r.text}"</p>
+                        <div className="border-t border-gray-100 pt-4 mt-5">
                             <p className="font-black text-[#1D1D1F] text-sm">{r.name}</p>
-                            <p className="text-[#86868B] text-xs font-medium">{r.role}</p>
+                            <p className="text-[#86868B] text-xs font-medium mt-0.5">{r.role}</p>
                         </div>
                     </motion.div>
                 ))}
@@ -837,17 +837,17 @@ const ProductDetailPage = () => {
                             </div>
                         </div>
                         <div className="h-1 w-10 bg-[#5856D6] rounded-full mb-7 mr-0 ml-auto" />
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                             {productDims.map((d, i) => (
                                 <motion.div key={i}
                                     initial={{ opacity: 0, y: 8 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ duration: 0.35, delay: i * 0.07 }}
-                                    className="p-5 rounded-2xl text-right"
+                                    className={`p-5 rounded-2xl text-right ${productDims.length % 2 !== 0 && i === productDims.length - 1 ? 'col-span-2 md:col-span-1' : ''}`}
                                     style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-2">{d.label}</p>
-                                    <p className="text-xl font-black text-[#1D1D1F] tracking-tight">{d.value}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-3">{d.label}</p>
+                                    <p className="text-2xl font-black text-[#1D1D1F] tracking-tighter leading-none">{d.value}</p>
                                 </motion.div>
                             ))}
                         </div>
@@ -928,6 +928,9 @@ const ProductDetailPage = () => {
                                     {/* Header */}
                                     <div className="text-right mb-6">
                                         <div className="flex items-center gap-3 justify-end mb-3">
+                                            {product.specs?.length > 0 && (
+                                                <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest bg-[rgba(0,0,0,0.04)] px-2.5 py-1 rounded-full">{product.specs.length} פרמטרים</span>
+                                            )}
                                             <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{content.specsTitle}</h3>
                                             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                                                 style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.15)' }}>
@@ -938,25 +941,21 @@ const ProductDetailPage = () => {
                                         </div>
                                         <div className="flex items-center gap-3 justify-end">
                                             <div className="h-1 w-10 bg-[#007AFF] rounded-full" />
-                                            {product.specs?.length > 0 && (
-                                                <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest">{product.specs.length} פרמטרים</span>
-                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Compact 2-column spec grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                    {/* Single-column spec list with dividers — label right (RTL), value left */}
+                                    <div className="divide-y divide-[rgba(0,0,0,0.05)]">
                                         {product.specs.map((spec, idx) => (
                                             <motion.div key={idx}
-                                                initial={{ opacity: 0, y: 6 }}
-                                                whileInView={{ opacity: 1, y: 0 }}
+                                                initial={{ opacity: 0 }}
+                                                whileInView={{ opacity: 1 }}
                                                 viewport={{ once: true, margin: '-40px' }}
-                                                transition={{ duration: 0.3, delay: idx * 0.04 }}
-                                                className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-colors"
-                                                style={{ background: idx % 2 === 0 ? 'rgba(0,0,0,0.025)' : 'transparent' }}
+                                                transition={{ duration: 0.25, delay: idx * 0.04 }}
+                                                className="flex items-center justify-between gap-6 px-2 py-4 rounded-lg hover:bg-[rgba(0,0,0,0.02)] transition-colors"
                                             >
-                                                <span className="text-sm font-black text-[#1D1D1F] tracking-tight">{spec?.value}</span>
-                                                <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wide shrink-0">{spec?.label}</span>
+                                                <span className="text-[13px] font-bold text-[#1D1D1F] tracking-tight">{spec?.value}</span>
+                                                <span className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest shrink-0">{spec?.label}</span>
                                             </motion.div>
                                         ))}
                                     </div>
@@ -994,16 +993,34 @@ const ProductDetailPage = () => {
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
                                 {[
-                                    { icon: '🛡️', label: getSetting('pd_warranty_badge1', 'אחריות יצרן'), sub: getSetting('pd_warranty_badge1_sub', '12 חודשים') },
-                                    { icon: '🔧', label: getSetting('pd_warranty_badge2', 'תיקון חינם'),  sub: getSetting('pd_warranty_badge2_sub', 'כולל חלפים') },
-                                    { icon: '📦', label: getSetting('pd_warranty_badge3', 'החלפת מוצר'),  sub: getSetting('pd_warranty_badge3_sub', 'תוך 30 יום') },
+                                    {
+                                        icon: <svg className="w-5 h-5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>,
+                                        label: getSetting('pd_warranty_badge1', 'אחריות יצרן'),
+                                        sub: getSetting('pd_warranty_badge1_sub', '12 חודשים'),
+                                        bg: 'rgba(0,122,255,0.06)', border: 'rgba(0,122,255,0.12)',
+                                    },
+                                    {
+                                        icon: <svg className="w-5 h-5 text-[#FF9500]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" /></svg>,
+                                        label: getSetting('pd_warranty_badge2', 'תיקון חינם'),
+                                        sub: getSetting('pd_warranty_badge2_sub', 'כולל חלפים'),
+                                        bg: 'rgba(255,149,0,0.06)', border: 'rgba(255,149,0,0.12)',
+                                    },
+                                    {
+                                        icon: <svg className="w-5 h-5 text-[#34C759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>,
+                                        label: getSetting('pd_warranty_badge3', 'החלפת מוצר'),
+                                        sub: getSetting('pd_warranty_badge3_sub', 'תוך 30 יום'),
+                                        bg: 'rgba(52,199,89,0.06)', border: 'rgba(52,199,89,0.12)',
+                                    },
                                 ].map((b, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-4 rounded-2xl"
-                                        style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-                                        <span className="text-2xl">{b.icon}</span>
+                                    <div key={i} className="flex items-center gap-3.5 p-4 rounded-2xl"
+                                        style={{ background: b.bg, border: `1px solid ${b.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                            style={{ background: 'rgba(255,255,255,0.80)' }}>
+                                            {b.icon}
+                                        </div>
                                         <div className="text-right">
                                             <p className="font-black text-[#1D1D1F] text-sm">{b.label}</p>
-                                            <p className="text-[#86868B] text-xs font-medium">{b.sub}</p>
+                                            <p className="text-[#86868B] text-xs font-medium mt-0.5">{b.sub}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -1030,19 +1047,40 @@ const ProductDetailPage = () => {
                                 </svg>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-right">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-right">
                             {[
-                                { icon: '📞', href: `tel:${getSetting('contact_phone','03-9999999')}`, label: getSetting('pd_support_phone_label','תמיכה טלפונית'), value: getSetting('contact_phone','03-9999999'), color: '#007AFF' },
-                                { icon: '✉️', href: `mailto:${getSetting('contact_email','nextclass.en@gmail.com')}`, label: getSetting('pd_support_email_label','שלח מייל'), value: getSetting('contact_email','nextclass.en@gmail.com'), color: '#5856D6' },
-                                { icon: '💬', href: `https://wa.me/${getSetting('biz_whatsapp','972585856356')}`, label: getSetting('pd_support_wa_label','וואטסאפ'), value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'), color: '#25D366' },
+                                {
+                                    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
+                                    href: `tel:${getSetting('contact_phone','03-9999999')}`,
+                                    label: getSetting('pd_support_phone_label','תמיכה טלפונית'),
+                                    value: getSetting('contact_phone','03-9999999'),
+                                    color: '#007AFF',
+                                },
+                                {
+                                    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>,
+                                    href: `mailto:${getSetting('contact_email','nextclass.en@gmail.com')}`,
+                                    label: getSetting('pd_support_email_label','שלח מייל'),
+                                    value: getSetting('contact_email','nextclass.en@gmail.com'),
+                                    color: '#5856D6',
+                                },
+                                {
+                                    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>,
+                                    href: `https://wa.me/${getSetting('biz_whatsapp','972585856356')}`,
+                                    label: getSetting('pd_support_wa_label','וואטסאפ'),
+                                    value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'),
+                                    color: '#25D366',
+                                },
                             ].map((item, i) => (
                                 <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
                                     className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:scale-[1.02]"
                                     style={{ background: `${item.color}08`, border: `1px solid ${item.color}18`, boxShadow: `0 4px 16px ${item.color}0A` }}>
-                                    <span className="text-2xl">{item.icon}</span>
-                                    <div>
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                                        style={{ background: `${item.color}15`, color: item.color }}>
+                                        {item.icon}
+                                    </div>
+                                    <div className="min-w-0">
                                         <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: item.color }}>{item.label}</p>
-                                        <p className="font-bold text-[#1D1D1F] text-sm group-hover:underline">{item.value}</p>
+                                        <p className="font-bold text-[#1D1D1F] text-sm group-hover:underline truncate">{item.value}</p>
                                     </div>
                                 </a>
                             ))}
