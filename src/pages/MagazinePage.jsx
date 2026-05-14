@@ -97,7 +97,7 @@ function HeroCard({ article }) {
             className="group block relative rounded-[1.75rem] overflow-hidden cursor-pointer"
             style={{ textDecoration: 'none' }}
         >
-            <div className="aspect-[16/7] w-full relative overflow-hidden">
+            <div className="aspect-[16/5] w-full relative overflow-hidden">
                 <img src={article.image} alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[1.4s] ease-out"
                     onError={e => { if (!e.target.dataset.tried) { e.target.dataset.tried = 'true'; e.target.src = FALLBACK; } }}
