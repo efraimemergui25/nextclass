@@ -106,7 +106,7 @@ export default function AdminSettings() {
     // ─── Catalog & Content settings (Firestore) ─────────────────────────────────
     const [catTitle,    setCatTitle]    = useState(getSetting('catalog_title',    'הכלים שמעצבים את המחר.'));
     const [catSubtitle, setCatSubtitle] = useState(getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.'));
-    const [catBadge,    setCatBadge]    = useState(getSetting('catalog_badge',    'הקטלוג המוסדי'));
+    const [catBadge,    setCatBadge]    = useState(getSetting('catalog_hero_eyebrow', 'הקטלוג שלנו'));
     const [catAllCat,   setCatAllCat]   = useState(getSetting('catalog_all_cat',  'הכל'));
     const [announcText, setAnnouncText] = useState(getSetting('announcement_text', ''));
     const [contentSaved, setContentSaved] = useState(false);
@@ -114,7 +114,7 @@ export default function AdminSettings() {
     useEffect(() => {
         setCatTitle(getSetting('catalog_title',    'הכלים שמעצבים את המחר.'));
         setCatSubtitle(getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.'));
-        setCatBadge(getSetting('catalog_badge',    'הקטלוג המוסדי'));
+        setCatBadge(getSetting('catalog_hero_eyebrow', 'הקטלוג שלנו'));
         setCatAllCat(getSetting('catalog_all_cat',  'הכל'));
         setAnnouncText(getSetting('announcement_text', ''));
     }, [getSetting]);
@@ -123,7 +123,7 @@ export default function AdminSettings() {
         await updateGlobalSettings({
             catalog_title:    catTitle,
             catalog_subtitle: catSubtitle,
-            catalog_badge:    catBadge,
+            catalog_hero_eyebrow: catBadge,
             catalog_all_cat:  catAllCat,
             announcement_text: announcText,
         });

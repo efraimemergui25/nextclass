@@ -6,32 +6,32 @@ import { Component } from 'react';
  * Usage: <SectionErrorBoundary><MySection /></SectionErrorBoundary>
  */
 export default class SectionErrorBoundary extends Component {
-    state = { crashed: false };
+ state = { crashed: false };
 
-    static getDerivedStateFromError() {
-        return { crashed: true };
-    }
+ static getDerivedStateFromError() {
+ return { crashed: true };
+ }
 
-    componentDidCatch(error) {
-        if (import.meta.env.DEV) {
-            console.error('[SectionErrorBoundary]', error.message);
-        }
-    }
+ componentDidCatch(error) {
+ if (import.meta.env.DEV) {
+ console.error('[SectionErrorBoundary]', error.message);
+ }
+ }
 
-    render() {
-        if (!this.state.crashed) return this.props.children;
-        return (
-            <div className="py-10 text-center" dir="rtl">
-                <p className="text-sm text-[#AEAEB2] font-medium">
-                    סקשן זה לא נטען כראוי.{' '}
-                    <button
-                        onClick={() => this.setState({ crashed: false })}
-                        className="text-[#007AFF] font-semibold hover:underline"
-                    >
-                        נסה שוב
-                    </button>
-                </p>
-            </div>
-        );
-    }
+ render() {
+ if (!this.state.crashed) return this.props.children;
+ return (
+ <div className="py-10 text-center" dir="rtl">
+ <p className="text-sm text-[#AEAEB2] font-medium">
+ סקשן זה לא נטען כראוי.{' '}
+ <button
+ onClick={() => this.setState({ crashed: false })}
+ className="text-[#007AFF] font-semibold hover:underline"
+ >
+ נסה שוב
+ </button>
+ </p>
+ </div>
+ );
+ }
 }

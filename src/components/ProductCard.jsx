@@ -10,9 +10,9 @@ import { useSettings } from '../context/SettingsContext';
 
 // ─── Cart pop animation variants ─────────────────────────────────────────────
 const cartBtnVariants = {
-    idle: { scale: 1, backgroundColor: '#007AFF' },
-    loading: { scale: 0.92, backgroundColor: '#007AFF' },
-    success: { scale: 1.06, backgroundColor: '#34C759' },
+ idle: { scale: 1, backgroundColor: '#007AFF' },
+ loading: { scale: 0.92, backgroundColor: '#007AFF' },
+ success: { scale: 1.06, backgroundColor: '#34C759' },
 };
 
 const SPRING_TILT = { stiffness: 300, damping: 28 };
@@ -20,12 +20,12 @@ const SPRING_ACTION = { type: 'spring', stiffness: 420, damping: 22 };
 
 // ─── Premium image fallback ───────────────────────────────────────────────────
 const ImageFallback = memo(() => (
-    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-3">
-        <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        <span className="text-xs font-bold text-gray-300 tracking-widest">nextclass</span>
-    </div>
+ <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-3">
+ <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+ </svg>
+ <span className="text-xs font-bold text-gray-300">nextclass</span>
+ </div>
 ));
 ImageFallback.displayName = 'ImageFallback';
 
@@ -33,339 +33,339 @@ import Magnetic from './Magnetic';
 
 // ─── ProductCard ──────────────────────────────────────────────────────────────
 const ProductCard = ({ product }) => {
-    const {
-        id = 'unknown',
-        category = '',
-        title = 'מוצר NextClass',
-        price = 0,
-        salePrice = null,
-        image = '',
-        description = '',
-        specs,
-        stock,
-        sold = 0,
-        isNew = false,
-        _isBestSeller = false,
-    } = product ?? {};
+ const {
+ id = 'unknown',
+ category = '',
+ title = 'מוצר NextClass',
+ price = 0,
+ salePrice = null,
+ image = '',
+ description = '',
+ specs,
+ stock,
+ sold = 0,
+ isNew = false,
+ _isBestSeller = false,
+ } = product ?? {};
 
-    const discountPct = salePrice ? Math.round((1 - Number(salePrice) / Number(price)) * 100) : 0;
-    const stockStatus = stock === undefined ? null : stock > 10 ? 'ok' : stock > 0 ? 'low' : 'out';
+ const discountPct = salePrice ? Math.round((1 - Number(salePrice) / Number(price)) * 100) : 0;
+ const stockStatus = stock === undefined ? null : stock > 10 ? 'ok' : stock > 0 ? 'low' : 'out';
 
-    const [imgError, setImgError] = useState(false);
+ const [imgError, setImgError] = useState(false);
 
-    const { addToCompare, removeFromCompare, isSelected } = useCompare();
-    const { cartItems, addToCart, removeFromCart } = useCart();
-    const { toggleWishlist, isInWishlist } = useWishlist();
-    const { state: popState, trigger } = useCartPop();
+ const { addToCompare, removeFromCompare, isSelected } = useCompare();
+ const { cartItems, addToCart, removeFromCart } = useCart();
+ const { toggleWishlist, isInWishlist } = useWishlist();
+ const { state: popState, trigger } = useCartPop();
 
-    // ─── Spatial tilt motion values ───────────────────────────────────────────
-    const cardRef = useRef(null);
-    const isTouchDevice = useRef(false);
+ // ─── Spatial tilt motion values ───────────────────────────────────────────
+ const cardRef = useRef(null);
+ const isTouchDevice = useRef(false);
 
-    // Detect touch on first interaction — disables tilt on mobile
-    useEffect(() => {
-        const handler = () => { isTouchDevice.current = true; };
-        window.addEventListener('touchstart', handler, { once: true, passive: true });
-        return () => window.removeEventListener('touchstart', handler);
-    }, []);
+ // Detect touch on first interaction — disables tilt on mobile
+ useEffect(() => {
+ const handler = () => { isTouchDevice.current = true; };
+ window.addEventListener('touchstart', handler, { once: true, passive: true });
+ return () => window.removeEventListener('touchstart', handler);
+ }, []);
 
-    const mouseX = useMotionValue(0);
-    const mouseY = useMotionValue(0);
-    const lightX = useMotionValue(50); // percentage for the light gradient
-    const lightY = useMotionValue(50);
+ const mouseX = useMotionValue(0);
+ const mouseY = useMotionValue(0);
+ const lightX = useMotionValue(50); // percentage for the light gradient
+ const lightY = useMotionValue(50);
 
-    // Smooth springs for the rotation — prevents jitter
-    const springX = useSpring(mouseX, { stiffness: 200, damping: 20 });
-    const springY = useSpring(mouseY, { stiffness: 200, damping: 20 });
+ // Smooth springs for the rotation — prevents jitter
+ const springX = useSpring(mouseX, { stiffness: 200, damping: 20 });
+ const springY = useSpring(mouseY, { stiffness: 200, damping: 20 });
 
-    // Map normalised [-0.5, 0.5] → rotation degrees
-    const rotateX = useTransform(springY, [-0.5, 0.5], ['7deg', '-7deg']);
-    const rotateY = useTransform(springX, [-0.5, 0.5], ['-7deg', '7deg']);
+ // Map normalised [-0.5, 0.5] → rotation degrees
+ const rotateX = useTransform(springY, [-0.5, 0.5], ['7deg', '-7deg']);
+ const rotateY = useTransform(springX, [-0.5, 0.5], ['-7deg', '7deg']);
 
-    // Map normalised position → gradient position (0–100%)
-    const glowX = useSpring(lightX, { stiffness: 200, damping: 20 });
-    const glowY = useSpring(lightY, { stiffness: 200, damping: 20 });
+ // Map normalised position → gradient position (0–100%)
+ const glowX = useSpring(lightX, { stiffness: 200, damping: 20 });
+ const glowY = useSpring(lightY, { stiffness: 200, damping: 20 });
 
-    const glowBackground = useTransform(
-        [glowX, glowY],
-        ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.3) 0%, transparent 60%)`
-    );
+ const glowBackground = useTransform(
+ [glowX, glowY],
+ ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.3) 0%, transparent 60%)`
+ );
 
-    const handleMouseMove = useCallback((e) => {
-        if (isTouchDevice.current) return; // no tilt on touch screens
-        const rect = cardRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        mouseX.set(x);
-        mouseY.set(y);
-        lightX.set(((x + 0.5) * 100));
-        lightY.set(((y + 0.5) * 100));
-    }, [mouseX, mouseY, lightX, lightY]);
+ const handleMouseMove = useCallback((e) => {
+ if (isTouchDevice.current) return; // no tilt on touch screens
+ const rect = cardRef.current?.getBoundingClientRect();
+ if (!rect) return;
+ const x = (e.clientX - rect.left) / rect.width - 0.5;
+ const y = (e.clientY - rect.top) / rect.height - 0.5;
+ mouseX.set(x);
+ mouseY.set(y);
+ lightX.set(((x + 0.5) * 100));
+ lightY.set(((y + 0.5) * 100));
+ }, [mouseX, mouseY, lightX, lightY]);
 
-    const handleMouseLeave = useCallback(() => {
-        mouseX.set(0);
-        mouseY.set(0);
-        lightX.set(50);
-        lightY.set(50);
-    }, [mouseX, mouseY, lightX, lightY]);
+ const handleMouseLeave = useCallback(() => {
+ mouseX.set(0);
+ mouseY.set(0);
+ lightX.set(50);
+ lightY.set(50);
+ }, [mouseX, mouseY, lightX, lightY]);
 
-    // ─── Derived values ───────────────────────────────────────────────────────
-    const effectivePrice = salePrice ? Number(salePrice) : (price ?? 0);
-    const formattedPrice = useMemo(() => `₪${effectivePrice.toLocaleString()}`, [effectivePrice]);
-    const selected = useMemo(() => isSelected(id), [isSelected, id]);
-    const isInCart = useMemo(() => (cartItems ?? []).some(item => item?.id === id), [cartItems, id]);
-    const isFavorite = useMemo(() => isInWishlist(id), [isInWishlist, id]);
-    
-    const { isVisible } = useSettings();
-    const showPrices  = isVisible('show_prices',  true);
-    const allowOrders = isVisible('allow_orders', true);
+ // ─── Derived values ───────────────────────────────────────────────────────
+ const effectivePrice = salePrice ? Number(salePrice) : (price ?? 0);
+ const formattedPrice = useMemo(() => `₪${effectivePrice.toLocaleString()}`, [effectivePrice]);
+ const selected = useMemo(() => isSelected(id), [isSelected, id]);
+ const isInCart = useMemo(() => (cartItems ?? []).some(item => item?.id === id), [cartItems, id]);
+ const isFavorite = useMemo(() => isInWishlist(id), [isInWishlist, id]);
+ 
+ const { isVisible } = useSettings();
+ const showPrices = isVisible('show_prices', true);
+ const allowOrders = isVisible('allow_orders', true);
 
-    // ─── Stable handlers ──────────────────────────────────────────────────────
-    const handleImgError = useCallback((e) => {
-        if (!e.target.dataset.triedFallback) {
-            e.target.dataset.triedFallback = 'true';
-            e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
-        } else {
-            setImgError(true);
-        }
-    }, []);
+ // ─── Stable handlers ──────────────────────────────────────────────────────
+ const handleImgError = useCallback((e) => {
+ if (!e.target.dataset.triedFallback) {
+ e.target.dataset.triedFallback = 'true';
+ e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
+ } else {
+ setImgError(true);
+ }
+ }, []);
 
-    const handleCompareClick = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (selected) removeFromCompare(id);
-        else addToCompare({ id, title, price: formattedPrice, imageUrl: image, category, specs });
-    }, [selected, id, title, formattedPrice, image, category, specs, addToCompare, removeFromCompare]);
+ const handleCompareClick = useCallback((e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ if (selected) removeFromCompare(id);
+ else addToCompare({ id, title, price: formattedPrice, imageUrl: image, category, specs });
+ }, [selected, id, title, formattedPrice, image, category, specs, addToCompare, removeFromCompare]);
 
-    const handleCartToggle = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (isInCart) removeFromCart(id);
-        else trigger(() => addToCart(product))();
-    }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
+ const handleCartToggle = useCallback((e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ if (isInCart) removeFromCart(id);
+ else trigger(() => addToCart(product))();
+ }, [isInCart, id, product, addToCart, removeFromCart, trigger]);
 
-    const handleWishlistToggle = useCallback((e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleWishlist(product);
-    }, [product, toggleWishlist]);
+ const handleWishlistToggle = useCallback((e) => {
+ e.preventDefault();
+ e.stopPropagation();
+ toggleWishlist(product);
+ }, [product, toggleWishlist]);
 
-    return (
-        /* ── Perspective wrapper ──────────────────────────────────────────── */
-        <div
-            ref={cardRef}
-            style={{ perspective: 1000 }}
-            className="h-full touch-manipulation group"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-        >
-            {/* ── 3D tiltable card ────────────────────────────────────────── */}
-            <motion.div
-                style={{
-                    rotateX,
-                    rotateY,
-                    transformStyle: 'preserve-3d',
-                }}
-                className="flex flex-col h-full glass-apple rounded-[2.5rem] relative transform-gpu will-change-transform shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)]"
-            >
-                <Link
-                    to={`/catalog/${id}`}
-                    className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-[2.5rem]"
-                >
-                    {/* ── Image Container ─────────────────────────────────── */}
-                    <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-white/30">
-                        {imgError || !image ? (
-                            <ImageFallback />
-                        ) : (
-                            <img
-                                src={image}
-                                alt={title}
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] cubic-bezier(0.22, 1, 0.36, 1)"
-                                onError={handleImgError}
-                                loading="lazy"
-                            />
-                        )}
-                        
-                        {/* Wishlist Button */}
-                        <div className="absolute top-4 right-4 z-10">
-                            <Magnetic strength={0.2}>
-                                <motion.button
-                                    onClick={handleWishlistToggle}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg ${
-                                        isFavorite 
-                                            ? 'bg-red-500 text-white' 
-                                            : 'bg-white/70 text-gray-400 hover:text-red-500 hover:bg-white'
-                                    }`}
-                                >
-                                    <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} />
-                                </motion.button>
-                            </Magnetic>
-                        </div>
+ return (
+ /* ── Perspective wrapper ──────────────────────────────────────────── */
+ <div
+ ref={cardRef}
+ style={{ perspective: 1000 }}
+ className="h-full touch-manipulation group"
+ onMouseMove={handleMouseMove}
+ onMouseLeave={handleMouseLeave}
+ >
+ {/* ── 3D tiltable card ────────────────────────────────────────── */}
+ <motion.div
+ style={{
+ rotateX,
+ rotateY,
+ transformStyle: 'preserve-3d',
+ }}
+ className="flex flex-col h-full glass-apple rounded-[2.5rem] relative transform-gpu will-change-transform shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)]"
+ >
+ <Link
+ to={`/catalog/${id}`}
+ className="flex flex-col flex-1 outline-none focus:ring-2 focus:ring-[#007AFF]/30 rounded-[2.5rem]"
+ >
+ {/* ── Image Container ─────────────────────────────────── */}
+ <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-white/30">
+ {imgError || !image ? (
+ <ImageFallback />
+ ) : (
+ <img
+ src={image}
+ alt={title}
+ className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] cubic-bezier(0.22, 1, 0.36, 1)"
+ onError={handleImgError}
+ loading="lazy"
+ />
+ )}
+ 
+ {/* Wishlist Button */}
+ <div className="absolute top-4 right-4 z-10">
+ <Magnetic strength={0.2}>
+ <motion.button
+ onClick={handleWishlistToggle}
+ whileHover={{ scale: 1.1 }}
+ whileTap={{ scale: 0.9 }}
+ className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg ${
+ isFavorite 
+ ? 'bg-red-500 text-white' 
+ : 'bg-white/70 text-gray-400 hover:text-red-500 hover:bg-white'
+ }`}
+ >
+ <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} />
+ </motion.button>
+ </Magnetic>
+ </div>
 
-                        {/* Product badges — data-driven */}
-                        {(_isBestSeller || isNew) && (
-                            <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
-                                _isBestSeller
-                                    ? 'bg-gradient-to-r from-orange-500 to-red-500'
-                                    : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                            }`}>
-                                <Sparkles size={11} className="text-white" />
-                                <span className="text-[10px] font-black text-white tracking-wide">
-                                    {_isBestSeller ? 'נמכר ביותר' : 'חדש'}
-                                </span>
-                            </div>
-                        )}
-                        
-                        <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none" />
+ {/* Product badges — data-driven */}
+ {(_isBestSeller || isNew) && (
+ <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
+ _isBestSeller
+ ? 'bg-gradient-to-r from-orange-500 to-red-500'
+ : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+ }`}>
+ <Sparkles size={11} className="text-white" />
+ <span className="text-[10px] font-black text-white ">
+ {_isBestSeller ? 'נמכר ביותר' : 'חדש'}
+ </span>
+ </div>
+ )}
+ 
+ <div className="absolute inset-0 ring-1 ring-inset ring-black/5 pointer-events-none" />
 
-                        {/* Specs hover overlay — slides up from bottom of image */}
-                        {specs?.length > 0 && (
-                            <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-[0.22,1,0.36,1] pointer-events-none z-20">
-                                <div className="bg-[#1D1D1F]/80 backdrop-blur-md px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-start" dir="rtl">
-                                    {specs.slice(0, 4).map((s, i) => (
-                                        <span key={i} className="text-[10px] font-bold text-white/90 whitespace-nowrap">
-                                            {s.label}: <span className="text-white">{s.value}</span>
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+ {/* Specs hover overlay — slides up from bottom of image */}
+ {specs?.length > 0 && (
+ <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-[0.22,1,0.36,1] pointer-events-none z-20">
+ <div className="bg-[#1D1D1F]/80 backdrop-blur-md px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-start" dir="rtl">
+ {specs.slice(0, 4).map((s, i) => (
+ <span key={i} className="text-[10px] font-bold text-white/90 whitespace-nowrap">
+ {s.label}: <span className="text-white">{s.value}</span>
+ </span>
+ ))}
+ </div>
+ </div>
+ )}
+ </div>
 
-                    {/* ── Text Content ─────────────────────────────────────── */}
-                    <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-6">
-                        {category && (
-                            <span className="text-[11px] font-bold text-[#007AFF] mb-2">{category}</span>
-                        )}
-                        <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
-                        {description && (
-                            <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
-                        )}
+ {/* ── Text Content ─────────────────────────────────────── */}
+ <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-6">
+ {category && (
+ <span className="text-[11px] font-bold text-[#007AFF] mb-2">{category}</span>
+ )}
+ <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
+ {description && (
+ <p className="text-sm text-[#86868B] leading-relaxed line-clamp-2 mt-1 font-medium">{description}</p>
+ )}
 
-                    </div>
-                </Link>
+ </div>
+ </Link>
 
-                {/* ── Footer — outside Link so buttons never trigger navigation ── */}
-                <div className="px-6 pb-6">
+ {/* ── Footer — outside Link so buttons never trigger navigation ── */}
+ <div className="px-6 pb-6">
 
-                    {/* Row 1: price + stock RIGHT, compare LEFT (RTL reading order) */}
-                    <div className="flex items-center justify-between gap-3 mb-3">
+ {/* Row 1: price + stock RIGHT, compare LEFT (RTL reading order) */}
+ <div className="flex items-center justify-between gap-3 mb-3">
 
-                        {/* In RTL flex: first child = RIGHT — price + stock */}
-                        <div className="text-right min-w-0">
-                            {(stockStatus || sold > 0) && (
-                                <div className="flex items-center gap-3 justify-end mb-1.5">
-                                    {stockStatus && (
-                                        <div className={`text-[9px] font-black tracking-widest flex items-center gap-1 ${
-                                            stockStatus === 'ok' ? 'text-[#34C759]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
-                                        }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#34C759]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
-                                            {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
-                                        </div>
-                                    )}
-                                    {sold > 0 && (
-                                        <div className="text-[9px] font-black text-[#86868B] flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-[#FF9F0A]" />
-                                            נמכרו {sold}+
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {showPrices && (salePrice ? (
-                                <div className="flex items-center justify-end gap-2">
-                                    <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">-{discountPct}%</span>
-                                    <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
-                                </div>
-                            ) : (
-                                <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
-                            ))}
-                        </div>
+ {/* In RTL flex: first child = RIGHT — price + stock */}
+ <div className="text-right min-w-0">
+ {(stockStatus || sold > 0) && (
+ <div className="flex items-center gap-3 justify-end mb-1.5">
+ {stockStatus && (
+ <div className={`text-[9px] font-black flex items-center gap-1 ${
+ stockStatus === 'ok' ? 'text-[#34C759]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
+ }`}>
+ <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#34C759]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />
+ {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${stock} נותרו` : 'אזל המלאי'}
+ </div>
+ )}
+ {sold > 0 && (
+ <div className="text-[9px] font-black text-[#86868B] flex items-center gap-1">
+ <span className="w-1.5 h-1.5 rounded-full bg-[#FF9F0A]" />
+ נמכרו {sold}+
+ </div>
+ )}
+ </div>
+ )}
+ {showPrices && (salePrice ? (
+ <div className="flex items-center justify-end gap-2">
+ <span className="text-sm text-[#86868B] line-through">₪{Number(price).toLocaleString()}</span>
+ <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FF3B30]/10 text-[#FF3B30]">-{discountPct}%</span>
+ <span className="text-2xl font-apple-display tracking-tighter text-[#FF3B30]">{formattedPrice}</span>
+ </div>
+ ) : (
+ <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
+ ))}
+ </div>
 
-                        {/* In RTL flex: second child = LEFT — compare (secondary) */}
-                        <Magnetic strength={0.15}>
-                            <motion.button
-                                onClick={handleCompareClick}
-                                whileTap={{ scale: 0.92 }}
-                                className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-all duration-300 flex items-center justify-center shrink-0 ${selected
-                                    ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
-                                    : 'bg-white border-gray-100 text-gray-400 hover:border-[#007AFF]/20 hover:text-[#007AFF] hover:shadow-lg'
-                                    }`}
-                                aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                </svg>
-                            </motion.button>
-                        </Magnetic>
-                    </div>
+ {/* In RTL flex: second child = LEFT — compare (secondary) */}
+ <Magnetic strength={0.15}>
+ <motion.button
+ onClick={handleCompareClick}
+ whileTap={{ scale: 0.92 }}
+ className={`p-2 min-w-[44px] min-h-[44px] rounded-full border transition-all duration-300 flex items-center justify-center shrink-0 ${selected
+ ? 'bg-[#007AFF]/10 border-[#007AFF] text-[#007AFF]'
+ : 'bg-white border-gray-100 text-gray-400 hover:border-[#007AFF]/20 hover:text-[#007AFF] hover:shadow-lg'
+ }`}
+ aria-label={selected ? 'נבחר להשוואה' : 'השווה'}
+ >
+ <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+ </svg>
+ </motion.button>
+ </Magnetic>
+ </div>
 
-                    {/* Row 2: full-width cart button — prominent, no ambiguity */}
-                    {allowOrders ? (
-                        isInCart ? (
-                            <motion.button
-                                onClick={handleCartToggle}
-                                whileTap={{ scale: 0.97 }}
-                                className="group/cart w-full h-[46px] rounded-2xl font-bold text-[13px] tracking-wide bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                            >
-                                <div className="flex items-center gap-2 group-hover/cart:hidden">
-                                    <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    נוסף לעגלה
-                                </div>
-                                <div className="hidden group-hover/cart:flex items-center gap-2 text-red-500">
-                                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    הסר מהעגלה
-                                </div>
-                            </motion.button>
-                        ) : (
-                            <motion.button
-                                onClick={handleCartToggle}
-                                animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
-                                whileTap={popState === 'idle' ? { scale: 0.97 } : undefined}
-                                className="w-full h-[46px] rounded-2xl font-bold text-[13px] tracking-wide text-white flex items-center justify-center gap-2 focus:outline-none shadow-[0_4px_16px_rgb(0_122_255/0.30)] hover:shadow-[0_8px_24px_rgb(0_122_255/0.40)] transition-shadow"
-                                style={{ backgroundColor: '#007AFF' }}
-                                disabled={popState !== 'idle'}
-                            >
-                                <AnimatePresence mode="wait">
-                                    {popState === 'success' ? (
-                                        <motion.span key="check" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }} className="flex items-center gap-2">
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                            נוסף!
-                                        </motion.span>
-                                    ) : (
-                                        <motion.span key="add" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
-                                            {popState === 'loading' ? '...' : 'הוסף לעגלה'}
-                                        </motion.span>
-                                    )}
-                                </AnimatePresence>
-                            </motion.button>
-                        )
-                    ) : (
-                        <Link to="/contact" className="w-full h-[46px] rounded-2xl bg-[#007AFF] text-white font-bold text-[13px] flex items-center justify-center gap-2 hover:bg-blue-600 transition-all shadow-md">
-                            פרטים והצעה
-                        </Link>
-                    )}
-                    {/* Trust micro-line */}
-                    <p className="text-center text-[10px] text-[#AEAEB2] font-medium mt-2.5 tracking-wide">
-                        שירות מקצועי · ייעוץ ללא עלות · רמה ללא פשרות
-                    </p>
-                </div>
+ {/* Row 2: full-width cart button — prominent, no ambiguity */}
+ {allowOrders ? (
+ isInCart ? (
+ <motion.button
+ onClick={handleCartToggle}
+ whileTap={{ scale: 0.97 }}
+ className="group/cart w-full h-[46px] rounded-2xl font-bold text-[13px] bg-[#F5F5F7] text-[#1D1D1F] border border-gray-100 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+ >
+ <div className="flex items-center gap-2 group-hover/cart:hidden">
+ <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+ </svg>
+ נוסף לעגלה
+ </div>
+ <div className="hidden group-hover/cart:flex items-center gap-2 text-red-500">
+ <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+ </svg>
+ הסר מהעגלה
+ </div>
+ </motion.button>
+ ) : (
+ <motion.button
+ onClick={handleCartToggle}
+ animate={popState === 'idle' ? undefined : cartBtnVariants[popState]}
+ whileTap={popState === 'idle' ? { scale: 0.97 } : undefined}
+ className="w-full h-[46px] rounded-2xl font-bold text-[13px] text-white flex items-center justify-center gap-2 focus:outline-none shadow-[0_4px_16px_rgb(0_122_255/0.30)] hover:shadow-[0_8px_24px_rgb(0_122_255/0.40)] transition-shadow"
+ style={{ backgroundColor: '#007AFF' }}
+ disabled={popState !== 'idle'}
+ >
+ <AnimatePresence mode="wait">
+ {popState === 'success' ? (
+ <motion.span key="check" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }} className="flex items-center gap-2">
+ <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+ נוסף!
+ </motion.span>
+ ) : (
+ <motion.span key="add" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+ {popState === 'loading' ? '...' : 'הוסף לעגלה'}
+ </motion.span>
+ )}
+ </AnimatePresence>
+ </motion.button>
+ )
+ ) : (
+ <Link to="/contact" className="w-full h-[46px] rounded-2xl bg-[#007AFF] text-white font-bold text-[13px] flex items-center justify-center gap-2 hover:bg-blue-600 transition-all shadow-md">
+ פרטים והצעה
+ </Link>
+ )}
+ {/* Trust micro-line */}
+ <p className="text-center text-[10px] text-[#AEAEB2] font-medium mt-2.5 ">
+ שירות מקצועי · ייעוץ ללא עלות · רמה ללא פשרות
+ </p>
+ </div>
 
-                {/* ── Specular light reflection — follows mouse ────────── */}
-                <motion.div
-                    className="absolute inset-0 pointer-events-none rounded-[2.5rem]"
-                    style={{ background: glowBackground }}
-                />
-            </motion.div>
-        </div>
-    );
+ {/* ── Specular light reflection — follows mouse ────────── */}
+ <motion.div
+ className="absolute inset-0 pointer-events-none rounded-[2.5rem]"
+ style={{ background: glowBackground }}
+ />
+ </motion.div>
+ </div>
+ );
 };
 
 export default memo(ProductCard);

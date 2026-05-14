@@ -8,13 +8,13 @@ import { useLocation } from 'react-router-dom';
  * the previous page before jumping to top.
  */
 const ScrollToTop = () => {
-    const { pathname } = useLocation();
+ const { pathname } = useLocation();
 
-    useEffect(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }, [pathname]);
+ useEffect(() => {
+ window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+ }, [pathname]);
 
-    return null;
+ return null;
 };
 
 export default ScrollToTop;
