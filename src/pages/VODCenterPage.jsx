@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Play, PlayCircle, HelpCircle, GraduationCap, Headphones, ChevronDown, ChevronLeft, Zap, BookOpen, Download, Layout, Phone, MessageCircle, Mail, Search, Sparkles, Clock, Users } from 'lucide-react';
+import { Play, PlayCircle, HelpCircle, GraduationCap, Headphones, ChevronLeft, Zap, BookOpen, Phone, MessageCircle, Mail, Search, Sparkles, Clock } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
 
@@ -46,19 +46,21 @@ const learningPaths = [
 ];
 
 const PathCard = ({ title, count, icon: Icon, color }) => (
-    <motion.div
-        whileHover={{ x: -8, backgroundColor: 'rgba(255,255,255,0.95)' }}
-        className="glass-apple gestalt-card p-6 flex items-center gap-6 cursor-pointer border border-white/60 bg-white/60"
-    >
-        <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-md`}>
-            <Icon size={20} />
-        </div>
-        <div className="flex-1 text-right">
-            <h4 className="text-[16px] font-bold text-[#1D1D1F] tracking-tight">{title}</h4>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{count} מדריכים זמינים</p>
-        </div>
-        <ChevronLeft className="text-gray-300" size={18} />
-    </motion.div>
+    <Link to="/vod" className="no-underline">
+        <motion.div
+            whileHover={{ x: -8, backgroundColor: 'rgba(255,255,255,0.95)' }}
+            className="glass-apple gestalt-card p-6 flex items-center gap-6 cursor-pointer border border-white/60 bg-white/60"
+        >
+            <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-md`}>
+                <Icon size={20} />
+            </div>
+            <div className="flex-1 text-right">
+                <h4 className="text-[16px] font-bold text-[#1D1D1F] tracking-tight">{title}</h4>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{count} מדריכים זמינים</p>
+            </div>
+            <ChevronLeft className="text-gray-300" size={18} />
+        </motion.div>
+    </Link>
 );
 
 function AcademySidebar() {
@@ -88,28 +90,6 @@ function AcademySidebar() {
             <div className="space-y-4">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-right px-4 mb-4">מסלולי למידה</h3>
                 {learningPaths.map((path, i) => <PathCard key={i} {...path} />)}
-            </div>
-
-            {/* Resources */}
-            <div className="glass-apple p-8 rounded-[2rem] border border-white/60 bg-white/40">
-                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] text-right mb-8">משאבים נוספים</h4>
-                <div className="space-y-6">
-                    {[
-                        { icon: Download, label: 'מרכז הדרייברים', sub: 'v13.4 — עדכני' },
-                        { icon: BookOpen, label: 'מדריכי PDF', sub: '24 קבצים זמינים' },
-                        { icon: Layout, label: 'תבניות שיעור', sub: 'מעל 500 תבניות' },
-                    ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-end gap-4 group cursor-pointer">
-                            <div className="text-right">
-                                <p className="text-[14px] font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.label}</p>
-                                <p className="text-[10px] font-black text-gray-400 uppercase opacity-60">{item.sub}</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:bg-[#007AFF] group-hover:text-white transition-all">
-                                <item.icon size={16} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
             </div>
         </div>
     );
@@ -226,10 +206,6 @@ function VideosTab({ videos }) {
                     </div>
                 }
 
-                <button className="w-full py-4 border border-dashed border-gray-300 rounded-3xl text-gray-400 font-bold text-[14px] hover:border-[#007AFF] hover:text-[#007AFF] transition-all flex items-center justify-center gap-2">
-                    <span>הצג הדרכות נוספות</span>
-                    <ChevronLeft size={16} />
-                </button>
             </div>
 
             <AcademySidebar />
@@ -295,27 +271,37 @@ function TrainingTab() {
                     {learningPaths.map((p, i) => <PathCard key={i} {...p} />)}
                 </div>
 
-                {/* Detailed Resources */}
-                <div className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em] text-right mb-8">משאבים להורדה</h4>
-                    <div className="space-y-6">
-                        {[
-                            { icon: Download, label: 'מרכז הדרייברים', sub: 'v13.4 — עדכני' },
-                            { icon: BookOpen, label: 'מדריכי PDF', sub: '24 קבצים זמינים' },
-                            { icon: Layout, label: 'תבניות שיעור', sub: 'מעל 500 תבניות' },
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center justify-end gap-4 group cursor-pointer">
-                                <div className="text-right">
-                                    <p className="text-[15px] font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.label}</p>
-                                    <p className="text-[11px] font-black text-gray-400 uppercase opacity-60 mt-0.5">{item.sub}</p>
-                                </div>
-                                <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:bg-[#007AFF] group-hover:text-white transition-all">
-                                    <item.icon size={17} />
-                                </div>
-                            </div>
-                        ))}
+                {/* In-person training CTA */}
+                <div className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <Link
+                        to="/contact"
+                        className="flex items-center gap-2 px-8 py-4 bg-[#007AFF] text-white font-bold rounded-2xl text-[15px] hover:bg-[#0066DD] transition-colors whitespace-nowrap shadow-lg"
+                    >
+                        <Zap size={16} />
+                        תאמו הדרכה עכשיו
+                    </Link>
+                    <div className="text-right">
+                        <p className="font-bold text-[#1D1D1F] text-[16px]">הדרכה חיה בבית הספר</p>
+                        <p className="text-[13px] text-gray-400 mt-1">מדריך מוסמך יגיע לכם — ויתאים את ההדרכה לצוות ולציוד שלכם.</p>
                     </div>
                 </div>
+
+                {/* Magazine CTA */}
+                <Link to="/magazine" className="no-underline">
+                    <motion.div
+                        whileHover={{ x: -4 }}
+                        className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60 flex items-center justify-between gap-6 cursor-pointer"
+                    >
+                        <ChevronLeft className="text-gray-300" size={20} />
+                        <div className="text-right">
+                            <p className="font-bold text-[#1D1D1F] text-[16px]">בלוג חדשנות פדגוגית</p>
+                            <p className="text-[13px] text-gray-400 mt-1">מאמרים, כלים ורעיונות לשיפור ההוראה עם טכנולוגיה.</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-md shrink-0">
+                            <BookOpen size={20} />
+                        </div>
+                    </motion.div>
+                </Link>
             </div>
 
             <AcademySidebar />
