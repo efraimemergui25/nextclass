@@ -188,10 +188,11 @@ function FAQItem({ item, index }) {
 
 // ─── Tab Content ──────────────────────────────────────────────────────────────
 
-function VideosTab({ videos }) {
+function VideosTab({ videos, heroSearch }) {
     const [filter, setFilter] = useState('הכל');
     const cats = ['הכל', 'התקנה', 'פדגוגיה', 'ניהול', ...Array.from(new Set(videos.map(v => v.category).filter(c => c && !['התקנה', 'פדגוגיה', 'ניהול'].includes(c))))];
-    const shown = filter === 'הכל' ? videos : videos.filter(v => v.category === filter);
+    const byCategory = filter === 'הכל' ? videos : videos.filter(v => v.category === filter);
+    const shown = heroSearch ? byCategory.filter(v => v.title?.includes(heroSearch) || v.category?.includes(heroSearch)) : byCategory;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -216,7 +217,7 @@ function VideosTab({ videos }) {
                 </div>
 
                 {shown.length === 0
-                    ? <div className="text-center py-20 text-gray-300 text-[15px]">אין סרטונים להצגה כרגע.</div>
+                    ? <div className="text-center py-20 text-gray-300 text-[15px]">{heroSearch ? `לא נמצאו סרטונים עבור "${heroSearch}"` : 'אין סרטונים להצגה כרגע.'}</div>
                     : <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {shown.map(video => <AcademyCard key={video.id} video={video} />)}
                     </div>
@@ -429,6 +430,7 @@ export default function VODCenterPage() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [videos, setVideos] = useState(loadVideos);
+    const [heroSearch, setHeroSearch] = useState('');
     const activeTab = TABS.find(t => t.id === searchParams.get('tab'))?.id ?? 'videos';
 
     useEffect(() => {
@@ -476,9 +478,18 @@ export default function VODCenterPage() {
                         <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#007AFF] transition-colors" size={20} />
                         <input
                             type="text"
-                            placeholder="מה תרצו ללמוד היום?"
+                            value={heroSearch}
+                            onChange={e => {
+                                setHeroSearch(e.target.value);
+                                if (activeTab !== 'videos') setTab('videos');
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter') setTab('videos'); }}
+                            placeholder="חפשו סרטון לפי נושא..."
                             className="w-full bg-white/80 backdrop-blur-3xl border border-white/60 rounded-full px-16 py-6 text-[17px] outline-none focus:ring-[6px] focus:ring-[#007AFF]/5 focus:bg-white transition-all text-right shadow-sm"
                         />
+                        {heroSearch && (
+                            <button onClick={() => setHeroSearch('')} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors text-xl leading-none">×</button>
+                        )}
                     </motion.div>
                 </section>
 
@@ -513,7 +524,7 @@ export default function VODCenterPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
                         >
-                            {activeTab === 'videos'   && <VideosTab videos={visible} />}
+                            {activeTab === 'videos'   && <VideosTab videos={visible} heroSearch={heroSearch} />}
                             {activeTab === 'help'     && <HelpTab />}
                             {activeTab === 'training' && <TrainingTab />}
                             {activeTab === 'support'  && <SupportTab phone={phone} email={email} />}
