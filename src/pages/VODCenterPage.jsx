@@ -318,35 +318,18 @@ function TrainingTab() {
 
                 {/* In-person training CTA */}
                 <div className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <Link
-                        to="/contact"
-                        className="flex items-center gap-2 px-8 py-4 bg-[#007AFF] text-white font-bold rounded-2xl text-[15px] hover:bg-[#0066DD] transition-colors whitespace-nowrap shadow-lg"
-                    >
-                        <Zap size={16} />
-                        תאמו הדרכה עכשיו
-                    </Link>
                     <div className="text-right">
                         <p className="font-bold text-[#1D1D1F] text-[16px]">הדרכה חיה בבית הספר</p>
                         <p className="text-[13px] text-gray-400 mt-1">מדריך מוסמך יגיע לכם — ויתאים את ההדרכה לצוות ולציוד שלכם.</p>
                     </div>
-                </div>
-
-                {/* Magazine CTA */}
-                <Link to="/magazine" className="no-underline">
-                    <motion.div
-                        whileHover={{ x: -4 }}
-                        className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60 flex items-center justify-between gap-6 cursor-pointer"
+                    <Link
+                        to="/contact"
+                        className="flex items-center gap-2 px-8 py-4 bg-[#007AFF] text-white font-bold rounded-2xl text-[15px] hover:bg-[#0066DD] transition-colors whitespace-nowrap shadow-lg shrink-0"
                     >
-                        <ChevronLeft className="text-gray-300" size={20} />
-                        <div className="text-right">
-                            <p className="font-bold text-[#1D1D1F] text-[16px]">בלוג חדשנות פדגוגית</p>
-                            <p className="text-[13px] text-gray-400 mt-1">מאמרים, כלים ורעיונות לשיפור ההוראה עם טכנולוגיה.</p>
-                        </div>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-md shrink-0">
-                            <BookOpen size={20} />
-                        </div>
-                    </motion.div>
-                </Link>
+                        <Zap size={16} />
+                        תאמו הדרכה עכשיו
+                    </Link>
+                </div>
             </div>
 
             <AcademySidebar />
