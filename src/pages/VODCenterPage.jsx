@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Play, PlayCircle, HelpCircle, GraduationCap, Headphones, ChevronLeft, Zap, BookOpen, Phone, MessageCircle, Mail, Search, Sparkles, Clock } from 'lucide-react';
+import { Play, PlayCircle, HelpCircle, GraduationCap, Headphones, ChevronLeft, Zap, BookOpen, Phone, MessageCircle, Mail, Search, Sparkles, Clock, ShoppingBag, FileText, Newspaper } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
 
@@ -38,34 +38,35 @@ const FAQ = [
     { q: 'מה קורה אם יש תקלה לאחר ההתקנה?', a: 'יש לנו קו תמיכה ישיר ב-WhatsApp. פניות נענות תוך שעה בשעות פעילות (א׳–ו׳, 08:00–20:00). תקלות המצריכות טכנאי — נגיע לבית הספר תוך 48 שעות.' },
 ];
 
-// ─── Shared Sidebar ───────────────────────────────────────────────────────────
+// ─── Sidebar quick-links (real NextClass offerings) ───────────────────────────
 
-const learningPaths = [
-    { title: '100 הימים הראשונים', count: 12, icon: BookOpen, color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
-    { title: 'מומחה EduEdit Studio', count: 24, icon: GraduationCap, color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+const SIDEBAR_LINKS = [
+    {
+        to: '/catalog',
+        icon: ShoppingBag,
+        color: 'bg-gradient-to-br from-[#007AFF] to-[#5856D6]',
+        title: 'קטלוג המוצרים',
+        sub: 'מסכים חכמים · טאבלטים · מעבדות STEM',
+    },
+    {
+        to: '/contact',
+        icon: FileText,
+        color: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+        title: 'בקשו הצעת מחיר',
+        sub: 'מענה מפורט תוך 24 שעות',
+    },
+    {
+        to: '/magazine',
+        icon: Newspaper,
+        color: 'bg-gradient-to-br from-purple-500 to-pink-600',
+        title: 'בלוג חדשנות פדגוגית',
+        sub: 'מאמרים ומחקרים לצוות ההוראה',
+    },
 ];
-
-const PathCard = ({ title, count, icon: Icon, color }) => (
-    <Link to="/vod" className="no-underline">
-        <motion.div
-            whileHover={{ x: -8, backgroundColor: 'rgba(255,255,255,0.95)' }}
-            className="glass-apple gestalt-card p-6 flex items-center gap-6 cursor-pointer border border-white/60 bg-white/60"
-        >
-            <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-md`}>
-                <Icon size={20} />
-            </div>
-            <div className="flex-1 text-right">
-                <h4 className="text-[16px] font-bold text-[#1D1D1F] tracking-tight">{title}</h4>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{count} מדריכים זמינים</p>
-            </div>
-            <ChevronLeft className="text-gray-300" size={18} />
-        </motion.div>
-    </Link>
-);
 
 function AcademySidebar() {
     return (
-        <div className="lg:col-span-4 flex flex-col gap-8 sticky top-28">
+        <div className="lg:col-span-4 flex flex-col gap-6 sticky top-28">
             {/* Training CTA */}
             <motion.div
                 whileHover={{ y: -4 }}
@@ -86,10 +87,25 @@ function AcademySidebar() {
                 </Link>
             </motion.div>
 
-            {/* Learning Paths */}
-            <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-right px-4 mb-4">מסלולי למידה</h3>
-                {learningPaths.map((path, i) => <PathCard key={i} {...path} />)}
+            {/* Real quick-action links */}
+            <div className="flex flex-col gap-3">
+                {SIDEBAR_LINKS.map((item) => (
+                    <Link key={item.to} to={item.to} className="no-underline">
+                        <motion.div
+                            whileHover={{ x: -6, backgroundColor: 'rgba(255,255,255,0.95)' }}
+                            className="glass-apple gestalt-card p-5 flex items-center gap-4 cursor-pointer border border-white/60 bg-white/60"
+                        >
+                            <div className={`w-11 h-11 rounded-xl ${item.color} flex items-center justify-center text-white shadow-md shrink-0`}>
+                                <item.icon size={18} />
+                            </div>
+                            <div className="flex-1 text-right">
+                                <p className="text-[15px] font-bold text-[#1D1D1F] tracking-tight">{item.title}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">{item.sub}</p>
+                            </div>
+                            <ChevronLeft className="text-gray-300 shrink-0" size={16} />
+                        </motion.div>
+                    </Link>
+                ))}
             </div>
         </div>
     );
@@ -263,13 +279,41 @@ function TrainingTab() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             <div className="lg:col-span-8 flex flex-col gap-8">
                 <div className="text-right">
-                    <h2 className="text-3xl font-apple-display text-[#1D1D1F] tracking-tight mb-2">מסלולי הדרכה</h2>
-                    <p className="text-[14px] text-gray-400">תוכניות למידה מובנות לכל שלב בדרך.</p>
+                    <h2 className="text-3xl font-apple-display text-[#1D1D1F] tracking-tight mb-2">שירותי הדרכה</h2>
+                    <p className="text-[14px] text-gray-400">הדרכה מקצועית לכל שלב — מהתקנה ועד שליטה מלאה.</p>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    {learningPaths.map((p, i) => <PathCard key={i} {...p} />)}
-                </div>
+                {/* Real training services */}
+                {[
+                    {
+                        icon: Zap,
+                        color: 'bg-gradient-to-br from-[#007AFF] to-[#5856D6]',
+                        title: 'הדרכה בסיסית — כלולה בכל רכישה',
+                        sub: 'הדרכת הפעלה ראשונית של המסך, חיבור לרשת ותצורת הכיתה. ניתנת ביום ההתקנה על ידי הטכנאי.',
+                    },
+                    {
+                        icon: GraduationCap,
+                        color: 'bg-gradient-to-br from-purple-500 to-pink-600',
+                        title: 'הדרכת צוות מורחבת',
+                        sub: 'מדריך מוסמך מגיע לבית הספר לסדנה מעמיקה — שימוש פדגוגי, EduEdit Studio, שיתוף מסך ועבודה עם Google Workspace.',
+                    },
+                    {
+                        icon: Phone,
+                        color: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+                        title: 'תמיכה שוטפת לאחר ההדרכה',
+                        sub: 'צוות התמיכה זמין ב-WhatsApp וטלפון לכל שאלה לאחר ההדרכה. מענה תוך שעה בימים א׳–ו׳.',
+                    },
+                ].map((s, i) => (
+                    <div key={i} className="glass-apple gestalt-card p-7 border border-white/50 bg-white/60 flex items-start gap-5 text-right">
+                        <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center text-white shadow-md shrink-0 mt-0.5`}>
+                            <s.icon size={20} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-[#1D1D1F] text-[16px] mb-1">{s.title}</p>
+                            <p className="text-[13px] text-gray-400 leading-relaxed">{s.sub}</p>
+                        </div>
+                    </div>
+                ))}
 
                 {/* In-person training CTA */}
                 <div className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
