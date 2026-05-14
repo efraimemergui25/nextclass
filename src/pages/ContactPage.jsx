@@ -33,6 +33,7 @@ const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, on
                     onChange={e => onChange(e.target.value)}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
+                    maxLength={1000}
                     className="w-full bg-white/40 backdrop-blur-xl border border-gray-200/50 rounded-[2rem] p-4 pt-6 min-h-[140px] outline-none focus:ring-[6px] focus:ring-[#007AFF]/5 focus:border-[#007AFF]/30 transition-all text-right font-medium text-[#1D1D1F] resize-none"
                 />
             ) : (
@@ -43,6 +44,7 @@ const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, on
                     onChange={e => onChange(e.target.value)}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
+                    maxLength={type === 'email' ? 254 : 120}
                     className="w-full bg-white/40 backdrop-blur-xl border border-gray-200/50 rounded-full p-4 pt-6 outline-none focus:ring-[6px] focus:ring-[#007AFF]/5 focus:border-[#007AFF]/30 transition-all text-right font-medium text-[#1D1D1F]"
                 />
             )}
@@ -59,7 +61,7 @@ const ContactPage = () => {
 
     const contactContent = useMemo(() => ({
         title:    getSetting('contact_hero_title', 'הכיתה שלכם מחכה. בואו נתחיל.'),
-        subtitle: getSetting('contact_hero_subtitle', 'אנחנו כאן בשבילכם — מהייעוץ הראשון ועד אחרי ההתקנה.'),
+        subtitle: getSetting('contact_hero_subtitle', 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.'),
         conciergeTitle: getSetting('contact_concierge_title', 'ייעוץ אישי ומיידי'),
         conciergeDesc:  getSetting('contact_concierge_desc', 'נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.'),
         formTitle:      getSetting('contact_form_title', 'בואו נצא לדרך.'),
@@ -90,7 +92,15 @@ const ContactPage = () => {
         phone: '',
         msg: '',
     });
+    const [selectedTopics, setSelectedTopics] = useState([]);
+    const [instSize, setInstSize] = useState('');
     const [submitError, setSubmitError] = useState('');
+    const [consentGiven, setConsentGiven] = useState(false);
+
+    const toggleTopic = (topic) =>
+        setSelectedTopics(prev =>
+            prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+        );
 
     const setField = (key) => (val) => setFormData(prev => ({ ...prev, [key]: val }));
 
@@ -115,6 +125,8 @@ const ContactPage = () => {
             email: formData.email.trim(),
             phone: formData.phone.trim(),
             message: formData.msg.trim(),
+            topics: selectedTopics,
+            instSize,
             status: 'חדש',
             date: new Date().toLocaleDateString('he-IL'),
             dateTs: Date.now(),
@@ -157,9 +169,10 @@ const ContactPage = () => {
                         <span>{contactContent.timeHint}{currentTime}</span>
                     </motion.div>
 
-                    <h1 className="text-3xl sm:text-5xl md:text-8xl font-apple-display text-[#1D1D1F] tracking-tighter mb-4 sm:mb-6 leading-[0.95]">
+                    <h1 className="font-apple-display text-[#1D1D1F] mb-4 sm:mb-6 leading-[0.95]"
+                        style={{ fontSize: 'clamp(32px, 7vw, 96px)', letterSpacing: '-0.04em' }}>
                         {contactContent.title.split('.').map((t,i) => (
-                            <span key={i} className={i % 2 !== 0 ? "text-[#007AFF]" : ""}>
+                            <span key={i} style={i % 2 !== 0 ? { background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' } : {}}>
                                 {t}{i === 0 && <br />}
                             </span>
                         ))}
@@ -170,7 +183,7 @@ const ContactPage = () => {
                 </section>
 
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-stretch">
 
                         {/* ── Left Side: Connection Hub ────── */}
                         <div className="lg:col-span-5 flex flex-col gap-8">
@@ -251,12 +264,12 @@ const ContactPage = () => {
                         </div>
 
                         {/* ── Right Side: Interactive Hub Form ────── */}
-                        <div className="lg:col-span-7 flex flex-col gap-6">
+                        <div className="lg:col-span-7 flex flex-col">
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
-                                className="glass-apple gestalt-card p-5 sm:p-10 md:p-16 relative bg-white/95 shadow-2xl border border-white/80"
+                                className="glass-apple gestalt-card p-5 sm:p-10 md:p-16 relative bg-white/95 shadow-2xl border border-white/80 flex-1"
                             >
                                 <AnimatePresence mode="wait">
                                     {!isSubmitted ? (
@@ -279,16 +292,93 @@ const ContactPage = () => {
                                                 <FloatingInput label="אימייל מוסדי" id="email" type="email" value={formData.email} onChange={setField('email')} />
                                                 <FloatingInput label="טלפון" id="phone" type="tel" value={formData.phone} onChange={setField('phone')} />
                                             </div>
+                                            {/* ── Topic pills ── */}
+                                            <div className="mb-5 p-5 rounded-2xl" style={{ background: 'rgba(248,248,250,0.7)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.85)', boxShadow: '0 2px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em] text-right mb-3">מה מעניין אותך?</p>
+                                                <div className="flex flex-wrap gap-2" dir="rtl">
+                                                    {['מסכים אינטראקטיביים', 'מחשבים לכיתה', 'ציוד חינוכי', 'פתרון לבית ספר שלם', 'ייעוץ ראשוני', 'מכרז ממשלתי', 'אחר'].map(topic => (
+                                                        <button
+                                                            type="button"
+                                                            key={topic}
+                                                            onClick={() => toggleTopic(topic)}
+                                                            className="px-4 py-2 rounded-full text-[13px] font-bold transition-all duration-200"
+                                                            style={selectedTopics.includes(topic) ? {
+                                                                background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                                                                color: 'white',
+                                                                border: '1px solid transparent',
+                                                                boxShadow: '0 4px 14px rgba(0,122,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                                            } : {
+                                                                background: 'rgba(255,255,255,0.82)',
+                                                                backdropFilter: 'blur(12px)',
+                                                                color: '#6E6E73',
+                                                                border: '1px solid rgba(0,0,0,0.07)',
+                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                                                            }}
+                                                        >
+                                                            {topic}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* ── Institution size ── */}
+                                            <div className="mb-6 p-5 rounded-2xl" style={{ background: 'rgba(248,248,250,0.7)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.85)', boxShadow: '0 2px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em] text-right mb-3">גודל המוסד</p>
+                                                <div className="grid grid-cols-4 gap-2" dir="rtl">
+                                                    {['1–5 כיתות', '6–15 כיתות', '15+ כיתות', 'אחר'].map(size => (
+                                                        <button
+                                                            type="button"
+                                                            key={size}
+                                                            onClick={() => setInstSize(size === instSize ? '' : size)}
+                                                            className="py-3 rounded-xl text-[12px] font-bold transition-all duration-200"
+                                                            style={instSize === size ? {
+                                                                background: 'rgba(0,122,255,0.08)',
+                                                                color: '#007AFF',
+                                                                border: '1.5px solid rgba(0,122,255,0.30)',
+                                                                boxShadow: '0 4px 12px rgba(0,122,255,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+                                                            } : {
+                                                                background: 'rgba(255,255,255,0.82)',
+                                                                backdropFilter: 'blur(12px)',
+                                                                color: '#6E6E73',
+                                                                border: '1px solid rgba(0,0,0,0.07)',
+                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                                                            }}
+                                                        >
+                                                            {size}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <FloatingInput label={contactContent.labelMsg} id="msg" isTextArea value={formData.msg} onChange={setField('msg')} />
+
+                                            {/* Consent checkbox */}
+                                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '14px 16px', background: '#F9F9FB', borderRadius: 14, border: '1px solid #E5E5EA', cursor: 'pointer', marginTop: 8 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={consentGiven}
+                                                    onChange={e => setConsentGiven(e.target.checked)}
+                                                    style={{ width: 18, height: 18, accentColor: '#007AFF', flexShrink: 0, marginTop: 2, cursor: 'pointer' }}
+                                                />
+                                                <span style={{ fontSize: 13, color: '#3C3C43', lineHeight: 1.6 }}>
+                                                    קראתי ואני מסכים/ה ל
+                                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none' }}> מדיניות הפרטיות </a>
+                                                    ול
+                                                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none' }}> תנאי השימוש </a>
+                                                    של NextClass, ולאיסוף המידע לצורך מענה לפנייתי.
+                                                </span>
+                                            </label>
 
                                             {submitError && (
                                                 <p className="text-sm font-bold text-red-500 text-center bg-red-50 rounded-2xl px-4 py-3 border border-red-100">{submitError}</p>
                                             )}
                                             <motion.button
                                                 type="submit"
-                                                whileHover={{ scale: 1.01, y: -2 }}
-                                                whileTap={{ scale: 0.99 }}
-                                                className="w-full py-5 bg-black text-white rounded-full font-bold text-xl flex items-center justify-center gap-4 shadow-xl hover:bg-[#1D1D1F] transition-all mt-6"
+                                                disabled={!consentGiven}
+                                                whileHover={consentGiven ? { scale: 1.01, y: -2 } : {}}
+                                                whileTap={consentGiven ? { scale: 0.99 } : {}}
+                                                className="w-full py-5 rounded-full font-bold text-xl flex items-center justify-center gap-4 shadow-xl transition-all mt-4"
+                                                style={{ background: consentGiven ? '#000' : '#C7C7CC', color: '#fff', cursor: consentGiven ? 'pointer' : 'not-allowed' }}
                                             >
                                                 <span>{contactContent.formBtn}</span>
                                                 <Send size={20} />
@@ -318,13 +408,13 @@ const ContactPage = () => {
                                 </AnimatePresence>
                             </motion.div>
 
-                            {/* ── Promise strip — fills the gap below the form ── */}
+                            {/* ── Promise strip — pushed to bottom to align with map ── */}
                             <motion.div
                                 initial={{ opacity: 0, y: 16 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: 0.15, type: 'spring', stiffness: 280, damping: 28 }}
-                                className="grid grid-cols-3 gap-3"
+                                className="grid grid-cols-3 gap-3 mt-auto pt-6"
                             >
                                 {[
                                     { icon: <Zap size={18} />, title: 'מענה תוך 24 שעות', sub: 'נציג מחכה לכם' },
@@ -364,7 +454,7 @@ const ContactPage = () => {
                         {[
                             { label: 'ייעוץ טכנולוגי חינם', icon: <Sparkles size={18} /> },
                             { label: 'ליווי פדגוגי מלא', icon: <User size={18} /> },
-                            { label: 'אחריות מוסדית מורחבת', icon: <ShieldCheck size={18} /> }
+                            { label: 'שירות אישי ומקצועי', icon: <ShieldCheck size={18} /> }
                         ].map((v, i) => (
                             <div key={i} className="flex items-center justify-center gap-3 text-[#1D1D1F] font-bold bg-white/60 py-4 rounded-2xl border border-white shadow-sm">
                                 <span className="text-[#007AFF]">{v.icon}</span>

@@ -24,7 +24,7 @@ const WishlistPage = () => {
                                 <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm border border-red-100">
                                     <Heart fill="currentColor" size={24} />
                                 </div>
-                                <h1 className="text-4xl font-black text-[#1D1D1F] tracking-tighter">המועדפים שלי</h1>
+                                <h1 className="text-4xl font-apple-display text-[#1D1D1F] tracking-tighter">המועדפים שלי</h1>
                             </motion.div>
                             <p className="text-[#86868B] text-lg font-medium">כאן שמורים כל המוצרים שאהבת. תוכל להשוות ביניהם או להוסיף לסל בכל עת.</p>
                         </div>

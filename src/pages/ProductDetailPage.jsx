@@ -14,6 +14,7 @@ import ProductQA from '../components/ProductQA';
 import Magnetic from '../components/Magnetic';
 import { useSettings } from '../context/SettingsContext';
 import defaultProducts from '../data/products';
+import SectionErrorBoundary from '../components/SectionErrorBoundary';
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
@@ -32,9 +33,9 @@ ImageFallback.displayName = 'ImageFallback';
 const DEFAULT_FAQ = [
     { q: 'מהו זמן האספקה הצפוי?',                a: 'אספקה תוך 3–7 ימי עסקים לרוב האזורים בישראל. הזמנות גדולות (מוסדי) עשויות לקחת עד 14 יום.' },
     { q: 'האם ניתן לקבל הצעת מחיר מוסדית?',      a: 'כן! מלאו את טופס יצירת הקשר או התקשרו אלינו ישירות לקבלת הצעת מחיר מותאמת לבית ספרכם.' },
-    { q: 'מה כולל שירות ההתקנה?',                  a: 'שירות ההתקנה כולל: הרכבה מלאה, הגדרת רשת, הדרכת צוות ופתרון בעיות ראשוני.' },
-    { q: 'האם קיימת אחריות על המוצר?',             a: 'כל המוצרים מגיעים עם אחריות יצרן של 3 שנים ותמיכה טכנית מלאה של NextClass.' },
-    { q: 'כיצד ניתן לבצע תיקון או להחזיר מוצר?', a: 'ניתן לפנות לשירות הלקוחות שלנו בכל ערוץ — טלפון, וואטסאפ או דוא"ל — ונלווה אתכם בכל תהליך.' },
+    { q: 'כיצד מתנהל השירות לאחר הרכישה?',        a: 'שירות ישיר ואישי — פונים אלינו בטלפון, וואטסאפ או מייל ומקבלים מענה מהיר ומקצועי ללא בירוקרטיה.' },
+    { q: 'האם ניתן להתאים פתרון לתקציב ספציפי?',  a: 'בהחלט. נציג מקצועי ייעץ אישית ויתאים את הפתרון המדויק לצרכים ולתקציב של המוסד שלכם.' },
+    { q: 'כיצד ניתן להחזיר מוצר?',               a: 'ניתן לפנות אלינו בכל ערוץ — טלפון, וואטסאפ או דוא"ל — ונלווה אתכם בכל תהליך בצורה מהירה ומקצועית.' },
 ];
 
 // ─── FAQ Section ─────────────────────────────────────────────────────────────
@@ -50,9 +51,9 @@ function ProductFAQ({ getSetting }) {
     ].filter(item => item.q && item.a);
     if (!items.length) return null;
     return (
-        <section id="pd-faq" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+        <section id="pd-faq" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-16">
             <div className="text-right mb-10">
-                <div className="flex items-center gap-3 justify-end mb-4">
+                <div className="flex items-center gap-3 justify-start mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_faq_title', 'שאלות נפוצות')}</h3>
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.18)' }}>
@@ -96,14 +97,14 @@ function ProductReviews({ getSetting, product }) {
     const avgRating = parseFloat(getSetting('pd_reviews_avg', '4.8'));
     const reviewCount = parseInt(getSetting('pd_reviews_count', '24'));
     const defaultReviews = [
-        { name: getSetting('pd_review1_name','שרה כ.'), role: getSetting('pd_review1_role','מורה, חט"ב גבעתיים'), text: getSetting('pd_review1_text','ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים, הילדים מעורבים הרבה יותר.'), stars: 5 },
-        { name: getSetting('pd_review2_name','דוד מ.'), role: getSetting('pd_review2_role','רכז טכנולוגיה, יסודי הרצליה'), text: getSetting('pd_review2_text','התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי, ממליץ בחום.'), stars: 5 },
-        { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים. איכות ומחיר מעולים.'), stars: 4 },
+        { name: getSetting('pd_review1_name','ש. לוי'), role: getSetting('pd_review1_role','רכזת טכנולוגיה, יסודי ראשל"צ'), text: getSetting('pd_review1_text','ההתקנה הייתה ביום שסוכם, בלי לרדוף אחרי אף אחד. אחר כך הגיע מישהו מהצוות וסייע למורים להתחיל לעבוד. בדיוק מה שציפיתי.'), stars: 5 },
+        { name: getSetting('pd_review2_name','מ. ברק'), role: getSetting('pd_review2_role','מנהל, חט"ב גבעתיים'), text: getSetting('pd_review2_text','המחיר שהוצע — הוא המחיר ששולם. בלי הפתעות בחשבונית. זה לא מובן מאליו ואני מעריך את זה.'), stars: 4 },
+        { name: getSetting('pd_review3_name','ד. כהן'), role: getSetting('pd_review3_role','רכז טכנולוגיה, חינוך מיוחד'), text: getSetting('pd_review3_text','הייתה בעיה קטנה שבועיים אחרי ההתקנה. התקשרתי, הגיעו למחרת. לא נזקקתי לפתוח טיקט או לחכות שבוע. ממליץ.'), stars: 5 },
     ];
     return (
-        <section id="pd-reviews" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-24">
+        <section id="pd-reviews" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-24">
             <div className="text-right mb-10">
-                <div className="flex items-center gap-3 justify-end mb-4">
+                <div className="flex items-center gap-3 justify-start mb-4">
                     <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_reviews_title', 'חוות דעת')}</h3>
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.18)' }}>
@@ -113,7 +114,7 @@ function ProductReviews({ getSetting, product }) {
                     </div>
                 </div>
                 {/* Summary bar — rating first (RTL start = right), then stars, then count */}
-                <div className="flex items-center gap-4 justify-end mb-8">
+                <div className="flex items-center gap-4 justify-start mb-8">
                     <span className="text-[13px] text-[#86868B] font-medium">{reviewCount} חוות דעת</span>
                     <div className="flex items-center gap-1">
                         {[1,2,3,4,5].map(s => (
@@ -132,7 +133,7 @@ function ProductReviews({ getSetting, product }) {
                         viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22,1,0.36,1] }}
                         className="flex flex-col p-6 rounded-[1.75rem] text-right"
                         style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                        <div className="flex items-center gap-1 mb-4 justify-end">
+                        <div className="flex items-center gap-1 mb-4 justify-start">
                             {[1,2,3,4,5].map(s => (
                                 <svg key={s} className="w-4 h-4" fill={s <= r.stars ? '#FF9500' : '#E5E5EA'} viewBox="0 0 24 24">
                                     <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
@@ -261,11 +262,22 @@ const ProductDetailPage = () => {
         setActiveFeatureIdx(idx);
     });
 
-    // ─── Show sticky nav bar after scrolling past hero ─────────────────────
+    // ─── Sticky nav: show on scroll-down, hide on scroll-up ───────────────────
     useEffect(() => {
-        const handleScroll = () => setShowStickyBar(window.scrollY > 250);
+        let prevY = window.scrollY;
+        let barVisible = false;
+        const handleScroll = () => {
+            const y = window.scrollY;
+            const delta = y - prevY;
+            prevY = y;
+            if (y <= 250) {
+                barVisible = false;
+            } else if (Math.abs(delta) > 4) {
+                barVisible = delta > 0;
+            }
+            setShowStickyBar(barVisible);
+        };
         window.addEventListener('scroll', handleScroll, { passive: true });
-        handleScroll(); // check immediately on mount
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -621,7 +633,7 @@ const ProductDetailPage = () => {
                             </div>
 
                             <div className="text-[#007AFF] font-bold text-xs uppercase tracking-widest mb-4">{product.category}</div>
-                            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#1D1D1F] leading-[1.15] mb-4">{product.title}</h1>
+                            <h1 className="text-4xl md:text-5xl font-apple-display tracking-tight text-[#1D1D1F] leading-[1.15] mb-4">{product.title}</h1>
                             {showPrices ? (
                                 <div className="text-4xl font-black tracking-tighter text-[#1D1D1F] my-6">{formattedPrice}</div>
                             ) : (
@@ -822,38 +834,6 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* ─── Product Dimensions ─────────────────────────────────────── */}
-                    {productDims.length > 0 && (
-                    <section id="pd-dims" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16 mt-16">
-                        <div className="flex items-center gap-3 justify-end mb-5">
-                            <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
-                                {getSetting('pd_dims_title', 'מידות המוצר')}
-                            </h3>
-                            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.15)' }}>
-                                <svg className="w-5 h-5 text-[#5856D6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5 5 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5 5 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                </svg>
-                            </div>
-                        </div>
-                        <div className="h-1 w-10 bg-[#5856D6] rounded-full mb-7 mr-0 ml-auto" />
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            {productDims.map((d, i) => (
-                                <motion.div key={i}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 0.35, delay: i * 0.07 }}
-                                    className={`p-5 rounded-2xl text-right ${productDims.length % 2 !== 0 && i === productDims.length - 1 ? 'col-span-2 md:col-span-1' : ''}`}
-                                    style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-3">{d.label}</p>
-                                    <p className="text-2xl font-black text-[#1D1D1F] tracking-tighter leading-none">{d.value}</p>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </section>
-                    )}
-
                     {/* ─── Apple-Tier Scrollytelling Section ──────────────────────── */}
                     {/* Note: DO NOT use overflow-hidden here, it completely breaks position: sticky! */}
                     <div id="pd-features" ref={scrollytellingRef} className="relative min-h-[100vh] bg-[#F5F5F7] mt-24 md:mt-40 rounded-3xl md:rounded-[4rem] shadow-[0_-20px_50px_rgb(0_0_0/0.02)]">
@@ -895,7 +875,7 @@ const ProductDetailPage = () => {
                             </div>
 
                             {/* Narrative Text — order 2 on mobile, 1 on desktop */}
-                            <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-0 md:gap-[30vh] px-6 md:px-12 pb-[15vh] md:pb-[20vh] md:pt-[20vh] z-0">
+                            <div className="order-2 md:order-1 flex flex-col items-center justify-center gap-0 md:gap-[30vh] px-6 md:px-12 xl:pr-[220px] pb-[15vh] md:pb-[20vh] md:pt-[20vh] z-0">
                                 {SCROLLYTELLING_FEATURES.map((feature, i) => (
                                     <motion.div
                                         key={feature.id}
@@ -919,15 +899,47 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
+                    {/* ─── Product Dimensions ─────────────────────────────────────── */}
+                    {productDims.length > 0 && (
+                    <section id="pd-dims" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-16 mt-16">
+                        <div className="flex items-center gap-3 justify-start mb-5">
+                            <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
+                                {getSetting('pd_dims_title', 'מידות המוצר')}
+                            </h3>
+                            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.15)' }}>
+                                <svg className="w-5 h-5 text-[#5856D6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5 5 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5 5 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div className="h-1 w-10 bg-[#5856D6] rounded-full mb-7 mr-0 ml-auto" />
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {productDims.map((d, i) => (
+                                <motion.div key={i}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.35, delay: i * 0.07 }}
+                                    className={`p-5 rounded-2xl text-right ${productDims.length % 2 !== 0 && i === productDims.length - 1 ? 'col-span-2 md:col-span-1' : ''}`}
+                                    style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-3">{d.label}</p>
+                                    <p className="text-2xl font-black text-[#1D1D1F] tracking-tighter leading-none">{d.value}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                    )}
+
                     {/* ─── Technical Specs Grid ──────────────────────────────────── */}
                     {(product.specs?.length ?? 0) > 0 && (
-                        <div id="pd-specs" className="relative max-w-[1200px] mx-auto mt-12 md:mt-16 mb-16 px-6 md:px-12">
+                        <div id="pd-specs" className="relative max-w-[1200px] xl:max-w-[960px] mx-auto mt-12 md:mt-16 mb-16 px-6 md:px-12">
                             <div className="rounded-[2rem] overflow-hidden"
                                 style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(40px) saturate(2)', WebkitBackdropFilter: 'blur(40px) saturate(2)', border: '1px solid rgba(255,255,255,0.75)', boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
                                 <div className="p-6 md:p-10">
                                     {/* Header */}
                                     <div className="text-right mb-6">
-                                        <div className="flex items-center gap-3 justify-end mb-3">
+                                        <div className="flex items-center gap-3 justify-start mb-3">
                                             {product.specs?.length > 0 && (
                                                 <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest bg-[rgba(0,0,0,0.04)] px-2.5 py-1 rounded-full">{product.specs.length} פרמטרים</span>
                                             )}
@@ -939,7 +951,7 @@ const ProductDetailPage = () => {
                                                 </svg>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 justify-end">
+                                        <div className="flex items-center gap-3 justify-start">
                                             <div className="h-1 w-10 bg-[#007AFF] rounded-full" />
                                         </div>
                                     </div>
@@ -954,8 +966,8 @@ const ProductDetailPage = () => {
                                                 transition={{ duration: 0.25, delay: idx * 0.04 }}
                                                 className="flex items-center justify-between gap-6 px-2 py-4 rounded-lg hover:bg-[rgba(0,0,0,0.02)] transition-colors"
                                             >
-                                                <span className="text-[13px] font-bold text-[#1D1D1F] tracking-tight">{spec?.value}</span>
                                                 <span className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest shrink-0">{spec?.label}</span>
+                                                <span className="text-[13px] font-bold text-[#1D1D1F] tracking-tight">{spec?.value}</span>
                                             </motion.div>
                                         ))}
                                     </div>
@@ -966,7 +978,7 @@ const ProductDetailPage = () => {
                 </div>
 
                 {/* ─── Warranty & Purchase Terms ──────────────────────────────── */}
-                <section id="pd-warranty" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+                <section id="pd-warranty" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-16">
                     <div className="rounded-[3rem] p-8 md:p-14 relative overflow-hidden"
                         style={{
                             background: 'linear-gradient(135deg, rgba(0,122,255,0.04) 0%, rgba(255,255,255,0.95) 60%)',
@@ -976,9 +988,9 @@ const ProductDetailPage = () => {
                         <div className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none -z-0"
                             style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.06) 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
                         <div className="relative z-10 text-right">
-                            <div className="flex items-center gap-3 justify-end mb-6">
+                            <div className="flex items-center gap-3 justify-start mb-6">
                                 <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">
-                                    {getSetting('pd_warranty_title', 'תנאי רכישה ואחריות')}
+                                    {getSetting('pd_warranty_title', 'תנאי רכישה ושירות')}
                                 </h3>
                                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                                     style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.15)' }}>
@@ -989,13 +1001,13 @@ const ProductDetailPage = () => {
                             </div>
                             <div className="h-1 w-12 bg-[#007AFF] rounded-full mb-8 mr-0 ml-auto" />
                             <p className="text-[#86868B] text-base md:text-lg leading-relaxed max-w-3xl mr-0 ml-auto whitespace-pre-line">
-                                {getSetting('pd_warranty_text', 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת. NextClass מציעה שירות תיקונים מקצועי ותמיכה טכנית לאורך כל תקופת האחריות. ניתן להארכת אחריות ל-3 שנים בתשלום נוסף. כל המוצרים עוברים בדיקת איכות קפדנית לפני המשלוח.')}
+                                {getSetting('pd_warranty_text', 'NextClass מציעה שירות ישיר, אישי ומקצועי ברמה הגבוהה ביותר. מחיר שקוף — מה שהוצע הוא מה שמשלמים, ללא הפתעות. כל מוצר עובר בדיקת איכות קפדנית לפני המשלוח. יש שאלה? פונים ישירות — ומקבלים מענה מהיר.')}
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
                                 {[
                                     {
                                         icon: <svg className="w-5 h-5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>,
-                                        label: getSetting('pd_warranty_badge1', 'אחריות יצרן'),
+                                        label: getSetting('pd_warranty_badge1', 'שירות ישיר'),
                                         sub: getSetting('pd_warranty_badge1_sub', '12 חודשים'),
                                         bg: 'rgba(0,122,255,0.06)', border: 'rgba(0,122,255,0.12)',
                                     },
@@ -1030,7 +1042,8 @@ const ProductDetailPage = () => {
                 </section>
 
                 {/* ─── Service & Support ──────────────────────────────────────── */}
-                <section id="pd-support" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
+                <SectionErrorBoundary>
+                <section id="pd-support" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-16">
                     <div className="rounded-[3rem] p-8 md:p-14"
                         style={{
                             background: 'rgba(255,255,255,0.88)',
@@ -1039,7 +1052,7 @@ const ProductDetailPage = () => {
                             border: '1px solid rgba(255,255,255,0.82)',
                             boxShadow: '0 8px 40px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)',
                         }}>
-                        <div className="flex items-center gap-3 justify-end mb-8">
+                        <div className="flex items-center gap-3 justify-start mb-8">
                             <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{getSetting('pd_support_title', 'שירות ותמיכה')}</h3>
                             <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.18)' }}>
                                 <svg className="w-6 h-6 text-[#34C759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -1087,20 +1100,29 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
                 </section>
+                </SectionErrorBoundary>
 
                 {/* ─── FAQ — Frequently Asked Questions ───────────────────────── */}
-                <ProductFAQ getSetting={getSetting} />
+                <SectionErrorBoundary>
+                    <ProductFAQ getSetting={getSetting} />
+                </SectionErrorBoundary>
 
                 {/* ─── Community Q&A Section ─────────────────────────────────── */}
-                <div id="pd-qa" className="max-w-[1200px] mx-auto px-6 md:px-12 mb-16">
-                    <ProductQA productId={product.id} />
-                </div>
+                <SectionErrorBoundary>
+                    <div id="pd-qa" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-16">
+                        <ProductQA productId={product.id} />
+                    </div>
+                </SectionErrorBoundary>
 
                 {/* ─── Reviews ────────────────────────────────────────────────── */}
-                <ProductReviews getSetting={getSetting} product={product} />
+                <SectionErrorBoundary>
+                    <ProductReviews getSetting={getSetting} product={product} />
+                </SectionErrorBoundary>
 
                 {/* ─── Recently Viewed Tray ─────────────────────────────────── */}
-                <RecentlyViewedTray recentIds={recentIds} currentId={product?.id} />
+                <SectionErrorBoundary>
+                    <RecentlyViewedTray recentIds={recentIds} currentId={product?.id} />
+                </SectionErrorBoundary>
 
             </PageTransition>
         </>

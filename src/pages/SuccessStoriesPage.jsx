@@ -66,9 +66,9 @@ const SuccessStoriesPage = () => {
                     className="text-center max-w-3xl mx-auto mb-20 px-6"
                 >
                     <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#007AFF] block mb-4">לקוחות מרוצים</span>
-                    <h1 className="text-5xl md:text-6xl font-black text-brand-dark mb-4 tracking-tighter">
+                    <h1 className="text-5xl md:text-6xl font-apple-display text-[#1D1D1F] mb-4 tracking-tighter leading-[1.05]">
                         תוצאות בשטח.<br />
-                        <span className="text-[#007AFF]">מהלקוחות שלנו.</span>
+                        <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>מהלקוחות שלנו.</span>
                     </h1>
                     <p className="text-lg md:text-xl text-gray-500 font-medium leading-relaxed">
                         למעלה מ-500 מוסדות חינוך כבר שינו את פני הלמידה עם NextClass.

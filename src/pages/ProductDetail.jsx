@@ -56,7 +56,7 @@ const ProductDetail = () => {
                                 </span>
 
                                 {/* Fluid typography: Text scales immensely */}
-                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#1D1D1F] tracking-tight leading-[1.15] lg:leading-[1.1] mb-4 md:mb-6">
+                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-apple-display text-[#1D1D1F] tracking-tight leading-[1.15] lg:leading-[1.1] mb-4 md:mb-6">
                                     {product.name}
                                 </h1>
 

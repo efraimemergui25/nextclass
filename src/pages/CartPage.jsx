@@ -55,7 +55,7 @@ const CartPage = () => {
         totalLabel:   getSetting('cart_total_label', 'סה"כ לתשלום'),
         taxNote:      getSetting('cart_tax_note', 'כולל מיסים, לא כולל משלוח'),
         checkoutBtn:  getSetting('cart_checkout_btn', 'המשך לקופה / הפק טופס רכש'),
-        warrantyNote: getSetting('cart_warranty_note', 'אחריות מוסדית מלאה מובטחת'),
+        warrantyNote: 'שירות מקצועי ואישי מובטח',
     };
 
     const parsePrice = (p) => {
@@ -125,7 +125,7 @@ const CartPage = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-16"
                     >
-                        <h1 className="text-5xl lg:text-7xl font-black text-[#1D1D1F] tracking-tighter">{content.title}</h1>
+                        <h1 className="text-5xl lg:text-7xl font-apple-display text-[#1D1D1F] tracking-tighter">{content.title}</h1>
                     </motion.div>
 
                     <div className="flex flex-col xl:flex-row gap-16 xl:gap-24 items-start">

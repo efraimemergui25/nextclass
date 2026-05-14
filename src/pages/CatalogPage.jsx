@@ -24,13 +24,6 @@ const itemVariants = {
     exit: { opacity: 0, scale: 0.96, transition: { duration: 0.12 } },
 };
 
-const SORT_OPTIONS = [
-    { id: 'default',    label: 'רלוונטיות' },
-    { id: 'price-asc',  label: 'מחיר: מהנמוך לגבוה' },
-    { id: 'price-desc', label: 'מחיר: מהגבוה לנמוך' },
-    { id: 'name',       label: 'שם (א-ת)' },
-];
-
 const CatalogPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [viewMode, setViewMode]         = useState('grid');
@@ -42,6 +35,13 @@ const CatalogPage = () => {
     const { getSetting }              = useSettings();
     const { activeProducts: products } = useProducts();
     const allLabel = getSetting('catalog_all_cat', 'הכל');
+
+    const SORT_OPTIONS = useMemo(() => [
+        { id: 'default',    label: getSetting('catalog_sort_rel',   'רלוונטיות') },
+        { id: 'price-asc',  label: getSetting('catalog_sort_pasc',  'מחיר: מהנמוך לגבוה') },
+        { id: 'price-desc', label: getSetting('catalog_sort_pdesc', 'מחיר: מהגבוה לנמוך') },
+        { id: 'name',       label: getSetting('catalog_sort_name',  'שם (א-ת)') },
+    ], [getSetting]);
 
     const categories = useMemo(
         () => [allLabel, ...new Set(products.map(p => p.category))],
@@ -95,6 +95,7 @@ const CatalogPage = () => {
         setSelectedCategory(cat);
         setSearchParams(cat === allLabel ? {} : { category: cat });
         setDrawerOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const { recentIds } = useRecentlyViewed();
@@ -120,26 +121,40 @@ const CatalogPage = () => {
             <div className="min-h-screen bg-[#F5F5F7]" dir="rtl">
 
                 {/* ── Compact Hero ─────────────────────────────────────────── */}
-                <div className="pt-28 pb-7 px-6 max-w-7xl mx-auto">
+                <div className="pt-28 pb-7 px-6 max-w-7xl mx-auto relative">
+
+                    {/* Ambient glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] pointer-events-none"
+                        style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(0,122,255,0.10) 0%, rgba(88,86,214,0.06) 45%, transparent 72%)', filter: 'blur(32px)' }} />
+
                     <motion.div
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
-                        style={{ background: 'rgba(0,122,255,0.07)', borderColor: 'rgba(0,122,255,0.14)', color: '#007AFF' }}
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-[0.22em] mb-5"
+                        style={{ background: 'rgba(0,122,255,0.07)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,122,255,0.18)', color: '#007AFF' }}
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
                         {getSetting('catalog_badge', 'הקטלוג המוסדי')}
                     </motion.div>
 
                     <motion.h1
-                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}
-                        className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1D1D1F] tracking-tighter leading-tight mb-2"
+                        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, ease: [0.22,1,0.36,1], duration: 0.7 }}
+                        className="font-apple-display leading-[1.0] mb-3 relative"
+                        style={{ fontSize: 'clamp(36px, 5.5vw, 72px)', letterSpacing: '-0.04em' }}
                     >
-                        {getSetting('catalog_title', 'הכלים שמעצבים את המחר.')}
+                        <span className="text-[#1D1D1F]">הכלים שמעצבים את </span>
+                        <span style={{
+                            background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
+                            backgroundSize: '200% auto',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            filter: 'drop-shadow(0 0 32px rgba(0,122,255,0.22))',
+                        }}>המחר.</span>
                     </motion.h1>
 
                     <motion.p
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                        className="text-[15px] text-[#86868B] font-medium"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+                        className="text-[16px] text-[#86868B] font-medium"
                     >
                         {getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.')}
                     </motion.p>
@@ -525,7 +540,7 @@ const ListCard = ({ product }) => {
 
             {/* Price + actions */}
             <div className="shrink-0 flex items-center gap-3 pr-2 sm:pr-4 border-r border-black/06 mr-2">
-                <div className="text-left hidden sm:block">
+                <div className="text-right hidden sm:block">
                     <div className="text-[18px] font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</div>
                     <div className="text-[9px] font-black text-[#AEAEB2] uppercase tracking-widest">{getSetting('catalog_inst_price', 'מחיר מוסדי')}</div>
                 </div>
