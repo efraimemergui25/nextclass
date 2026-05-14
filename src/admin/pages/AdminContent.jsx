@@ -62,8 +62,8 @@ const FIELD_SECTIONS = [
             { key: 'allow_orders',       label: 'אפשר בניית עגלה ושליחת בקשות', type: 'boolean', default: true },
             { key: 'allow_payments',     label: 'אפשר תשלום מקוון',     type: 'boolean',  default: false },
             { key: 'maintenance_mode',   label: 'מצב תחזוקה',           type: 'boolean',  default: false },
-            { key: 'maintenance_title',  label: 'כותרת תחזוקה',         type: 'text',     default: 'האתר בתחזוקה' },
-            { key: 'maintenance_msg',    label: 'הודעת תחזוקה',         type: 'textarea', default: 'אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.' },
+            { key: 'maintenance_title',  label: 'כותרת עמוד התחזוקה',   type: 'text',     default: 'האתר בתחזוקה' },
+            { key: 'maintenance_msg',    label: 'הודעה בעמוד התחזוקה',  type: 'textarea', default: 'אנחנו משפרים את החוויה עבורכם. נחזור בקרוב.' },
         ],
     },
     {
@@ -96,15 +96,15 @@ const FIELD_SECTIONS = [
         icon: '🏠',
         accent: '#007AFF',
         fields: [
-            { key: 'hero_eyebrow',     label: 'תווית עליונה',   type: 'text',     default: 'הדור הבא של טכנולוגיה לחינוך' },
+            { key: 'hero_eyebrow',     label: 'תווית Badge עליונה', type: 'text',     default: 'הדור הבא של טכנולוגיה לחינוך' },
             { key: 'hero_headline',    label: 'כותרת ראשית',    type: 'text',     default: 'חדשנות חסרת פשרות.' },
             { key: 'hero_subline',     label: 'כותרת משנה',     type: 'text',     default: 'מקצוענות בכל מרחב למידה.' },
             { key: 'hero_description', label: 'תיאור',          type: 'textarea', default: 'הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.' },
-            { key: 'hero_cta',         label: 'כפתור פעולה',   type: 'text',     default: 'גלו את הפתרונות שלנו' },
-            { key: 'hero_bg_image',    label: 'תמונת רקע (URL)',type: 'image',    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80' },
-            { key: 'hero_trust_pill_1',label: 'פיל אמון 1',    type: 'text',     default: 'שירות ישיר ומהיר' },
-            { key: 'hero_trust_pill_2',label: 'פיל אמון 2',    type: 'text',     default: 'ייעוץ ללא עלות' },
-            { key: 'hero_trust_pill_3',label: 'פיל אמון 3',    type: 'text',     default: '+500 מוסדות חינוך' },
+            { key: 'hero_cta',         label: 'טקסט כפתור הגלילה', type: 'text',     default: 'גלו את הפתרונות שלנו' },
+            { key: 'hero_bg_image',    label: 'תמונת רקע',     type: 'image',    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80' },
+            { key: 'hero_trust_pill_1',label: 'תג אמון 1',     type: 'text',     default: 'שירות ישיר ומהיר' },
+            { key: 'hero_trust_pill_2',label: 'תג אמון 2',     type: 'text',     default: 'ייעוץ ללא עלות' },
+            { key: 'hero_trust_pill_3',label: 'תג אמון 3',     type: 'text',     default: '+500 מוסדות חינוך' },
         ],
     },
     {
@@ -123,21 +123,21 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'homepage_sections',
-        label: 'אקוסיסטם ואמון',
+        label: 'אמון ומוסדות',
         icon: '🧱',
         accent: '#FF9500',
         fields: [
-            { key: 'sp_label',       label: 'כותרת מוסדות',         type: 'text',     default: 'נבחר על ידי מעל 500 מוסדות חינוך ועיריות מובילות' },
-            { key: 'sp_clients',     label: 'רשימת מוסדות (פסיק)',  type: 'textarea', default: 'משרד החינוך, רשת אורט, עיריית תל אביב, אוניברסיטת אריאל, רשת עמל' },
-            { key: 'eco_title',      label: 'כותרת אקוסיסטם',       type: 'text',     default: 'למידה שיוצאת מהמסגרת' },
-            { key: 'eco_desc',       label: 'תיאור אקוסיסטם',       type: 'textarea', default: 'חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.' },
-            { key: 'eco_eyebrow',    label: 'תווית עליונה',         type: 'text',     default: 'האקוסיסטם שלנו' },
-            { key: 'eco_hint',       label: 'הערת לחיצה',           type: 'text',     default: 'לחץ על הנקודות הכחולות' },
-            { key: 'eco_bg_image',   label: 'תמונת רקע אקוסיסטם',  type: 'image',    default: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=85&w=1600' },
-            { key: 'eco_added',      label: 'תווית "נוסף"',         type: 'text',     default: 'נוסף' },
-            { key: 'eco_remove',     label: 'תווית "הסר"',          type: 'text',     default: 'הסר מהעגלה' },
-            { key: 'eco_add',        label: 'תווית "הוסף"',         type: 'text',     default: 'הוסף' },
-            { key: 'eco_more_info',  label: 'לינק "פרטים נוספים"',  type: 'text',     default: 'פרטים נוספים ←' },
+            { key: 'sp_label',       label: 'כותרת שורת המוסדות',         type: 'text',     default: 'נבחר על ידי מעל 500 מוסדות חינוך ועיריות מובילות' },
+            { key: 'sp_clients',     label: 'שמות מוסדות (מופרדים בפסיק)',  type: 'textarea', default: 'משרד החינוך, רשת אורט, עיריית תל אביב, אוניברסיטת אריאל, רשת עמל' },
+            { key: 'eco_title',      label: 'מרחב הלמידה: כותרת',          type: 'text',     default: 'למידה שיוצאת מהמסגרת' },
+            { key: 'eco_desc',       label: 'מרחב הלמידה: תיאור',          type: 'textarea', default: 'חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.' },
+            { key: 'eco_eyebrow',    label: 'מרחב הלמידה: תווית Badge',    type: 'text',     default: 'האקוסיסטם שלנו' },
+            { key: 'eco_hint',       label: 'מרחב הלמידה: כפתור מוצרים',  type: 'text',     default: 'לחץ על הנקודות הכחולות' },
+            { key: 'eco_bg_image',   label: 'מרחב הלמידה: תמונת רקע',     type: 'image',    default: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=85&w=1600' },
+            { key: 'eco_added',      label: 'הודעת "נוסף לעגלה"',          type: 'text',     default: 'נוסף' },
+            { key: 'eco_remove',     label: 'כפתור "הסר מהעגלה"',          type: 'text',     default: 'הסר מהעגלה' },
+            { key: 'eco_add',        label: 'כפתור "הוסף לעגלה"',          type: 'text',     default: 'הוסף' },
+            { key: 'eco_more_info',  label: 'כפתור "פרטים נוספים"',        type: 'text',     default: 'פרטים נוספים ←' },
         ],
     },
     {
@@ -146,8 +146,8 @@ const FIELD_SECTIONS = [
         icon: '⭐',
         accent: '#34C759',
         fields: [
-            { key: 'vp_title',       label: 'כותרת הקטע',      type: 'text',     default: 'סטנדרט חדש של שירות למוסדות חינוך' },
-            { key: 'vp_label',       label: 'תווית עליונה',    type: 'text',     default: 'מה שמייחד אותנו' },
+            { key: 'vp_title',       label: 'כותרת הסקציה',    type: 'text',     default: 'סטנדרט חדש של שירות למוסדות חינוך' },
+            { key: 'vp_label',       label: 'תווית-על הסקציה', type: 'text',     default: 'מה שמייחד אותנו' },
             { key: 'vp_prop1_title', label: 'יתרון 1: כותרת',  type: 'text',     default: 'ייעוץ אישי ומקצועי' },
             { key: 'vp_prop1_desc',  label: 'יתרון 1: תיאור',  type: 'textarea', default: 'יועץ טכנולוגי מקצועי מלווה אתכם מהשלב הראשון' },
             { key: 'vp_prop2_title', label: 'יתרון 2: כותרת',  type: 'text',     default: 'אחריות ותמיכה מלאה' },
@@ -158,7 +158,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'feature_tiles',
-        label: 'כרטיסי תכונות',
+        label: 'כרטיסי מוצרים',
         icon: '🟦',
         accent: '#007AFF',
         fields: [
@@ -178,7 +178,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'shoppable_image',
-        label: 'תמונה עם קניה (Shoppable)',
+        label: 'תמונה אינטראקטיבית עם Hotspots',
         icon: '🖼️',
         accent: '#FF9500',
         fields: [
@@ -214,29 +214,29 @@ const FIELD_SECTIONS = [
         icon: '🎓',
         accent: '#34C759',
         fields: [
-            { key: 'expert_title',      label: 'כותרת',              type: 'text',     default: 'בואו נרכיב יחד את הפתרון המושלם למוסד שלכם.' },
-            { key: 'expert_desc',       label: 'תיאור',              type: 'textarea', default: 'יועץ טכנולוגי מנוסה יאפיין את הצרכים שלכם ויבנה עבורכם פתרון מדויק.' },
-            { key: 'expert_cta',        label: 'כפתור פעולה',        type: 'text',     default: 'קבל ייעוץ חינמי' },
-            { key: 'expert_form_title', label: 'כותרת הטופס',        type: 'text',     default: 'השאירו פרטים ונחזור אליכם' },
+            { key: 'expert_title',      label: 'כותרת ייעוץ מומחה', type: 'text',     default: 'בואו נרכיב יחד את הפתרון המושלם למוסד שלכם.' },
+            { key: 'expert_desc',       label: 'תיאור הייעוץ',       type: 'textarea', default: 'יועץ טכנולוגי מנוסה יאפיין את הצרכים שלכם ויבנה עבורכם פתרון מדויק.' },
+            { key: 'expert_cta',        label: 'טקסט כפתור הזמנה',   type: 'text',     default: 'קבל ייעוץ חינמי' },
+            { key: 'expert_form_title', label: 'כותרת טופס ההרשמה',  type: 'text',     default: 'השאירו פרטים ונחזור אליכם' },
             { key: 'expert_image',      label: 'תמונה',              type: 'image',    default: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=1000&auto=format&fit=crop' },
         ],
     },
     {
         id: 'home_discover_products',
-        label: 'דף הבית — גילוי ומוצרים',
+        label: 'סקציות מוצרים וגילוי',
         icon: '🔭',
         accent: '#FF9500',
         fields: [
-            { key: 'home_products_eyebrow', label: 'מוצרים: תווית',  type: 'text',     default: 'המוצרים שלנו' },
-            { key: 'home_products_title',   label: 'מוצרים: כותרת',  type: 'text',     default: 'פתרונות טכנולוגיים מובילים' },
-            { key: 'home_products_sub',     label: 'מוצרים: תיאור',  type: 'textarea', default: 'הכלים המתקדמים ביותר לסביבת הלמידה החדשה.' },
-            { key: 'home_products_cta1',    label: 'מוצרים: כפתור 1',type: 'text',     default: 'לכל הקטלוג' },
-            { key: 'home_products_cta2',    label: 'מוצרים: כפתור 2',type: 'text',     default: 'השוואת דגמים' },
-            { key: 'home_discover_eyebrow', label: 'גילוי: תווית',   type: 'text',     default: 'חדש' },
-            { key: 'home_discover_title',   label: 'גילוי: כותרת',   type: 'text',     default: 'גלו מה חדש' },
-            { key: 'home_discover_sub',     label: 'גילוי: תיאור',   type: 'textarea', default: 'מוצרים חדשים, מבצעים ועוד.' },
-            { key: 'home_discover_cta1',    label: 'גילוי: כפתור 1', type: 'text',     default: 'גלה עוד' },
-            { key: 'home_discover_cta2',    label: 'גילוי: כפתור 2', type: 'text',     default: 'כל המבצעים' },
+            { key: 'home_products_eyebrow', label: 'מוצרים: תווית Badge',  type: 'text',     default: 'המוצרים שלנו' },
+            { key: 'home_products_title',   label: 'מוצרים: כותרת',        type: 'text',     default: 'פתרונות טכנולוגיים מובילים' },
+            { key: 'home_products_sub',     label: 'מוצרים: תיאור',        type: 'textarea', default: 'הכלים המתקדמים ביותר לסביבת הלמידה החדשה.' },
+            { key: 'home_products_cta1',    label: 'מוצרים: כפתור ראשי',   type: 'text',     default: 'לכל הקטלוג' },
+            { key: 'home_products_cta2',    label: 'מוצרים: כפתור משני',   type: 'text',     default: 'השוואת דגמים' },
+            { key: 'home_discover_eyebrow', label: 'גילוי: תווית Badge',   type: 'text',     default: 'חדש' },
+            { key: 'home_discover_title',   label: 'גילוי: כותרת',         type: 'text',     default: 'גלו מה חדש' },
+            { key: 'home_discover_sub',     label: 'גילוי: תיאור',         type: 'textarea', default: 'מוצרים חדשים, מבצעים ועוד.' },
+            { key: 'home_discover_cta1',    label: 'גילוי: כפתור ראשי',    type: 'text',     default: 'גלה עוד' },
+            { key: 'home_discover_cta2',    label: 'גילוי: כפתור משני',    type: 'text',     default: 'כל המבצעים' },
         ],
     },
     {
@@ -257,39 +257,39 @@ const FIELD_SECTIONS = [
         icon: '🛍️',
         accent: '#5856D6',
         fields: [
-            { key: 'catalog_title',            label: 'כותרת הקטלוג',       type: 'text',     default: 'הכלים שמעצבים את המחר.' },
-            { key: 'catalog_subtitle',         label: 'תיאור הקטלוג',       type: 'textarea', default: 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.' },
+            { key: 'catalog_title',            label: 'כותרת ראשית',         type: 'text',     default: 'הכלים שמעצבים את המחר.' },
+            { key: 'catalog_subtitle',         label: 'כותרת משנה',          type: 'textarea', default: 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.' },
             { key: 'catalog_hero_eyebrow',     label: 'תווית עליונה',       type: 'text',     default: 'הקטלוג שלנו' },
             { key: 'catalog_hero_title',       label: 'כותרת Hero',         type: 'text',     default: 'פתרונות טכנולוגיים' },
             { key: 'catalog_hero_subtitle',    label: 'תיאור Hero',         type: 'textarea', default: 'כל מה שצריך לכיתה חכמה' },
-            { key: 'catalog_badge',            label: 'תג על מוצר בסל',    type: 'text',     default: 'בסל' },
-            { key: 'catalog_filter_btn',       label: 'כפתור סינון',        type: 'text',     default: 'סינון מתקדם' },
-            { key: 'catalog_filter_sub',       label: 'תיאור חלונית סינון', type: 'text',     default: 'התאימו את הקטלוג לצרכים שלכם' },
-            { key: 'catalog_apply_btn',        label: 'כפתור "החל"',        type: 'text',     default: 'החל סינון' },
-            { key: 'catalog_reset_btn',        label: 'כפתור "איפוס"',      type: 'text',     default: 'איפוס' },
+            { key: 'catalog_badge',            label: 'תג בסל הקניות (ברירת מחדל: "בסל")', type: 'text',     default: 'בסל' },
+            { key: 'catalog_filter_btn',       label: 'כפתור "סינון מתקדם"', type: 'text',     default: 'סינון מתקדם' },
+            { key: 'catalog_filter_sub',       label: 'תיאור מתחת לכפתור סינון', type: 'text',     default: 'התאימו את הקטלוג לצרכים שלכם' },
+            { key: 'catalog_apply_btn',        label: 'כפתור "החל סינון"',   type: 'text',     default: 'החל סינון' },
+            { key: 'catalog_reset_btn',        label: 'כפתור "נקה סינון"',   type: 'text',     default: 'איפוס' },
             { key: 'catalog_sort_label',       label: 'תווית מיון',         type: 'text',     default: 'מיון לפי' },
             { key: 'catalog_sort_rel',         label: 'מיון: רלוונטיות',    type: 'text',     default: 'רלוונטיות' },
             { key: 'catalog_sort_pasc',        label: 'מיון: מחיר עולה',    type: 'text',     default: 'מחיר: מהנמוך לגבוה' },
             { key: 'catalog_sort_pdesc',       label: 'מיון: מחיר יורד',    type: 'text',     default: 'מחיר: מהגבוה לנמוך' },
             { key: 'catalog_sort_name',        label: 'מיון: שם',           type: 'text',     default: 'שם המוצר (א-ת)' },
-            { key: 'catalog_view_grid',        label: 'תווית תצוגת רשת',   type: 'text',     default: 'רשת' },
-            { key: 'catalog_view_list',        label: 'תווית תצוגת רשימה', type: 'text',     default: 'רשימה' },
-            { key: 'catalog_price_label',      label: 'תווית טווח מחירים', type: 'text',     default: 'טווח מחיר (₪)' },
-            { key: 'catalog_price_max',        label: 'מחיר מקסימום',      type: 'text',     default: '50000' },
+            { key: 'catalog_view_grid',        label: 'תצוגה: רשת (Grid)',   type: 'text',     default: 'רשת' },
+            { key: 'catalog_view_list',        label: 'תצוגה: רשימה (List)', type: 'text',     default: 'רשימה' },
+            { key: 'catalog_price_label',      label: 'תווית "טווח מחיר"',  type: 'text',     default: 'טווח מחיר (₪)' },
+            { key: 'catalog_price_max',        label: 'מחיר מקסימלי (Slider)', type: 'text',     default: '50000' },
             { key: 'catalog_tags_label',       label: 'תווית תגיות',       type: 'text',     default: 'תגיות' },
-            { key: 'catalog_empty_msg',        label: 'הודעת אין תוצאות',  type: 'text',     default: 'לא נמצאו מוצרים' },
-            { key: 'catalog_empty_hint',       label: 'רמז "נסה שנית"',    type: 'text',     default: 'נסה קטגוריה אחרת' },
-            { key: 'catalog_all_cat',          label: 'שם קטגוריית "הכל"', type: 'text',     default: 'הכל' },
+            { key: 'catalog_empty_msg',        label: 'הודעת "לא נמצאו מוצרים"', type: 'text',     default: 'לא נמצאו מוצרים' },
+            { key: 'catalog_empty_hint',       label: 'רמז לשינוי הסינון',      type: 'text',     default: 'נסה קטגוריה אחרת' },
+            { key: 'catalog_all_cat',          label: 'תווית "הכל" (קטגוריות)', type: 'text',     default: 'הכל' },
             { key: 'catalog_search_hint',      label: 'רמז חיפוש',         type: 'text',     default: 'חפש בין מאות פתרונות...' },
-            { key: 'catalog_inst_price',       label: 'תווית מחיר מוסדי',  type: 'text',     default: 'מחיר מוסדי' },
-            { key: 'catalog_add_to_cart',      label: 'כפתור הוסף לסל',    type: 'text',     default: 'הוסף לסל' },
-            { key: 'catalog_request_quote',    label: 'כפתור הצעת מחיר',   type: 'text',     default: 'בקש הצעה' },
-            { key: 'catalog_added_msg',        label: 'הודעת "נוסף לסל"',  type: 'text',     default: 'נוסף לסל בהצלחה' },
-            { key: 'catalog_remove_msg',       label: 'הודעת "הוסר מהסל"', type: 'text',     default: 'הוסר מהסל' },
-            { key: 'catalog_inst_price_label', label: 'תווית מחיר מוסדי (ארוכה)', type: 'text', default: 'מחיר מוסדי מאושר' },
+            { key: 'catalog_inst_price',       label: 'תווית "מחיר מוסדי"',         type: 'text',     default: 'מחיר מוסדי' },
+            { key: 'catalog_add_to_cart',      label: 'כפתור "הוסף לעגלה"',         type: 'text',     default: 'הוסף לסל' },
+            { key: 'catalog_request_quote',    label: 'כפתור "בקש הצעת מחיר"',      type: 'text',     default: 'בקש הצעה' },
+            { key: 'catalog_added_msg',        label: 'הודעת הצלחה "נוסף!"',         type: 'text',     default: 'נוסף לסל בהצלחה' },
+            { key: 'catalog_remove_msg',       label: 'הודעת הסרה מהעגלה',          type: 'text',     default: 'הוסר מהסל' },
+            { key: 'catalog_inst_price_label', label: 'תווית מחיר מוסדי בכרטיס מוצר', type: 'text', default: 'מחיר מוסדי מאושר' },
             { key: 'catalog_filter_drawer_title', label: 'כותרת מגירת סינון', type: 'text',  default: 'סינון מתקדם' },
             { key: 'catalog_filter_drawer_sub',   label: 'תיאור מגירת סינון', type: 'text',  default: 'התאם את הקטלוג לצרכי המוסד שלך' },
-            { key: 'catalog_categories',       label: 'קטגוריות (פסיק)',   type: 'textarea', default: 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה' },
+            { key: 'catalog_categories',       label: 'קטגוריות המוצרים (מופרדות בפסיק)', type: 'textarea', default: 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה' },
         ],
     },
     {
@@ -298,58 +298,58 @@ const FIELD_SECTIONS = [
         icon: '📦',
         accent: '#FF9500',
         fields: [
-            { key: 'pd_home',                label: 'לחם פירורים: בית',    type: 'text', default: 'ראשי' },
-            { key: 'pd_catalog',             label: 'לחם פירורים: קטלוג',  type: 'text', default: 'קטלוג' },
+            { key: 'pd_home',                label: 'Breadcrumb: בית',      type: 'text', default: 'ראשי' },
+            { key: 'pd_catalog',             label: 'Breadcrumb: קטלוג',    type: 'text', default: 'קטלוג' },
             { key: 'pd_buy_now',             label: 'כפתור קנה עכשיו',     type: 'text', default: 'קנה עכשיו' },
             { key: 'pd_add_cart',            label: 'כפתור הוסף לסל',      type: 'text', default: 'הוסף לעגלה' },
             { key: 'pd_request_quote',       label: 'כפתור הצעת מחיר',    type: 'text', default: 'שלח פנייה וקבל הצעה' },
-            { key: 'pd_request_quote_inst',  label: 'הצעת מחיר מוסדית',   type: 'text', default: 'בקש הצעת מחיר מוסדית' },
+            { key: 'pd_request_quote_inst',  label: 'כפתור "בקשה מוסדית"', type: 'text', default: 'בקש הצעת מחיר מוסדית' },
             { key: 'pd_quick_inquiry',       label: 'כפתור פנייה מהירה',  type: 'text', default: 'שלח פנייה מהירה' },
             { key: 'pd_live_demo',           label: 'כפתור הדגמה חיה',    type: 'text', default: 'הדגמה חיה' },
             { key: 'pd_more_info',           label: 'כפתור פרטים נוספים', type: 'text', default: 'פרטים נוספים' },
-            { key: 'pd_specs_title',         label: 'כותרת מפרט',         type: 'text', default: 'מפרט טכני' },
-            { key: 'pd_specs_desc',          label: 'תיאור מפרט',         type: 'textarea', default: 'הפרטים המדויקים שהופכים את המערכת הזו למובילה מסוגה.' },
-            { key: 'pd_acc_title',           label: 'כותרת אביזרים',      type: 'text', default: 'השלם את המערכת שלך' },
+            { key: 'pd_specs_title',         label: 'כותרת "מפרט טכני"',  type: 'text', default: 'מפרט טכני' },
+            { key: 'pd_specs_desc',          label: 'תיאור מתחת ל"מפרט"', type: 'textarea', default: 'הפרטים המדויקים שהופכים את המערכת הזו למובילה מסוגה.' },
+            { key: 'pd_acc_title',           label: 'כותרת "אביזרים נוספים"', type: 'text', default: 'השלם את המערכת שלך' },
             { key: 'pd_acc_optional',        label: 'תווית אופציונלי',    type: 'text', default: 'אופציונלי' },
-            { key: 'pd_success_msg',         label: 'הודעת הוספה לסל',    type: 'text', default: 'נוסף לסל בהצלחה' },
-            { key: 'pd_added',               label: 'תווית "נוסף"',       type: 'text', default: 'נוסף' },
-            { key: 'pd_remove',              label: 'תווית "הסר"',        type: 'text', default: 'הסר' },
-            { key: 'pd_remove_from_cart',    label: 'הודעת הסרה מהסל',    type: 'text', default: 'הסר מהעגלה' },
+            { key: 'pd_success_msg',         label: 'הודעת "נוסף לעגלה בהצלחה"', type: 'text', default: 'נוסף לסל בהצלחה' },
+            { key: 'pd_added',               label: 'טקסט כפתור לאחר הוספה', type: 'text', default: 'נוסף' },
+            { key: 'pd_remove',              label: 'כפתור "הסר"',           type: 'text', default: 'הסר' },
+            { key: 'pd_remove_from_cart',    label: 'הודעת הסרה מהעגלה',     type: 'text', default: 'הסר מהעגלה' },
             { key: 'pd_not_found',           label: 'הודעת מוצר לא נמצא', type: 'text', default: 'המוצר לא נמצא.' },
-            { key: 'pd_contact_for_price',   label: 'צור קשר למחיר',     type: 'text', default: 'צור קשר להצעת מחיר' },
-            { key: 'pd_color_label',         label: 'בחירת צבע',         type: 'text', default: 'בחירת צבע' },
-            { key: 'pd_compare_btn',         label: 'כפתור השוואה',      type: 'text', default: 'השווה דגם' },
-            { key: 'pd_compare_selected',    label: 'נבחר להשוואה',      type: 'text', default: 'נבחר להשוואה' },
+            { key: 'pd_contact_for_price',   label: 'טקסט "צור קשר למחיר"', type: 'text', default: 'צור קשר להצעת מחיר' },
+            { key: 'pd_color_label',         label: 'תווית "בחר צבע"',      type: 'text', default: 'בחירת צבע' },
+            { key: 'pd_compare_btn',         label: 'כפתור "הוסף להשוואה"', type: 'text', default: 'השווה דגם' },
+            { key: 'pd_compare_selected',    label: 'טקסט "נבחר להשוואה"',  type: 'text', default: 'נבחר להשוואה' },
         ],
     },
     {
         id: 'sidebar_sections',
-        label: 'סרגל ניווט מוצר',
+        label: 'ניווט פנימי בדף מוצר',
         icon: '📋',
         accent: '#5856D6',
     },
     {
         id: 'pd_dims_section',
-        label: 'מידות המוצר',
+        label: 'ממדים ומידות',
         icon: '📏',
         accent: '#5856D6',
         fields: [
             { key: 'pd_dims_title',  label: 'כותרת קטע מידות',         type: 'text', default: 'מידות המוצר' },
-            { key: 'pd_dims_label1', label: 'שדה 1: תווית',             type: 'text', default: 'רוחב' },
-            { key: 'pd_dims_value1', label: 'שדה 1: ערך',               type: 'text', default: '' },
-            { key: 'pd_dims_label2', label: 'שדה 2: תווית',             type: 'text', default: 'גובה' },
-            { key: 'pd_dims_value2', label: 'שדה 2: ערך',               type: 'text', default: '' },
-            { key: 'pd_dims_label3', label: 'שדה 3: תווית',             type: 'text', default: 'עומק' },
-            { key: 'pd_dims_value3', label: 'שדה 3: ערך',               type: 'text', default: '' },
-            { key: 'pd_dims_label4', label: 'שדה 4: תווית',             type: 'text', default: 'משקל' },
-            { key: 'pd_dims_value4', label: 'שדה 4: ערך',               type: 'text', default: '' },
-            { key: 'pd_dims_label5', label: 'שדה 5: תווית (אופציונלי)', type: 'text', default: '' },
-            { key: 'pd_dims_value5', label: 'שדה 5: ערך (אופציונלי)',   type: 'text', default: '' },
+            { key: 'pd_dims_label1', label: 'ממד 1: שם',              type: 'text', default: 'רוחב' },
+            { key: 'pd_dims_value1', label: 'ממד 1: ערך',             type: 'text', default: '' },
+            { key: 'pd_dims_label2', label: 'ממד 2: שם',              type: 'text', default: 'גובה' },
+            { key: 'pd_dims_value2', label: 'ממד 2: ערך',             type: 'text', default: '' },
+            { key: 'pd_dims_label3', label: 'ממד 3: שם',              type: 'text', default: 'עומק' },
+            { key: 'pd_dims_value3', label: 'ממד 3: ערך',             type: 'text', default: '' },
+            { key: 'pd_dims_label4', label: 'ממד 4: שם',              type: 'text', default: 'משקל' },
+            { key: 'pd_dims_value4', label: 'ממד 4: ערך',             type: 'text', default: '' },
+            { key: 'pd_dims_label5', label: 'ממד 5: שם (אופציונלי)', type: 'text', default: '' },
+            { key: 'pd_dims_value5', label: 'ממד 5: ערך (אופציונלי)',type: 'text', default: '' },
         ],
     },
     {
         id: 'pd_warranty_section',
-        label: 'אחריות ורכישה (מוצר)',
+        label: 'אחריות ותנאי רכישה',
         icon: '🛡️',
         accent: '#007AFF',
         fields: [
@@ -365,7 +365,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'pd_support_section',
-        label: 'שירות ותמיכה (מוצר)',
+        label: 'תמיכה ושירות לקוחות',
         icon: '🎧',
         accent: '#34C759',
         fields: [
@@ -378,7 +378,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'pd_faq_section',
-        label: 'שאלות נפוצות (מוצר)',
+        label: 'שאלות נפוצות (FAQ)',
         icon: '❓',
         accent: '#5856D6',
         fields: [
@@ -397,7 +397,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'pd_reviews_section',
-        label: 'ביקורות לקוחות (מוצר)',
+        label: 'ביקורות וסקירות לקוחות',
         icon: '⭐',
         accent: '#FF9500',
         fields: [
@@ -420,7 +420,7 @@ const FIELD_SECTIONS = [
     },
     {
         id: 'accessories_section',
-        label: 'אביזרים (דף מוצר)',
+        label: 'אביזרים ומוצרים נלווים',
         icon: '🔌',
         accent: '#FF9500',
         fields: [
@@ -462,21 +462,21 @@ const FIELD_SECTIONS = [
         icon: '🤖',
         accent: '#007AFF',
         fields: [
-            { key: 'ai_fab_label',     label: 'תווית כפתור צף',    type: 'text',     default: 'העוזר החכם' },
-            { key: 'ai_title',         label: 'כותרת חלון',        type: 'text',     default: 'NextClass AI' },
-            { key: 'ai_role',          label: 'תפקיד העוזר',       type: 'text',     default: 'Institutional Concierge' },
-            { key: 'ai_greeting',      label: 'הודעת פתיחה (ברירת מחדל)', type: 'textarea', default: 'שלום! אני כאן כדי לעזור לך לאפיין את הכיתה החכמה המושלמת. מה תרצה לדעת?' },
-            { key: 'ai_greeting_home', label: 'הודעת פתיחה (בית)', type: 'textarea', default: 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?' },
-            { key: 'ai_greeting_pd',   label: 'הודעת פתיחה (מוצר)',type: 'textarea', default: 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר?' },
-            { key: 'ai_placeholder',   label: 'טקסט שורת הקלדה',  type: 'text',     default: 'מה תרצו לבדוק?' },
-            { key: 'ai_wa_label',      label: 'מענה אנושי (כותרת)',type: 'text',     default: 'מענה אנושי בוואטסאפ' },
-            { key: 'ai_wa_status',     label: 'סטטוס וואטסאפ',     type: 'text',     default: 'יועץ טכנולוגי זמין כעת' },
-            { key: 'ai_chip1',         label: 'צ׳יפ מהיר 1',       type: 'text',     default: 'הצעת מחיר' },
-            { key: 'ai_chip2',         label: 'צ׳יפ מהיר 2',       type: 'text',     default: 'מפרט טכני' },
-            { key: 'ai_chip3',         label: 'צ׳יפ מהיר 3',       type: 'text',     default: 'ייעוץ' },
-            { key: 'ai_suggestion_1',  label: 'הצעת שיחה 1',       type: 'text',     default: 'אני מחפש מסך לכיתה של 30 תלמידים' },
-            { key: 'ai_suggestion_2',  label: 'הצעת שיחה 2',       type: 'text',     default: 'מה מחיר ל-20 מחשבים?' },
-            { key: 'ai_thinking',      label: 'הודעת "חושב..."',   type: 'text',     default: 'חושב...' },
+            { key: 'ai_fab_label',     label: 'תווית כפתור הצף',           type: 'text',     default: 'העוזר החכם' },
+            { key: 'ai_title',         label: 'שם העוזר',                  type: 'text',     default: 'NextClass AI' },
+            { key: 'ai_role',          label: 'תפקיד (מוצג מתחת לשם)',     type: 'text',     default: 'Institutional Concierge' },
+            { key: 'ai_greeting',      label: 'ברכה ראשונית (כללי)',       type: 'textarea', default: 'שלום! אני כאן כדי לעזור לך לאפיין את הכיתה החכמה המושלמת. מה תרצה לדעת?' },
+            { key: 'ai_greeting_home', label: 'ברכה בדף הבית',            type: 'textarea', default: 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?' },
+            { key: 'ai_greeting_pd',   label: 'ברכה בדף מוצר',            type: 'textarea', default: 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר?' },
+            { key: 'ai_placeholder',   label: 'Placeholder בשדה ההקלדה', type: 'text',     default: 'מה תרצו לבדוק?' },
+            { key: 'ai_wa_label',      label: 'כותרת כרטיס וואטסאפ',      type: 'text',     default: 'מענה אנושי בוואטסאפ' },
+            { key: 'ai_wa_status',     label: 'סטטוס וואטסאפ',             type: 'text',     default: 'יועץ טכנולוגי זמין כעת' },
+            { key: 'ai_chip1',         label: 'צ׳יפ מהיר 1',               type: 'text',     default: 'הצעת מחיר' },
+            { key: 'ai_chip2',         label: 'צ׳יפ מהיר 2',               type: 'text',     default: 'מפרט טכני' },
+            { key: 'ai_chip3',         label: 'צ׳יפ מהיר 3',               type: 'text',     default: 'ייעוץ' },
+            { key: 'ai_suggestion_1',  label: 'הצעת שיחה 1',               type: 'text',     default: 'אני מחפש מסך לכיתה של 30 תלמידים' },
+            { key: 'ai_suggestion_2',  label: 'הצעת שיחה 2',               type: 'text',     default: 'מה מחיר ל-20 מחשבים?' },
+            { key: 'ai_thinking',      label: 'הודעת "חושב..."',           type: 'text',     default: 'חושב...' },
         ],
     },
     {
@@ -485,43 +485,43 @@ const FIELD_SECTIONS = [
         icon: '📞',
         accent: '#34C759',
         fields: [
-            { key: 'contact_hero_title',      label: 'כותרת ראשית',       type: 'text',     default: 'הכיתה שלכם מחכה. בואו נתחיל.' },
-            { key: 'contact_hero_subtitle',   label: 'תיאור עליון',       type: 'textarea', default: 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.' },
-            { key: 'contact_concierge_title', label: 'כותרת ייעוץ אישי',  type: 'text',     default: 'ייעוץ אישי ומיידי' },
-            { key: 'contact_concierge_desc',  label: 'תיאור ייעוץ אישי',  type: 'textarea', default: 'נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.' },
-            { key: 'contact_form_title',      label: 'כותרת טופס',        type: 'text',     default: 'בואו נצא לדרך.' },
-            { key: 'contact_form_desc',       label: 'תיאור טופס',        type: 'textarea', default: 'השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.' },
-            { key: 'contact_form_btn',        label: 'כפתור שליחה',       type: 'text',     default: 'שלח פנייה' },
-            { key: 'contact_success_title',   label: 'כותרת הצלחה',      type: 'text',     default: 'הפנייה התקבלה' },
-            { key: 'contact_success_msg',     label: 'הודעת הצלחה',       type: 'textarea', default: 'הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.' },
-            { key: 'contact_label_name',      label: 'תווית: שם',         type: 'text',     default: 'שם מלא' },
-            { key: 'contact_label_inst',      label: 'תווית: מוסד',       type: 'text',     default: 'מוסד / חברה' },
-            { key: 'contact_label_msg',       label: 'תווית: הודעה',      type: 'text',     default: 'איך נוכל לעזור?' },
-            { key: 'contact_trust_title',     label: 'כותרת שותפות',      type: 'text',     default: 'שותפות ארוכת טווח' },
-            { key: 'contact_trust_desc',      label: 'תיאור שותפות',      type: 'textarea', default: 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.' },
-            { key: 'contact_phone',           label: 'טלפון',             type: 'text',     default: '058-5856356' },
-            { key: 'contact_email',           label: 'מייל',              type: 'text',     default: 'nextclass.en@gmail.com' },
-            { key: 'whatsapp_number',         label: 'מספר וואטסאפ',      type: 'text',     default: '972585856356' },
+            { key: 'contact_hero_title',      label: 'כותרת עמוד הקשר',   type: 'text',     default: 'הכיתה שלכם מחכה. בואו נתחיל.' },
+            { key: 'contact_hero_subtitle',   label: 'תיאור עמוד הקשר',   type: 'textarea', default: 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.' },
+            { key: 'contact_concierge_title', label: 'כותרת "דבר איתנו"', type: 'text',     default: 'ייעוץ אישי ומיידי' },
+            { key: 'contact_concierge_desc',  label: 'תיאור "דבר איתנו"', type: 'textarea', default: 'נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.' },
+            { key: 'contact_form_title',      label: 'כותרת טופס הפנייה', type: 'text',     default: 'בואו נצא לדרך.' },
+            { key: 'contact_form_desc',       label: 'תיאור טופס הפנייה', type: 'textarea', default: 'השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.' },
+            { key: 'contact_form_btn',        label: 'כפתור שליחת הפנייה',type: 'text',     default: 'שלח פנייה' },
+            { key: 'contact_success_title',   label: 'הצלחה: כותרת',      type: 'text',     default: 'הפנייה התקבלה' },
+            { key: 'contact_success_msg',     label: 'הצלחה: הודעה',       type: 'textarea', default: 'הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.' },
+            { key: 'contact_label_name',      label: 'תווית שדה: שם מלא',  type: 'text',     default: 'שם מלא' },
+            { key: 'contact_label_inst',      label: 'תווית שדה: מוסד / חברה', type: 'text', default: 'מוסד / חברה' },
+            { key: 'contact_label_msg',       label: 'תווית שדה: הודעה',   type: 'text',     default: 'איך נוכל לעזור?' },
+            { key: 'contact_trust_title',     label: 'כותרת "שותפות"',     type: 'text',     default: 'שותפות ארוכת טווח' },
+            { key: 'contact_trust_desc',      label: 'תיאור "שותפות"',     type: 'textarea', default: 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.' },
+            { key: 'contact_phone',           label: 'טלפון',                        type: 'text',     default: '058-5856356' },
+            { key: 'contact_email',           label: 'מייל',                         type: 'text',     default: 'nextclass.en@gmail.com' },
+            { key: 'whatsapp_number',         label: 'מספר וואטסאפ (ספרות בלבד)',   type: 'text',     default: '972585856356' },
             { key: 'contact_address',         label: 'כתובת',             type: 'text',     default: 'בראלי 10, תל אביב' },
             { key: 'contact_hours',           label: 'שעות פעילות',       type: 'text',     default: 'ראשון–חמישי 08:00–18:00' },
-            { key: 'contact_wa_label',        label: 'תווית וואטסאפ',     type: 'text',     default: 'זמינים ב-WhatsApp' },
-            { key: 'contact_wa_btn',          label: 'כפתור וואטסאפ',     type: 'text',     default: 'התחל שיחה עכשיו' },
-            { key: 'contact_time_hint',       label: 'הערת זמן נוכחי',    type: 'text',     default: 'זמן נוכחי במטה בתל אביב: ' },
-            { key: 'contact_support_label',   label: 'תווית תמיכה',        type: 'text',     default: 'אנחנו כאן בשבילך' },
+            { key: 'contact_wa_label',        label: 'תווית כרטיס וואטסאפ', type: 'text',     default: 'זמינים ב-WhatsApp' },
+            { key: 'contact_wa_btn',          label: 'כפתור "התחל שיחה"',   type: 'text',     default: 'התחל שיחה עכשיו' },
+            { key: 'contact_time_hint',       label: 'תווית שעון (תל אביב)',type: 'text',     default: 'זמן נוכחי במטה בתל אביב: ' },
+            { key: 'contact_support_label',   label: 'תווית "אנחנו כאן בשבילך"', type: 'text', default: 'אנחנו כאן בשבילך' },
         ],
     },
     {
         id: 'floating_concierge',
-        label: 'ווידג׳ט קשר צף',
+        label: 'ווידג׳ט קשר צף (Concierge)',
         icon: '💬',
         accent: '#34C759',
         fields: [
-            { key: 'concierge_label',  label: 'תווית כפתור צף',     type: 'text', default: 'צריכים התייעצות?' },
-            { key: 'concierge_header', label: 'כותרת פאנל',         type: 'text', default: 'דברו איתנו' },
-            { key: 'whatsapp_label',   label: 'תווית וואטסאפ',      type: 'text', default: 'וואטסאפ' },
-            { key: 'whatsapp_sub',     label: 'תת-תווית וואטסאפ',   type: 'text', default: 'מענה מהיר עד שעה' },
-            { key: 'phone_label',      label: 'תווית טלפון',         type: 'text', default: 'שיחה עם מומחה' },
-            { key: 'phone_sub',        label: 'תת-תווית טלפון',     type: 'text', default: "זמין א'–ה', 9:00–18:00" },
+            { key: 'concierge_label',  label: 'תווית כפתור הצף',         type: 'text', default: 'צריכים התייעצות?' },
+            { key: 'concierge_header', label: 'כותרת הפאנל',             type: 'text', default: 'דברו איתנו' },
+            { key: 'whatsapp_label',   label: 'כרטיס וואטסאפ: תווית',   type: 'text', default: 'וואטסאפ' },
+            { key: 'whatsapp_sub',     label: 'כרטיס וואטסאפ: תת-תווית',type: 'text', default: 'מענה מהיר עד שעה' },
+            { key: 'phone_label',      label: 'כרטיס טלפון: תווית',      type: 'text', default: 'שיחה עם מומחה' },
+            { key: 'phone_sub',        label: 'כרטיס טלפון: תת-תווית',   type: 'text', default: "זמין א'–ה', 9:00–18:00" },
         ],
     },
     {
@@ -530,42 +530,42 @@ const FIELD_SECTIONS = [
         icon: '📖',
         accent: '#AF52DE',
         fields: [
-            { key: 'about_hero_label',    label: 'תווית עליונה',         type: 'text',     default: '' },
-            { key: 'about_hero_title',    label: 'כותרת ראשית',         type: 'text',     default: 'הטכנולוגיה\nשחינוך ראוי לה.' },
-            { key: 'about_hero_sub',      label: 'תיאור גיבור',         type: 'textarea', default: 'מקצועי. מהיר. אישי. ישיר.\nהסטנדרט הגבוה ביותר שחינוך יכול לקבל.' },
-            { key: 'about_hero_img',      label: 'תמונת כותרת',         type: 'image',    default: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=85&w=2400' },
-            { key: 'about_story_title',   label: 'כותרת הסיפור',        type: 'text',     default: 'הכל התחיל ב-2012. עם מסך אחד והרבה תסכול.' },
-            { key: 'about_story_section_title', label: 'כותרת קטע הסיפור',   type: 'text',     default: 'הסיפור שלנו.' },
+            { key: 'about_hero_label',    label: 'תווית Badge עליונה',    type: 'text',     default: '' },
+            { key: 'about_hero_title',    label: 'כותרת Hero',            type: 'text',     default: 'הטכנולוגיה\nשחינוך ראוי לה.' },
+            { key: 'about_hero_sub',      label: 'תיאור Hero',            type: 'textarea', default: 'מקצועי. מהיר. אישי. ישיר.\nהסטנדרט הגבוה ביותר שחינוך יכול לקבל.' },
+            { key: 'about_hero_img',      label: 'תמונת Hero',            type: 'image',    default: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=85&w=2400' },
+            { key: 'about_story_title',   label: 'כותרת סיפור הייסוד',   type: 'text',     default: 'הכל התחיל ב-2012. עם מסך אחד והרבה תסכול.' },
+            { key: 'about_story_section_title', label: 'תווית קטע הסיפור', type: 'text',   default: 'הסיפור שלנו.' },
             { key: 'about_story_body',    label: 'גוף הסיפור',          type: 'textarea', default: 'ראיתי בתי ספר שנאבקים עם ספקים שלא מכירים את שמם, ציוד שמגיע שבועות מאוחר, ושירות שנגמר ברגע שהחשבונית נחתמה. החלטתי לשנות את המשוואה. NextClass הוא לא פלטפורמה ולא קטלוג — הוא מודל עסקי אחר לגמרי: שירות ישיר, אנושי ומקצועי שמוריד את כל הביניים, ומביא לחינוך הישראלי את הרמה שהוא ראוי לה.' },
-            { key: 'about_check_1',       label: 'צ׳קמארק 1',           type: 'text',     default: 'ייעוץ מקצועי ומהיר — ללא עלות' },
-            { key: 'about_check_2',       label: 'צ׳קמארק 2',           type: 'text',     default: 'שירות אישי וישיר, ללא ביניים' },
-            { key: 'about_check_3',       label: 'צ׳קמארק 3',           type: 'text',     default: 'פתרונות מהדרגה הראשונה לחינוך' },
-            { key: 'about_stat1_val',     label: 'נתון 1: ערך',         type: 'text',     default: '1200' },
+            { key: 'about_check_1',       label: '✓ נקודת ערך 1',        type: 'text',     default: 'ייעוץ מקצועי ומהיר — ללא עלות' },
+            { key: 'about_check_2',       label: '✓ נקודת ערך 2',        type: 'text',     default: 'שירות אישי וישיר, ללא ביניים' },
+            { key: 'about_check_3',       label: '✓ נקודת ערך 3',        type: 'text',     default: 'פתרונות מהדרגה הראשונה לחינוך' },
+            { key: 'about_stat1_val',     label: 'נתון 1: מספר',         type: 'text',     default: '1200' },
             { key: 'about_stat1_label',   label: 'נתון 1: תווית',       type: 'text',     default: 'מוסדות חינוך' },
-            { key: 'about_stat2_val',     label: 'נתון 2: ערך',         type: 'text',     default: '14' },
+            { key: 'about_stat2_val',     label: 'נתון 2: מספר',         type: 'text',     default: '14' },
             { key: 'about_stat2_label',   label: 'נתון 2: תווית',       type: 'text',     default: 'שנות ניסיון' },
-            { key: 'about_stat3_val',     label: 'נתון 3: ערך',         type: 'text',     default: '98' },
+            { key: 'about_stat3_val',     label: 'נתון 3: מספר',         type: 'text',     default: '98' },
             { key: 'about_stat3_label',   label: 'נתון 3: תווית',       type: 'text',     default: '% שביעות רצון' },
-            { key: 'about_founder_title', label: 'כותרת המייסד',        type: 'text',     default: 'מקצועיות\nללא פשרות.' },
-            { key: 'about_founder_message',label: 'הודעת המייסד',       type: 'textarea', default: 'אני מנהל את NextClass כמו שהייתי רוצה שינהלו ספק שאני עובד איתו: ישירות, מהירות, ורמה שלא מתפשרת. כל שיחה, כל הצעת מחיר, כל אספקה — כולם עוברים דרכי. לא כי אין לי ברירה. כי זו ההבטחה שלי לכל לקוח.' },
+            { key: 'about_founder_title', label: 'כותרת מסר המייסד',    type: 'text',     default: 'מקצועיות\nללא פשרות.' },
+            { key: 'about_founder_message',label: 'הודעת/ציטוט המייסד', type: 'textarea', default: 'אני מנהל את NextClass כמו שהייתי רוצה שינהלו ספק שאני עובד איתו: ישירות, מהירות, ורמה שלא מתפשרת. כל שיחה, כל הצעת מחיר, כל אספקה — כולם עוברים דרכי. לא כי אין לי ברירה. כי זו ההבטחה שלי לכל לקוח.' },
             { key: 'about_founder_name',  label: 'שם המייסד',           type: 'text',     default: 'אפרים אמרגי' },
             { key: 'about_founder_role',  label: 'תפקיד המייסד',        type: 'text',     default: 'מייסד ומנכ"ל NextClass' },
-            { key: 'about_founder_img',   label: 'תמונת מייסד',         type: 'image',    default: '' },
-            { key: 'about_cta_title',     label: 'כותרת CTA',           type: 'text',     default: 'שאלו אותנו.\nנגיע עם תשובות.' },
-            { key: 'about_cta_desc',      label: 'תיאור CTA',           type: 'textarea', default: 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.' },
+            { key: 'about_founder_img',   label: 'תמונת המייסד',        type: 'image',    default: '' },
+            { key: 'about_cta_title',     label: 'כותרת קריאה לפעולה', type: 'text',     default: 'שאלו אותנו.\nנגיע עם תשובות.' },
+            { key: 'about_cta_desc',      label: 'תיאור קריאה לפעולה', type: 'textarea', default: 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.' },
             { key: 'about_v1_title',      label: 'ערך 1: כותרת',        type: 'text',     default: 'מחיר שקוף' },
             { key: 'about_v1_desc',       label: 'ערך 1: תיאור',        type: 'textarea', default: 'הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים — נקודה. שקיפות מלאה מהשקל הראשון ועד האחרון.' },
             { key: 'about_v2_title',      label: 'ערך 2: כותרת',        type: 'text',     default: 'שירות מהיר' },
             { key: 'about_v2_desc',       label: 'ערך 2: תיאור',        type: 'textarea', default: 'בעולם שממתינים בו שבועות לתגובה — אנחנו עונים תוך שעות. מהירות היא לא בונוס אצלנו. היא חלק בלתי נפרד מהרמה.' },
             { key: 'about_v3_title',      label: 'ערך 3: כותרת',        type: 'text',     default: 'רמה מקצועית' },
             { key: 'about_v3_desc',       label: 'ערך 3: תיאור',        type: 'textarea', default: 'כל פרט נבחן. כל בחירה מבוססת. הסטנדרט שאנחנו מציבים לעצמנו גבוה ממה שהלקוח היה מבקש — כי זה הרף שאנחנו מסרבים לרדת ממנו.' },
-            { key: 'about_journey_hint',  label: 'רמז תחילת מסע',       type: 'text',     default: 'גלה את הסיפור שלנו' },
-            { key: 'about_edu_badge',     label: 'תג משרד החינוך',      type: 'text',     default: 'מאושרת משרד החינוך' },
+            { key: 'about_journey_hint',  label: 'כפתור "גלה הסיפור שלנו"', type: 'text',  default: 'גלה את הסיפור שלנו' },
+            { key: 'about_edu_badge',     label: 'תג "מאושר משרד החינוך"', type: 'text',  default: 'מאושרת משרד החינוך' },
             { key: 'about_way_title',     label: 'כותרת "הדרך שעשינו"', type: 'text',     default: 'הדרך שעשינו' },
             { key: 'about_way_desc',      label: 'תיאור "הדרך שעשינו"', type: 'text',     default: 'עשור של פריצות דרך בחינוך הישראלי.' },
-            { key: 'about_founder_label', label: 'תווית מסר מייסד',     type: 'text',     default: 'מילה אישית מהמייסד' },
-            { key: 'about_values_title',  label: 'כותרת ערכים',         type: 'text',     default: 'שלושה כללים' },
-            { key: 'about_values_desc',   label: 'תיאור ערכים',         type: 'text',     default: 'מה שאמרנו — עמדנו בו. תמיד.' },
+            { key: 'about_founder_label', label: 'תווית "מילה מהמייסד"', type: 'text',     default: 'מילה אישית מהמייסד' },
+            { key: 'about_values_title',  label: 'כותרת "הערכים שלנו"', type: 'text',     default: 'שלושה כללים' },
+            { key: 'about_values_desc',   label: 'תיאור "הערכים שלנו"', type: 'text',     default: 'מה שאמרנו — עמדנו בו. תמיד.' },
         ],
     },
     {
@@ -574,36 +574,36 @@ const FIELD_SECTIONS = [
         icon: '📅',
         accent: '#AF52DE',
         fields: [
-            { key: 'about_tm1_year',  label: 'עמדה 1: שנה',    type: 'text',     default: '2012' },
-            { key: 'about_tm1_title', label: 'עמדה 1: כותרת',  type: 'text',     default: 'ההתחלה' },
-            { key: 'about_tm1_desc',  label: 'עמדה 1: תיאור',  type: 'textarea', default: 'הקמנו את NextClass עם חזון אחד ברור.' },
-            { key: 'about_tm2_year',  label: 'עמדה 2: שנה',    type: 'text',     default: '2016' },
-            { key: 'about_tm2_title', label: 'עמדה 2: כותרת',  type: 'text',     default: 'צמיחה' },
-            { key: 'about_tm2_desc',  label: 'עמדה 2: תיאור',  type: 'textarea', default: 'הגענו ל-200 מוסדות חינוך ברחבי ישראל.' },
-            { key: 'about_tm3_year',  label: 'עמדה 3: שנה',    type: 'text',     default: '2020' },
-            { key: 'about_tm3_title', label: 'עמדה 3: כותרת',  type: 'text',     default: 'חדשנות' },
-            { key: 'about_tm3_desc',  label: 'עמדה 3: תיאור',  type: 'textarea', default: 'השקנו את פלטפורמת הניהול החכמה שלנו.' },
-            { key: 'about_tm4_year',  label: 'עמדה 4: שנה',    type: 'text',     default: '2024' },
-            { key: 'about_tm4_title', label: 'עמדה 4: כותרת',  type: 'text',     default: 'מנהיגות' },
-            { key: 'about_tm4_desc',  label: 'עמדה 4: תיאור',  type: 'textarea', default: '1,200 מוסדות חינוך בחרו בנו.' },
+            { key: 'about_tm1_year',  label: 'אירוע 1: שנה',    type: 'text',     default: '2012' },
+            { key: 'about_tm1_title', label: 'אירוע 1: כותרת',  type: 'text',     default: 'ההתחלה' },
+            { key: 'about_tm1_desc',  label: 'אירוע 1: תיאור',  type: 'textarea', default: 'הקמנו את NextClass עם חזון אחד ברור.' },
+            { key: 'about_tm2_year',  label: 'אירוע 2: שנה',    type: 'text',     default: '2016' },
+            { key: 'about_tm2_title', label: 'אירוע 2: כותרת',  type: 'text',     default: 'צמיחה' },
+            { key: 'about_tm2_desc',  label: 'אירוע 2: תיאור',  type: 'textarea', default: 'הגענו ל-200 מוסדות חינוך ברחבי ישראל.' },
+            { key: 'about_tm3_year',  label: 'אירוע 3: שנה',    type: 'text',     default: '2020' },
+            { key: 'about_tm3_title', label: 'אירוע 3: כותרת',  type: 'text',     default: 'חדשנות' },
+            { key: 'about_tm3_desc',  label: 'אירוע 3: תיאור',  type: 'textarea', default: 'השקנו את פלטפורמת הניהול החכמה שלנו.' },
+            { key: 'about_tm4_year',  label: 'אירוע 4: שנה',    type: 'text',     default: '2024' },
+            { key: 'about_tm4_title', label: 'אירוע 4: כותרת',  type: 'text',     default: 'מנהיגות' },
+            { key: 'about_tm4_desc',  label: 'אירוע 4: תיאור',  type: 'textarea', default: '1,200 מוסדות חינוך בחרו בנו.' },
         ],
     },
     {
         id: 'discover_section',
-        label: 'עמוד גילוי',
+        label: 'עמוד "גלה את NextClass"',
         icon: '🔭',
         accent: '#007AFF',
         fields: [
-            { key: 'discover_eyebrow',       label: 'תווית עליונה',   type: 'text',     default: 'מה חדש' },
-            { key: 'discover_title',         label: 'כותרת',          type: 'text',     default: 'גילויים חדשים' },
-            { key: 'discover_desc',          label: 'תיאור',          type: 'textarea', default: 'מוצרים חדשים, מבצעים ועוד.' },
-            { key: 'discover_hero_badge',    label: 'תג כותרת ראשית', type: 'text',     default: 'מה חדש' },
-            { key: 'discover_hero_cta',      label: 'כפתור כותרת',   type: 'text',     default: 'גלה עוד' },
-            { key: 'discover_new_label',     label: 'תווית "חדש"',    type: 'text',     default: 'חדש' },
-            { key: 'discover_best_label',    label: 'תווית "פופולרי"',type: 'text',     default: 'פופולרי' },
-            { key: 'discover_deals_label',   label: 'תווית "מבצע"',   type: 'text',     default: 'מבצע' },
-            { key: 'discover_callout_title', label: 'כותרת קריאה',    type: 'text',     default: 'פתרון מותאם לכם' },
-            { key: 'discover_callout_desc',  label: 'תיאור קריאה',    type: 'textarea', default: 'פנו אלינו לקבלת הצעה מותאמת.' },
+            { key: 'discover_eyebrow',       label: 'תווית Badge עליונה', type: 'text',     default: 'מה חדש' },
+            { key: 'discover_title',         label: 'כותרת הדף',          type: 'text',     default: 'גילויים חדשים' },
+            { key: 'discover_desc',          label: 'תיאור הדף',          type: 'textarea', default: 'מוצרים חדשים, מבצעים ועוד.' },
+            { key: 'discover_hero_badge',    label: 'תג Hero',             type: 'text',     default: 'מה חדש' },
+            { key: 'discover_hero_cta',      label: 'כפתור Hero',          type: 'text',     default: 'גלה עוד' },
+            { key: 'discover_new_label',     label: 'תג "חדש"',            type: 'text',     default: 'חדש' },
+            { key: 'discover_best_label',    label: 'תג "נמכר ביותר"',     type: 'text',     default: 'פופולרי' },
+            { key: 'discover_deals_label',   label: 'תג "מבצע"',           type: 'text',     default: 'מבצע' },
+            { key: 'discover_callout_title', label: 'כותרת Callout',       type: 'text',     default: 'פתרון מותאם לכם' },
+            { key: 'discover_callout_desc',  label: 'תיאור Callout',       type: 'textarea', default: 'פנו אלינו לקבלת הצעה מותאמת.' },
         ],
     },
     {
@@ -612,12 +612,12 @@ const FIELD_SECTIONS = [
         icon: '❤️',
         accent: '#FF2D55',
         fields: [
-            { key: 'wishlist_badge',       label: 'תווית עליונה',      type: 'text',     default: 'המוצרים שלי' },
-            { key: 'wishlist_title',       label: 'כותרת העמוד',       type: 'text',     default: 'המוצרים שאהבתי' },
-            { key: 'wishlist_count_label', label: 'תווית מונה פריטים', type: 'text',     default: 'פריטים שמורים' },
-            { key: 'wishlist_empty_title', label: 'כותרת מצב ריק',    type: 'text',     default: 'הרשימה שלך ריקה' },
-            { key: 'wishlist_empty_desc',  label: 'תיאור מצב ריק',    type: 'textarea', default: 'לחץ על הלב על כרטיס המוצר כדי לשמור אותו כאן' },
-            { key: 'wishlist_browse_btn',  label: 'כפתור "עיין בקטלוג"',type: 'text',    default: 'עיין בקטלוג' },
+            { key: 'wishlist_badge',       label: 'תג עמוד המועדפים',    type: 'text',     default: 'המוצרים שלי' },
+            { key: 'wishlist_title',       label: 'כותרת עמוד המועדפים', type: 'text',     default: 'המוצרים שאהבתי' },
+            { key: 'wishlist_count_label', label: 'תווית מספר הפריטים',  type: 'text',     default: 'פריטים שמורים' },
+            { key: 'wishlist_empty_title', label: 'כותרת "רשימה ריקה"',  type: 'text',     default: 'הרשימה שלך ריקה' },
+            { key: 'wishlist_empty_desc',  label: 'תיאור "רשימה ריקה"',  type: 'textarea', default: 'לחץ על הלב על כרטיס המוצר כדי לשמור אותו כאן' },
+            { key: 'wishlist_browse_btn',  label: 'כפתור "עיין בקטלוג"', type: 'text',     default: 'עיין בקטלוג' },
         ],
     },
     {
@@ -626,31 +626,31 @@ const FIELD_SECTIONS = [
         icon: '♿',
         accent: '#34C759',
         fields: [
-            { key: 'a11y_widget_title',    label: 'כותרת הפאנל',          type: 'text', default: 'מרכז נגישות' },
-            { key: 'a11y_widget_subtitle', label: 'כותרת משנה',           type: 'text', default: 'התאם את חוויית הגלישה שלך' },
-            { key: 'a11y_font_label',      label: 'תווית גודל גופן',      type: 'text', default: 'גודל גופן' },
-            { key: 'a11y_contrast_label',  label: 'תווית ניגוד גבוה',     type: 'text', default: 'ניגוד גבוה' },
-            { key: 'a11y_motion_label',    label: 'תווית ביטול אנימציות', type: 'text', default: 'ביטול אנימציות' },
-            { key: 'a11y_links_label',     label: 'תווית הדגשת קישורים',  type: 'text', default: 'הדגשת קישורים' },
-            { key: 'a11y_grayscale_label', label: 'תווית גווני אפור',     type: 'text', default: 'גווני אפור' },
-            { key: 'a11y_reset_label',     label: 'כפתור איפוס',          type: 'text', default: 'איפוס הגדרות נגישות' },
+            { key: 'a11y_widget_title',    label: 'כותרת ווידג׳ט הנגישות', type: 'text', default: 'מרכז נגישות' },
+            { key: 'a11y_widget_subtitle', label: 'תיאור הווידג׳ט',        type: 'text', default: 'התאם את חוויית הגלישה שלך' },
+            { key: 'a11y_font_label',      label: 'אפשרות: גופן גדול',    type: 'text', default: 'גודל גופן' },
+            { key: 'a11y_contrast_label',  label: 'אפשרות: ניגודיות גבוהה', type: 'text', default: 'ניגוד גבוה' },
+            { key: 'a11y_motion_label',    label: 'אפשרות: הפחתת אנימציות', type: 'text', default: 'ביטול אנימציות' },
+            { key: 'a11y_links_label',     label: 'אפשרות: הדגשת קישורים', type: 'text', default: 'הדגשת קישורים' },
+            { key: 'a11y_grayscale_label', label: 'אפשרות: גווני אפור',   type: 'text', default: 'גווני אפור' },
+            { key: 'a11y_reset_label',     label: 'כפתור "איפוס הגדרות"', type: 'text', default: 'איפוס הגדרות נגישות' },
         ],
     },
     {
         id: 'qa_section',
-        label: 'שאלות גולשים (Q&A)',
+        label: 'מדור שאלות ותשובות',
         icon: '❓',
         accent: '#007AFF',
         fields: [
-            { key: 'pd_qa_title',             label: 'כותרת הסקציה',    type: 'text',     default: 'שאלות ותשובות מהקהילה' },
-            { key: 'qa_form_title',           label: 'כותרת הטופס',     type: 'text',     default: 'יש לך שאלה?' },
-            { key: 'qa_form_desc',            label: 'תיאור הטופס',     type: 'textarea', default: 'שאל את הקהילה ואת המומחים שלנו.' },
-            { key: 'qa_name_placeholder',     label: 'placeholder שם',  type: 'text',     default: 'השם שלך (אופציונלי)' },
-            { key: 'qa_question_placeholder', label: 'placeholder שאלה',type: 'text',     default: 'מה תרצה לדעת על המוצר?' },
-            { key: 'qa_submit_label',         label: 'כפתור שליחה',     type: 'text',     default: 'פרסם שאלה' },
-            { key: 'qa_submitted_msg',        label: 'הודעת הצלחה',     type: 'textarea', default: 'תודה! השאלה שלך פורסמה.' },
-            { key: 'qa_empty_msg',            label: 'הודעת ריק',       type: 'text',     default: 'עדיין אין שאלות על המוצר הזה. היה הראשון לשאול!' },
-            { key: 'qa_team_label',           label: 'תווית "צוות"',    type: 'text',     default: 'תשובת צוות NextClass' },
+            { key: 'pd_qa_title',             label: 'כותרת "שאלות גולשים"', type: 'text',     default: 'שאלות ותשובות מהקהילה' },
+            { key: 'qa_form_title',           label: 'כותרת טופס השאלה',    type: 'text',     default: 'יש לך שאלה?' },
+            { key: 'qa_form_desc',            label: 'תיאור הטופס',          type: 'textarea', default: 'שאל את הקהילה ואת המומחים שלנו.' },
+            { key: 'qa_name_placeholder',     label: 'Placeholder: שם',      type: 'text',     default: 'השם שלך (אופציונלי)' },
+            { key: 'qa_question_placeholder', label: 'Placeholder: שאלה',    type: 'text',     default: 'מה תרצה לדעת על המוצר?' },
+            { key: 'qa_submit_label',         label: 'כפתור "שלח שאלה"',    type: 'text',     default: 'פרסם שאלה' },
+            { key: 'qa_submitted_msg',        label: 'הודעת "שאלה התקבלה"', type: 'textarea', default: 'תודה! השאלה שלך פורסמה.' },
+            { key: 'qa_empty_msg',            label: 'הודעת "אין שאלות עדיין"', type: 'text', default: 'עדיין אין שאלות על המוצר הזה. היה הראשון לשאול!' },
+            { key: 'qa_team_label',           label: 'תווית "צוות NextClass"', type: 'text',  default: 'תשובת צוות NextClass' },
         ],
     },
     {
@@ -695,7 +695,10 @@ const SECTION_GROUPS = [
         icon: '🏠',
         accent: '#007AFF',
         subGroups: [
-            { label: null, sections: ['hero', 'homepage_sections', 'homepage_vp', 'feature_tiles', 'shoppable_image', 'quote_wizard', 'expert_consultation', 'home_discover_products'] },
+            { label: 'מסך ראשי (מעל הקפל)', sections: ['hero'] },
+            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp'] },
+            { label: 'ויטרינת מוצרים', sections: ['feature_tiles', 'shoppable_image', 'home_discover_products'] },
+            { label: 'המרה וייעוץ', sections: ['quote_wizard', 'expert_consultation'] },
         ],
     },
     {
@@ -704,10 +707,11 @@ const SECTION_GROUPS = [
         icon: '📄',
         accent: '#5856D6',
         subGroups: [
-            { label: 'קטלוג וחיפוש', sections: ['catalog_full', 'search_section'] },
-            { label: 'דף מוצר', sections: ['product_detail', 'trust_badges', 'sidebar_sections', 'pd_dims_section', 'pd_warranty_section', 'pd_support_section', 'pd_faq_section', 'pd_reviews_section', 'accessories_section'] },
-            { label: 'אודות', sections: ['about_page', 'about_timeline'] },
-            { label: 'צור קשר', sections: ['contact_page'] },
+            { label: 'קטלוג ומנוע חיפוש', sections: ['catalog_full', 'search_section'] },
+            { label: 'דף מוצר — פעולות וטקסטים', sections: ['product_detail', 'trust_badges'] },
+            { label: 'דף מוצר — תוכן נוסף', sections: ['sidebar_sections', 'pd_dims_section', 'pd_warranty_section', 'pd_support_section', 'pd_faq_section', 'pd_reviews_section', 'accessories_section'] },
+            { label: 'עמוד אודות', sections: ['about_page', 'about_timeline'] },
+            { label: 'עמוד צור קשר', sections: ['contact_page'] },
             { label: 'עמודים נוספים', sections: ['discover_section', 'wishlist_section', 'magazine'] },
         ],
     },
@@ -717,17 +721,21 @@ const SECTION_GROUPS = [
         icon: '🎨',
         accent: '#FF9500',
         subGroups: [
-            { label: null, sections: ['branding', 'header', 'menu_reorder', 'footer_config'] },
+            { label: 'זהות האתר ומצב מערכת', sections: ['branding'] },
+            { label: 'תפריט ניווט', sections: ['header', 'menu_reorder'] },
+            { label: 'כותרת תחתונה (Footer)', sections: ['footer_config'] },
         ],
     },
     {
         id: 'tools',
-        label: 'כלים',
+        label: 'כלים ווידג׳טים',
         icon: '🤖',
         accent: '#34C759',
         subGroups: [
-            { label: 'תקשורת ואוטומציה', sections: ['ai_assistant', 'qa_section', 'floating_concierge'] },
-            { label: 'מסחר ומדיה', sections: ['cart_checkout', 'videos', 'accessibility_section'] },
+            { label: 'עוזר AI ושאלות גולשים', sections: ['ai_assistant', 'qa_section'] },
+            { label: 'ווידג׳טים צפים', sections: ['floating_concierge'] },
+            { label: 'עגלת קניות וצ׳ק-אאוט', sections: ['cart_checkout'] },
+            { label: 'מדיה ונגישות', sections: ['videos', 'accessibility_section'] },
         ],
     },
     {
@@ -809,6 +817,47 @@ const SECTION_ICON_COMPONENTS = {
     legal:                  <FileText size={13} />,
 };
 
+// ─── Section Page Locations ───────────────────────────────────────────────────
+const SECTION_LOCATIONS = {
+    hero:                   'דף הבית',
+    homepage_sections:      'דף הבית',
+    homepage_vp:            'דף הבית',
+    feature_tiles:          'דף הבית',
+    shoppable_image:        'דף הבית',
+    quote_wizard:           'דף הבית',
+    expert_consultation:    'דף הבית',
+    home_discover_products: 'דף הבית',
+    catalog_full:           'קטלוג',
+    search_section:         'קטלוג',
+    product_detail:         'דף מוצר',
+    trust_badges:           'דף מוצר',
+    sidebar_sections:       'דף מוצר',
+    pd_dims_section:        'דף מוצר',
+    pd_warranty_section:    'דף מוצר',
+    pd_support_section:     'דף מוצר',
+    pd_faq_section:         'דף מוצר',
+    pd_reviews_section:     'דף מוצר',
+    accessories_section:    'דף מוצר',
+    about_page:             'עמוד אודות',
+    about_timeline:         'עמוד אודות',
+    contact_page:           'צור קשר',
+    floating_concierge:     'ווידג׳ט צף',
+    discover_section:       'גלה NextClass',
+    wishlist_section:       'מועדפים',
+    magazine:               'מגזין',
+    branding:               'כל האתר',
+    header:                 'ניווט',
+    menu_reorder:           'ניווט',
+    footer_config:          'Footer',
+    ai_assistant:           'ווידג׳ט AI',
+    qa_section:             'דף מוצר',
+    cart_checkout:          'עגלה',
+    videos:                 'מרכז הדרכה',
+    accessibility_section:  'נגישות',
+    visibility:             'כל האתר',
+    legal:                  'משפטי',
+};
+
 const NAV_ICON_COMPONENTS = {
     home:     <Home size={15} />,
     catalog:  <ShoppingBag size={15} />,
@@ -829,14 +878,73 @@ const SIDEBAR_SECTION_ICONS = {
     'pd-reviews':  <Star size={14} />,
 };
 
+// ─── Color Picker Field ───────────────────────────────────────────────────────
+function ColorField({ field, value, onChange }) {
+    const colorRef = React.useRef();
+    const displayColor = value && /^#[0-9A-Fa-f]{3,6}$/.test(value) ? value : '#1D1D1F';
+    return (
+        <div className="space-y-1.5">
+            <label className="text-[11px] font-black text-[#86868B] block text-right">{field.label}</label>
+            <div className="flex items-center gap-2.5">
+                <button type="button" onClick={() => colorRef.current?.click()}
+                    className="w-9 h-9 rounded-xl border-2 border-white shrink-0 transition-transform hover:scale-110 active:scale-95"
+                    style={{ background: displayColor, boxShadow: `0 2px 8px ${displayColor}50, 0 0 0 1px rgba(0,0,0,0.08)` }}
+                    title="בחר צבע" />
+                <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+                    placeholder="#1D1D1F" dir="ltr"
+                    className="flex-1 px-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-[13px] font-mono text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all" />
+                <input ref={colorRef} type="color" value={displayColor} onChange={e => onChange(e.target.value)} className="sr-only" />
+            </div>
+        </div>
+    );
+}
+
+// ─── Text Field with character count ─────────────────────────────────────────
+function TextField({ field, value, onChange }) {
+    const len = (value || '').length;
+    const isDefault = value === field.default || (!value && !field.default);
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold tabular-nums ${len > 80 ? 'text-[#FF9500]' : 'text-[#C7C7CC]'}`}>{len}</span>
+                <label className="text-[11px] font-black text-[#86868B] text-right flex items-center gap-1.5">
+                    {!isDefault && <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] inline-block shrink-0" />}
+                    {field.label}
+                </label>
+            </div>
+            <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+                placeholder={String(field.default || '')} dir="rtl"
+                className="w-full px-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-[13px] text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all placeholder-[#C7C7CC]" />
+        </div>
+    );
+}
+
+// ─── Textarea Field with character count ─────────────────────────────────────
+function TextareaField({ field, value, onChange }) {
+    const len = (value || '').length;
+    const isDefault = value === field.default || (!value && !field.default);
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold tabular-nums ${len > 200 ? 'text-[#FF9500]' : 'text-[#C7C7CC]'}`}>{len} תו</span>
+                <label className="text-[11px] font-black text-[#86868B] text-right flex items-center gap-1.5">
+                    {!isDefault && <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] inline-block shrink-0" />}
+                    {field.label}
+                </label>
+            </div>
+            <textarea value={value || ''} onChange={e => onChange(e.target.value)}
+                placeholder={String(field.default || '')} dir="rtl" rows={3}
+                className="w-full px-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-[13px] text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all resize-none placeholder-[#C7C7CC]" />
+        </div>
+    );
+}
+
 // ─── Image Field with preview ─────────────────────────────────────────────────
 function ImageField({ field, value, onChange }) {
     const [isDragOver, setIsDragOver] = useState(false);
     const inputRef = React.useRef();
-
     const handleDrop = (e) => {
-        e.preventDefault();
-        setIsDragOver(false);
+        e.preventDefault(); setIsDragOver(false);
         const file = e.dataTransfer.files[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -844,55 +952,30 @@ function ImageField({ field, value, onChange }) {
             reader.readAsDataURL(file);
         }
     };
-
     const handleFileInput = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => onChange(ev.target.result);
-            reader.readAsDataURL(file);
-        }
+        if (file) { const reader = new FileReader(); reader.onload = (ev) => onChange(ev.target.result); reader.readAsDataURL(file); }
     };
-
     return (
-        <div className="space-y-2.5">
-            <label className="text-[11px] font-black text-[#86868B] tracking-widest text-right block">{field.label}</label>
-            {/* URL Input */}
-            <input
-                type="text"
-                value={value || ''}
-                onChange={e => onChange(e.target.value)}
-                placeholder="https://... או גרור קובץ למטה"
-                dir="ltr"
-                className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[13px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all"
-            />
-            {/* Drop zone */}
-            <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
+        <div className="space-y-2">
+            <label className="text-[11px] font-black text-[#86868B] block text-right">{field.label}</label>
+            <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
+                placeholder="https://... או גרור קובץ למטה" dir="ltr"
+                className="w-full px-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-[13px] font-mono text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:bg-white transition-all" />
+            <div onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }} onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop} onClick={() => inputRef.current?.click()}
                 className="relative cursor-pointer rounded-xl border-2 border-dashed transition-all overflow-hidden"
-                style={{
-                    borderColor: isDragOver ? '#007AFF' : '#D1D1D6',
-                    background: isDragOver ? 'rgba(0,122,255,0.04)' : 'transparent',
-                }}
-            >
+                style={{ borderColor: isDragOver ? '#007AFF' : '#D1D1D6', background: isDragOver ? 'rgba(0,122,255,0.04)' : 'transparent' }}>
                 {value ? (
-                    <div className="relative h-32 bg-gray-100">
-                        <img
-                            src={value}
-                            alt="תצוגה מקדימה"
-                            className="w-full h-full object-cover"
-                            onError={e => { e.target.style.display = 'none'; }}
-                        />
+                    <div className="relative h-28 bg-gray-100">
+                        <img src={value} alt="תצוגה מקדימה" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
                             <span className="text-white text-xs font-bold bg-black/50 px-3 py-1.5 rounded-full">החלף תמונה</span>
                         </div>
                     </div>
                 ) : (
-                    <div className="py-6 flex flex-col items-center gap-2">
-                        <ImageIcon size={20} className="text-[#AEAEB2]" />
+                    <div className="py-5 flex flex-col items-center gap-1.5">
+                        <ImageIcon size={18} className="text-[#AEAEB2]" />
                         <span className="text-[11px] font-bold text-[#AEAEB2]">גרור תמונה לכאן או לחץ לבחירה</span>
                     </div>
                 )}
@@ -905,9 +988,10 @@ function ImageField({ field, value, onChange }) {
 // ─── Field Input router ────────────────────────────────────────────────────────
 const FieldInput = ({ field, value, onChange }) => {
     if (field.type === 'image') return <ImageField field={field} value={value} onChange={onChange} />;
-    if (field.type === 'textarea') return <AdminTextArea label={field.label} value={value} onChange={onChange} rows={3} />;
+    if (field.type === 'textarea') return <TextareaField field={field} value={value} onChange={onChange} />;
     if (field.type === 'boolean') return <AdminToggle label={field.label} value={value} onChange={onChange} />;
-    return <AdminInput label={field.label} value={value} onChange={onChange} />;
+    if (field.key && field.key.toLowerCase().includes('color')) return <ColorField field={field} value={value} onChange={onChange} />;
+    return <TextField field={field} value={value} onChange={onChange} />;
 };
 
 // ─── Visibility Section ───────────────────────────────────────────────────────
@@ -1215,6 +1299,20 @@ const MagazineSection = ({ showToast }) => {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ activeGroup, setActiveGroup }) {
+    const groupStats = React.useMemo(() => {
+        const stats = {};
+        SECTION_GROUPS.forEach(group => {
+            const allSectionIds = group.subGroups.flatMap(sg => sg.sections);
+            let fieldCount = 0;
+            allSectionIds.forEach(id => {
+                const sec = ALL_SECTIONS.find(s => s.id === id);
+                if (sec?.fields) fieldCount += sec.fields.length;
+            });
+            stats[group.id] = { sections: allSectionIds.length, fields: fieldCount };
+        });
+        return stats;
+    }, []);
+
     return (
         <div className="w-52 shrink-0 flex flex-col gap-2" style={{ minWidth: 200 }}>
             {/* Logo row */}
@@ -1248,9 +1346,16 @@ function Sidebar({ activeGroup, setActiveGroup }) {
                             </div>
                         )}
                         <span className={`shrink-0 relative z-10 ${isActive ? 'text-white' : 'text-[#6E6E73]'}`}>{GROUP_ICON_COMPONENTS[group.id] || <Settings size={16} />}</span>
-                        <span className={`text-[13px] font-bold flex-1 text-right relative z-10 ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
-                            {group.label}
-                        </span>
+                        <div className="flex-1 text-right relative z-10 min-w-0">
+                            <span className={`text-[13px] font-bold block ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
+                                {group.label}
+                            </span>
+                            {groupStats[group.id] && (
+                                <span className={`text-[9px] font-bold block mt-0.5 truncate ${isActive ? 'text-white/60' : 'text-[#AEAEB2]'}`}>
+                                    {groupStats[group.id].sections} קטעים · {groupStats[group.id].fields} שדות
+                                </span>
+                            )}
+                        </div>
                         {isActive && (
                             <ChevronRight size={14} className="text-white/60 shrink-0 relative z-10" />
                         )}
@@ -1265,6 +1370,10 @@ function Sidebar({ activeGroup, setActiveGroup }) {
 function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, showToast }) {
     const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine';
     const fieldCount = sec.fields ? sec.fields.length : null;
+    const location = SECTION_LOCATIONS[sec.id];
+    const firstTextField = sec.fields ? sec.fields.find(f => f.type === 'text' || f.type === 'textarea') : null;
+    const peekValue = firstTextField ? (content[firstTextField.key] !== undefined ? content[firstTextField.key] : (firstTextField.default || '')) : '';
+    const peekText = peekValue ? String(peekValue).slice(0, 40) + (String(peekValue).length > 40 ? '…' : '') : '';
 
     const specialBadge = () => {
         if (sec.type === 'visibility') return `${VISIBILITY_ITEMS.length} פריטים`;
@@ -1302,7 +1411,16 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                     <p className={`text-[13px] font-bold leading-snug transition-colors ${isOpen ? 'text-[#1D1D1F]' : 'text-[#3C3C43]'}`}>
                         {sec.label}
                     </p>
+                    {!isOpen && peekText && (
+                        <p className="text-[11px] text-[#AEAEB2] truncate mt-0.5 font-normal">{peekText}</p>
+                    )}
                 </div>
+                {location && (
+                    <span className="hidden sm:inline-flex text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
+                        style={{ background: `${sec.accent}10`, color: sec.accent, border: `1px solid ${sec.accent}20` }}>
+                        {location}
+                    </span>
+                )}
                 {badge && (
                     <span
                         className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap"
@@ -1587,12 +1705,16 @@ export default function AdminContent({ showToast }) {
                                 {currentGroupDef && currentGroupDef.subGroups.map((sub, si) => (
                                     <div key={si} className="flex flex-col gap-2.5">
                                         {sub.label && (
-                                            <div className="flex items-center gap-2.5 mt-1">
-                                                <div className="h-px flex-1 bg-black/[0.05]" />
-                                                <span className="text-[10px] font-black text-[#C7C7CC] tracking-tight whitespace-nowrap px-1">
+                                            <div className="flex items-center gap-2 mt-3 mb-0.5 px-1">
+                                                <div className="h-px flex-1 bg-black/[0.06]" />
+                                                <span className="text-[9px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
+                                                    style={{
+                                                        background: `${currentGroupDef?.accent}12`,
+                                                        color: currentGroupDef?.accent || '#86868B',
+                                                    }}>
                                                     {sub.label}
                                                 </span>
-                                                <div className="h-px flex-1 bg-black/[0.05]" />
+                                                <div className="h-px flex-1 bg-black/[0.06]" />
                                             </div>
                                         )}
                                         {sub.sections.map(id => renderAccordion(id))}
@@ -1603,6 +1725,31 @@ export default function AdminContent({ showToast }) {
                     </div>
                 </div>
             )}
+
+            {/* Floating unsaved-changes banner */}
+            <AnimatePresence>
+                {hasChanges && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
+                        style={{
+                            background: 'rgba(29,29,31,0.92)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                        }}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-[#FF9500] shrink-0" />
+                        <span className="text-white text-[13px] font-bold">יש שינויים שלא נשמרו</span>
+                        <button onClick={handleSave}
+                            className="px-4 py-1.5 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">
+                            שמור עכשיו
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
