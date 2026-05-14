@@ -73,7 +73,7 @@ export default function AdminSettings() {
     const [bizYoutube,   setBizYoutube]   = useState(getSetting('biz_youtube',      ''));
     const [bizSaved,     setBizSaved]     = useState(false);
 
-    // Keep form in sync if Firestore updates after mount
+    // Re-sync form fields whenever Firestore data arrives (getSetting ref changes on each snapshot)
     useEffect(() => {
         setBizName(getSetting('biz_name',        'NextClass'));
         setBizPhone(getSetting('contact_phone',    '058-5856356'));
@@ -84,7 +84,7 @@ export default function AdminSettings() {
         setBizInstagram(getSetting('biz_instagram',''));
         setBizFacebook(getSetting('biz_facebook',  ''));
         setBizYoutube(getSetting('biz_youtube',    ''));
-    }, []); // runs once; Firestore listener in SettingsContext handles live updates
+    }, [getSetting]);
 
     const saveBiz = async () => {
         await updateGlobalSettings({
@@ -110,6 +110,14 @@ export default function AdminSettings() {
     const [catAllCat,   setCatAllCat]   = useState(getSetting('catalog_all_cat',  'הכל'));
     const [announcText, setAnnouncText] = useState(getSetting('announcement_text', ''));
     const [contentSaved, setContentSaved] = useState(false);
+
+    useEffect(() => {
+        setCatTitle(getSetting('catalog_title',    'הכלים שמעצבים את המחר.'));
+        setCatSubtitle(getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.'));
+        setCatBadge(getSetting('catalog_badge',    'הקטלוג המוסדי'));
+        setCatAllCat(getSetting('catalog_all_cat',  'הכל'));
+        setAnnouncText(getSetting('announcement_text', ''));
+    }, [getSetting]);
 
     const saveContent = async () => {
         await updateGlobalSettings({
