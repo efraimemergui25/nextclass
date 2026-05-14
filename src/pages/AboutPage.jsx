@@ -42,7 +42,7 @@ const AboutPage = () => {
         heroLabel:    getSetting('about_hero_label', ''),
         heroTitle:    getSetting('about_hero_title', 'הטכנולוגיה\nשחינוך ראוי לה.'),
         heroSub:      getSetting('about_hero_sub', 'מקצועי. מהיר. אישי. ישיר.\nהסטנדרט הגבוה ביותר שחינוך יכול לקבל.'),
-        heroImg:      getSetting('about_hero_img', 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=85&w=2400'),
+        heroImg:      getSetting('about_hero_img', '') || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=85&w=2400',
         storyBody:    getSetting('about_story_body', 'ראיתי בתי ספר שנאבקים עם ספקים שלא מכירים את שמם, ציוד שמגיע שבועות מאוחר, ושירות שנגמר ברגע שהחשבונית נחתמה. החלטתי לשנות את המשוואה. NextClass הוא לא פלטפורמה ולא קטלוג — הוא מודל עסקי אחר לגמרי: שירות ישיר, אנושי ומקצועי שמוריד את כל הביניים, ומביא לחינוך הישראלי את הרמה שהוא ראוי לה.'),
         founderTitle: getSetting('about_founder_title', 'מקצועיות\nללא פשרות.'),
         founderMsg:   getSetting('about_founder_message', 'אני מנהל את NextClass כמו שהייתי רוצה שינהלו ספק שאני עובד איתו: ישירות, מהירות, ורמה שלא מתפשרת. כל שיחה, כל הצעת מחיר, כל אספקה — כולם עוברים דרכי. לא כי אין לי ברירה. כי זו ההבטחה שלי לכל לקוח.'),

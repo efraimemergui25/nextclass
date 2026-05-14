@@ -212,25 +212,25 @@ const ProductDetailPage = () => {
             id: 1,
             title: getSetting('feat1_title', 'חוויית 4K קולנועית בכל כיתה'),
             description: getSetting('feat1_desc', 'פאנל ה-OLED החדשני מעניק חדות בלתי מתפשרת וצבעים מדויקים, כדי שכל פרט בשיעור ייראה חי, ברור ובולט גם באור יום מלא.'),
-            image: getSetting('feat1_img', 'https://images.pexels.com/photos/5082567/pexels-photo-5082567.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+            image: getSetting('feat1_img', '') || 'https://images.pexels.com/photos/5082567/pexels-photo-5082567.jpeg?auto=compress&cs=tinysrgb&w=1200',
         },
         {
             id: 2,
             title: getSetting('feat2_title', 'חיבור מיידי, ללא כבלים'),
             description: getSetting('feat2_desc', 'שתף בקלות מהסמארטפון או הלפטופ ישירות למסך הגדול. טכנולוגיית ה-AirPlay וה-Miracast המובנית מאפשרת לך להתחיל ללמד בשניות.'),
-            image: getSetting('feat2_img', 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+            image: getSetting('feat2_img', '') || 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=1200',
         },
         {
             id: 3,
             title: getSetting('feat3_title', 'אינטראקציה חכמה ואינטואיטיבית'),
             description: getSetting('feat3_desc', 'ניהול אפליקציות וכלי למידה בלחיצה אחת. ממשק ה-NextTouch מותאם אישית לצרכים שלך, ומאפשר זרימה חופשית של תוכן ותקשורת.'),
-            image: getSetting('feat3_img', 'https://images.pexels.com/photos/4144096/pexels-photo-4144096.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+            image: getSetting('feat3_img', '') || 'https://images.pexels.com/photos/4144096/pexels-photo-4144096.jpeg?auto=compress&cs=tinysrgb&w=1200',
         },
         {
             id: 4,
             title: getSetting('feat4_title', 'עוצמה שדוחפת קדימה'),
             description: getSetting('feat4_desc', 'עם מעבד ה-M2 Pro העוצמתי, הכל רץ מהר וחלק — מהפעלת סרטוני VR ועד עבודה על אפליקציות כבדות במקביל. ללא השהיות, ללא פשרות.'),
-            image: getSetting('feat4_img', 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200'),
+            image: getSetting('feat4_img', '') || 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200',
         },
     ], [getSetting]);
 

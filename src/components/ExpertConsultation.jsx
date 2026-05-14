@@ -28,7 +28,7 @@ const ExpertConsultation = () => {
         desc:  getSetting('expert_desc', 'צוות המומחים שלנו זמין לייעוץ תכנוני ללא התחייבות.'),
         formTitle: getSetting('expert_form_title', 'תיאום פגישת אפיון'),
         cta:   getSetting('expert_cta', 'קבע פגישה עם מומחה'),
-        image: getSetting('expert_image', 'https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=1000&auto=format&fit=crop')
+        image: getSetting('expert_image', '') || 'https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=1000&auto=format&fit=crop'
     }), [getSetting]);
 
     return (
