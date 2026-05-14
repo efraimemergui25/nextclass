@@ -180,7 +180,7 @@ export default function AdminDashboard() {
                             <span className="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-60" />
                             <span className="relative w-2 h-2 rounded-full bg-[#34C759] animate-pulse-dot" />
                         </span>
-                        <span className="text-[11px] font-black tracking-widest text-[#1D1D1F] uppercase">Live</span>
+                        <span className="text-[11px] font-black tracking-widest text-[#1D1D1F]">Live</span>
                     </div>
                     <PeriodSelector value={period} onChange={setPeriod} />
                 </div>
@@ -431,7 +431,7 @@ export default function AdminDashboard() {
                         title="יומן פעילות"
                         accent="linear-gradient(90deg,#5856D6,#007AFF)"
                         action={
-                            <span className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">
+                            <span className="text-[10px] font-black text-[#AEAEB2] tracking-widest">
                                 {activityLog.length} רשומות
                             </span>
                         }

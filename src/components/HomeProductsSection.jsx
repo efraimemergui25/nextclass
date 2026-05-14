@@ -107,7 +107,7 @@ const HomeProductsSection = () => {
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.4 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] uppercase tracking-[0.25em] mb-7 shadow-sm border border-white/60"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] tracking-[0.25em] mb-7 shadow-sm border border-white/60"
                     >
                         <Sparkles size={11} strokeWidth={2.5} />
                         <span>{eyebrow}</span>

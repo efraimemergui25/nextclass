@@ -151,7 +151,7 @@ export default function AdminQA() {
                                             <div key={i} className="p-4 rounded-2xl text-right"
                                                 style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}>
                                                 <div className="flex items-center gap-1 justify-end mb-1">
-                                                    <span className="text-[10px] font-black text-[#34C759] uppercase tracking-widest">
+                                                    <span className="text-[10px] font-black text-[#34C759] tracking-widest">
                                                         תשובת NextClass
                                                     </span>
                                                     <CheckCircle size={11} className="text-[#34C759]" />

@@ -202,7 +202,7 @@ export default function AdminInventory() {
                 {filtered.length > 0 && (
                     <div className="hidden lg:grid grid-cols-[auto_1fr_200px_80px_auto] gap-4 px-6 py-2 text-right">
                         {['', 'מוצר', 'מלאי', 'סף', bulkMode ? 'יחידות חדשות' : 'עדכון'].map((h, i) => (
-                            <p key={i} className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                            <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
                         ))}
                     </div>
                 )}
@@ -369,7 +369,7 @@ function ProductModal({ product, onClose, onSave }) {
                     {/* ── מלאי — הכי חשוב, ראשון ── */}
                     <div className="rounded-2xl p-4 border-2 border-[#007AFF]/20 bg-[#007AFF]/04">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-[11px] font-black uppercase tracking-widest text-[#007AFF]">ניהול מלאי</span>
+                            <span className="text-[11px] font-black tracking-widest text-[#007AFF]">ניהול מלאי</span>
                             <span className="text-[11px] font-black px-2.5 py-1 rounded-full"
                                 style={{ background: `${stockColor}15`, color: stockColor }}>
                                 {stockLabel}
@@ -377,7 +377,7 @@ function ProductModal({ product, onClose, onSave }) {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">כמות במלאי</label>
+                                <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">כמות במלאי</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -388,7 +388,7 @@ function ProductModal({ product, onClose, onSave }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">סף התראה (נמוך)</label>
+                                <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">סף התראה (נמוך)</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -405,7 +405,7 @@ function ProductModal({ product, onClose, onSave }) {
 
                     {/* ── פרטי מוצר ── */}
                     <div className="space-y-3">
-                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פרטי מוצר</p>
+                        <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest">פרטי מוצר</p>
                         <AdminInput label="שם המוצר" value={title} onChange={setTitle} />
                         <div className="grid grid-cols-2 gap-3">
                             <AdminInput label="קטגוריה" value={category} onChange={setCategory} />
@@ -441,7 +441,7 @@ function ProductModal({ product, onClose, onSave }) {
 function AdminInput({ label, value, onChange, type = "text" }) {
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest px-1">{label}</label>
+            <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1">{label}</label>
             <input 
                 type={type} 
                 value={value} 

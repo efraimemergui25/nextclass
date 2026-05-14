@@ -141,7 +141,7 @@ function AcademyCard({ video }) {
                     </div>
                 )}
                 {video.category && (
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-[#007AFF] text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-[#007AFF] text-[9px] font-black px-2.5 py-1 rounded-full tracking-wider">
                         {video.category}
                     </div>
                 )}
@@ -378,7 +378,7 @@ function SupportTab({ phone, email }) {
                 ))}
 
                 <div className="glass-apple gestalt-card p-8 border border-white/50 bg-white/60">
-                    <p className="text-[12px] font-black text-gray-400 uppercase tracking-widest text-right mb-6">שעות פעילות</p>
+                    <p className="text-[12px] font-black text-gray-400 tracking-widest text-right mb-6">שעות פעילות</p>
                     <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-[14px] text-gray-500">
                         {[['ראשון–חמישי', '08:00–20:00'], ['שישי', '08:00–14:00'], ['שבת', 'סגור'], ['WhatsApp', 'ראשון–שישי 08–20']].map(([d, h]) => (
                             <div key={d} className="flex justify-between border-b border-gray-100 pb-3">
@@ -437,7 +437,7 @@ export default function VODCenterPage() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-10 border border-blue-100"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] tracking-[0.25em] mb-10 border border-blue-100"
                     >
                         <Sparkles size={10} />
                         <span>NextClass Academy • המרכז לחדשנות פדגוגית</span>

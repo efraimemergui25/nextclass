@@ -65,7 +65,7 @@ const SuccessStoriesPage = () => {
                     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     className="text-center max-w-3xl mx-auto mb-20 px-6"
                 >
-                    <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#007AFF] block mb-4">לקוחות מרוצים</span>
+                    <span className="text-[11px] font-bold tracking-[0.25em] text-[#007AFF] block mb-4">לקוחות מרוצים</span>
                     <h1 className="text-5xl md:text-6xl font-apple-display text-[#1D1D1F] mb-4 tracking-tighter leading-[1.05]">
                         תוצאות בשטח.<br />
                         <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>מהלקוחות שלנו.</span>
@@ -128,7 +128,7 @@ const SuccessStoriesPage = () => {
                                 </div>
                                 <div className="text-right">
                                     <div className="font-black text-[#1D1D1F] text-lg tracking-tight leading-tight mb-1">{t.name}</div>
-                                    <div className="text-xs text-[#86868B] font-bold uppercase tracking-widest">{t.role}</div>
+                                    <div className="text-xs text-[#86868B] font-bold tracking-widest">{t.role}</div>
                                 </div>
                             </div>
                         </motion.div>
@@ -137,7 +137,7 @@ const SuccessStoriesPage = () => {
 
                 {/* ── World-Class Partners Section ── */}
                 <div className="max-w-[1400px] mx-auto px-6 text-center border-t border-gray-100 pt-32">
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-16">מוסדות מובילים שבחרו בחדשנות</h3>
+                    <h3 className="text-xs font-black text-gray-400 tracking-[0.3em] mb-16">מוסדות מובילים שבחרו בחדשנות</h3>
                     <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700">
                         {/* Fake partner logos placeholder using text/simple icons */}
                         {['אוניברסיטת תל אביב', 'עיריית ירושלים', 'משרד החינוך', 'עמל', 'אורט', 'רמת גן'].map((partner, i) => (

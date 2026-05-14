@@ -170,7 +170,7 @@ const CartPage = () => {
                                                         </svg>
                                                     </button>
                                                 </div>
-                                                <p className="text-sm font-bold text-[#AEAEB2] uppercase tracking-[0.2em] mb-8">{content.skuLabel}{item.sku}</p>
+                                                <p className="text-sm font-bold text-[#AEAEB2] tracking-[0.2em] mb-8">{content.skuLabel}{item.sku}</p>
 
                                                 <div className="flex items-center justify-between w-full mt-auto">
                                                     {/* Quantity Controls */}

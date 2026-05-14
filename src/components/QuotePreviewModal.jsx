@@ -45,7 +45,7 @@ const QuotePreviewModal = () => {
 
                         {/* Customer Details */}
                         <div className="mb-12">
-                            <h3 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-2">Prepared For:</h3>
+                            <h3 className="text-xs tracking-wider font-bold text-gray-400 mb-2">Prepared For:</h3>
                             <p className="text-lg font-semibold text-[#1D1D1F]">State University</p>
                             <p className="text-sm text-gray-500">ID: GVT-993-EDU</p>
                         </div>
@@ -54,7 +54,7 @@ const QuotePreviewModal = () => {
                         <div className="mb-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b-2 border-gray-800 text-xs uppercase tracking-wider font-bold text-gray-400 pb-2">
+                                    <tr className="border-b-2 border-gray-800 text-xs tracking-wider font-bold text-gray-400 pb-2">
                                         <th className="font-bold pb-3 pl-2 w-1/5">SKU</th>
                                         <th className="font-bold pb-3 w-2/5">Description</th>
                                         <th className="font-bold pb-3 text-center w-1/12">Qty</th>

@@ -29,7 +29,7 @@ function Section({ s, open, onToggle, index }) {
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'right' }}
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{s.icon}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5856D6', display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F' }}>{s.title}</span>
                 </div>
                 <motion.span
@@ -133,7 +133,7 @@ export default function TermsPage() {
                 {/* Hero */}
                 <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#5856D612', border: '1px solid #5856D628', borderRadius: 50, padding: '5px 14px', marginBottom: 20 }}>
-                        <span style={{ fontSize: 13 }}>📜</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5856D6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#5856D6', letterSpacing: 0.2 }}>תנאי שימוש</span>
                     </div>
                     <h1 style={{ fontSize: 'clamp(30px, 5vw, 46px)', fontWeight: 800, color: '#1D1D1F', margin: '0 0 10px', letterSpacing: -1.2, lineHeight: 1.1 }}>

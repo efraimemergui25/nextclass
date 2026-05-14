@@ -63,7 +63,7 @@ function StatCard({ label, value, icon: Icon, color, sub }) {
                     <Icon size={16} style={{ color }} />
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-1">{label}</p>
+                    <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-1">{label}</p>
                     <p className="text-[28px] font-black text-[#1D1D1F] tracking-tighter leading-none">{value}</p>
                 </div>
             </div>
@@ -319,7 +319,7 @@ export default function AdminCommunity() {
 
                                         <div className="text-center shrink-0 hidden md:block w-10">
                                             <p className="text-[12px] font-black text-[#3C3C43]">{daysSince(sub.timestamp)}</p>
-                                            <p className="text-[9px] font-bold text-[#AEAEB2] uppercase tracking-wide">ימים</p>
+                                            <p className="text-[9px] font-bold text-[#AEAEB2] tracking-wide">ימים</p>
                                         </div>
 
                                         <motion.button

@@ -77,7 +77,7 @@ function BannerManager() {
                     onChange={v => setBanner(b => ({ ...b, text: v }))}
                     placeholder="מבצע מיוחד! משלוח חינם על כל הזמנה מעל ₪500" />
                 <div>
-                    <p className="text-[#86868B] text-[10px] font-black uppercase tracking-[0.18em] mb-2">צבע רקע</p>
+                    <p className="text-[#86868B] text-[10px] font-black tracking-[0.18em] mb-2">צבע רקע</p>
                     <div className="flex gap-2.5 flex-wrap">
                         {BANNER_COLORS.map(({ label, value }) => (
                             <motion.button key={value} type="button"
@@ -234,7 +234,7 @@ export default function AdminMarketing() {
                             <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
                         </div>
                         <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
-                        <p className="text-[#86868B] text-[10px] font-bold mt-1.5 uppercase tracking-widest">{label}</p>
+                        <p className="text-[#86868B] text-[10px] font-bold mt-1.5 tracking-widest">{label}</p>
                     </div>
                 ))}
             </div>
@@ -243,7 +243,7 @@ export default function AdminMarketing() {
             <div className="rounded-[22px] overflow-hidden" style={glass}>
                 <div className="px-5 py-4 border-b border-black/06 flex items-center justify-between"
                     style={{ background: 'rgba(248,248,250,0.85)' }}>
-                    <span className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-[0.18em]">{coupons.length} קופונים</span>
+                    <span className="text-[#AEAEB2] text-[10px] font-black tracking-[0.18em]">{coupons.length} קופונים</span>
                     <h3 className="text-[#1D1D1F] font-black text-base">קופוני הנחה</h3>
                 </div>
 
@@ -268,7 +268,7 @@ export default function AdminMarketing() {
                     <div className="grid grid-cols-2 gap-3">
                         <AdminInput label="סכום הנחה" type="number" value={String(form.discount)} onChange={v => setField('discount', v)} placeholder="10" />
                         <div>
-                            <label className="block text-[#86868B] text-[10px] font-black uppercase tracking-[0.18em] mb-1.5">סוג</label>
+                            <label className="block text-[#86868B] text-[10px] font-black tracking-[0.18em] mb-1.5">סוג</label>
                             <select value={form.type} onChange={e => setField('type', e.target.value)}
                                 className="w-full rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none"
                                 style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.10)' }}>

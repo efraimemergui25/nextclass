@@ -412,11 +412,11 @@ export default function AdminAnalytics() {
                                             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/04">
                                                 <div className="text-center">
                                                     <p className="text-2xl font-black text-[#1D1D1F]">{inventory.length}</p>
-                                                    <p className="text-[10px] text-[#AEAEB2] uppercase font-black tracking-widest">סה״כ מוצרים</p>
+                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-widest">סה״כ מוצרים</p>
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-2xl font-black text-[#34C759]">{active}</p>
-                                                    <p className="text-[10px] text-[#AEAEB2] uppercase font-black tracking-widest">מוצרים פעילים</p>
+                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-widest">מוצרים פעילים</p>
                                                 </div>
                                             </div>
                                         </div>

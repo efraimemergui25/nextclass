@@ -57,8 +57,14 @@ export default function CookieConsent() {
                         <div style={{
                             width: 40, height: 40, borderRadius: 11, flexShrink: 0,
                             background: 'linear-gradient(135deg, #007AFF, #5856D6)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                        }}>🍪</div>
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"/>
+                                <path d="M12 8v4l2 2"/>
+                                <circle cx="19" cy="5" r="3" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.8)" strokeWidth="1.4"/>
+                            </svg>
+                        </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 15, fontWeight: 700, color: '#1D1D1F', lineHeight: 1.3, marginBottom: 3 }}>{title}</div>
                             <div style={{ fontSize: 13, color: '#6C6C70', lineHeight: 1.5 }}>{body}</div>
@@ -78,10 +84,10 @@ export default function CookieConsent() {
                             >
                                 <div style={{ background: '#F9F9FB', borderRadius: 12, padding: '12px 14px', marginBottom: 12, fontSize: 13, color: '#3C3C43', lineHeight: 1.65, border: '1px solid #E5E5EA' }}>
                                     <div style={{ marginBottom: 7 }}>
-                                        <strong style={{ color: '#1D1D1F' }}>🔒 הכרחיות</strong> — ניווט, סל קניות, אבטחה. לא ניתן לבטל.
+                                        <strong style={{ color: '#1D1D1F' }}>הכרחיות</strong> — ניווט, סל קניות, אבטחה. לא ניתן לבטל.
                                     </div>
                                     <div>
-                                        <strong style={{ color: '#1D1D1F' }}>📊 אנליטיקס</strong> — Google Analytics (אנונימי). ניתן לבטל בכל עת.
+                                        <strong style={{ color: '#1D1D1F' }}>אנליטיקס</strong> — Google Analytics (אנונימי). ניתן לבטל בכל עת.
                                     </div>
                                 </div>
                             </motion.div>

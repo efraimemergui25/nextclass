@@ -120,7 +120,7 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers }) {
                 {/* Needs Action */}
                 <div className="rounded-[1.5rem] overflow-hidden" style={card}>
                     <div className="px-6 py-4 border-b border-black/[0.04] flex items-center justify-between">
-                        <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest">{needsAction.length} הזמנות</span>
+                        <span className="text-[10px] font-black text-[#86868B] tracking-widest">{needsAction.length} הזמנות</span>
                         <div className="flex items-center gap-2">
                             <AlertTriangle size={14} className="text-[#FF9500]" />
                             <h3 className="text-sm font-black text-[#1D1D1F]">דורש העברה לספק</h3>
@@ -152,7 +152,7 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers }) {
                 {/* Supplier Summary */}
                 <div className="rounded-[1.5rem] overflow-hidden" style={card}>
                     <div className="px-6 py-4 border-b border-black/[0.04] flex items-center justify-between">
-                        <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest">{suppliers.filter(s => s.active !== false).length} פעילים</span>
+                        <span className="text-[10px] font-black text-[#86868B] tracking-widest">{suppliers.filter(s => s.active !== false).length} פעילים</span>
                         <div className="flex items-center gap-2">
                             <Building2 size={14} className="text-[#007AFF]" />
                             <h3 className="text-sm font-black text-[#1D1D1F]">ספקים</h3>
@@ -393,7 +393,7 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast }) {
         <AdminModal open={isOpen} onClose={onClose} title="העברה לספק" size="md">
             <div className="space-y-5 p-6" dir="rtl">
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">הזמנת לקוח</label>
+                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הזמנת לקוח</label>
                     <select value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)}
                         className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
                         {orders.map(o => (
@@ -405,7 +405,7 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast }) {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">ספק</label>
+                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">ספק</label>
                     <select value={supplierId} onChange={e => setSupplierId(e.target.value)}
                         className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
                         <option value="">בחר ספק...</option>
@@ -417,19 +417,19 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast }) {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">עלות ספק (₪)</label>
+                        <label className="text-[11px] font-black text-[#86868B] tracking-widest block">עלות ספק (₪)</label>
                         <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="0"
                             className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right" />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">תאריך ETA</label>
+                        <label className="text-[11px] font-black text-[#86868B] tracking-widest block">תאריך ETA</label>
                         <input type="date" value={eta} onChange={e => setEta(e.target.value)}
                             className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest block">הערות לספק</label>
+                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הערות לספק</label>
                     <textarea value={notes} onChange={e => setNotes(e.target.value)}
                         placeholder="כתובת משלוח, דגם ספציפי, הוראות מיוחדות..."
                         rows={3}

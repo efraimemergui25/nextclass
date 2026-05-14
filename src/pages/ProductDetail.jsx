@@ -52,7 +52,7 @@ const ProductDetail = () => {
                                     <svg className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
-                                    <span className="text-emerald-700 text-xs md:text-sm font-extrabold tracking-widest uppercase">מאושר משרד החינוך</span>
+                                    <span className="text-emerald-700 text-xs md:text-sm font-extrabold tracking-widest">מאושר משרד החינוך</span>
                                 </span>
 
                                 {/* Fluid typography: Text scales immensely */}
@@ -87,11 +87,11 @@ const ProductDetail = () => {
 
                                 {/* Clean Data separation no borders */}
                                 <div className="bg-[#F5F5F7] rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-14 mb-10">
-                                    <h3 className="text-xs md:text-sm font-black text-[#1D1D1F] uppercase tracking-[0.1em] md:tracking-[0.2em] mb-6 md:mb-10">מפרט טכני תמציתי</h3>
+                                    <h3 className="text-xs md:text-sm font-black text-[#1D1D1F] tracking-[0.1em] md:tracking-[0.2em] mb-6 md:mb-10">מפרט טכני תמציתי</h3>
                                     <div className="grid grid-cols-2 gap-y-6 md:gap-y-10 gap-x-6 md:gap-x-12">
                                         {Object.entries(product.specs).map(([key, value]) => (
                                             <div key={key}>
-                                                <p className="text-xs md:text-sm font-bold text-gray-400 uppercase md:tracking-widest mb-1 md:mb-2">{key}</p>
+                                                <p className="text-xs md:text-sm font-bold text-gray-400 md:tracking-widest mb-1 md:mb-2">{key}</p>
                                                 <p className="text-lg md:text-xl font-black text-[#1D1D1F] leading-snug break-words">{value}</p>
                                             </div>
                                         ))}
@@ -173,7 +173,7 @@ const ProductDetail = () => {
 
                         {/* Price summary hidden on extreme mobile height, visible normally */}
                         <div className="hidden sm:block text-right w-full sm:w-auto">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 block">מחיר מוסדי בלעדי</span>
+                            <span className="text-xs font-bold text-gray-400 tracking-widest mb-1 block">מחיר מוסדי בלעדי</span>
                             <span className="text-4xl md:text-6xl font-black tracking-tighter text-[#1D1D1F]">
                                 ₪{product.contractPrice.toLocaleString()}
                             </span>

@@ -68,7 +68,7 @@ const ExpertConsultation = () => {
 
                     {/* Meeting type chips */}
                     <div className="mb-10">
-                        <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest uppercase">איך תרצו להיפגש?</label>
+                        <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest">איך תרצו להיפגש?</label>
                         <div className="flex flex-wrap gap-3">
                             {TYPES.map((type) => {
                                 const Icon = type.icon;
@@ -99,7 +99,7 @@ const ExpertConsultation = () => {
                     {/* Date/Time Selectors */}
                     <div className="grid grid-cols-2 gap-6 mb-12">
                         <div>
-                            <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest uppercase">תאריך מועדף</label>
+                            <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest">תאריך מועדף</label>
                             <div className="relative rounded-2xl p-4 flex items-center justify-between cursor-pointer" style={glassField}>
                                 <div className="flex items-center gap-3 text-[#1D1D1F] font-bold text-lg">
                                     <Calendar size={20} className="text-[#007AFF]" />
@@ -109,7 +109,7 @@ const ExpertConsultation = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest uppercase">שעה</label>
+                            <label className="text-xs font-bold text-gray-400 mb-4 block tracking-widest">שעה</label>
                             <div className="relative rounded-2xl p-4 flex items-center justify-between cursor-pointer" style={glassField}>
                                 <div className="flex items-center gap-3 text-[#1D1D1F] font-bold text-lg">
                                     <Clock size={20} className="text-[#007AFF]" />

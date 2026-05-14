@@ -78,7 +78,7 @@ const ROICalculator = () => {
                         <div className="absolute bottom-0 left-0 w-full h-[50%] bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
 
                         <div className="mb-10 relative z-10">
-                            <span className="text-gray-400 font-bold block mb-3 uppercase tracking-widest text-sm">עלות תחזוקת מקרנים מיושנת</span>
+                            <span className="text-gray-400 font-bold block mb-3 tracking-widest text-sm">עלות תחזוקת מקרנים מיושנת</span>
                             <div className="text-4xl md:text-5xl font-black text-red-400/80 tracking-tighter line-through decoration-red-500/40 opacity-75">
                                 <AnimatedNumber value={oldCost} />
                             </div>
@@ -87,7 +87,7 @@ const ROICalculator = () => {
                         <div className="w-[80%] mx-auto h-px bg-white/10 mb-10 relative z-10" />
 
                         <div className="relative z-10">
-                            <span className="text-white font-bold block mb-4 uppercase tracking-widest text-lg">חיסכון משוער עם NextClass</span>
+                            <span className="text-white font-bold block mb-4 tracking-widest text-lg">חיסכון משוער עם NextClass</span>
                             <div className="text-6xl md:text-8xl font-black text-emerald-500 tracking-tighter drop-shadow-[0_0_40px_rgba(16,185,129,0.3)]">
                                 <AnimatedNumber value={savings} />
                             </div>

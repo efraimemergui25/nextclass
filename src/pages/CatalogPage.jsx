@@ -129,7 +129,7 @@ const CatalogPage = () => {
 
                     <motion.div
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-[0.22em] mb-5"
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold tracking-[0.22em] mb-5"
                         style={{ background: 'rgba(0,122,255,0.07)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,122,255,0.18)', color: '#007AFF' }}
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
@@ -271,7 +271,7 @@ const CatalogPage = () => {
                                 <div className="w-[216px] bg-white/75 backdrop-blur-xl rounded-2xl border border-white/80 shadow-sm p-5">
 
                                     {/* Categories */}
-                                    <p className="text-[9px] font-black text-[#AEAEB2] uppercase tracking-[0.28em] mb-3">קטגוריות</p>
+                                    <p className="text-[9px] font-black text-[#AEAEB2] tracking-[0.28em] mb-3">קטגוריות</p>
                                     <div className="flex flex-col gap-0.5 mb-5">
                                         {categories.map(cat => (
                                             <button
@@ -291,7 +291,7 @@ const CatalogPage = () => {
                                     <div className="h-px bg-black/07 mb-5" />
 
                                     {/* Price range */}
-                                    <p className="text-[9px] font-black text-[#AEAEB2] uppercase tracking-[0.28em] mb-1">טווח מחירים</p>
+                                    <p className="text-[9px] font-black text-[#AEAEB2] tracking-[0.28em] mb-1">טווח מחירים</p>
                                     <div className="flex justify-between mb-3">
                                         <span className="text-[11px] text-[#86868B]">₪0</span>
                                         <span className="text-[11px] font-black text-[#1D1D1F]">
@@ -421,7 +421,7 @@ const CatalogPage = () => {
 
                                 <div className="flex-1 overflow-y-auto" dir="rtl">
                                     <section className="mb-8">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-4">מיון</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em] mb-4">מיון</p>
                                         {SORT_OPTIONS.map(opt => (
                                             <button key={opt.id} onClick={() => setSortBy(opt.id)}
                                                 className={`w-full text-right px-4 py-3 rounded-xl text-[14px] font-bold mb-2 transition-all ${sortBy === opt.id ? 'bg-[#1D1D1F] text-white' : 'bg-black/04 hover:bg-black/08 text-[#1D1D1F]'}`}>
@@ -432,7 +432,7 @@ const CatalogPage = () => {
 
                                     <section className="mb-8">
                                         <div className="flex justify-between mb-3">
-                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">טווח מחירים</p>
+                                            <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em]">טווח מחירים</p>
                                             <span className="text-[12px] font-black text-[#1D1D1F]">
                                                 {priceRange[1] >= maxPrice ? 'ללא הגבלה' : `עד ₪${priceRange[1].toLocaleString()}`}
                                             </span>
@@ -447,7 +447,7 @@ const CatalogPage = () => {
                                     </section>
 
                                     <section>
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-4">קטגוריה</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em] mb-4">קטגוריה</p>
                                         <div className="flex flex-wrap gap-2">
                                             {categories.map(cat => (
                                                 <button key={cat} onClick={() => handleCategorySelect(cat)}
@@ -533,7 +533,7 @@ const ListCard = ({ product }) => {
 
             {/* Content */}
             <div className="flex-1 text-right min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#007AFF] block mb-1">{category}</span>
+                <span className="text-[10px] font-black tracking-[0.18em] text-[#007AFF] block mb-1">{category}</span>
                 <h3 className="text-[15px] font-black text-[#1D1D1F] tracking-tight line-clamp-1 mb-0.5">{title}</h3>
                 <p className="text-[12px] text-[#86868B] line-clamp-2 leading-relaxed font-medium">{description}</p>
             </div>
@@ -542,7 +542,7 @@ const ListCard = ({ product }) => {
             <div className="shrink-0 flex items-center gap-3 pr-2 sm:pr-4 border-r border-black/06 mr-2">
                 <div className="text-right hidden sm:block">
                     <div className="text-[18px] font-black text-[#1D1D1F] tracking-tighter">{formattedPrice}</div>
-                    <div className="text-[9px] font-black text-[#AEAEB2] uppercase tracking-widest">{getSetting('catalog_inst_price', 'מחיר מוסדי')}</div>
+                    <div className="text-[9px] font-black text-[#AEAEB2] tracking-widest">{getSetting('catalog_inst_price', 'מחיר מוסדי')}</div>
                 </div>
 
                 <motion.button onClick={handleCompare} whileTap={{ scale: 0.9 }}

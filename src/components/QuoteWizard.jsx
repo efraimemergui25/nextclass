@@ -278,7 +278,7 @@ const QuoteWizard = () => {
 
                     {/* ── Value props ── */}
                     <div className="w-full lg:w-1/2 text-right">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#007AFF] block mb-3">{content.eyebrow}</span>
+                        <span className="text-[10px] font-bold tracking-[0.22em] text-[#007AFF] block mb-3">{content.eyebrow}</span>
                         <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-4 tracking-tighter leading-tight">{content.title}</h2>
                         <p className="text-[15px] text-[#86868B] font-medium mb-10 leading-relaxed">{content.desc}</p>
                         <div className="space-y-5">
@@ -462,7 +462,7 @@ const QuoteWizard = () => {
 
                                                 {/* Includes */}
                                                 <div className="bg-white rounded-2xl p-4 mb-3 border border-gray-100">
-                                                    <div className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-3 text-right">מה כלול בחבילה:</div>
+                                                    <div className="text-[10px] font-black text-[#86868B] tracking-widest mb-3 text-right">מה כלול בחבילה:</div>
                                                     <div className="space-y-2">
                                                         {includesList.map((item, i) => (
                                                             <div key={i} className="flex items-center gap-2.5 text-right">
@@ -487,12 +487,12 @@ const QuoteWizard = () => {
                                                 {/* Price + Timeline */}
                                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                                     <div className="bg-white rounded-xl p-3 border border-gray-100 text-center">
-                                                        <div className="text-[9px] font-black text-[#007AFF] uppercase tracking-widest mb-1">החל מ</div>
+                                                        <div className="text-[9px] font-black text-[#007AFF] tracking-widest mb-1">החל מ</div>
                                                         <div className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{pkg?.from}</div>
                                                         <div className="text-[9px] text-gray-400 font-medium mt-0.5">*לפני מע״מ</div>
                                                     </div>
                                                     <div className="bg-white rounded-xl p-3 border border-gray-100 text-center">
-                                                        <div className="text-[9px] font-black text-[#86868B] uppercase tracking-widest mb-1">זמן פריסה</div>
+                                                        <div className="text-[9px] font-black text-[#86868B] tracking-widest mb-1">זמן פריסה</div>
                                                         <div className="text-[13px] font-black text-[#1D1D1F] leading-tight mt-1">{pkg?.timeline}</div>
                                                     </div>
                                                 </div>

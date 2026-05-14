@@ -152,7 +152,7 @@ const AccessibilityWidget = () => {
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                                 {/* Font Size Control */}
                                 <div className="space-y-4">
-                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <h3 className="text-xs font-black text-gray-400 tracking-widest flex items-center gap-2">
                                         <Type size={14} />
                                         גודל גופן: {settings.fontSize}%
                                     </h3>

@@ -22,7 +22,7 @@ const SuccessPage = () => {
                     <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-10 text-left">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Quote Reference</p>
+                                <p className="text-xs text-gray-400 tracking-wider font-semibold mb-1">Quote Reference</p>
                                 <p className="text-lg font-bold text-[#1D1D1F]">#QT-88492-X</p>
                             </div>
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700">

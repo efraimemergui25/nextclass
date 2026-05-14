@@ -39,7 +39,7 @@ const SuccessStories = () => {
     return (
         <section className="py-16 md:py-24 lg:py-32 bg-[#F5F5F7] overflow-hidden" dir="rtl">
             <div className="text-center mb-16 md:mb-24 px-6 max-w-4xl mx-auto flex flex-col gap-4">
-                <span className="text-[#007AFF] font-bold text-sm tracking-widest uppercase block">Wall of Love</span>
+                <span className="text-[#007AFF] font-bold text-sm tracking-widest block">Wall of Love</span>
                 <h2 className="text-4xl md:text-7xl font-black text-[#1D1D1F] tracking-tight leading-tight">הלקוחות שלנו מדברים</h2>
             </div>
 

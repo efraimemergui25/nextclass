@@ -27,9 +27,9 @@ const ROLES = ['מנהל/ת', 'סגן/ית מנהל', 'מורה', 'IT / מחשו
 const INSTITUTION_TYPES = ['יסודי', 'חטיבת ביניים', 'תיכון', 'אוניברסיטה / מכללה', 'עירייה / מוניציפלי', 'גן ילדים', 'אחר'];
 const BUDGET_RANGES = ['עד ₪10,000', '₪10,000–50,000', '₪50,000–150,000', '₪150,000+', 'לא רלוונטי כרגע'];
 const URGENCY_OPTS = [
-    { id: 'flexible', label: 'גמיש', sub: 'ללא לחץ זמן', icon: '😊' },
-    { id: 'month',    label: 'תוך חודש', sub: 'תכנון שנת לימודים', icon: '📅' },
-    { id: 'urgent',   label: 'דחוף', sub: 'צריך בשבוע הקרוב', icon: '⚡' },
+    { id: 'flexible', label: 'גמיש', sub: 'ללא לחץ זמן' },
+    { id: 'month',    label: 'תוך חודש', sub: 'תכנון שנת לימודים' },
+    { id: 'urgent',   label: 'דחוף', sub: 'צריך בשבוע הקרוב' },
 ];
 const CONTACT_PREFS = [
     { id: 'whatsapp', label: 'וואטסאפ', Icon: MessageCircle, color: '#25D366' },
@@ -64,7 +64,7 @@ function Chip({ label, sub, icon, active, onClick, color }) {
 function FormField({ label, type = 'text', value, onChange, placeholder, dir = 'rtl', required }) {
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest">{label}{required && <span className="text-[#FF375F] ml-1">*</span>}</label>
+            <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest">{label}{required && <span className="text-[#FF375F] ml-1">*</span>}</label>
             <input
                 type={type}
                 value={value}
@@ -205,7 +205,7 @@ export default function CheckoutPage() {
         }
     }, [form, cartItems, subtotal, clearCart, validate]);
 
-    const waMsg = encodeURIComponent(`שלום! שלחתי הצעה ${quoteId} דרך האתר. אשמח לתיאום 🙏`);
+    const waMsg = encodeURIComponent(`שלום! שלחתי הצעה ${quoteId} דרך האתר. אשמח לתיאום.`);
     const waUrl = `https://wa.me/${getSetting('whatsapp_number', '972585856356')}?text=${waMsg}`;
 
     // Empty cart guard
@@ -248,11 +248,11 @@ export default function CheckoutPage() {
                         </motion.div>
 
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F5F5F7] rounded-full text-[11px] font-black text-[#86868B] uppercase tracking-widest mb-4">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F5F5F7] rounded-full text-[11px] font-black text-[#86868B] tracking-widest mb-4">
                                 מזהה הצעה: {quoteId}
                             </div>
                             <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-3">
-                                הצעתך התקבלה! 🎉
+                                הצעתך התקבלה
                             </h2>
                             <p className="text-[#86868B] text-base font-medium leading-relaxed mb-8">
                                 נציג NextClass יחזור אליך {form.bestTime === 'morning' ? 'בשעות הבוקר' : form.bestTime === 'afternoon' ? 'בשעות הצהריים' : 'אחרי הצהריים'} דרך {form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'שיחה טלפונית' : 'מייל'}.<br />
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
 
                     {/* Page header */}
                     <div className="text-center mb-10">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white rounded-full text-[11px] font-black text-[#007AFF] uppercase tracking-widest mb-4 shadow-sm">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white rounded-full text-[11px] font-black text-[#007AFF] tracking-widest mb-4 shadow-sm">
                             <Sparkles size={10} strokeWidth={3} />
                             {allowPayments ? 'צ׳ק-אאוט ותשלום' : 'בניית הצעת מחיר'}
                         </div>
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
                                                 {errors.contactName && <p className="text-[11px] text-[#FF375F] -mt-3 font-bold">{errors.contactName}</p>}
 
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-2">תפקיד <span className="text-[#FF375F]">*</span></label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-2">תפקיד <span className="text-[#FF375F]">*</span></label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {ROLES.map(r => (
                                                             <button key={r} type="button" onClick={() => set('contactRole')(r)}
@@ -391,7 +391,7 @@ export default function CheckoutPage() {
                                                 {errors.institution && <p className="text-[11px] text-[#FF375F] -mt-3 font-bold">{errors.institution}</p>}
 
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-2">סוג מוסד <span className="text-[#FF375F]">*</span></label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-2">סוג מוסד <span className="text-[#FF375F]">*</span></label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {INSTITUTION_TYPES.map(t => (
                                                             <button key={t} type="button" onClick={() => set('institutionType')(t)}
@@ -435,7 +435,7 @@ export default function CheckoutPage() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">אמצעי קשר מועדף</label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-3">אמצעי קשר מועדף</label>
                                                     <div className="grid grid-cols-3 gap-3">
                                                         {CONTACT_PREFS.map(cp => {
                                                             const Icon = cp.Icon;
@@ -453,7 +453,7 @@ export default function CheckoutPage() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">שעת יצירת קשר מועדפת</label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-3">שעת יצירת קשר מועדפת</label>
                                                     <div className="flex gap-3">
                                                         {BEST_TIMES.map(bt => (
                                                             <Chip key={bt.id} label={bt.label} sub={bt.sub}
@@ -484,7 +484,7 @@ export default function CheckoutPage() {
 
                                             <div className="space-y-5">
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">טווח תקציב משוער</label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-3">טווח תקציב משוער</label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {BUDGET_RANGES.map(b => (
                                                             <button key={b} type="button" onClick={() => set('budgetRange')(form.budgetRange === b ? '' : b)}
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest block mb-3">דחיפות הרכישה</label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest block mb-3">דחיפות הרכישה</label>
                                                     <div className="flex gap-3">
                                                         {URGENCY_OPTS.map(u => (
                                                             <Chip key={u.id} label={u.label} sub={u.sub} icon={u.icon}
@@ -508,7 +508,7 @@ export default function CheckoutPage() {
                                                 </div>
 
                                                 <div className="flex flex-col gap-1.5">
-                                                    <label className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest">הערות / דרישות מיוחדות</label>
+                                                    <label className="text-[12px] font-black text-[#1D1D1F] tracking-widest">הערות / דרישות מיוחדות</label>
                                                     <textarea
                                                         value={form.notes}
                                                         onChange={e => set('notes')(e.target.value)}
@@ -591,7 +591,7 @@ export default function CheckoutPage() {
                                 {/* Header */}
                                 <div className="px-6 pt-6 pb-4 border-b border-white/10">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="text-[11px] font-black text-[#636366] uppercase tracking-widest">סל הקניות שלך</span>
+                                        <span className="text-[11px] font-black text-[#636366] tracking-widest">סל הקניות שלך</span>
                                         <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-[#007AFF]/20 text-[#007AFF]">
                                             {(cartItems ?? []).reduce((s, i) => s + (i.qty ?? 1), 0)} פריטים
                                         </span>

@@ -16,52 +16,52 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6" dir="rtl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">כותרת</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">כותרת</label>
                     <input value={form.title} onChange={e => set('title', e.target.value)}
                         placeholder="כותרת המאמר"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">קטגוריה</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">קטגוריה</label>
                     <select value={form.category} onChange={e => set('category', e.target.value)}
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] bg-white">
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">מקור</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">מקור</label>
                     <input value={form.source} onChange={e => set('source', e.target.value)}
                         placeholder="Edutopia / EdSurge / eSchool News..."
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">תאריך</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">תאריך</label>
                     <input value={form.date} onChange={e => set('date', e.target.value)}
                         placeholder="17 מאי 2024"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">זמן קריאה</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">זמן קריאה</label>
                     <input value={form.readTime} onChange={e => set('readTime', e.target.value)}
                         placeholder="5 דק׳"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">תקציר</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">תקציר</label>
                     <textarea value={form.excerpt} onChange={e => set('excerpt', e.target.value)}
                         placeholder="2-3 משפטים המתארים את המאמר..."
                         rows={3}
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] resize-none" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">קישור לכתבה</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">קישור לכתבה</label>
                     <input value={form.url} onChange={e => set('url', e.target.value)}
                         placeholder="https://..."
                         dir="ltr"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-left outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5">URL תמונה (Unsplash או כל כתובת)</label>
+                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">URL תמונה (Unsplash או כל כתובת)</label>
                     <input value={form.image} onChange={e => set('image', e.target.value)}
                         placeholder="https://images.unsplash.com/..."
                         dir="ltr"
@@ -179,7 +179,7 @@ export default function AdminMagazine() {
                                     )}
                                     <div className="flex-1 min-w-0 text-right">
                                         <div className="flex items-center gap-2 justify-end mb-1">
-                                            <span className="text-[9px] font-black text-gray-300 uppercase">{article.source}</span>
+                                            <span className="text-[9px] font-black text-gray-300">{article.source}</span>
                                             <span className="text-[9px] font-black text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded-full">{article.category}</span>
                                         </div>
                                         <p className="text-[14px] font-bold text-[#1D1D1F] line-clamp-1">{article.title}</p>

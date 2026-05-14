@@ -138,7 +138,7 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
             <div className="flex items-start justify-between mb-3">
                 <div className="flex flex-col">
                     <span className="flex items-center gap-0.5 mb-1.5">
-                        <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] uppercase">{title}</p>
+                        <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em]">{title}</p>
                         {tooltip && <InfoTooltip text={tooltip} />}
                     </span>
                     <CountUp value={value} color={color} />
@@ -473,7 +473,7 @@ export function AdminInput({ label, value, onChange, type = 'text', placeholder,
 
     return (
         <div>
-            {label && <label className="block text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em] mb-1.5">{label}</label>}
+            {label && <label className="block text-[#6E6E73] text-[10px] font-black tracking-[0.18em] mb-1.5">{label}</label>}
             {rows ? (
                 <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
                     rows={rows} dir={dir} className={`${base} py-3 resize-none`} style={inputStyle}
@@ -695,7 +695,7 @@ export function HeatGrid({ data = [], color, labels = [] }) {
             {/* Day-of-week header */}
             <div className="flex gap-1 mb-1">
                 {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-                    <div key={d} className="flex-1 text-center text-[8px] font-bold text-[#AEAEB2] uppercase tracking-wider py-1">{d}</div>
+                    <div key={d} className="flex-1 text-center text-[8px] font-bold text-[#AEAEB2] tracking-wider py-1">{d}</div>
                 ))}
             </div>
 

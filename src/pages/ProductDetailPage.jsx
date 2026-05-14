@@ -25,7 +25,7 @@ const ImageFallback = memo(() => (
         <svg className="w-12 h-12 md:w-16 md:h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <span className="text-xs md:text-sm font-bold text-[#AEAEB2] tracking-widest uppercase">nextclass visual</span>
+        <span className="text-xs md:text-sm font-bold text-[#AEAEB2] tracking-widest">nextclass visual</span>
     </div>
 ));
 ImageFallback.displayName = 'ImageFallback';
@@ -97,9 +97,9 @@ function ProductReviews({ getSetting, product }) {
     const avgRating = parseFloat(getSetting('pd_reviews_avg', '4.8'));
     const reviewCount = parseInt(getSetting('pd_reviews_count', '24'));
     const defaultReviews = [
-        { name: getSetting('pd_review1_name','ש. לוי'), role: getSetting('pd_review1_role','רכזת טכנולוגיה, יסודי ראשל"צ'), text: getSetting('pd_review1_text','ההתקנה הייתה ביום שסוכם, בלי לרדוף אחרי אף אחד. אחר כך הגיע מישהו מהצוות וסייע למורים להתחיל לעבוד. בדיוק מה שציפיתי.'), stars: 5 },
-        { name: getSetting('pd_review2_name','מ. ברק'), role: getSetting('pd_review2_role','מנהל, חט"ב גבעתיים'), text: getSetting('pd_review2_text','המחיר שהוצע — הוא המחיר ששולם. בלי הפתעות בחשבונית. זה לא מובן מאליו ואני מעריך את זה.'), stars: 4 },
-        { name: getSetting('pd_review3_name','ד. כהן'), role: getSetting('pd_review3_role','רכז טכנולוגיה, חינוך מיוחד'), text: getSetting('pd_review3_text','הייתה בעיה קטנה שבועיים אחרי ההתקנה. התקשרתי, הגיעו למחרת. לא נזקקתי לפתוח טיקט או לחכות שבוע. ממליץ.'), stars: 5 },
+        { name: getSetting('pd_review1_name','שרה כ.'), role: getSetting('pd_review1_role','מורה, חט"ב גבעתיים'), text: getSetting('pd_review1_text','ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים.'), stars: parseInt(getSetting('pd_review1_stars','5')) || 5 },
+        { name: getSetting('pd_review2_name','דוד מ.'), role: getSetting('pd_review2_role','רכז טכנולוגיה, יסודי הרצליה'), text: getSetting('pd_review2_text','התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי.'), stars: parseInt(getSetting('pd_review2_stars','5')) || 5 },
+        { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים.'), stars: parseInt(getSetting('pd_review3_stars','4')) || 4 },
     ];
     return (
         <section id="pd-reviews" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-24">
@@ -480,7 +480,7 @@ const ProductDetailPage = () => {
                             className="fixed top-0 left-0 w-full z-[1001] bg-white/70 backdrop-blur-3xl backdrop-saturate-[1.5] border-b border-white/60 shadow-[0_8px_32px_0_rgb(31_38_135/0.07)] py-4 px-6 md:px-12 flex justify-between items-center will-change-transform"
                         >
                             <div className="flex flex-col">
-                                <span className="text-xs font-bold text-[#86868B] uppercase tracking-widest">{product.category}</span>
+                                <span className="text-xs font-bold text-[#86868B] tracking-widest">{product.category}</span>
                                 <h2 className="text-sm md:text-base font-black text-[#1D1D1F] tracking-tighter truncate max-w-[150px] md:max-w-none">
                                     {product.title}
                                 </h2>
@@ -593,7 +593,7 @@ const ProductDetailPage = () => {
                                                     transition={{ delay: 0.3, duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
                                                     className="bg-white/30 backdrop-blur-md border border-white/40 rounded-2xl px-5 py-4 inline-flex flex-col gap-1 w-fit"
                                                 >
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{product.category}</span>
+                                                    <span className="text-[10px] font-bold tracking-widest text-white/70">{product.category}</span>
                                                     <span className="text-white font-black text-lg md:text-xl tracking-tighter leading-tight line-clamp-1">{product.title}</span>
                                                     <span className="text-white/90 font-black text-2xl tracking-tighter">{formattedPrice}</span>
                                                 </motion.div>
@@ -602,7 +602,7 @@ const ProductDetailPage = () => {
                                             {/* Cinematic badge */}
                                             <div className="absolute top-4 left-4 z-10 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 flex items-center gap-1.5">
                                                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                <span className="text-white text-[10px] font-bold uppercase tracking-wider">{content.liveDemo}</span>
+                                                <span className="text-white text-[10px] font-bold tracking-wider">{content.liveDemo}</span>
                                             </div>
                                         </div>
                                     ) : imgError || !product.image ? (
@@ -632,7 +632,7 @@ const ProductDetailPage = () => {
                                 <span className="text-gray-600 line-clamp-1">{product.title}</span>
                             </div>
 
-                            <div className="text-[#007AFF] font-bold text-xs uppercase tracking-widest mb-4">{product.category}</div>
+                            <div className="text-[#007AFF] font-bold text-xs tracking-widest mb-4">{product.category}</div>
                             <h1 className="text-4xl md:text-5xl font-apple-display tracking-tight text-[#1D1D1F] leading-[1.15] mb-4">{product.title}</h1>
                             {showPrices ? (
                                 <div className="text-4xl font-black tracking-tighter text-[#1D1D1F] my-6">{formattedPrice}</div>
@@ -702,7 +702,7 @@ const ProductDetailPage = () => {
                                                 {/* Text (center, flex-1) */}
                                                 <div className="flex-1 min-w-0 text-right">
                                                     {acc.category && (
-                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-[#007AFF]">{acc.category}</span>
+                                                        <span className="text-[10px] font-bold tracking-widest text-[#007AFF]">{acc.category}</span>
                                                     )}
                                                     <p className="text-sm font-black text-[#1D1D1F] leading-snug">{acc.title}</p>
                                                     {acc.description && (
@@ -923,7 +923,7 @@ const ProductDetailPage = () => {
                                     transition={{ duration: 0.35, delay: i * 0.07 }}
                                     className={`p-5 rounded-2xl text-right ${productDims.length % 2 !== 0 && i === productDims.length - 1 ? 'col-span-2 md:col-span-1' : ''}`}
                                     style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#86868B] mb-3">{d.label}</p>
+                                    <p className="text-[10px] font-black tracking-widest text-[#86868B] mb-3">{d.label}</p>
                                     <p className="text-2xl font-black text-[#1D1D1F] tracking-tighter leading-none">{d.value}</p>
                                 </motion.div>
                             ))}
@@ -941,7 +941,7 @@ const ProductDetailPage = () => {
                                     <div className="text-right mb-6">
                                         <div className="flex items-center gap-3 justify-start mb-3">
                                             {product.specs?.length > 0 && (
-                                                <span className="text-[10px] font-black text-[#86868B] uppercase tracking-widest bg-[rgba(0,0,0,0.04)] px-2.5 py-1 rounded-full">{product.specs.length} פרמטרים</span>
+                                                <span className="text-[10px] font-black text-[#86868B] tracking-widest bg-[rgba(0,0,0,0.04)] px-2.5 py-1 rounded-full">{product.specs.length} פרמטרים</span>
                                             )}
                                             <h3 className="text-2xl md:text-3xl font-black text-[#1D1D1F] tracking-tighter">{content.specsTitle}</h3>
                                             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -966,7 +966,7 @@ const ProductDetailPage = () => {
                                                 transition={{ duration: 0.25, delay: idx * 0.04 }}
                                                 className="flex items-center justify-between gap-6 px-2 py-4 rounded-lg hover:bg-[rgba(0,0,0,0.02)] transition-colors"
                                             >
-                                                <span className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest shrink-0">{spec?.label}</span>
+                                                <span className="text-[11px] font-bold text-[#86868B] tracking-widest shrink-0">{spec?.label}</span>
                                                 <span className="text-[13px] font-bold text-[#1D1D1F] tracking-tight">{spec?.value}</span>
                                             </motion.div>
                                         ))}
@@ -1092,7 +1092,7 @@ const ProductDetailPage = () => {
                                         {item.icon}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: item.color }}>{item.label}</p>
+                                        <p className="text-[11px] font-black tracking-widest mb-0.5" style={{ color: item.color }}>{item.label}</p>
                                         <p className="font-bold text-[#1D1D1F] text-sm group-hover:underline truncate">{item.value}</p>
                                     </div>
                                 </a>

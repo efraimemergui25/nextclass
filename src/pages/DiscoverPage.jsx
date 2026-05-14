@@ -189,7 +189,7 @@ const DiscoverPage = () => {
                             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 bg-white shadow-sm border border-white/60"
                         >
                             <Sparkles size={11} className="text-[#007AFF]" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#007AFF]">
+                            <span className="text-[10px] font-black tracking-[0.4em] text-[#007AFF]">
                                 {getSetting('discover_eyebrow', 'מרכז הגילוי')}
                             </span>
                         </motion.div>
@@ -258,7 +258,7 @@ const DiscoverPage = () => {
                                     style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.20)' }}
                                 >
                                     <Sparkles size={10} className="text-[#64D2FF]" />
-                                    <span className="text-[9px] font-black text-white uppercase tracking-widest">
+                                    <span className="text-[9px] font-black text-white tracking-widest">
                                         {getSetting('discover_hero_badge', 'נבחרת העונה')}
                                         {hero.sold ? ` · ${hero.sold}+ נמכרו` : ''}
                                     </span>

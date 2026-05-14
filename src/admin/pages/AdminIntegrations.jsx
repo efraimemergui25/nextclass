@@ -303,7 +303,7 @@ function CRMPipeline({ data, loading, refetch }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {contacts?.recent?.length > 0 && (
                     <div>
-                        <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-2">לידים אחרונים</p>
+                        <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-2">לידים אחרונים</p>
                         <div className="space-y-1.5">
                             {contacts.recent.slice(0, 5).map((c, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
@@ -325,7 +325,7 @@ function CRMPipeline({ data, loading, refetch }) {
                 )}
                 {deals?.recent?.length > 0 && (
                     <div>
-                        <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-2">עסקאות אחרונות</p>
+                        <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-2">עסקאות אחרונות</p>
                         <div className="space-y-1.5">
                             {deals.recent.slice(0, 5).map((d, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}

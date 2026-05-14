@@ -129,7 +129,7 @@ const AboutPage = () => {
                         transition={{ duration: 2.5, repeat: Infinity }}
                         className="absolute bottom-8 flex flex-col items-center gap-1.5 text-white/40 z-20"
                     >
-                        <span className="text-[9px] font-black uppercase tracking-widest">{c.journeyHint}</span>
+                        <span className="text-[9px] font-black tracking-widest">{c.journeyHint}</span>
                         <ChevronDown size={16} />
                     </motion.div>
                 </section>
@@ -205,7 +205,7 @@ const AboutPage = () => {
                                 transition={{ duration: 0.55 }}
                                 className="text-right"
                             >
-                                <span className="text-[11px] font-black text-[#007AFF] uppercase tracking-widest block mb-4">הגישה שלנו</span>
+                                <span className="text-[11px] font-black text-[#007AFF] tracking-widest block mb-4">הגישה שלנו</span>
                                 <h2 className="font-black text-[#1D1D1F] leading-[1.0] mb-5"
                                     style={{ fontSize: 'clamp(28px, 4vw, 44px)', letterSpacing: '-0.03em' }}>
                                     קודם שואלים.
@@ -286,7 +286,7 @@ const AboutPage = () => {
                             transition={{ duration: 0.6 }}
                             className="text-right mb-10"
                         >
-                            <span className="text-[11px] font-black text-[#007AFF] uppercase tracking-widest block mb-3">{c.valuesTitle}</span>
+                            <span className="text-[11px] font-black text-[#007AFF] tracking-widest block mb-3">{c.valuesTitle}</span>
                             <h2 className="font-black text-[#1D1D1F]"
                                 style={{ fontSize: 'clamp(28px, 4vw, 44px)', letterSpacing: '-0.03em' }}>
                                 {c.valuesDesc}
@@ -310,7 +310,7 @@ const AboutPage = () => {
                             viewport={{ once: true }}
                             className="text-center mb-10"
                         >
-                            <p className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-widest">סומכים עלינו</p>
+                            <p className="text-[11px] font-black text-[#AEAEB2] tracking-widest">סומכים עלינו</p>
                         </motion.div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             {[
@@ -370,7 +370,7 @@ const AboutPage = () => {
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 mb-8"
                                 style={{ background: 'rgba(255,255,255,0.06)' }}>
                                 <Sparkles size={11} className="text-blue-400" />
-                                <span className="text-[11px] font-black uppercase tracking-widest text-blue-400">בואו נדבר</span>
+                                <span className="text-[11px] font-black tracking-widest text-blue-400">בואו נדבר</span>
                             </div>
 
                             <h2 className="font-black text-white leading-[1.0] mb-5"

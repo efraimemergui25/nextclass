@@ -29,7 +29,7 @@ const ProcurementCart = () => {
 
                     <div className="flex flex-col">
                         {/* Table Header */}
-                        <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gray-100 text-xs font-semibold text-gray-400 tracking-wider uppercase mb-6">
+                        <div className="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-gray-100 text-xs font-semibold text-gray-400 tracking-wider mb-6">
                             <div className="col-span-6">Product</div>
                             <div className="col-span-2 text-center">Quantity</div>
                             <div className="col-span-2 text-right">Tender Unit Price</div>

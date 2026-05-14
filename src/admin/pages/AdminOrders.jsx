@@ -61,7 +61,7 @@ function Stat({ label, value, color, Icon, tooltip }) {
                 <div className="w-1.5 h-1.5 rounded-full mt-1" style={{ background: color }} />
             </div>
             <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[10px] font-bold uppercase tracking-widest mt-1.5 flex items-center gap-0.5">
+            <p className="text-[#86868B] text-[10px] font-bold tracking-widest mt-1.5 flex items-center gap-0.5">
                 {label}{tooltip && <InfoTooltip text={tooltip} />}
             </p>
         </motion.div>
@@ -250,7 +250,7 @@ function QuotesPipeline() {
                 {filtered.length > 0 && (
                     <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-2 text-right">
                         {['', 'מספר / תאריך', 'פרטי קשר', 'שווי הצעה', 'סטטוס', ''].map((h, i) => (
-                            <p key={i} className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                            <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
                         ))}
                     </div>
                 )}
@@ -329,7 +329,7 @@ function QuotesPipeline() {
                         {selected.status !== 'אבד' && (
                             <div className="rounded-2xl p-4"
                                 style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.10)' }}>
-                                <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-2 text-right">מצב ההצעה</p>
+                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">מצב ההצעה</p>
                                 <StatusTimeline status={selected.status} flow={QUOTE_STATUS_FLOW} colors={QUOTE_STATUS_COLORS} />
                             </div>
                         )}
@@ -350,7 +350,7 @@ function QuotesPipeline() {
                             ].map(([l, v]) => v ? (
                                 <div key={l} className="text-right p-3 rounded-xl"
                                     style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                    <p className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-widest">{l}</p>
+                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{l}</p>
                                     <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v}</p>
                                 </div>
                             ) : null)}
@@ -369,7 +369,7 @@ function QuotesPipeline() {
                         {/* Cart items */}
                         {selected.items?.length > 0 && (
                             <div>
-                                <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-3 text-right">פריטים בהצעה</p>
+                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">פריטים בהצעה</p>
                                 <div className="space-y-2">
                                     {selected.items.map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right"
@@ -403,7 +403,7 @@ function QuotesPipeline() {
                         {selected.notes && (
                             <div className="rounded-xl px-4 py-3 text-right"
                                 style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                                <p className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-widest mb-1">הערות לקוח</p>
+                                <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest mb-1">הערות לקוח</p>
                                 <p className="text-[#1D1D1F] text-sm">{selected.notes}</p>
                             </div>
                         )}
@@ -411,7 +411,7 @@ function QuotesPipeline() {
                         {/* Admin notes */}
                         {selected.adminNotes?.length > 0 && (
                             <div>
-                                <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-2 text-right">הערות פנימיות</p>
+                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">הערות פנימיות</p>
                                 <div className="space-y-2">
                                     {selected.adminNotes.map((n, i) => (
                                         <div key={i} className="p-3 rounded-xl text-right"
@@ -426,7 +426,7 @@ function QuotesPipeline() {
 
                         {/* Add admin note */}
                         <div className="border-t border-black/06 pt-4 space-y-2">
-                            <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest text-right">הוסף הערה פנימית</p>
+                            <p className="text-[#86868B] text-[10px] font-black tracking-widest text-right">הוסף הערה פנימית</p>
                             <div className="flex gap-2">
                                 <input
                                     value={noteText}
@@ -443,7 +443,7 @@ function QuotesPipeline() {
 
                         {/* Status change */}
                         <div className="border-t border-black/06 pt-4">
-                            <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-3 text-right">עדכן סטטוס</p>
+                            <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">עדכן סטטוס</p>
                             <div className="flex flex-wrap gap-2 mb-3 justify-end">
                                 {QUOTE_STATUSES.slice(1).map(s => (
                                     <button key={s} type="button" onClick={() => setNewStatus(s)}
@@ -551,7 +551,7 @@ function OrdersList() {
                 {filtered.length > 0 && (
                     <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-2 text-right">
                         {['', 'מס׳ / תאריך', 'לקוח / מוצר', 'סה״כ', 'סטטוס', '', ''].map((h, i) => (
-                            <p key={i} className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                            <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
                         ))}
                     </div>
                 )}
@@ -623,7 +623,7 @@ function OrdersList() {
                         {selected.status !== 'בוטל' && (
                             <div className="rounded-2xl p-4"
                                 style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.10)' }}>
-                                <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-2 text-right">מצב הזמנה</p>
+                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">מצב הזמנה</p>
                                 <StatusTimeline status={selected.status} flow={ORDER_STATUS_FLOW} colors={ORDER_STATUS_COLORS} />
                             </div>
                         )}
@@ -645,14 +645,14 @@ function OrdersList() {
                                 ].map(([l, v]) => (
                                     <div key={l} className="text-right p-3 rounded-xl"
                                         style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                        <p className="text-[#AEAEB2] text-[10px] font-black uppercase tracking-widest">{l}</p>
+                                        <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{l}</p>
                                         <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v || '—'}</p>
                                     </div>
                                 ))}
                             </div>
                         </div>
                         <div className="border-t border-black/06 pt-4">
-                            <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mb-3 text-right">עדכן סטטוס</p>
+                            <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">עדכן סטטוס</p>
                             <div className="flex flex-wrap gap-2 mb-3 justify-end">
                                 {ORDER_STATUSES.slice(1).map(s => (
                                     <button key={s} type="button" onClick={() => setNewStatus(s)}

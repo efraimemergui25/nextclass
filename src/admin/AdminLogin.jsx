@@ -221,7 +221,7 @@ export default function AdminLogin() {
                     {/* Trust line */}
                     <div className="flex items-center justify-center gap-2 mt-5">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
-                        <span className="text-white/20 text-[10px] font-bold uppercase tracking-[0.18em]">גישה מורשית · כל פעולה מתועדת</span>
+                        <span className="text-white/20 text-[10px] font-bold tracking-[0.18em]">גישה מורשית · כל פעולה מתועדת</span>
                     </div>
                 </div>
             </motion.div>

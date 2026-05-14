@@ -31,13 +31,13 @@ function SearchModal({ onClose }) {
         const r = [];
 
         products.filter(p => p.title?.toLowerCase().includes(q) || p.category?.includes(q))
-            .slice(0, 4).forEach(p => r.push({ type: 'product', label: p.title, sub: p.category, icon: '🛍️', action: () => { navigate('/admin/products'); onClose(); } }));
+            .slice(0, 4).forEach(p => r.push({ type: 'product', label: p.title, sub: p.category, action: () => { navigate('/admin/products'); onClose(); } }));
 
         orders.filter(o => o.customer?.includes(q) || o.id?.includes(q) || o.product?.includes(q))
-            .slice(0, 3).forEach(o => r.push({ type: 'order', label: o.customer, sub: `${o.id} · ₪${o.total?.toLocaleString()}`, icon: '📦', action: () => { navigate('/admin/orders'); onClose(); } }));
+            .slice(0, 3).forEach(o => r.push({ type: 'order', label: o.customer, sub: `${o.id} · ₪${o.total?.toLocaleString()}`, action: () => { navigate('/admin/orders'); onClose(); } }));
 
         contacts.filter(c => c.name?.includes(q) || c.email?.includes(q) || c.subject?.includes(q))
-            .slice(0, 2).forEach(c => r.push({ type: 'contact', label: c.name, sub: c.subject, icon: '✉️', action: () => { navigate('/admin/customers'); onClose(); } }));
+            .slice(0, 2).forEach(c => r.push({ type: 'contact', label: c.name, sub: c.subject, action: () => { navigate('/admin/customers'); onClose(); } }));
 
         return r;
     }, [query, products, orders, contacts, navigate, onClose]);
@@ -84,7 +84,13 @@ function SearchModal({ onClose }) {
                         <motion.button key={i} onClick={r.action}
                             whileHover={{ background: '#F5F5F7' }}
                             className="w-full flex items-center gap-4 px-5 py-3.5 text-right border-b border-black/04 last:border-0 transition-colors">
-                            <span className="text-lg shrink-0">{r.icon}</span>
+                            <span className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: r.type === 'product' ? '#007AFF18' : r.type === 'order' ? '#FF950018' : '#5856D618' }}>
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke={r.type === 'product' ? '#007AFF' : r.type === 'order' ? '#FF9500' : '#5856D6'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                    {r.type === 'product' && <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>}
+                                    {r.type === 'order'   && <><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4a1 1 0 011 1v9a1 1 0 01-1 1H8a1 1 0 01-1-1v-4"/></>}
+                                    {r.type === 'contact' && <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 0l8 8 8-8"/>}
+                                </svg>
+                            </span>
                             <div className="flex-1 min-w-0">
                                 <p className="text-[#1D1D1F] text-sm font-bold line-clamp-1">{r.label}</p>
                                 <p className="text-[#AEAEB2] text-xs line-clamp-1">{r.sub}</p>

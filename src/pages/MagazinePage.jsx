@@ -79,7 +79,7 @@ function getColor(cat) { return CATEGORY_COLORS[cat] ?? { bg: 'bg-blue-50', text
 function CategoryBadge({ cat, size = 'sm' }) {
     const c = getColor(cat);
     return (
-        <span className={`inline-flex items-center gap-1.5 ${c.bg} ${c.text} font-black ${size === 'lg' ? 'text-[10px] px-3.5 py-1.5' : 'text-[9px] px-3 py-1'} rounded-full uppercase tracking-[0.18em]`}>
+        <span className={`inline-flex items-center gap-1.5 ${c.bg} ${c.text} font-black ${size === 'lg' ? 'text-[10px] px-3.5 py-1.5' : 'text-[9px] px-3 py-1'} rounded-full tracking-[0.18em]`}>
             <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
             {cat}
         </span>
@@ -107,7 +107,7 @@ function HeroCard({ article }) {
             </div>
             <div className="absolute bottom-0 right-0 left-0 p-7 md:p-10 text-right">
                 <div className="flex items-center gap-3 mb-4 justify-end">
-                    <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider">{article.source}</span>
+                    <span className="text-white/50 text-[10px] font-bold tracking-wider">{article.source}</span>
                     <CategoryBadge cat={article.category} size="lg" />
                 </div>
                 <h2 className="font-apple-display text-white text-2xl md:text-4xl tracking-tighter leading-tight mb-3 max-w-2xl mr-auto">
@@ -150,7 +150,7 @@ function ArticleCard({ article, index }) {
                 <div className="absolute top-3 right-3"><CategoryBadge cat={article.category} /></div>
             </div>
             <div className="flex flex-col flex-grow p-5 text-right">
-                <p className="text-[9px] font-bold text-[#AEAEB2] uppercase tracking-wider mb-2">{article.source}</p>
+                <p className="text-[9px] font-bold text-[#AEAEB2] tracking-wider mb-2">{article.source}</p>
                 <h3 className="font-apple-display text-[#1D1D1F] text-[18px] leading-tight tracking-tight mb-2 line-clamp-2 group-hover:text-[#007AFF] transition-colors duration-300">
                     {article.title}
                 </h3>
@@ -199,7 +199,7 @@ const MagazinePage = () => {
 
                     {/* Header */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-12">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-7 border border-blue-100">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] tracking-[0.25em] mb-7 border border-blue-100">
                             <Sparkles size={10} /><span>NextClass Institute · מגזין חדשנות פדגוגית</span>
                         </div>
                         <h1 className="font-apple-display text-[#1D1D1F] text-4xl md:text-7xl tracking-tighter leading-[0.95] mb-5">

@@ -150,7 +150,7 @@ function TemplateEditor({ template, onSave, onCancel }) {
 
     return (
         <div className="rounded-2xl p-5 mb-4" style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.08)' }}>
-            <p className="text-[12px] font-black text-[#1D1D1F] mb-4 uppercase tracking-widest">עריכת תבנית</p>
+            <p className="text-[12px] font-black text-[#1D1D1F] mb-4 tracking-widest">עריכת תבנית</p>
             <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
                     <label className="text-[11px] font-bold text-[#86868B] block mb-1.5">שם התבנית</label>
@@ -284,7 +284,7 @@ function CustomerCard({ lead, onStatusChange }) {
                                     boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                                 }}
                             >
-                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest px-2 py-1 mb-1">שנה סטטוס</p>
+                                <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest px-2 py-1 mb-1">שנה סטטוס</p>
                                 {Object.entries(STATUSES).map(([s, meta]) => (
                                     <button
                                         key={s}
@@ -315,7 +315,7 @@ function CustomerCard({ lead, onStatusChange }) {
                         style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.05)' }}
                     >
                         <div className="flex items-center justify-end gap-1.5 mb-1">
-                            <span className="text-[10px] font-black text-[#86868B] uppercase tracking-wider">{label}</span>
+                            <span className="text-[10px] font-black text-[#86868B] tracking-wider">{label}</span>
                             <Icon className="w-3 h-3 text-[#AEAEB2]" strokeWidth={2} />
                         </div>
                         <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{value}</p>
@@ -327,7 +327,7 @@ function CustomerCard({ lead, onStatusChange }) {
             {(total || lead.scale || lead.budget || equipment.length > 0) && (
                 <div className="rounded-xl p-4 mb-3 text-right"
                     style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.12)' }}>
-                    <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-widest mb-3">פרטי הצעה</p>
+                    <p className="text-[10px] font-black text-[#007AFF] tracking-widest mb-3">פרטי הצעה</p>
                     <div className="grid grid-cols-3 gap-3 mb-3">
                         {total && (
                             <div>
@@ -384,7 +384,7 @@ function CustomerCard({ lead, onStatusChange }) {
                 <div className="rounded-xl p-3 text-right"
                     style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRight: '3px solid #F59E0B' }}>
                     <div className="flex items-center justify-end gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-black text-[#D97706] uppercase tracking-wider">הערות</span>
+                        <span className="text-[10px] font-black text-[#D97706] tracking-wider">הערות</span>
                         <StickyNote className="w-3 h-3 text-[#D97706]" strokeWidth={2} />
                     </div>
                     <p className="text-[12px] text-[#374151] leading-relaxed">{lead.notes}</p>
@@ -656,7 +656,7 @@ export default function AdminCommunications() {
                             }}
                         >
                             <div className="flex items-center justify-between mb-4">
-                                <p className="text-[12px] font-black text-[#1D1D1F] uppercase tracking-widest">תבניות מהירות</p>
+                                <p className="text-[12px] font-black text-[#1D1D1F] tracking-widest">תבניות מהירות</p>
                                 <button
                                     onClick={() => { setAddingTpl(true); setEditingTpl(null); }}
                                     className="flex items-center gap-1 text-[12px] font-black text-[#007AFF] hover:text-[#0055D4] transition-colors"

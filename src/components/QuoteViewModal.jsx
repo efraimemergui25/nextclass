@@ -67,7 +67,7 @@ const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
                             {/* Quote Header */}
                             <div className="flex justify-between items-start mb-12 border-b-2 border-gray-900 pb-8">
                                 <div>
-                                    <h1 className="text-3xl md:text-5xl font-black tracking-tight text-[#1D1D1F] mb-2 uppercase">NextClass</h1>
+                                    <h1 className="text-3xl md:text-5xl font-black tracking-tight text-[#1D1D1F] mb-2">NextClass</h1>
                                     <p className="text-gray-500 font-medium">הצעת מחיר מוסדית רשמית</p>
                                 </div>
                                 <div className="text-left text-sm font-medium text-gray-600 leading-relaxed">
@@ -110,7 +110,7 @@ const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 text-sm text-gray-500 uppercase tracking-wider">{item.id.split('-')[0].substring(0, 6)}</td>
+                                                <td className="py-4 text-sm text-gray-500 tracking-wider">{item.id.split('-')[0].substring(0, 6)}</td>
                                                 <td className="py-4 font-bold text-[#1D1D1F]">{item.quantity}</td>
                                                 <td className="py-4 font-medium text-gray-600">₪{item.price.toLocaleString()}</td>
                                                 <td className="py-4 font-bold text-[#1D1D1F]">₪{(item.price * item.quantity).toLocaleString()}</td>
@@ -123,7 +123,7 @@ const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
                             {/* Quote Summary Footer */}
                             <div className="flex flex-col md:flex-row justify-between items-end border-t-2 border-gray-900 pt-8 gap-8">
                                 <div className="text-sm text-gray-500 font-medium max-w-sm">
-                                    <h4 className="font-bold text-[#1D1D1F] mb-2 uppercase tracking-wide text-xs">תנאים והערות</h4>
+                                    <h4 className="font-bold text-[#1D1D1F] mb-2 tracking-wide text-xs">תנאים והערות</h4>
                                     <p>המחירים כוללים מע"מ ואינם כוללים עלויות הובלה והתקנה אלא אם צוין אחרת. זמן אספקה משוער 14-21 ימי עסקים.</p>
                                 </div>
                                 <div className="bg-gray-50 print:bg-transparent p-6 rounded-xl min-w-[300px] border border-gray-100 print:border-none print:p-0">

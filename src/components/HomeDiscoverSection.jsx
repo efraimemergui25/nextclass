@@ -86,7 +86,7 @@ const CategoryCard = ({ cat, products, theme, index, isWide }) => {
                     {/* Top: product count badge */}
                     <div className="flex justify-end">
                         <span
-                            className="text-[9px] font-black uppercase tracking-[0.3em] px-3 py-1.5 rounded-full"
+                            className="text-[9px] font-black tracking-[0.3em] px-3 py-1.5 rounded-full"
                             style={{
                                 background: `${theme.accent}22`,
                                 color: theme.accent,
@@ -164,7 +164,7 @@ const HomeDiscoverSection = () => {
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] uppercase tracking-[0.25em] mb-7 shadow-sm border border-white/60"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] tracking-[0.25em] mb-7 shadow-sm border border-white/60"
                     >
                         <Sparkles size={11} strokeWidth={2.5} />
                         <span>{eyebrow}</span>

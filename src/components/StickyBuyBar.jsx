@@ -24,7 +24,7 @@ const StickyBuyBar = ({ isVisible, product, activeColor, formattedPrice, isInCar
                             <h3 className="text-sm font-black text-[#1D1D1F] tracking-tighter truncate max-w-[140px] md:max-w-[200px]">
                                 {product?.title}
                             </h3>
-                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">{activeColor?.name}</span>
+                            <span className="text-[10px] font-bold text-gray-400 tracking-widest">{activeColor?.name}</span>
                         </div>
                     </div>
 

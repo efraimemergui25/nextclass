@@ -435,7 +435,7 @@ export default function AdminSidebar({ collapsed, onToggle }) {
                                             {ICONS[group.icon]}
                                         </svg>
 
-                                        {/* Group label — no uppercase (Hebrew has no case) */}
+                                        {/* Group label — no (Hebrew has no case) */}
                                         <span
                                             className="flex-1 text-right text-[11.5px] font-bold tracking-tight relative z-10 transition-colors"
                                             style={{ color: isGroupActive ? group.accent : '#6E6E73' }}

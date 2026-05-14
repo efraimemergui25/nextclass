@@ -123,7 +123,7 @@ const CatalogGrid = () => {
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] uppercase tracking-[0.2em] mb-8 shadow-sm border border-white/50"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] tracking-[0.2em] mb-8 shadow-sm border border-white/50"
                 >
                     <Sparkles size={11} strokeWidth={2.5} />
                     <span>{content.eyebrow}</span>
@@ -292,7 +292,7 @@ const CatalogGrid = () => {
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar" dir="rtl">
                                     {/* Sort Section */}
                                     <section className="mb-14">
-                                        <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em] mb-6">{content.sortLabel}</p>
+                                        <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em] mb-6">{content.sortLabel}</p>
                                         <div className="grid grid-cols-1 gap-3">
                                             {[
                                                 { id: 'default', label: content.sortRel },
@@ -314,7 +314,7 @@ const CatalogGrid = () => {
                                     {/* Price Range Section */}
                                     <section className="mb-14">
                                         <div className="flex justify-between items-center mb-6">
-                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">{content.priceLabel}</p>
+                                            <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em]">{content.priceLabel}</p>
                                             <span className="text-base font-black text-[#1D1D1F]">עד ₪{priceRange[1].toLocaleString()}</span>
                                         </div>
                                         <div className="px-2">
@@ -341,7 +341,7 @@ const CatalogGrid = () => {
                                     {/* Feature Tag Filters */}
                                     <section className="mb-14">
                                         <div className="flex items-center justify-between mb-6">
-                                            <p className="text-[10px] font-black text-[#007AFF] uppercase tracking-[0.3em]">{content.tagsLabel}</p>
+                                            <p className="text-[10px] font-black text-[#007AFF] tracking-[0.3em]">{content.tagsLabel}</p>
                                             {selectedTags.length > 0 && (
                                                 <button onClick={() => setSelectedTags([])} className="text-[10px] font-bold text-gray-400 hover:text-[#1D1D1F] transition-colors">
                                                     נקה הכל
@@ -499,7 +499,7 @@ const ListCard = ({ product }) => {
                 {/* Content Section */}
                 <div className="relative z-10 flex-1 text-right min-w-0 pr-2">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#007AFF] bg-blue-50 px-3 py-1 rounded-full border border-blue-100/40">
+                        <span className="text-[10px] font-black tracking-[0.2em] text-[#007AFF] bg-blue-50 px-3 py-1 rounded-full border border-blue-100/40">
                             {category}
                         </span>
                     </div>
@@ -514,7 +514,7 @@ const ListCard = ({ product }) => {
                             <div className="text-xl sm:text-3xl font-bold text-[#1D1D1F] tabular-nums tracking-tighter">
                                 {formattedPrice}
                             </div>
-                            <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-1">
+                            <div className="text-[10px] font-black text-gray-300 tracking-[0.2em] mt-1">
                                 {getSetting('catalog_inst_price_label', 'מחיר מוסדי')}
                             </div>
                         </div>

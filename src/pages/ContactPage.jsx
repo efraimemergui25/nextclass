@@ -163,7 +163,7 @@ const ContactPage = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-10 border border-blue-100"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] tracking-[0.25em] mb-10 border border-blue-100"
                     >
                         <Clock size={10} className="animate-spin-slow" />
                         <span>{contactContent.timeHint}{currentTime}</span>
@@ -201,7 +201,7 @@ const ContactPage = () => {
                                         <MessageSquare size={32} />
                                     </div>
                                     <div className="text-left">
-                                        <div className="flex items-center gap-2 text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-full">
+                                        <div className="flex items-center gap-2 text-[9px] font-black text-green-500 tracking-widest bg-green-50 px-3 py-1 rounded-full">
                                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                             {contactContent.waLabel}
                                         </div>
@@ -240,7 +240,7 @@ const ContactPage = () => {
                                                 {item.icon}
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">{item.label}</p>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest">{item.label}</p>
                                                 <p className="text-lg font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.val}</p>
                                             </div>
                                         </a>
@@ -294,7 +294,7 @@ const ContactPage = () => {
                                             </div>
                                             {/* ── Topic pills ── */}
                                             <div className="mb-5 p-5 rounded-2xl" style={{ background: 'rgba(248,248,250,0.7)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.85)', boxShadow: '0 2px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
-                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em] text-right mb-3">מה מעניין אותך?</p>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] tracking-[0.22em] text-right mb-3">מה מעניין אותך?</p>
                                                 <div className="flex flex-wrap gap-2" dir="rtl">
                                                     {['מסכים אינטראקטיביים', 'מחשבים לכיתה', 'ציוד חינוכי', 'פתרון לבית ספר שלם', 'ייעוץ ראשוני', 'מכרז ממשלתי', 'אחר'].map(topic => (
                                                         <button
@@ -323,7 +323,7 @@ const ContactPage = () => {
 
                                             {/* ── Institution size ── */}
                                             <div className="mb-6 p-5 rounded-2xl" style={{ background: 'rgba(248,248,250,0.7)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.85)', boxShadow: '0 2px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
-                                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em] text-right mb-3">גודל המוסד</p>
+                                                <p className="text-[10px] font-black text-[#AEAEB2] tracking-[0.22em] text-right mb-3">גודל המוסד</p>
                                                 <div className="grid grid-cols-4 gap-2" dir="rtl">
                                                     {['1–5 כיתות', '6–15 כיתות', '15+ כיתות', 'אחר'].map(size => (
                                                         <button

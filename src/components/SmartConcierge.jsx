@@ -460,7 +460,7 @@ ${catalogInfo}`;
                             <div className="flex items-center gap-3 flex-1 justify-end">
                                 <div className="text-right">
                                     <h3 className="text-[16px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_title', 'NextClass AI')}</h3>
-                                    <p className="text-[9px] text-[#007AFF] font-black uppercase tracking-[0.2em] mt-0.5 opacity-70">{getSetting('ai_role', 'Institutional Concierge')}</p>
+                                    <p className="text-[9px] text-[#007AFF] font-black tracking-[0.2em] mt-0.5 opacity-70">{getSetting('ai_role', 'Institutional Concierge')}</p>
                                 </div>
                                 <div className="relative shrink-0">
                                     <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center shadow-lg transform rotate-2">
@@ -553,7 +553,7 @@ ${catalogInfo}`;
                         {activeTab === 'accessibility' && (
                             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 custom-scrollbar" style={{ background: '#F2F3F7' }} dir="rtl">
                                 <div>
-                                    <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                    <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-3 flex items-center gap-1.5">
                                         <Type size={12} />
                                         גודל גופן: {a11y.fontSize}%
                                     </p>
@@ -591,7 +591,7 @@ ${catalogInfo}`;
                                 </div>
                                 <div className="text-center space-y-2">
                                     <h3 className="text-[20px] font-black text-[#1D1D1F] tracking-tight">{getSetting('ai_wa_label', 'מענה אנושי בוואטסאפ')}</h3>
-                                    <p className="text-[13px] text-[#86868B] font-medium">{getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת ✅')}</p>
+                                    <p className="text-[13px] text-[#86868B] font-medium">{getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת')}</p>
                                 </div>
                                 <div className="text-center w-full px-4 py-4 rounded-3xl" style={{ background: 'rgba(37,211,102,0.07)', border: '1px solid rgba(37,211,102,0.18)' }}>
                                     <p className="text-[11px] font-bold text-[#1D1D1F]/50 mb-1">שעות זמינות</p>
@@ -642,7 +642,7 @@ ${catalogInfo}`;
                                 {isHovered && (
                                     <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col items-end pr-1">
                                         <span className="text-[12px] font-black text-white leading-none">{getSetting('ai_fab_label', 'העוזר החכם')}</span>
-                                        <span className="text-[8px] font-bold text-white/50 uppercase tracking-[0.1em] mt-1">Chat Support</span>
+                                        <span className="text-[8px] font-bold text-white/50 tracking-[0.1em] mt-1">Chat Support</span>
                                     </motion.div>
                                 )}
                             </motion.div>

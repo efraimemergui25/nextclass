@@ -118,7 +118,7 @@ const ProductQA = ({ productId }) => {
                         <form onSubmit={handleSubmit} className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-inner space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest px-2">השם שלך (אופציונלי)</label>
+                                    <label className="text-xs font-black text-gray-400 tracking-widest px-2">השם שלך (אופציונלי)</label>
                                     <input 
                                         type="text"
                                         value={userName}
@@ -128,7 +128,7 @@ const ProductQA = ({ productId }) => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest px-2">השאלה שלך</label>
+                                    <label className="text-xs font-black text-gray-400 tracking-widest px-2">השאלה שלך</label>
                                     <input 
                                         required
                                         type="text"
@@ -204,7 +204,7 @@ const QuestionItem = ({ item }) => {
                     </div>
                     
                     {item.answers?.length > 0 && (
-                        <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-black tracking-wider">
                             <ShieldCheck size={12} />
                             נענה
                         </div>
@@ -216,7 +216,7 @@ const QuestionItem = ({ item }) => {
                         {item.answers.map((ans, i) => (
                             <div key={i} className="bg-gray-50 rounded-2xl p-6 border-r-4 border-[#007AFF]/20">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#007AFF]">תשובת צוות NextClass</span>
+                                    <span className="text-[10px] font-black tracking-widest text-[#007AFF]">תשובת צוות NextClass</span>
                                     <ShieldCheck size={12} className="text-[#007AFF]" />
                                 </div>
                                 <p className="text-base text-gray-600 font-medium leading-relaxed">{ans.text}</p>

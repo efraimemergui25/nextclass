@@ -29,7 +29,7 @@ function Section({ s, open, onToggle, index }) {
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'right' }}
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{s.icon}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#007AFF', display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F' }}>{s.title}</span>
                 </div>
                 <motion.span
@@ -96,7 +96,6 @@ function Section({ s, open, onToggle, index }) {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, marginTop: s.content ? 16 : 0 }}>
                                     {s.rights.map((r, i) => (
                                         <div key={i} style={{ padding: '16px', borderRadius: 14, background: '#F9F9FB', border: '1px solid #E5E5EA' }}>
-                                            <div style={{ fontSize: 22, marginBottom: 8 }}>{r.icon}</div>
                                             <div style={{ fontSize: 14, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>{r.title}</div>
                                             <div style={{ fontSize: 13, color: '#8E8E93', lineHeight: 1.5 }}>{r.desc}</div>
                                         </div>
@@ -202,7 +201,7 @@ export default function PrivacyPage() {
                 {/* Hero */}
                 <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#007AFF12', border: '1px solid #007AFF28', borderRadius: 50, padding: '5px 14px', marginBottom: 20 }}>
-                        <span style={{ fontSize: 13 }}>🔒</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#007AFF', letterSpacing: 0.2 }}>מדיניות פרטיות</span>
                     </div>
                     <h1 style={{ fontSize: 'clamp(30px, 5vw, 46px)', fontWeight: 800, color: '#1D1D1F', margin: '0 0 10px', letterSpacing: -1.2, lineHeight: 1.1 }}>

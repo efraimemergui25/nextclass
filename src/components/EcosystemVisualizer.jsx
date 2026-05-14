@@ -134,7 +134,7 @@ const Hotspot = memo(({ spot }) => {
 
                             {/* Info */}
                             <div className="p-3 text-right">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#007AFF] block mb-0.5">
+                                <span className="text-[10px] font-bold tracking-widest text-[#007AFF] block mb-0.5">
                                     {spot.product.category}
                                 </span>
                                 <p className="text-xs font-bold text-[#1D1D1F] leading-snug line-clamp-2 mb-2">
@@ -218,7 +218,7 @@ const EcosystemVisualizer = () => {
                 transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
                 className="text-right mb-12"
             >
-                <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-3">
+                <span className="text-[#007AFF] font-bold text-sm tracking-widest block mb-3">
                     {content.badge}
                 </span>
                 <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[#1D1D1F] mb-3">

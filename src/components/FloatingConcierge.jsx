@@ -71,7 +71,7 @@ const FloatingConcierge = () => {
                         className="bg-white/70 backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/80 shadow-[0_10px_40px_rgb(0_0_0/0.12)] rounded-2xl p-2 flex flex-col gap-1.5 min-w-[200px]"
                     >
                         {/* Header label */}
-                        <p className="text-[11px] font-bold text-[#86868B] uppercase tracking-widest px-3 pt-1.5 pb-0.5 text-right">
+                        <p className="text-[11px] font-bold text-[#86868B] tracking-widest px-3 pt-1.5 pb-0.5 text-right">
                             {content.header}
                         </p>
 

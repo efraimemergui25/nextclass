@@ -21,7 +21,7 @@ const AcademyCard = ({ title, duration, category, image, level }) => (
         </div>
         <div className="p-8 text-right">
             <div className="flex items-center justify-end gap-2 mb-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#007AFF]">{category}</span>
+                <span className="text-[9px] font-black tracking-[0.2em] text-[#007AFF]">{category}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] shadow-[0_0_8px_rgba(0,122,255,0.4)]" />
             </div>
             <h3 className="text-2xl font-apple-display text-[#1D1D1F] mb-6 leading-tight tracking-tight">{title}</h3>
@@ -49,7 +49,7 @@ const PathCard = ({ title, count, icon: Icon, color }) => (
         </div>
         <div className="flex-1 text-right">
             <h4 className="text-lg font-bold text-[#1D1D1F] tracking-tight">{title}</h4>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{count} מדריכים זמינים</p>
+            <p className="text-[10px] font-black text-gray-400 tracking-widest">{count} מדריכים זמינים</p>
         </div>
         <ChevronLeft className="text-gray-300 group-hover:text-[#007AFF] transition-colors" size={18} />
     </motion.div>
@@ -80,7 +80,7 @@ const SupportPage = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] uppercase tracking-[0.25em] mb-10 border border-blue-100"
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-[#007AFF] font-bold text-[9px] tracking-[0.25em] mb-10 border border-blue-100"
                     >
                         <Sparkles size={10} className="animate-glow-pulse" />
                         <span>NextClass Institute • המרכז לחדשנות פדגוגית</span>
@@ -158,7 +158,7 @@ const SupportPage = () => {
 
                             {/* Learning Paths */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-black text-gray-400 uppercase tracking-widest text-right px-4 mb-4">מסלולי למידה</h3>
+                                <h3 className="text-lg font-black text-gray-400 tracking-widest text-right px-4 mb-4">מסלולי למידה</h3>
                                 {learningPaths.map((path, i) => (
                                     <PathCard key={i} {...path} />
                                 ))}
@@ -166,7 +166,7 @@ const SupportPage = () => {
 
                             {/* Resources Mini-Grid */}
                             <div className="glass-apple p-8 rounded-[2rem] border border-white/60 bg-white/40">
-                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.25em] text-right mb-8">משאבים נוספים</h4>
+                                <h4 className="text-[9px] font-black text-gray-400 tracking-[0.25em] text-right mb-8">משאבים נוספים</h4>
                                 <div className="space-y-6">
                                     {[
                                         { icon: <Download />, label: 'מרכז הדרייברים', sub: 'v13.4' },
@@ -176,7 +176,7 @@ const SupportPage = () => {
                                         <div key={i} className="flex items-center justify-end gap-4 group cursor-pointer">
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-[#1D1D1F] group-hover:text-[#007AFF] transition-colors">{item.label}</p>
-                                                <p className="text-[10px] font-black text-gray-400 uppercase opacity-60">{item.sub}</p>
+                                                <p className="text-[10px] font-black text-gray-400 opacity-60">{item.sub}</p>
                                             </div>
                                             <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:bg-[#007AFF] group-hover:text-white transition-all">
                                                 {React.cloneElement(item.icon, { size: 16 })}

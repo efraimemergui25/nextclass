@@ -233,7 +233,7 @@ function AddUrlDialog({ onAdd, onClose }) {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">URL תמונה</label>
+                            <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">URL תמונה</label>
                             <input
                                 type="text"
                                 value={url}
@@ -245,7 +245,7 @@ function AddUrlDialog({ onAdd, onClose }) {
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">שם (אופציונלי)</label>
+                            <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">שם (אופציונלי)</label>
                             <input
                                 type="text"
                                 value={name}
@@ -574,7 +574,7 @@ export default function AdminMedia() {
                             </div>
                             <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{s.value}</span>
                         </div>
-                        <p className="text-[10px] font-black text-[#86868B] uppercase tracking-widest">{s.label}</p>
+                        <p className="text-[10px] font-black text-[#86868B] tracking-widest">{s.label}</p>
                     </motion.div>
                 ))}
             </div>

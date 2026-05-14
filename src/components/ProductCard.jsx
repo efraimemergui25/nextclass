@@ -23,7 +23,7 @@ const ImageFallback = memo(() => (
         <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">nextclass</span>
+        <span className="text-xs font-bold text-gray-300 tracking-widest">nextclass</span>
     </div>
 ));
 ImageFallback.displayName = 'ImageFallback';
@@ -237,7 +237,7 @@ const ProductCard = ({ product }) => {
                             }`}>
                                 <Sparkles size={11} className="text-white" />
                                 <span className="text-[10px] font-black text-white tracking-wide">
-                                    {_isBestSeller ? 'נמכר ביותר 🔥' : 'חדש ✨'}
+                                    {_isBestSeller ? 'נמכר ביותר' : 'חדש'}
                                 </span>
                             </div>
                         )}
@@ -261,7 +261,7 @@ const ProductCard = ({ product }) => {
                     {/* ── Text Content ─────────────────────────────────────── */}
                     <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-6">
                         {category && (
-                            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
+                            <span className="text-[11px] font-bold tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
                         )}
                         <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
                         {description && (
@@ -282,7 +282,7 @@ const ProductCard = ({ product }) => {
                             {(stockStatus || sold > 0) && (
                                 <div className="flex items-center gap-3 justify-end mb-1.5">
                                     {stockStatus && (
-                                        <div className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${
+                                        <div className={`text-[9px] font-black tracking-widest flex items-center gap-1 ${
                                             stockStatus === 'ok' ? 'text-[#34C759]' : stockStatus === 'low' ? 'text-[#FF9F0A]' : 'text-[#FF375F]'
                                         }`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${stockStatus === 'ok' ? 'bg-[#34C759]' : stockStatus === 'low' ? 'bg-[#FF9F0A]' : 'bg-[#FF375F]'}`} />

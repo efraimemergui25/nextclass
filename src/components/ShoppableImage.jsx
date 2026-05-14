@@ -79,7 +79,7 @@ const ShoppableImage = () => {
 
                 {/* Section Header */}
                 <div className="text-right mb-8 max-w-3xl w-full" dir="rtl">
-                    <span className="text-[#007AFF] font-bold text-sm uppercase tracking-widest block mb-3">
+                    <span className="text-[#007AFF] font-bold text-sm tracking-widest block mb-3">
                         {content.eyebrow}
                     </span>
                     <h2 className="text-2xl md:text-4xl font-black text-[#1D1D1F] tracking-tighter mb-3 leading-[1.1]">
@@ -171,7 +171,7 @@ const ShoppableImage = () => {
                                         {/* Card Body */}
                                         <div className="p-4 text-right" dir="rtl">
                                             {spot.product.category && (
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#007AFF] block mb-1">
+                                                <span className="text-[10px] font-black tracking-[0.2em] text-[#007AFF] block mb-1">
                                                     {spot.product.category.split(' ')[0]}
                                                 </span>
                                             )}

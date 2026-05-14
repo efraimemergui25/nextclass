@@ -81,7 +81,7 @@ function ProductCard({ product, onEdit }) {
                 </div>
                 {isInactive && (
                     <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex items-center justify-center">
-                        <span className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מושבת</span>
+                        <span className="text-[10px] font-black text-[#AEAEB2] tracking-widest">מושבת</span>
                     </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -92,7 +92,7 @@ function ProductCard({ product, onEdit }) {
                 </div>
             </div>
             <div className="p-4">
-                <p className="text-[#AEAEB2] text-[9px] font-black uppercase tracking-widest mb-1">{product.category}</p>
+                <p className="text-[#AEAEB2] text-[9px] font-black tracking-widest mb-1">{product.category}</p>
                 <h3 className="text-[#1D1D1F] font-black text-sm leading-tight line-clamp-2 mb-3">{product.title}</h3>
                 <div className="flex items-center justify-between">
                     <div>
@@ -349,10 +349,10 @@ export default function AdminProducts() {
                     {filtered.length > 0 && (
                         <div className="hidden lg:flex items-center gap-4 px-6 py-2">
                             <div className="w-14 shrink-0" />
-                            <p className="flex-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2] text-right">מוצר</p>
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2] shrink-0">סטטוס</p>
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2] w-16 text-center shrink-0">מלאי</p>
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#AEAEB2] w-28 text-left shrink-0">מחיר</p>
+                            <p className="flex-1 text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] text-right">מוצר</p>
+                            <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] shrink-0">סטטוס</p>
+                            <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] w-16 text-center shrink-0">מלאי</p>
+                            <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] w-28 text-left shrink-0">מחיר</p>
                             <div className="w-4 shrink-0" />
                         </div>
                     )}
@@ -401,7 +401,7 @@ export default function AdminProducts() {
                         <AdminInput label="מחיר רגיל (₪)" type="number" value={String(editForm.price)} onChange={v => setField('price', v)} placeholder="0" />
                         <AdminInput label="מחיר מבצע (₪)" type="number" value={String(editForm.salePrice || '')} onChange={v => setField('salePrice', v)} placeholder="ריק = ללא מבצע" />
                         <div>
-                            <label className="block text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em] mb-1.5">SKU</label>
+                            <label className="block text-[#6E6E73] text-[10px] font-black tracking-[0.18em] mb-1.5">SKU</label>
                             <div className="flex gap-1">
                                 <input value={editForm.sku || ''} onChange={e => setField('sku', e.target.value)} dir="ltr"
                                     placeholder="SKU-001"
@@ -422,7 +422,7 @@ export default function AdminProducts() {
                     </div>
 
                     <div>
-                        <label className="block text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em] mb-1.5">קטגוריה</label>
+                        <label className="block text-[#6E6E73] text-[10px] font-black tracking-[0.18em] mb-1.5">קטגוריה</label>
                         <select value={editForm.category} onChange={e => setField('category', e.target.value)} dir="rtl"
                             className="w-full bg-white border border-black/12 rounded-xl px-4 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#007AFF]/60">
                             {CATEGORIES.slice(1).map(c => <option key={c} value={c}>{c}</option>)}
@@ -457,15 +457,15 @@ export default function AdminProducts() {
 
                     {/* Storefront badges */}
                     <div className="bg-[#F5F5F7] rounded-2xl p-4 space-y-3">
-                        <p className="text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em] text-right">תגיות חלון ראווה</p>
+                        <p className="text-[#6E6E73] text-[10px] font-black tracking-[0.18em] text-right">תגיות חלון ראווה</p>
                         <AdminToggle
-                            label="מוצר חדש ✨"
+                            label="מוצר חדש"
                             sub="מציג badge 'חדש' בקטלוג ובדף גילוי"
                             value={editForm.isNew}
                             onChange={v => setField('isNew', v)}
                         />
                         <AdminToggle
-                            label="מוצר מוצג (Featured) 🌟"
+                            label="מוצר מוצג (Featured)"
                             sub="מופיע ב-Hero Spotlight בדף גילוי — רק מוצר אחד"
                             value={editForm.isFeatured}
                             onChange={v => setField('isFeatured', v)}
@@ -477,7 +477,7 @@ export default function AdminProducts() {
                         <div className="flex items-center justify-between mb-2">
                             <button type="button" onClick={addSpec}
                                 className="text-[#007AFF] text-xs font-bold hover:underline">+ הוסף מפרט</button>
-                            <label className="text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em]">מפרט טכני</label>
+                            <label className="text-[#6E6E73] text-[10px] font-black tracking-[0.18em]">מפרט טכני</label>
                         </div>
                         <div className="space-y-2">
                             {(editForm.specs || []).map((s, i) => (
@@ -494,7 +494,7 @@ export default function AdminProducts() {
                         <div className="flex items-center justify-between mb-2">
                             <button type="button" onClick={addDimension}
                                 className="text-[#5856D6] text-xs font-bold hover:underline">+ הוסף מידה</button>
-                            <label className="text-[#6E6E73] text-[10px] font-black uppercase tracking-[0.18em]">מידות המוצר</label>
+                            <label className="text-[#6E6E73] text-[10px] font-black tracking-[0.18em]">מידות המוצר</label>
                         </div>
                         <div className="space-y-2">
                             {(editForm.dimensions || []).map((d, i) => (

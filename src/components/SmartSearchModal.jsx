@@ -91,7 +91,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                             {searchTerm.trim() === '' ? (
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 text-[#86868B] mb-5 justify-end">
-                                        <span className="text-xs font-bold uppercase tracking-widest">{searchContent.popularLabel}</span>
+                                        <span className="text-xs font-bold tracking-widest">{searchContent.popularLabel}</span>
                                         <TrendingUp className="w-4 h-4" />
                                     </div>
                                     <div className="flex flex-wrap gap-2.5 justify-end">
@@ -132,7 +132,7 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
                                                 <h4 className="font-bold text-[#1D1D1F] text-lg line-clamp-1">
                                                     {product.title}
                                                 </h4>
-                                                <p className="text-xs font-bold text-[#86868B] uppercase tracking-widest">
+                                                <p className="text-xs font-bold text-[#86868B] tracking-widest">
                                                     {product.category}
                                                 </p>
                                             </div>
@@ -166,11 +166,11 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
 
                         {/* Micro-Interaction Footer */}
                         <div className="px-6 py-3 bg-black/5 border-t border-gray-100/50 flex justify-between items-center">
-                            <div className="flex items-center gap-4 text-[10px] font-bold text-[#86868B] uppercase tracking-widest">
+                            <div className="flex items-center gap-4 text-[10px] font-bold text-[#86868B] tracking-widest">
                                 <span className="flex items-center gap-1"><span className="px-1 py-0.5 rounded bg-white shadow-sm">ESC</span> לסגירה</span>
                                 <span className="flex items-center gap-1"><span className="px-1 py-0.5 rounded bg-white shadow-sm">⏎</span> לבחירה</span>
                             </div>
-                            <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">spotlight search</span>
+                            <span className="text-[10px] font-black text-gray-400 tracking-widest">spotlight search</span>
                         </div>
                     </motion.div>
                 </div>

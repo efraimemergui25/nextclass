@@ -159,7 +159,7 @@ const ComparePage = () => {
                                                 style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
                                             >
                                                 <div className="flex items-center pr-4">
-                                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">קטגוריה</span>
+                                                    <span className="text-xs font-bold tracking-widest text-gray-400">קטגוריה</span>
                                                 </div>
                                                 {selectedForCompare.map((product) => (
                                                     <div key={product.id} className="flex items-center justify-center text-center px-4">
@@ -176,7 +176,7 @@ const ComparePage = () => {
                                                     style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
                                                 >
                                                     <div className="flex items-center pr-4">
-                                                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
+                                                        <span className="text-xs font-bold tracking-widest text-gray-400">{label}</span>
                                                     </div>
                                                     {selectedForCompare.map((product) => {
                                                         const value = getSpecValue(product, label);
@@ -199,7 +199,7 @@ const ComparePage = () => {
                                                 style={{ gridTemplateColumns: `180px repeat(${selectedForCompare.length}, minmax(220px, 1fr))` }}
                                             >
                                                 <div className="flex items-center pr-4">
-                                                    <span className="text-xs font-bold uppercase tracking-widest text-[#007AFF]">רכישה מהירה</span>
+                                                    <span className="text-xs font-bold tracking-widest text-[#007AFF]">רכישה מהירה</span>
                                                 </div>
                                                 {selectedForCompare.map((product) => {
                                                     const isInCart = cartItems.some(item => item.id === product.id);
