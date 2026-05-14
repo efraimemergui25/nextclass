@@ -11,8 +11,10 @@ import {
 import {
     Eye, Layout, Type, Image as ImageIcon, Search,
     ShoppingCart, Plus, Trash2, Save, RotateCcw,
-    ChevronDown, ArrowRightLeft, ChevronRight
+    ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X
 } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
 
 const LS_KEY = 'nextclass_cms_settings';
 
@@ -94,6 +96,23 @@ const FIELD_SECTIONS = [
             { key: 'hero_description', label: 'תיאור',          type: 'textarea', default: 'הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.' },
             { key: 'hero_cta',         label: 'כפתור פעולה',   type: 'text',     default: 'גלו את הפתרונות שלנו' },
             { key: 'hero_bg_image',    label: 'תמונת רקע (URL)',type: 'image',    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80' },
+            { key: 'hero_trust_pill_1',label: 'פיל אמון 1',    type: 'text',     default: 'שירות ישיר ומהיר' },
+            { key: 'hero_trust_pill_2',label: 'פיל אמון 2',    type: 'text',     default: 'ייעוץ ללא עלות' },
+            { key: 'hero_trust_pill_3',label: 'פיל אמון 3',    type: 'text',     default: '+500 מוסדות חינוך' },
+        ],
+    },
+    {
+        id: 'trust_badges',
+        label: 'תגי אמון (דף מוצר)',
+        icon: '🏅',
+        accent: '#34C759',
+        fields: [
+            { key: 'trust_badge_1_title', label: 'תג 1: כותרת',  type: 'text', default: 'שירות ישיר ומהיר' },
+            { key: 'trust_badge_1_desc',  label: 'תג 1: תיאור',  type: 'text', default: 'מענה אישי בכל שלב' },
+            { key: 'trust_badge_2_title', label: 'תג 2: כותרת',  type: 'text', default: 'החלפה תוך 14 יום' },
+            { key: 'trust_badge_2_desc',  label: 'תג 2: תיאור',  type: 'text', default: 'ללא שאלות' },
+            { key: 'trust_badge_3_title', label: 'תג 3: כותרת',  type: 'text', default: 'מחיר שקוף' },
+            { key: 'trust_badge_3_desc',  label: 'תג 3: תיאור',  type: 'text', default: 'מה שהוצע — מה שמשלמים' },
         ],
     },
     {
@@ -259,6 +278,11 @@ const FIELD_SECTIONS = [
             { key: 'catalog_inst_price',       label: 'תווית מחיר מוסדי',  type: 'text',     default: 'מחיר מוסדי' },
             { key: 'catalog_add_to_cart',      label: 'כפתור הוסף לסל',    type: 'text',     default: 'הוסף לסל' },
             { key: 'catalog_request_quote',    label: 'כפתור הצעת מחיר',   type: 'text',     default: 'בקש הצעה' },
+            { key: 'catalog_added_msg',        label: 'הודעת "נוסף לסל"',  type: 'text',     default: 'נוסף לסל בהצלחה' },
+            { key: 'catalog_remove_msg',       label: 'הודעת "הוסר מהסל"', type: 'text',     default: 'הוסר מהסל' },
+            { key: 'catalog_inst_price_label', label: 'תווית מחיר מוסדי (ארוכה)', type: 'text', default: 'מחיר מוסדי מאושר' },
+            { key: 'catalog_filter_drawer_title', label: 'כותרת מגירת סינון', type: 'text',  default: 'סינון מתקדם' },
+            { key: 'catalog_filter_drawer_sub',   label: 'תיאור מגירת סינון', type: 'text',  default: 'התאם את הקטלוג לצרכי המוסד שלך' },
             { key: 'catalog_categories',       label: 'קטגוריות (פסיק)',   type: 'textarea', default: 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה' },
         ],
     },
@@ -324,11 +348,11 @@ const FIELD_SECTIONS = [
         accent: '#007AFF',
         fields: [
             { key: 'pd_warranty_title',      label: 'כותרת קטע אחריות',  type: 'text',     default: 'תנאי רכישה ואחריות' },
-            { key: 'pd_warranty_text',       label: 'טקסט תנאים',        type: 'textarea', default: 'המוצר מגיע עם אחריות יצרן מלאה לשנה אחת.' },
+            { key: 'pd_warranty_text',       label: 'טקסט תנאים',        type: 'textarea', default: 'המוצרים שלנו נבחרים בקפידה ועוברים בדיקת איכות לפני המשלוח. כל רכישה מלווה בתנאי אחריות יצרן בהתאם לדגם הספציפי. יש שאלה לגבי תנאי הרכישה? פנו אלינו ישירות ונשמח לעזור.' },
             { key: 'pd_warranty_badge1',     label: 'תג 1: כותרת',       type: 'text',     default: 'אחריות יצרן' },
-            { key: 'pd_warranty_badge1_sub', label: 'תג 1: פרט',         type: 'text',     default: '12 חודשים' },
-            { key: 'pd_warranty_badge2',     label: 'תג 2: כותרת',       type: 'text',     default: 'תיקון חינם' },
-            { key: 'pd_warranty_badge2_sub', label: 'תג 2: פרט',         type: 'text',     default: 'כולל חלפים' },
+            { key: 'pd_warranty_badge1_sub', label: 'תג 1: פרט',         type: 'text',     default: 'בהתאם למוצר' },
+            { key: 'pd_warranty_badge2',     label: 'תג 2: כותרת',       type: 'text',     default: 'איכות פרימיום' },
+            { key: 'pd_warranty_badge2_sub', label: 'תג 2: פרט',         type: 'text',     default: 'מובטחת' },
             { key: 'pd_warranty_badge3',     label: 'תג 3: כותרת',       type: 'text',     default: 'החלפת מוצר' },
             { key: 'pd_warranty_badge3_sub', label: 'תג 3: פרט',         type: 'text',     default: 'תוך 30 יום' },
         ],
@@ -435,6 +459,7 @@ const FIELD_SECTIONS = [
             { key: 'ai_fab_label',     label: 'תווית כפתור צף',    type: 'text',     default: 'העוזר החכם' },
             { key: 'ai_title',         label: 'כותרת חלון',        type: 'text',     default: 'NextClass AI' },
             { key: 'ai_role',          label: 'תפקיד העוזר',       type: 'text',     default: 'Institutional Concierge' },
+            { key: 'ai_greeting',      label: 'הודעת פתיחה (ברירת מחדל)', type: 'textarea', default: 'שלום! אני כאן כדי לעזור לך לאפיין את הכיתה החכמה המושלמת. מה תרצה לדעת?' },
             { key: 'ai_greeting_home', label: 'הודעת פתיחה (בית)', type: 'textarea', default: 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?' },
             { key: 'ai_greeting_pd',   label: 'הודעת פתיחה (מוצר)',type: 'textarea', default: 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר?' },
             { key: 'ai_placeholder',   label: 'טקסט שורת הקלדה',  type: 'text',     default: 'מה תרצו לבדוק?' },
@@ -455,7 +480,7 @@ const FIELD_SECTIONS = [
         accent: '#34C759',
         fields: [
             { key: 'contact_hero_title',      label: 'כותרת ראשית',       type: 'text',     default: 'הכיתה שלכם מחכה. בואו נתחיל.' },
-            { key: 'contact_hero_subtitle',   label: 'תיאור עליון',       type: 'textarea', default: 'אנחנו כאן בשבילכם — מהייעוץ הראשון ועד אחרי ההתקנה.' },
+            { key: 'contact_hero_subtitle',   label: 'תיאור עליון',       type: 'textarea', default: 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.' },
             { key: 'contact_concierge_title', label: 'כותרת ייעוץ אישי',  type: 'text',     default: 'ייעוץ אישי ומיידי' },
             { key: 'contact_concierge_desc',  label: 'תיאור ייעוץ אישי',  type: 'textarea', default: 'נציג מקצועי מחכה לכם עכשיו.' },
             { key: 'contact_form_title',      label: 'כותרת טופס',        type: 'text',     default: 'בואו נצא לדרך.' },
@@ -469,7 +494,7 @@ const FIELD_SECTIONS = [
             { key: 'contact_trust_title',     label: 'כותרת שותפות',      type: 'text',     default: 'שותפות ארוכת טווח' },
             { key: 'contact_trust_desc',      label: 'תיאור שותפות',      type: 'textarea', default: 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך.' },
             { key: 'contact_phone',           label: 'טלפון',             type: 'text',     default: '058-5856356' },
-            { key: 'contact_email',           label: 'מייל',              type: 'text',     default: 'nextclass.en@gmail.com' },
+            { key: 'contact_email',           label: 'מייל',              type: 'text',     default: 'efraimemergui25@gmail.com' },
             { key: 'whatsapp_number',         label: 'מספר וואטסאפ',      type: 'text',     default: '972585856356' },
             { key: 'contact_address',         label: 'כתובת',             type: 'text',     default: 'בראלי 10, תל אביב' },
             { key: 'contact_hours',           label: 'שעות פעילות',       type: 'text',     default: 'ראשון–חמישי 08:00–18:00' },
@@ -484,38 +509,42 @@ const FIELD_SECTIONS = [
         icon: '📖',
         accent: '#AF52DE',
         fields: [
-            { key: 'about_hero_label',    label: 'תווית עליונה',         type: 'text',     default: 'הסיפור של NextClass' },
-            { key: 'about_hero_title',    label: 'כותרת ראשית',         type: 'text',     default: 'חינוך חכם. מוגדר מחדש.' },
-            { key: 'about_hero_sub',      label: 'תיאור גיבור',         type: 'textarea', default: 'אנחנו לא רק מעצבים כיתות חכמות. אנחנו בונים את התשתית שעליה יצמח דור המנהיגים הבא.' },
+            { key: 'about_hero_label',    label: 'תווית עליונה',         type: 'text',     default: '' },
+            { key: 'about_hero_title',    label: 'כותרת ראשית',         type: 'text',     default: 'הטכנולוגיה\nשחינוך ראוי לה.' },
+            { key: 'about_hero_sub',      label: 'תיאור גיבור',         type: 'textarea', default: 'מקצועי. מהיר. אישי. ישיר.\nהסטנדרט הגבוה ביותר שחינוך יכול לקבל.' },
             { key: 'about_hero_img',      label: 'תמונת כותרת',         type: 'image',    default: '' },
             { key: 'about_story_title',   label: 'כותרת הסיפור',        type: 'text',     default: 'הכל התחיל ב-2012. עם מסך אחד והרבה תסכול.' },
-            { key: 'about_story_body',    label: 'גוף הסיפור',          type: 'textarea', default: 'NextClass מתמחה בפתרונות טכנולוגיים מובילים למוסדות חינוך ברחבי ישראל.' },
+            { key: 'about_story_section_title', label: 'כותרת קטע הסיפור',   type: 'text',     default: 'הסיפור שלנו.' },
+            { key: 'about_story_body',    label: 'גוף הסיפור',          type: 'textarea', default: 'ראיתי בתי ספר שנאבקים עם ספקים שלא מכירים את שמם, ציוד שמגיע שבועות מאוחר, ושירות שנגמר ברגע שהחשבונית נחתמה. החלטתי לשנות את המשוואה. NextClass הוא לא פלטפורמה ולא קטלוג — הוא מודל עסקי אחר לגמרי: שירות ישיר, אנושי ומקצועי שמוריד את כל הביניים, ומביא לחינוך הישראלי את הרמה שהוא ראוי לה.' },
+            { key: 'about_check_1',       label: 'צ׳קמארק 1',           type: 'text',     default: 'ייעוץ מקצועי ומהיר — ללא עלות' },
+            { key: 'about_check_2',       label: 'צ׳קמארק 2',           type: 'text',     default: 'שירות אישי וישיר, ללא ביניים' },
+            { key: 'about_check_3',       label: 'צ׳קמארק 3',           type: 'text',     default: 'פתרונות מהדרגה הראשונה לחינוך' },
             { key: 'about_stat1_val',     label: 'נתון 1: ערך',         type: 'text',     default: '1200' },
             { key: 'about_stat1_label',   label: 'נתון 1: תווית',       type: 'text',     default: 'מוסדות חינוך' },
             { key: 'about_stat2_val',     label: 'נתון 2: ערך',         type: 'text',     default: '14' },
             { key: 'about_stat2_label',   label: 'נתון 2: תווית',       type: 'text',     default: 'שנות ניסיון' },
             { key: 'about_stat3_val',     label: 'נתון 3: ערך',         type: 'text',     default: '98' },
             { key: 'about_stat3_label',   label: 'נתון 3: תווית',       type: 'text',     default: '% שביעות רצון' },
-            { key: 'about_founder_title', label: 'כותרת המייסד',        type: 'text',     default: 'ההצלחה נמדדת בשטח. לא בברושורים.' },
-            { key: 'about_founder_message',label: 'הודעת המייסד',       type: 'textarea', default: 'כשבנינו את NextClass, החלטנו להפסיק לדבר על "פוטנציאל" ולהתחיל לדבר על תוצאות.' },
-            { key: 'about_founder_name',  label: 'שם המייסד',           type: 'text',     default: 'אמיר כהן' },
+            { key: 'about_founder_title', label: 'כותרת המייסד',        type: 'text',     default: 'מקצועיות\nללא פשרות.' },
+            { key: 'about_founder_message',label: 'הודעת המייסד',       type: 'textarea', default: 'אני מנהל את NextClass כמו שהייתי רוצה שינהלו ספק שאני עובד איתו: ישירות, מהירות, ורמה שלא מתפשרת. כל שיחה, כל הצעת מחיר, כל אספקה — כולם עוברים דרכי. לא כי אין לי ברירה. כי זו ההבטחה שלי לכל לקוח.' },
+            { key: 'about_founder_name',  label: 'שם המייסד',           type: 'text',     default: 'אפרים אמרגי' },
             { key: 'about_founder_role',  label: 'תפקיד המייסד',        type: 'text',     default: 'מייסד ומנכ"ל NextClass' },
             { key: 'about_founder_img',   label: 'תמונת מייסד',         type: 'image',    default: '' },
-            { key: 'about_cta_title',     label: 'כותרת CTA',           type: 'text',     default: 'בואו נצייר את המחר ביחד.' },
-            { key: 'about_cta_desc',      label: 'תיאור CTA',           type: 'textarea', default: 'אנחנו מחפשים את השותפים שמאמינים שחינוך הוא המשאב היקר ביותר שלנו.' },
-            { key: 'about_v1_title',      label: 'ערך 1: כותרת',        type: 'text',     default: 'מקצוענות ללא פשרות' },
-            { key: 'about_v1_desc',       label: 'ערך 1: תיאור',        type: 'textarea', default: 'אנחנו לא מסתפקים ב"עובד". אנחנו מחפשים את השלמות.' },
-            { key: 'about_v2_title',      label: 'ערך 2: כותרת',        type: 'text',     default: 'חדשנות אנושית' },
-            { key: 'about_v2_desc',       label: 'ערך 2: תיאור',        type: 'textarea', default: 'הטכנולוגיה היא רק הכלי. הלב הוא המורה.' },
-            { key: 'about_v3_title',      label: 'ערך 3: כותרת',        type: 'text',     default: 'שותפות אמת' },
-            { key: 'about_v3_desc',       label: 'ערך 3: תיאור',        type: 'textarea', default: 'כשאתה בוחר בנו, אתה מקבל שותף לחיים.' },
-            { key: 'about_journey_hint',  label: 'רמז תחילת מסע',       type: 'text',     default: 'המסע שלנו מתחיל כאן' },
+            { key: 'about_cta_title',     label: 'כותרת CTA',           type: 'text',     default: 'שאלו אותנו.\nנגיע עם תשובות.' },
+            { key: 'about_cta_desc',      label: 'תיאור CTA',           type: 'textarea', default: 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.' },
+            { key: 'about_v1_title',      label: 'ערך 1: כותרת',        type: 'text',     default: 'מחיר שקוף' },
+            { key: 'about_v1_desc',       label: 'ערך 1: תיאור',        type: 'textarea', default: 'הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים — נקודה. שקיפות מלאה מהשקל הראשון ועד האחרון.' },
+            { key: 'about_v2_title',      label: 'ערך 2: כותרת',        type: 'text',     default: 'שירות מהיר' },
+            { key: 'about_v2_desc',       label: 'ערך 2: תיאור',        type: 'textarea', default: 'בעולם שממתינים בו שבועות לתגובה — אנחנו עונים תוך שעות. מהירות היא לא בונוס אצלנו. היא חלק בלתי נפרד מהרמה.' },
+            { key: 'about_v3_title',      label: 'ערך 3: כותרת',        type: 'text',     default: 'רמה מקצועית' },
+            { key: 'about_v3_desc',       label: 'ערך 3: תיאור',        type: 'textarea', default: 'כל פרט נבחן. כל בחירה מבוססת. הסטנדרט שאנחנו מציבים לעצמנו גבוה ממה שהלקוח היה מבקש — כי זה הרף שאנחנו מסרבים לרדת ממנו.' },
+            { key: 'about_journey_hint',  label: 'רמז תחילת מסע',       type: 'text',     default: 'גלה את הסיפור שלנו' },
             { key: 'about_edu_badge',     label: 'תג משרד החינוך',      type: 'text',     default: 'מאושרת משרד החינוך' },
             { key: 'about_way_title',     label: 'כותרת "הדרך שעשינו"', type: 'text',     default: 'הדרך שעשינו' },
             { key: 'about_way_desc',      label: 'תיאור "הדרך שעשינו"', type: 'text',     default: 'עשור של פריצות דרך בחינוך הישראלי.' },
             { key: 'about_founder_label', label: 'תווית מסר מייסד',     type: 'text',     default: 'מילה אישית מהמייסד' },
-            { key: 'about_values_title',  label: 'כותרת ערכים',         type: 'text',     default: 'הערכים שמניעים אותנו' },
-            { key: 'about_values_desc',   label: 'תיאור ערכים',         type: 'text',     default: 'הבסיס לכל החלטה, לכל מוצר ולכל קשר.' },
+            { key: 'about_values_title',  label: 'כותרת ערכים',         type: 'text',     default: 'שלושה כללים' },
+            { key: 'about_values_desc',   label: 'תיאור ערכים',         type: 'text',     default: 'מה שאמרנו — עמדנו בו. תמיד.' },
         ],
     },
     {
@@ -611,15 +640,28 @@ const FIELD_SECTIONS = [
         fields: [
             { key: 'footer_copyright',  label: 'זכויות יוצרים',      type: 'text',     default: '© 2026 NextClass. כל הזכויות שמורות.' },
             { key: 'footer_love_msg',   label: 'הודעת סיום',         type: 'text',     default: 'נבנה באהבה לחינוך' },
-            { key: 'footer_tagline',    label: 'תגית footer',        type: 'text',     default: 'אנחנו מעצבים את הכלים שמעצימים את דור המחר.' },
+            { key: 'footer_tagline',    label: 'סלוגן מתחת ללוגו',   type: 'text',     default: 'ציוד חינוך ממחסן ישיר. שירות אמיתי. מחיר שקוף.' },
             { key: 'footer_col1_title', label: 'כותרת עמודה 1',     type: 'text',     default: 'פתרונות' },
             { key: 'footer_col1_items', label: 'פריטי עמודה 1 (פסיק)',type: 'textarea', default: 'מסכים חכמים, מחשוב וטאבלטים, מעבדות STEM, תשתיות למידה' },
             { key: 'footer_col2_title', label: 'כותרת עמודה 2',     type: 'text',     default: 'האקדמיה' },
             { key: 'footer_col2_items', label: 'פריטי עמודה 2 (פסיק)',type: 'textarea', default: 'מרכז עזרה, מדריכי וידאו, בלוג חדשנות, תמיכה טכנית' },
             { key: 'footer_col3_title', label: 'כותרת עמודה 3',     type: 'text',     default: 'קשר' },
-            { key: 'footer_privacy',    label: 'לינק פרטיות',       type: 'text',     default: 'Privacy' },
-            { key: 'footer_terms',      label: 'לינק תנאים',        type: 'text',     default: 'Terms' },
+            { key: 'footer_privacy',    label: 'לינק פרטיות',       type: 'text',     default: 'פרטיות' },
+            { key: 'footer_terms',      label: 'לינק תנאים',        type: 'text',     default: 'תנאי שימוש' },
             { key: 'footer_location',   label: 'תווית מיקום/שפה',   type: 'text',     default: 'ISRAEL | HEBREW' },
+        ],
+    },
+    {
+        id: 'legal',
+        label: 'עמודים משפטיים',
+        icon: '⚖️',
+        accent: '#5856D6',
+        fields: [
+            { key: 'legal_privacy_updated', label: 'תאריך עדכון — מדיניות פרטיות', type: 'text',     default: '14 במאי 2026' },
+            { key: 'legal_terms_updated',   label: 'תאריך עדכון — תנאי שימוש',     type: 'text',     default: '14 במאי 2026' },
+            { key: 'legal_dpo_name',        label: 'אחראי הגנת מידע — שם',         type: 'text',     default: 'אפרים אמרגי' },
+            { key: 'cookie_consent_title',  label: 'בנר עוגיות — כותרת',           type: 'text',     default: 'אנו משתמשים בעוגיות' },
+            { key: 'cookie_consent_body',   label: 'בנר עוגיות — טקסט',            type: 'text',     default: 'כדי לשפר את חוויית השימוש ולנתח תנועה באתר.' },
         ],
     },
 ];
@@ -629,7 +671,7 @@ const SECTION_GROUPS = [
     {
         label: 'כללי',
         icon: '⚙️',
-        sections: ['visibility', 'branding', 'footer_config'],
+        sections: ['visibility', 'branding'],
     },
     {
         label: 'ניווט',
@@ -666,6 +708,16 @@ const SECTION_GROUPS = [
         icon: '🔧',
         sections: ['cart_checkout', 'accessibility_section', 'videos'],
     },
+    {
+        label: 'מגזין',
+        icon: '📰',
+        sections: ['magazine'],
+    },
+    {
+        label: 'משפטי',
+        icon: '⚖️',
+        sections: ['legal', 'footer_config'],
+    },
 ];
 
 // ─── All Sections flat list ───────────────────────────────────────────────────
@@ -673,7 +725,8 @@ const ALL_SECTIONS = [
     { id: 'visibility',   label: 'נראות רכיבים',            icon: '👁️', accent: '#FF2D55', type: 'visibility' },
     { id: 'menu_reorder', label: 'ניווט ראשי — סדר וגרירה', icon: '☰',  accent: '#007AFF', type: 'menu_reorder' },
     ...FIELD_SECTIONS,
-    { id: 'videos', label: 'ספריית VOD', icon: '🎬', accent: '#FF3B30', type: 'videos' },
+    { id: 'videos',    label: 'ספריית VOD',   icon: '🎬', accent: '#FF3B30', type: 'videos' },
+    { id: 'magazine',  label: 'כתבות מגזין',  icon: '📰', accent: '#007AFF', type: 'magazine' },
 ];
 
 // ─── Nav Items ────────────────────────────────────────────────────────────────
@@ -773,12 +826,12 @@ const FieldInput = ({ field, value, onChange }) => {
 const VisibilitySection = ({ content, onChange }) => (
     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {VISIBILITY_ITEMS.map(item => (
-            <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border transition-all"
+                style={{ background: 'rgba(255,255,255,0.70)', borderColor: 'rgba(0,0,0,0.06)', backdropFilter: 'blur(20px)' }}>
                 <div className="flex items-center gap-3">
-                    <span className="text-xl">{item.icon}</span>
                     <div className="text-right">
                         <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
-                        <p className="text-[11px] text-gray-500">{item.desc}</p>
+                        <p className="text-[11px] text-[#AEAEB2]">{item.desc}</p>
                     </div>
                 </div>
                 <AdminToggle
@@ -944,10 +997,138 @@ const VideosSection = ({ showToast }) => {
     );
 };
 
+// ─── Magazine Section ─────────────────────────────────────────────────────────
+const EMPTY_ARTICLE = { title: '', category: '', excerpt: '', date: '', readTime: '', image: '', url: '', source: '' };
+
+const MagazineSection = ({ showToast }) => {
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(null); // article being edited (or 'new')
+    const [form, setForm] = useState(EMPTY_ARTICLE);
+
+    useEffect(() => {
+        const q = query(collection(db, 'magazine_articles'), orderBy('createdAt', 'desc'));
+        const unsub = onSnapshot(q, snap => {
+            setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoading(false);
+        }, () => setLoading(false));
+        return unsub;
+    }, []);
+
+    const openNew = () => { setForm(EMPTY_ARTICLE); setEditing('new'); };
+    const openEdit = (a) => { setForm({ title: a.title || '', category: a.category || '', excerpt: a.excerpt || '', date: a.date || '', readTime: a.readTime || '', image: a.image || '', url: a.url || '', source: a.source || '' }); setEditing(a.id); };
+    const closeEdit = () => { setEditing(null); setForm(EMPTY_ARTICLE); };
+
+    const handleSave = async () => {
+        if (!form.title || !form.url) { showToast('כותרת וקישור הם שדות חובה', 'error'); return; }
+        try {
+            if (editing === 'new') {
+                await addDoc(collection(db, 'magazine_articles'), { ...form, createdAt: serverTimestamp() });
+                showToast('כתבה נוספה', 'success');
+            } else {
+                await updateDoc(doc(db, 'magazine_articles', editing), form);
+                showToast('כתבה עודכנה', 'success');
+            }
+            closeEdit();
+        } catch { showToast('שגיאה בשמירה', 'error'); }
+    };
+
+    const handleDelete = async (id) => {
+        try { await deleteDoc(doc(db, 'magazine_articles', id)); showToast('כתבה נמחקה', 'success'); }
+        catch { showToast('שגיאה במחיקה', 'error'); }
+    };
+
+    const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const inputCls = 'w-full px-3 py-2 rounded-xl text-sm text-[#1D1D1F] outline-none bg-[#F5F5F7] focus:bg-white border border-transparent focus:border-[#007AFF]/30 transition-all';
+
+    return (
+        <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+                <button onClick={openNew}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">
+                    <Plus size={13} /> כתבה חדשה
+                </button>
+                <p className="text-[11px] text-[#86868B] font-bold">
+                    {articles.length} כתבות · מוצגות בסדר כרונולוגי הפוך
+                </p>
+            </div>
+
+            {loading && <p className="text-[#AEAEB2] text-sm text-center py-8">טוען...</p>}
+
+            {!loading && articles.length === 0 && !editing && (
+                <div className="py-12 text-center text-[#AEAEB2]">
+                    <p className="font-bold mb-1">אין כתבות עדיין</p>
+                    <p className="text-sm">לחץ על "כתבה חדשה" להוספה</p>
+                </div>
+            )}
+
+            <AnimatePresence>
+                {articles.map(a => (
+                    <motion.div key={a.id}
+                        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
+                        className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white hover:border-[#007AFF]/20 transition-colors group">
+                        {a.image && (
+                            <img src={a.image} alt="" className="w-14 h-10 object-cover rounded-lg shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
+                        )}
+                        <div className="flex-1 min-w-0 text-right">
+                            <p className="text-sm font-black text-[#1D1D1F] truncate">{a.title}</p>
+                            <p className="text-[10px] text-[#AEAEB2] truncate">{a.category} · {a.source}</p>
+                        </div>
+                        <a href={a.url} target="_blank" rel="noopener noreferrer"
+                            className="shrink-0 p-1.5 rounded-lg hover:bg-[#007AFF]/08 text-[#AEAEB2] hover:text-[#007AFF] transition-colors">
+                            <ExternalLink size={13} />
+                        </a>
+                        <button onClick={() => openEdit(a)}
+                            className="shrink-0 p-1.5 rounded-lg hover:bg-[#007AFF]/08 text-[#AEAEB2] hover:text-[#007AFF] transition-colors">
+                            <Edit2 size={13} />
+                        </button>
+                        <button onClick={() => handleDelete(a.id)}
+                            className="shrink-0 p-1.5 rounded-lg hover:bg-[#FF3B30]/08 text-[#AEAEB2] hover:text-[#FF3B30] transition-colors">
+                            <Trash2 size={13} />
+                        </button>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+
+            {/* Edit / New form */}
+            <AnimatePresence>
+                {editing && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                        className="rounded-2xl border border-[#007AFF]/20 bg-[#F5F9FF] p-5 space-y-3 mt-2"
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <button onClick={closeEdit} className="text-[#AEAEB2] hover:text-[#FF3B30] transition-colors"><X size={16} /></button>
+                            <p className="text-sm font-black text-[#1D1D1F]">{editing === 'new' ? 'כתבה חדשה' : 'עריכת כתבה'}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">כותרת *</label><input className={inputCls} dir="rtl" value={form.title} onChange={e => setField('title', e.target.value)} placeholder="כותרת הכתבה" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">קטגוריה</label><input className={inputCls} dir="rtl" value={form.category} onChange={e => setField('category', e.target.value)} placeholder="חדשנות פדגוגית" /></div>
+                        </div>
+                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תקציר</label><textarea className={`${inputCls} resize-none`} dir="rtl" rows={2} value={form.excerpt} onChange={e => setField('excerpt', e.target.value)} placeholder="תיאור קצר..." /></div>
+                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">קישור לכתבה *</label><input className={inputCls} dir="ltr" value={form.url} onChange={e => setField('url', e.target.value)} placeholder="https://..." /></div>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">מקור</label><input className={inputCls} dir="rtl" value={form.source} onChange={e => setField('source', e.target.value)} placeholder="eSchool News" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תאריך</label><input className={inputCls} dir="rtl" value={form.date} onChange={e => setField('date', e.target.value)} placeholder="ינואר 2026" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">זמן קריאה</label><input className={inputCls} dir="rtl" value={form.readTime} onChange={e => setField('readTime', e.target.value)} placeholder="5 דקות קריאה" /></div>
+                        </div>
+                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תמונה (URL)</label><input className={inputCls} dir="ltr" value={form.image} onChange={e => setField('image', e.target.value)} placeholder="https://images.unsplash.com/..." /></div>
+                        <div className="flex gap-2 pt-1">
+                            <button onClick={closeEdit} className="flex-1 py-2 rounded-xl text-[12px] font-black text-[#86868B] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">ביטול</button>
+                            <button onClick={handleSave} className="flex-1 py-2 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">שמור כתבה</button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 // ─── Grouped Sidebar ──────────────────────────────────────────────────────────
 function Sidebar({ activeSection, setActiveSection }) {
     const [search, setSearch] = useState('');
-    const [collapsed, setCollapsed] = useState({});
+    const [collapsed, setCollapsed] = useState(() => Object.fromEntries(SECTION_GROUPS.map(g => [g.label, true])));
 
     const filteredGroups = useMemo(() => {
         if (!search.trim()) return SECTION_GROUPS;
@@ -996,7 +1177,6 @@ function Sidebar({ activeSection, setActiveSection }) {
                                 <ChevronDown size={11} className="text-[#AEAEB2]" />
                             </motion.span>
                             <span className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.15em] flex-1 text-right">{group.label}</span>
-                            <span className="text-sm">{group.icon}</span>
                         </button>
 
                         {/* Sections */}
@@ -1023,7 +1203,7 @@ function Sidebar({ activeSection, setActiveSection }) {
                                                     borderRightColor: isActive ? sec.accent : 'transparent',
                                                 }}
                                             >
-                                                <span className="text-sm shrink-0">{sec.icon}</span>
+                                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? sec.accent : '#AEAEB2' }} />
                                                 <span
                                                     className="text-[12px] font-semibold flex-1 text-right leading-snug"
                                                     style={{ color: isActive ? sec.accent : '#6E6E73' }}
@@ -1043,22 +1223,37 @@ function Sidebar({ activeSection, setActiveSection }) {
     );
 }
 
+// ─── Collect all field defaults from FIELD_SECTIONS (used for auto-seed) ──────
+const ALL_FIELD_DEFAULTS = (() => {
+    const defaults = {};
+    FIELD_SECTIONS.forEach(s => (s.fields || []).forEach(f => {
+        if (f.default !== undefined) defaults[f.key] = f.default;
+    }));
+    return defaults;
+})();
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminContent({ showToast }) {
     const [activeSection, setActiveSection] = useState('visibility');
     const [content, setContent] = useState({});
     const [hasChanges, setHasChanges] = useState(false);
     const [saved, setSaved] = useState(false);
-    const { updateGlobalSettings } = useSettings();
+    const { updateGlobalSettings, seedMissingDefaults, firestoreLoaded } = useSettings();
+
+    // Auto-seed any FIELD_SECTIONS defaults that are missing from Firestore.
+    // Runs once after Firestore has loaded — only writes keys that don't exist yet.
+    // This means adding a new field + default in FIELD_SECTIONS is the ONLY step needed;
+    // Firestore is updated automatically on next admin panel load.
+    useEffect(() => {
+        if (firestoreLoaded) seedMissingDefaults(ALL_FIELD_DEFAULTS);
+    }, [firestoreLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         try {
             const savedData = localStorage.getItem(LS_KEY);
             if (savedData) setContent(JSON.parse(savedData));
             else {
-                const defaults = {};
-                FIELD_SECTIONS.forEach(s => (s.fields || []).forEach(f => { defaults[f.key] = f.default; }));
-                setContent(defaults);
+                setContent(ALL_FIELD_DEFAULTS);
             }
         } catch {}
     }, []);
@@ -1139,6 +1334,9 @@ export default function AdminContent({ showToast }) {
                             {activeSection === 'videos' && (
                                 <VideosSection showToast={showToast} />
                             )}
+                            {activeSection === 'magazine' && (
+                                <MagazineSection showToast={showToast} />
+                            )}
                             {currentDef && currentDef.fields && activeSection !== 'sidebar_sections' && (
                                 <div className="p-8">
                                     {/* Section Header */}
@@ -1148,7 +1346,7 @@ export default function AdminContent({ showToast }) {
                                         </AdminButton>
                                         <div className="text-right">
                                             <div className="flex items-center gap-2 justify-end mb-1">
-                                                <span className="text-lg">{currentDef.icon}</span>
+                                                <div className="w-2 h-6 rounded-full shrink-0" style={{ background: currentDef.accent }} />
                                                 <h3 className="text-xl font-black text-[#1D1D1F]">{currentDef.label}</h3>
                                             </div>
                                             <p className="text-[#AEAEB2] text-xs">
