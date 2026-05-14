@@ -85,7 +85,7 @@ const ValueProps = () => {
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 w-full relative z-10">
                 {/* Section label */}
                 <div className="text-center mb-5">
-                    <span className="text-[11px] font-bold tracking-[0.2em] text-[#007AFF]">{content.label}</span>
+                    <span className="text-[11px] font-bold text-[#007AFF]">{content.label}</span>
                 </div>
                 <h2 className="text-3xl md:text-5xl font-apple-display font-bold tracking-tighter leading-[1.0] text-[#1D1D1F] text-center mb-10">
                     {content.title}

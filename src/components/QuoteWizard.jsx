@@ -278,7 +278,7 @@ const QuoteWizard = () => {
 
                     {/* ── Value props ── */}
                     <div className="w-full lg:w-1/2 text-right">
-                        <span className="text-[10px] font-bold tracking-[0.22em] text-[#007AFF] block mb-3">{content.eyebrow}</span>
+                        <span className="text-[10px] font-bold text-[#007AFF] block mb-3">{content.eyebrow}</span>
                         <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-4 tracking-tighter leading-tight">{content.title}</h2>
                         <p className="text-[15px] text-[#86868B] font-medium mb-10 leading-relaxed">{content.desc}</p>
                         <div className="space-y-5">

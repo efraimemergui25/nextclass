@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../context/SettingsContext';
 
 const STORAGE_KEY = 'nextclass_exit_shown';
-const WHATSAPP = '972585856356';
 
 export default function ExitIntentPopup() {
+    const { getSetting } = useSettings();
+    const waNumber = getSetting('whatsapp_number', '972585856356');
     const [visible, setVisible] = useState(false);
 
     const dismiss = useCallback(() => {
@@ -107,7 +109,7 @@ export default function ExitIntentPopup() {
                                         קבל הצעת מחיר עכשיו
                                     </Link>
                                     <a
-                                        href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('היי, אשמח לקבל הצעת מחיר ממוקדת.')}`}
+                                        href={`https://wa.me/${waNumber}?text=${encodeURIComponent('היי, אשמח לקבל הצעת מחיר ממוקדת.')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={dismiss}

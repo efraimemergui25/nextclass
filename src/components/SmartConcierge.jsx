@@ -267,7 +267,7 @@ const SmartConcierge = () => {
     // Chat state
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('chat');
-    const [messages, setMessages] = useState([{ id: 0, role: 'ai', text: getInitialMessage() }]);
+    const [messages, setMessages] = useState(() => [{ id: 0, role: 'ai', text: getInitialMessage() }]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
@@ -299,13 +299,22 @@ const SmartConcierge = () => {
         return () => window.removeEventListener('open-concierge', handler);
     }, []);
 
-    // Reset chat on route change
+    // Reset chat on route change and update greeting when Firestore arrives
     useEffect(() => {
         if (!isOpen) {
             setMessages([{ id: 0, role: 'ai', text: getInitialMessage() }]);
             setActiveTab('chat');
         }
-    }, [location.pathname, isOpen]);
+    }, [location.pathname, isOpen, getInitialMessage]);
+
+    // Update greeting if Firestore arrives before user sends any message
+    useEffect(() => {
+        setMessages(prev =>
+            prev.length === 1 && prev[0].id === 0
+                ? [{ id: 0, role: 'ai', text: getInitialMessage() }]
+                : prev
+        );
+    }, [getInitialMessage]);
 
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
     useEffect(() => {

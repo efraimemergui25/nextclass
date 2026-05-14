@@ -328,7 +328,7 @@ const Header = () => {
                                     {getSetting('nav_mega_all', 'ראה הכל')}
                                     <ChevronLeft size={12} />
                                 </Link>
-                                <span className="text-[10px] font-black tracking-[0.3em] text-[#AEAEB2]">
+                                <span className="text-[10px] font-black text-[#AEAEB2]">
                                     {getSetting('nav_mega_label', 'פתרונות לחינוך')}
                                 </span>
                             </div>

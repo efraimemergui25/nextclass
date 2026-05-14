@@ -6,6 +6,7 @@ import { Ticket, BarChart2, Percent } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminToggle } from '../components/AdminComponents';
+import { useSettings } from '../../context/SettingsContext';
 
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
@@ -25,37 +26,32 @@ const BANNER_COLORS = [
     { label: 'שחור',  value: '#1D1D1F' },
 ];
 
-function loadBanner() {
-    try {
-        const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-        return { text: s.announcement_text || '', color: s.announcement_color || '#007AFF', visible: s.announcement_visible !== false };
-    } catch { return { text: '', color: '#007AFF', visible: false }; }
-}
-
 // ─── Banner Manager ───────────────────────────────────────────────────────────
 function BannerManager() {
     const { showToast } = useAdminToast();
-    const [banner, setBanner] = useState(loadBanner);
+    const { getSetting, isVisible, updateGlobalSettings } = useSettings();
+    const [banner, setBanner] = useState({
+        text:    getSetting('announcement_text',  ''),
+        color:   getSetting('announcement_color', '#007AFF'),
+        visible: isVisible('vis_announcement_bar', false),
+    });
     const [saved, setSaved] = useState(false);
 
-    // Stay in sync with changes made from AdminContent
+    // Stay in sync with Firestore updates
     useEffect(() => {
-        const handler = () => setBanner(loadBanner());
-        window.addEventListener('storage', handler);
-        return () => window.removeEventListener('storage', handler);
-    }, []);
+        setBanner({
+            text:    getSetting('announcement_text',  ''),
+            color:   getSetting('announcement_color', '#007AFF'),
+            visible: isVisible('vis_announcement_bar', false),
+        });
+    }, [getSetting, isVisible]);
 
-    const saveBanner = () => {
-        try {
-            const existing = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            localStorage.setItem('nextclass_content', JSON.stringify({
-                ...existing,
-                announcement_text: banner.text,
-                announcement_color: banner.color,
-                announcement_visible: banner.visible,
-            }));
-            window.dispatchEvent(new StorageEvent('storage', { key: 'nextclass_content' }));
-        } catch {}
+    const saveBanner = async () => {
+        await updateGlobalSettings({
+            announcement_text:  banner.text,
+            announcement_color: banner.color,
+            vis_announcement_bar: banner.visible,
+        });
         setSaved(true);
         showToast('פס הכרזה עודכן', 'success');
         setTimeout(() => setSaved(false), 2000);
@@ -190,12 +186,8 @@ export default function AdminMarketing() {
         setTimeout(() => { setSaved(false); setForm(EMPTY); setShowNew(false); }, 700);
     };
 
-    const bannerActive = (() => {
-        try {
-            const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            return s.announcement_visible === true && !!s.announcement_text;
-        } catch { return false; }
-    })();
+    const { getSetting: getS, isVisible: isVis } = useSettings();
+    const bannerActive = isVis('vis_announcement_bar', false) && !!getS('announcement_text', '');
 
     const activeCoupons = coupons.filter(c => c.active).length;
     const totalUses = coupons.reduce((s, c) => s + (c.uses || 0), 0);

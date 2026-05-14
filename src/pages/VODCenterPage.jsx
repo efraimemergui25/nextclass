@@ -231,6 +231,8 @@ function VideosTab({ videos, heroSearch }) {
 }
 
 function HelpTab() {
+    const { getSetting } = useSettings();
+    const waNumber = getSetting('whatsapp_number', '972585856356');
     const [search, setSearch] = useState('');
     const filtered = FAQ.filter(f => !search || f.q.includes(search) || f.a.includes(search));
 
@@ -262,7 +264,7 @@ function HelpTab() {
                         <p className="font-bold text-[#1D1D1F] text-[16px]">לא מצאת תשובה?</p>
                         <p className="text-[13px] text-gray-400 mt-1">צוות התמיכה שלנו זמין ב-WhatsApp ראשון–שישי, 08:00–20:00.</p>
                     </div>
-                    <a href="https://wa.me/972585856356" target="_blank" rel="noopener noreferrer"
+                    <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 px-7 py-3.5 bg-[#25D366] text-white font-bold rounded-full text-[14px] hover:bg-[#1ebe5d] transition-colors whitespace-nowrap shadow-lg">
                         <MessageCircle size={16} />
                         פתח WhatsApp
@@ -337,8 +339,8 @@ function TrainingTab() {
     );
 }
 
-function SupportTab({ phone, email }) {
-    const wa = `https://wa.me/972${phone.replace(/\D/g, '').replace(/^0/, '')}`;
+function SupportTab({ phone, email, waNumber }) {
+    const wa = `https://wa.me/${waNumber}`;
     const channels = [
         { icon: MessageCircle, color: '#25D366', bg: 'rgba(37,211,102,0.07)', border: 'rgba(37,211,102,0.2)', label: 'WhatsApp', sub: 'מענה תוך שעה · א׳–ו׳ 08–20', action: wa, actionLabel: 'פתח שיחה', external: true },
         { icon: Phone, color: '#007AFF', bg: 'rgba(0,122,255,0.06)', border: 'rgba(0,122,255,0.15)', label: 'טלפון', sub: `${phone} · א׳–ו׳ 09–18`, action: `tel:${phone.replace(/\D/g, '')}`, actionLabel: 'התקשר', external: false },
@@ -408,8 +410,9 @@ const TABS = [
 
 export default function VODCenterPage() {
     const { getSetting } = useSettings();
-    const phone = getSetting('contact_phone', '058-5856356');
-    const email = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const phone    = getSetting('contact_phone', '058-5856356');
+    const email    = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const waNumber = getSetting('whatsapp_number', '972585856356');
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [videos, setVideos] = useState(loadVideos);
@@ -510,7 +513,7 @@ export default function VODCenterPage() {
                             {activeTab === 'videos'   && <VideosTab videos={visible} heroSearch={heroSearch} />}
                             {activeTab === 'help'     && <HelpTab />}
                             {activeTab === 'training' && <TrainingTab />}
-                            {activeTab === 'support'  && <SupportTab phone={phone} email={email} />}
+                            {activeTab === 'support'  && <SupportTab phone={phone} email={email} waNumber={waNumber} />}
                         </motion.div>
                     </AnimatePresence>
                 </div>

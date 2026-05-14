@@ -129,11 +129,11 @@ const CatalogPage = () => {
 
                     <motion.div
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold tracking-[0.22em] mb-5"
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-bold mb-5"
                         style={{ background: 'rgba(0,122,255,0.07)', backdropFilter: 'blur(12px)', borderColor: 'rgba(0,122,255,0.18)', color: '#007AFF' }}
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
-                        {getSetting('catalog_badge', 'הקטלוג המוסדי')}
+                        {getSetting('catalog_hero_eyebrow', 'הקטלוג שלנו')}
                     </motion.div>
 
                     <motion.h1

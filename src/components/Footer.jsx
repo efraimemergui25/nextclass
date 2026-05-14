@@ -96,12 +96,12 @@ const Footer = () => {
                             {/* Love badge */}
                             <div className="flex items-center gap-2 w-fit">
                                 <Sparkles size={12} className="text-[#007AFF]" />
-                                <span className="text-[10px] font-black tracking-[0.22em] text-[#AEAEB2]">{content.loveMsg}</span>
+                                <span className="text-[10px] font-black text-[#AEAEB2]">{content.loveMsg}</span>
                             </div>
 
                             {/* Newsletter */}
                             <div className="mt-2">
-                                <p className="text-[10px] font-black tracking-[0.18em] text-[#1D1D1F] mb-3">
+                                <p className="text-[10px] font-black text-[#1D1D1F] mb-3">
                                     בואו נישאר מחוברים
                                 </p>
                                 <form onSubmit={handleSubscribe} className="relative">
@@ -155,7 +155,7 @@ const Footer = () => {
 
                             {/* Col 1 */}
                             <div>
-                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 tracking-[0.2em]">{content.col1}</h4>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5">{content.col1}</h4>
                                 <nav className="flex flex-col gap-3">
                                     {content.col1Items.map(item => (
                                         <Link key={item} to="/catalog"
@@ -168,7 +168,7 @@ const Footer = () => {
 
                             {/* Col 2 */}
                             <div>
-                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 tracking-[0.2em]">{content.col2}</h4>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5">{content.col2}</h4>
                                 <nav className="flex flex-col gap-3">
                                     <Link to="/vod?tab=help" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">מרכז עזרה</Link>
                                     <Link to="/vod" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">מדריכי וידאו</Link>
@@ -179,7 +179,7 @@ const Footer = () => {
 
                             {/* Col 3 — Contact, RTL-correct */}
                             <div>
-                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 tracking-[0.2em]">{content.col3}</h4>
+                                <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5">{content.col3}</h4>
                                 <div className="flex flex-col gap-4">
                                     <a href={`tel:${content.phone}`}
                                         className="group flex items-center justify-end gap-2 text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors">
@@ -231,7 +231,7 @@ const Footer = () => {
                     <span className="text-[11px] text-white/35 font-medium tracking-wide">{content.copyright}</span>
                     <div className="flex items-center gap-1.5 text-white/25">
                         <Sparkles size={9} />
-                        <span className="text-[10px] font-black tracking-[0.2em]">{content.loveMsg}</span>
+                        <span className="text-[10px] font-black">{content.loveMsg}</span>
                     </div>
                 </div>
             </div>

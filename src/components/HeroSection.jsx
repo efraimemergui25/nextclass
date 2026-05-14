@@ -62,7 +62,7 @@ const HeroSection = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="inline-block text-[11px] font-bold tracking-[0.25em] text-white/60 mb-6"
+                    className="inline-block text-[11px] font-bold text-white/60 mb-6"
                 >
                     {content.hero_eyebrow}
                 </motion.span>
@@ -166,7 +166,7 @@ const HeroSection = () => {
                             transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
                         />
                     </div>
-                    <span className="text-[10px] font-bold tracking-[0.15em] opacity-60">גלול</span>
+                    <span className="text-[10px] font-bold opacity-60">גלול</span>
                 </div>
             </motion.button>
         </section>

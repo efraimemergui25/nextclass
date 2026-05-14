@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import useCartPop from '../hooks/useCartPop';
 import { Sparkles, Heart } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 // ─── Cart pop animation variants ─────────────────────────────────────────────
 const cartBtnVariants = {
@@ -116,33 +117,9 @@ const ProductCard = ({ product }) => {
     const isInCart = useMemo(() => (cartItems ?? []).some(item => item?.id === id), [cartItems, id]);
     const isFavorite = useMemo(() => isInWishlist(id), [isInWishlist, id]);
     
-    const [siteSettings, setSiteSettings] = useState(() => {
-        try {
-            const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-            return {
-                showPrices: s.show_prices !== false,
-                allowOrders: s.allow_orders !== false
-            };
-        } catch { return { showPrices: true, allowOrders: true }; }
-    });
-
-    useEffect(() => {
-        const onStorage = (e) => {
-            if (e.key === 'nextclass_content') {
-                try {
-                    const s = JSON.parse(localStorage.getItem('nextclass_content') || '{}');
-                    setSiteSettings({
-                        showPrices: s.show_prices !== false,
-                        allowOrders: s.allow_orders !== false
-                    });
-                } catch {}
-            }
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
-
-    const { showPrices, allowOrders } = siteSettings;
+    const { isVisible } = useSettings();
+    const showPrices  = isVisible('show_prices',  true);
+    const allowOrders = isVisible('allow_orders', true);
 
     // ─── Stable handlers ──────────────────────────────────────────────────────
     const handleImgError = useCallback((e) => {
@@ -261,7 +238,7 @@ const ProductCard = ({ product }) => {
                     {/* ── Text Content ─────────────────────────────────────── */}
                     <div className="flex-1 flex flex-col text-right px-6 pt-6 pb-6">
                         {category && (
-                            <span className="text-[11px] font-bold tracking-[0.2em] text-[#007AFF] mb-2">{category}</span>
+                            <span className="text-[11px] font-bold text-[#007AFF] mb-2">{category}</span>
                         )}
                         <h3 className="text-lg md:text-xl font-apple-display text-[#1D1D1F] leading-snug line-clamp-2 mb-2">{title}</h3>
                         {description && (

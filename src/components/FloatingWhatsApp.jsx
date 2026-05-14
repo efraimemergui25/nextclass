@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSettings } from '../context/SettingsContext';
 
 const FloatingWhatsApp = () => {
+    const { getSetting } = useSettings();
+    const waNumber = getSetting('whatsapp_number', '972585856356');
     const [isVisible, setIsVisible] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
 
@@ -27,7 +30,7 @@ const FloatingWhatsApp = () => {
                     className="fixed bottom-[5.5rem] right-8 z-[90] flex items-center transform-gpu will-change-transform"
                 >
                     <a
-                        href="https://wa.me/972585856356"
+                        href={`https://wa.me/${waNumber}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="שלחו לנו הודעה בוואטסאפ"

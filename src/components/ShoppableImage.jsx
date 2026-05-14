@@ -171,7 +171,7 @@ const ShoppableImage = () => {
                                         {/* Card Body */}
                                         <div className="p-4 text-right" dir="rtl">
                                             {spot.product.category && (
-                                                <span className="text-[10px] font-black tracking-[0.2em] text-[#007AFF] block mb-1">
+                                                <span className="text-[10px] font-black text-[#007AFF] block mb-1">
                                                     {spot.product.category.split(' ')[0]}
                                                 </span>
                                             )}
