@@ -23,11 +23,17 @@ const MenuOverlay = ({ isOpen, onClose }) => {
     const { getSetting } = useSettings();
     const [hoveredId, setHoveredId] = useState(null);
 
-    const navItems = useMemo(() => ALL_NAV_ITEMS.map(item => ({
-        id:   item.id,
-        name: getSetting(item.labelKey, item.defaultLabel),
-        path: item.path,
-    })), [getSetting]);
+    const navItems = useMemo(() => {
+        const saved = getSetting('nav_items', null);
+        const source = Array.isArray(saved) ? saved : ALL_NAV_ITEMS;
+        return source
+            .filter(item => item.id !== 'home' && item.visible !== false)
+            .map(item => ({
+                id:   item.id,
+                name: getSetting(item.labelKey, item.defaultLabel),
+                path: item.path,
+            }));
+    }, [getSetting]);
 
     const siteName = getSetting('site_name', 'NextClass');
     const siteLogo = getSetting('site_logo_url', '');

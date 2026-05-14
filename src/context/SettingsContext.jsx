@@ -53,11 +53,12 @@ export const SettingsProvider = ({ children }) => {
         };
     }, []);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const getSetting = useCallback((key, defaultValue) => {
         const val = settingsRef.current[key];
         if (val === undefined || val === null) return defaultValue;
         return val;
-    }, []);
+    }, [settings]); // settings in deps → new reference on every Firestore update → useMemo/useEffect consumers re-run
 
     const isVisible = useCallback((key, defaultVal = true) => {
         return getSetting(key, defaultVal) !== false;
