@@ -29,7 +29,10 @@ import AdminQA from './pages/AdminQA';
 import AdminFulfillment from './pages/AdminFulfillment';
 import AdminCommunity from './pages/AdminCommunity';
 import AdminMedia from './pages/AdminMedia';
+import AdminIntegrations from './pages/AdminIntegrations';
 import AdminCommunications from './pages/AdminCommunications';
+import AdminSecurity from './pages/AdminSecurity';
+import AdminMagazine from './pages/AdminMagazine';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -84,6 +87,7 @@ function AdminShell() {
                                     <Route path="/admin/customers" element={<AdminCustomers />} />
                                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                                     <Route path="/admin/marketing" element={<AdminMarketing />} />
+                                    <Route path="/admin/integrations" element={<AdminIntegrations />} />
                                     <Route path="/admin/content" element={<AdminContent />} />
                                     <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
                                     <Route path="/admin/community" element={<AdminCommunity />} />
@@ -91,6 +95,8 @@ function AdminShell() {
                                     <Route path="/admin/media" element={<AdminMedia />} />
                                     <Route path="/admin/communications" element={<AdminCommunications />} />
                                     <Route path="/admin/settings" element={<AdminSettings />} />
+                                    <Route path="/admin/security" element={<AdminSecurity />} />
+                                    <Route path="/admin/magazine" element={<AdminMagazine />} />
                                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                                 </Routes>
                             </motion.div>
