@@ -666,57 +666,57 @@ const FIELD_SECTIONS = [
     },
 ];
 
-// ─── Section Groups for sidebar ───────────────────────────────────────────────
+// ─── Top-Level Nav Groups (5 clean sections) ──────────────────────────────────
 const SECTION_GROUPS = [
     {
-        label: 'כללי',
-        icon: '⚙️',
-        sections: ['visibility', 'branding'],
-    },
-    {
-        label: 'ניווט',
-        icon: '🧭',
-        sections: ['menu_reorder', 'header'],
-    },
-    {
+        id: 'homepage',
         label: 'דף הבית',
         icon: '🏠',
-        sections: ['hero', 'homepage_sections', 'homepage_vp', 'feature_tiles', 'shoppable_image', 'quote_wizard', 'expert_consultation', 'home_discover_products'],
+        accent: '#007AFF',
+        subGroups: [
+            { label: null, sections: ['hero', 'homepage_sections', 'homepage_vp', 'feature_tiles', 'shoppable_image', 'quote_wizard', 'expert_consultation', 'home_discover_products'] },
+        ],
     },
     {
-        label: 'קטלוג וחיפוש',
-        icon: '🛍️',
-        sections: ['catalog_full', 'search_section'],
-    },
-    {
-        label: 'דף מוצר',
-        icon: '📦',
-        sections: ['product_detail', 'sidebar_sections', 'pd_dims_section', 'pd_warranty_section', 'pd_support_section', 'pd_faq_section', 'pd_reviews_section', 'accessories_section'],
-    },
-    {
-        label: 'תקשורת',
-        icon: '📞',
-        sections: ['contact_page', 'ai_assistant', 'qa_section'],
-    },
-    {
+        id: 'pages',
         label: 'עמודים',
-        icon: '📖',
-        sections: ['about_page', 'about_timeline', 'wishlist_section', 'discover_section'],
+        icon: '📄',
+        accent: '#5856D6',
+        subGroups: [
+            { label: 'קטלוג וחיפוש', sections: ['catalog_full', 'search_section'] },
+            { label: 'דף מוצר', sections: ['product_detail', 'trust_badges', 'sidebar_sections', 'pd_dims_section', 'pd_warranty_section', 'pd_support_section', 'pd_faq_section', 'pd_reviews_section', 'accessories_section'] },
+            { label: 'אודות', sections: ['about_page', 'about_timeline'] },
+            { label: 'צור קשר', sections: ['contact_page'] },
+            { label: 'עמודים נוספים', sections: ['discover_section', 'wishlist_section', 'magazine'] },
+        ],
     },
     {
+        id: 'brand',
+        label: 'מיתוג וניווט',
+        icon: '🎨',
+        accent: '#FF9500',
+        subGroups: [
+            { label: null, sections: ['branding', 'header', 'menu_reorder', 'footer_config'] },
+        ],
+    },
+    {
+        id: 'tools',
+        label: 'כלים',
+        icon: '🤖',
+        accent: '#34C759',
+        subGroups: [
+            { label: 'תקשורת ואוטומציה', sections: ['ai_assistant', 'qa_section'] },
+            { label: 'מסחר ומדיה', sections: ['cart_checkout', 'videos', 'accessibility_section'] },
+        ],
+    },
+    {
+        id: 'system',
         label: 'מערכת',
-        icon: '🔧',
-        sections: ['cart_checkout', 'accessibility_section', 'videos'],
-    },
-    {
-        label: 'מגזין',
-        icon: '📰',
-        sections: ['magazine'],
-    },
-    {
-        label: 'משפטי',
-        icon: '⚖️',
-        sections: ['legal', 'footer_config'],
+        icon: '⚙️',
+        accent: '#FF2D55',
+        subGroups: [
+            { label: null, sections: ['visibility', 'legal'] },
+        ],
     },
 ];
 
@@ -1125,100 +1125,155 @@ const MagazineSection = ({ showToast }) => {
     );
 };
 
-// ─── Grouped Sidebar ──────────────────────────────────────────────────────────
-function Sidebar({ activeSection, setActiveSection }) {
-    const [search, setSearch] = useState('');
-    const [collapsed, setCollapsed] = useState(() => Object.fromEntries(SECTION_GROUPS.map(g => [g.label, true])));
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+function Sidebar({ activeGroup, setActiveGroup }) {
+    return (
+        <div className="w-52 shrink-0 flex flex-col gap-2" style={{ minWidth: 200 }}>
+            {/* Logo row */}
+            <div className="px-4 py-3 mb-1">
+                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em]">תוכן האתר</p>
+            </div>
 
-    const filteredGroups = useMemo(() => {
-        if (!search.trim()) return SECTION_GROUPS;
-        const q = search.toLowerCase();
-        return SECTION_GROUPS.map(g => ({
-            ...g,
-            sections: g.sections.filter(id => {
-                const sec = ALL_SECTIONS.find(s => s.id === id);
-                return sec && sec.label.toLowerCase().includes(q);
-            }),
-        })).filter(g => g.sections.length > 0);
-    }, [search]);
+            {SECTION_GROUPS.map(group => {
+                const isActive = activeGroup === group.id;
+                return (
+                    <motion.button
+                        key={group.id}
+                        onClick={() => setActiveGroup(group.id)}
+                        whileHover={{ x: isActive ? 0 : -2 }}
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-right transition-all relative overflow-hidden"
+                        style={{
+                            background: isActive
+                                ? `linear-gradient(135deg, ${group.accent} 0%, ${group.accent}CC 100%)`
+                                : 'rgba(255,255,255,0.85)',
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: isActive
+                                ? `0 8px 24px ${group.accent}35, 0 0 0 1px ${group.accent}20`
+                                : '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                        }}
+                    >
+                        {isActive && (
+                            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                                <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-8 -mt-8" />
+                            </div>
+                        )}
+                        <span className="text-[20px] shrink-0 relative z-10">{group.icon}</span>
+                        <span className={`text-[13px] font-bold flex-1 text-right relative z-10 ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
+                            {group.label}
+                        </span>
+                        {isActive && (
+                            <ChevronRight size={14} className="text-white/60 shrink-0 relative z-10" />
+                        )}
+                    </motion.button>
+                );
+            })}
+        </div>
+    );
+}
 
-    const toggleGroup = (label) => setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
+// ─── Section Accordion ────────────────────────────────────────────────────────
+function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, showToast }) {
+    const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine';
+    const fieldCount = sec.fields ? sec.fields.length : null;
+
+    const specialBadge = () => {
+        if (sec.type === 'visibility') return `${VISIBILITY_ITEMS.length} פריטים`;
+        if (sec.type === 'menu_reorder') return '↕ גרירה';
+        if (sec.id === 'sidebar_sections') return '↕ גרירה';
+        if (sec.type === 'videos') return 'VOD';
+        if (sec.type === 'magazine') return 'Firestore';
+        return null;
+    };
+
+    const badge = fieldCount !== null ? `${fieldCount} שדות` : specialBadge();
 
     return (
-        <div className="w-56 shrink-0 flex flex-col gap-2.5">
-            {/* Search */}
-            <div className="relative">
-                <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
-                <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="חפש קטע..."
-                    dir="rtl"
-                    className="w-full pr-9 pl-4 py-2.5 bg-white rounded-2xl border border-gray-100 text-[13px] text-[#1D1D1F] placeholder-[#AEAEB2] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all"
-                    style={CARD_STYLE}
+        <div
+            className="rounded-2xl overflow-hidden transition-all duration-200"
+            style={{
+                background: isOpen ? '#ffffff' : 'rgba(255,255,255,0.72)',
+                border: `1px solid ${isOpen ? sec.accent + '28' : 'rgba(0,0,0,0.06)'}`,
+                boxShadow: isOpen
+                    ? `0 4px 24px rgba(0,0,0,0.07), 0 0 0 1px ${sec.accent}12`
+                    : '0 1px 3px rgba(0,0,0,0.04)',
+            }}
+        >
+            {/* Header */}
+            <button
+                onClick={onToggle}
+                className="w-full flex items-center gap-3.5 px-5 py-4 text-right transition-colors hover:bg-black/[0.01] group"
+            >
+                <div
+                    className="w-1 h-7 rounded-full shrink-0 transition-all duration-300"
+                    style={{ background: isOpen ? sec.accent : '#E5E5EA' }}
                 />
-            </div>
+                <span className="text-[18px] shrink-0">{sec.icon}</span>
+                <div className="flex-1 text-right">
+                    <p className={`text-[13px] font-bold leading-snug transition-colors ${isOpen ? 'text-[#1D1D1F]' : 'text-[#3C3C43]'}`}>
+                        {sec.label}
+                    </p>
+                </div>
+                {badge && (
+                    <span
+                        className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap"
+                        style={{ background: `${sec.accent}12`, color: sec.accent }}
+                    >
+                        {badge}
+                    </span>
+                )}
+                <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.22, ease: [0.32,0.72,0,1] }}>
+                    <ChevronDown size={15} className="text-[#C7C7CC] shrink-0 group-hover:text-[#AEAEB2] transition-colors" />
+                </motion.div>
+            </button>
 
-            {/* Groups */}
-            <div className="flex-1 overflow-y-auto rounded-[20px] bg-white" style={CARD_STYLE}>
-                {filteredGroups.map((group, gi) => (
-                    <div key={group.label} className={gi > 0 ? 'border-t border-black/[0.04]' : ''}>
-                        {/* Group header */}
-                        <button
-                            onClick={() => toggleGroup(group.label)}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 text-right hover:bg-black/[0.02] transition-colors"
-                        >
-                            <motion.span
-                                animate={{ rotate: collapsed[group.label] ? -90 : 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="shrink-0"
-                            >
-                                <ChevronDown size={11} className="text-[#AEAEB2]" />
-                            </motion.span>
-                            <span className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.15em] flex-1 text-right">{group.label}</span>
-                        </button>
+            {/* Body */}
+            <AnimatePresence initial={false}>
+                {isOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+                        className="overflow-hidden"
+                    >
+                        <div className="border-t" style={{ borderColor: `${sec.accent}15` }}>
+                            {/* Special sections */}
+                            {sec.type === 'visibility' && <VisibilitySection content={content} onChange={onChange} />}
+                            {sec.type === 'menu_reorder' && <NavMenuManager showToast={showToast} />}
+                            {sec.id === 'sidebar_sections' && <SidebarSectionManager showToast={showToast} />}
+                            {sec.type === 'videos' && <VideosSection showToast={showToast} />}
+                            {sec.type === 'magazine' && <MagazineSection showToast={showToast} />}
 
-                        {/* Sections */}
-                        <AnimatePresence initial={false}>
-                            {!collapsed[group.label] && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-                                    className="overflow-hidden"
-                                >
-                                    {group.sections.map(id => {
-                                        const sec = ALL_SECTIONS.find(s => s.id === id);
-                                        if (!sec) return null;
-                                        const isActive = activeSection === id;
-                                        return (
-                                            <button
-                                                key={id}
-                                                onClick={() => setActiveSection(id)}
-                                                className="w-full flex items-center gap-2.5 pr-3 pl-4 py-2.5 text-right transition-all border-r-[3px]"
-                                                style={{
-                                                    background: isActive ? `${sec.accent}10` : 'transparent',
-                                                    borderRightColor: isActive ? sec.accent : 'transparent',
-                                                }}
-                                            >
-                                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? sec.accent : '#AEAEB2' }} />
-                                                <span
-                                                    className="text-[12px] font-semibold flex-1 text-right leading-snug"
-                                                    style={{ color: isActive ? sec.accent : '#6E6E73' }}
-                                                >
-                                                    {sec.label}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </motion.div>
+                            {/* Regular field sections */}
+                            {sec.fields && sec.id !== 'sidebar_sections' && (
+                                <div className="p-5">
+                                    <div className="flex justify-end mb-4">
+                                        <button
+                                            onClick={() => onReset(sec)}
+                                            className="flex items-center gap-1.5 text-[11px] font-bold text-[#C7C7CC] hover:text-[#007AFF] transition-colors"
+                                        >
+                                            <RotateCcw size={11} />
+                                            איפוס לברירת מחדל
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {sec.fields.map(field => (
+                                            <FieldInput
+                                                key={field.key}
+                                                field={field}
+                                                value={content[field.key] !== undefined ? content[field.key] : field.default}
+                                                onChange={v => onChange(field.key, v)}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             )}
-                        </AnimatePresence>
-                    </div>
-                ))}
-            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -1234,16 +1289,14 @@ const ALL_FIELD_DEFAULTS = (() => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminContent({ showToast }) {
-    const [activeSection, setActiveSection] = useState('visibility');
+    const [activeGroup, setActiveGroup] = useState('homepage');
+    const [openSections, setOpenSections] = useState(new Set(['hero']));
+    const [globalSearch, setGlobalSearch] = useState('');
     const [content, setContent] = useState({});
     const [hasChanges, setHasChanges] = useState(false);
     const [saved, setSaved] = useState(false);
     const { updateGlobalSettings, seedMissingDefaults, firestoreLoaded } = useSettings();
 
-    // Auto-seed any FIELD_SECTIONS defaults that are missing from Firestore.
-    // Runs once after Firestore has loaded — only writes keys that don't exist yet.
-    // This means adding a new field + default in FIELD_SECTIONS is the ONLY step needed;
-    // Firestore is updated automatically on next admin panel load.
     useEffect(() => {
         if (firestoreLoaded) seedMissingDefaults(ALL_FIELD_DEFAULTS);
     }, [firestoreLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1252,9 +1305,7 @@ export default function AdminContent({ showToast }) {
         try {
             const savedData = localStorage.getItem(LS_KEY);
             if (savedData) setContent(JSON.parse(savedData));
-            else {
-                setContent(ALL_FIELD_DEFAULTS);
-            }
+            else setContent(ALL_FIELD_DEFAULTS);
         } catch {}
     }, []);
 
@@ -1286,92 +1337,184 @@ export default function AdminContent({ showToast }) {
         setSaved(false);
     };
 
-    const currentDef = ALL_SECTIONS.find(s => s.id === activeSection);
+    const toggleSection = (id) => {
+        setOpenSections(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // Search: filter across ALL sections
+    const searchResults = useMemo(() => {
+        if (!globalSearch.trim()) return null;
+        const q = globalSearch.toLowerCase();
+        return ALL_SECTIONS.filter(sec => {
+            if (sec.label.toLowerCase().includes(q)) return true;
+            if (sec.fields) return sec.fields.some(f => f.label.toLowerCase().includes(q) || f.key.toLowerCase().includes(q));
+            return false;
+        });
+    }, [globalSearch]);
+
+    const currentGroupDef = SECTION_GROUPS.find(g => g.id === activeGroup);
+
+    const renderAccordion = (id) => {
+        const sec = ALL_SECTIONS.find(s => s.id === id);
+        if (!sec) return null;
+        return (
+            <SectionAccordion
+                key={id}
+                sec={sec}
+                isOpen={openSections.has(id)}
+                onToggle={() => toggleSection(id)}
+                content={content}
+                onChange={handleChange}
+                onReset={handleReset}
+                showToast={showToast}
+            />
+        );
+    };
 
     return (
-        <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader
-                title="ניהול תוכן האתר"
-                subtitle="ערוך טקסטים, תמונות, והגדרות — הכל מסונכרן לענן בזמן אמת"
-                action={
-                    <div className="flex items-center gap-3">
+        <div dir="rtl" className="space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-[22px] font-black text-[#1D1D1F] tracking-tight">ניהול תוכן האתר</h1>
+                    <p className="text-[13px] text-[#AEAEB2] mt-0.5">ערוך טקסטים, תמונות והגדרות — מסונכרן לענן בזמן אמת</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <AnimatePresence>
                         {hasChanges && (
-                            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                className="text-[#FF9500] text-xs font-bold">
-                                יש שינויים שטרם נשמרו
+                            <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
+                                className="text-[#FF9500] text-[12px] font-bold">
+                                שינויים לא נשמרו
                             </motion.span>
                         )}
-                        <AdminButton onClick={handleSave}>
-                            {saved ? '✓ נשמר!' : 'שמור שינויים'}
-                        </AdminButton>
-                    </div>
-                }
-            />
-
-            <div className="flex gap-5 items-start">
-                {/* Grouped Sidebar */}
-                <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-
-                {/* Content Area */}
-                <div className="flex-1 bg-white rounded-[20px] overflow-hidden" style={CARD_STYLE}>
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeSection}
-                            initial={{ opacity: 0, x: 16 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -16 }}
-                            transition={{ duration: 0.18 }}
-                        >
-                            {activeSection === 'visibility' && (
-                                <VisibilitySection content={content} onChange={handleChange} />
-                            )}
-                            {activeSection === 'menu_reorder' && (
-                                <NavMenuManager showToast={showToast} />
-                            )}
-                            {activeSection === 'sidebar_sections' && (
-                                <SidebarSectionManager showToast={showToast} />
-                            )}
-                            {activeSection === 'videos' && (
-                                <VideosSection showToast={showToast} />
-                            )}
-                            {activeSection === 'magazine' && (
-                                <MagazineSection showToast={showToast} />
-                            )}
-                            {currentDef && currentDef.fields && activeSection !== 'sidebar_sections' && (
-                                <div className="p-8">
-                                    {/* Section Header */}
-                                    <div className="flex items-center justify-between mb-8 pb-5 border-b border-black/[0.05]">
-                                        <AdminButton variant="outline" size="sm" onClick={() => handleReset(currentDef)}>
-                                            איפוס לברירת מחדל
-                                        </AdminButton>
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-2 justify-end mb-1">
-                                                <div className="w-2 h-6 rounded-full shrink-0" style={{ background: currentDef.accent }} />
-                                                <h3 className="text-xl font-black text-[#1D1D1F]">{currentDef.label}</h3>
-                                            </div>
-                                            <p className="text-[#AEAEB2] text-xs">
-                                                {currentDef.fields.length} שדות
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Fields */}
-                                    <div className="space-y-5">
-                                        {currentDef.fields.map(field => (
-                                            <FieldInput
-                                                key={field.key}
-                                                field={field}
-                                                value={content[field.key] !== undefined ? content[field.key] : field.default}
-                                                onChange={v => handleChange(field.key, v)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </motion.div>
                     </AnimatePresence>
+                    <motion.button
+                        onClick={handleSave}
+                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
+                        style={{
+                            background: saved ? '#34C759' : '#007AFF',
+                            color: 'white',
+                            boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : '0 4px 14px rgba(0,122,255,0.35)',
+                        }}
+                    >
+                        <Save size={14} />
+                        {saved ? '✓ נשמר!' : 'שמור הכל'}
+                    </motion.button>
                 </div>
             </div>
+
+            {/* Global Search */}
+            <div className="relative">
+                <Search size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#C7C7CC]" />
+                <input
+                    type="text"
+                    value={globalSearch}
+                    onChange={e => setGlobalSearch(e.target.value)}
+                    placeholder="חפש בכל תכני האתר — שדות, קטעים, עמודים..."
+                    dir="rtl"
+                    className="w-full pr-11 pl-10 py-3.5 rounded-2xl border text-[14px] placeholder-[#C7C7CC] focus:outline-none transition-all"
+                    style={{
+                        background: 'rgba(255,255,255,0.9)',
+                        borderColor: globalSearch ? '#007AFF40' : 'rgba(0,0,0,0.07)',
+                        boxShadow: globalSearch ? '0 0 0 3px rgba(0,122,255,0.08), 0 1px 4px rgba(0,0,0,0.05)' : '0 1px 4px rgba(0,0,0,0.05)',
+                    }}
+                />
+                {globalSearch && (
+                    <button onClick={() => setGlobalSearch('')}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C7C7CC] hover:text-[#8E8E93] transition-colors">
+                        <X size={15} />
+                    </button>
+                )}
+            </div>
+
+            {/* Search results */}
+            {searchResults ? (
+                <div className="flex flex-col gap-2.5">
+                    <p className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-[0.2em]">
+                        {searchResults.length} קטעים נמצאו עבור &quot;{globalSearch}&quot;
+                    </p>
+                    {searchResults.length === 0
+                        ? <div className="text-center py-20 text-[#C7C7CC] text-[15px]">לא נמצאו קטעים</div>
+                        : searchResults.map(sec => (
+                            <SectionAccordion
+                                key={sec.id}
+                                sec={sec}
+                                isOpen={openSections.has(sec.id)}
+                                onToggle={() => toggleSection(sec.id)}
+                                content={content}
+                                onChange={handleChange}
+                                onReset={handleReset}
+                                showToast={showToast}
+                            />
+                        ))
+                    }
+                </div>
+            ) : (
+                <div className="flex gap-5 items-start">
+                    {/* Sidebar */}
+                    <Sidebar activeGroup={activeGroup} setActiveGroup={(id) => {
+                        setActiveGroup(id);
+                        setOpenSections(new Set()); // collapse all when switching group
+                    }} />
+
+                    {/* Content — accordion per section */}
+                    <div className="flex-1 flex flex-col gap-2.5 min-w-0">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeGroup}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                className="flex flex-col gap-2.5"
+                            >
+                                {/* Group title pill */}
+                                {currentGroupDef && (
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xl">{currentGroupDef.icon}</span>
+                                        <h2 className="text-[15px] font-black text-[#1D1D1F]">{currentGroupDef.label}</h2>
+                                        <div className="flex-1 h-px bg-black/[0.05]" />
+                                        <button
+                                            onClick={() => {
+                                                const allIds = currentGroupDef.subGroups.flatMap(sg => sg.sections);
+                                                const allOpen = allIds.every(id => openSections.has(id));
+                                                setOpenSections(allOpen ? new Set() : new Set(allIds));
+                                            }}
+                                            className="text-[11px] font-bold text-[#AEAEB2] hover:text-[#007AFF] transition-colors whitespace-nowrap"
+                                        >
+                                            {currentGroupDef.subGroups.flatMap(sg => sg.sections).every(id => openSections.has(id))
+                                                ? 'סגור הכל'
+                                                : 'פתח הכל'
+                                            }
+                                        </button>
+                                    </div>
+                                )}
+
+                                {currentGroupDef && currentGroupDef.subGroups.map((sub, si) => (
+                                    <div key={si} className="flex flex-col gap-2.5">
+                                        {sub.label && (
+                                            <div className="flex items-center gap-2.5 mt-1">
+                                                <div className="h-px flex-1 bg-black/[0.05]" />
+                                                <span className="text-[10px] font-black text-[#C7C7CC] uppercase tracking-[0.22em] whitespace-nowrap px-1">
+                                                    {sub.label}
+                                                </span>
+                                                <div className="h-px flex-1 bg-black/[0.05]" />
+                                            </div>
+                                        )}
+                                        {sub.sections.map(id => renderAccordion(id))}
+                                    </div>
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
