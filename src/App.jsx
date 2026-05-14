@@ -18,7 +18,7 @@ class AppErrorBoundary extends Component {
         );
     }
 }
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
 import Header from './components/Header';
@@ -30,7 +30,6 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AboutPage from './pages/AboutPage';
 import SuccessStoriesPage from './pages/SuccessStoriesPage';
-import SupportPage from './pages/SupportPage';
 import ContactPage from './pages/ContactPage';
 import VODCenterPage from './pages/VODCenterPage';
 import MagazinePage from './pages/MagazinePage';
@@ -49,6 +48,9 @@ import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import AdminApp from './admin/AdminApp';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import CookieConsent from './components/CookieConsent';
 
 
 // ─── Analytics helpers ───────────────────────────────────────────────────────
@@ -102,13 +104,15 @@ function AnimatedRoutes() {
                 <Route path="/checkout"   element={<CheckoutPage />} />
                 <Route path="/story"      element={<AboutPage />} />
                 <Route path="/innovation" element={<SuccessStoriesPage />} />
-                <Route path="/help"       element={<SupportPage />} />
+                <Route path="/help"       element={<Navigate to="/vod" replace />} />
                 <Route path="/contact"    element={<ContactPage />} />
                 <Route path="/vod"        element={<VODCenterPage />} />
                 <Route path="/magazine"   element={<MagazinePage />} />
                 <Route path="/compare"    element={<ComparePage />} />
                 <Route path="/discover"   element={<DiscoverPage />} />
                 <Route path="/favorites"  element={<WishlistPage />} />
+                <Route path="/privacy"    element={<PrivacyPage />} />
+                <Route path="/terms"      element={<TermsPage />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -187,19 +191,24 @@ function AppContent() {
             {/* ── Living Aurora Atmosphere — reactive, always present ── */}
             <GlassCanvas mood={mood} />
 
-            <AnnouncementBar />
-            <Header />
+            <PageErrorBoundary>
+                <AnnouncementBar />
+                <Header />
+            </PageErrorBoundary>
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
                 <PageErrorBoundary>
                     <AnimatedRoutes />
                 </PageErrorBoundary>
             </main>
-            <Footer />
+            <PageErrorBoundary>
+                <Footer />
+            </PageErrorBoundary>
 
             {/* ── Global Floating UI Layer ── */}
             <DynamicIsland />
             <SmartConcierge />
             <CompareTray />
+            <CookieConsent />
         </div>
     );
 }

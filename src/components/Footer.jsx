@@ -17,7 +17,7 @@ const Footer = () => {
         email:     getSetting('contact_email', 'nextclass.en@gmail.com'),
         address:   getSetting('contact_address', 'בראלי 10, תל אביב'),
         copyright: getSetting('footer_copyright', '© 2026 NextClass. כל הזכויות שמורות.'),
-        tagline:   getSetting('footer_tagline', 'אנחנו מעצבים את הכלים שמעצימים את דור המחר. חדשנות, איכות וחזון בכל כיתה.'),
+        tagline:   getSetting('footer_tagline', 'ציוד חינוך ממחסן ישיר. שירות אמיתי. מחיר שקוף.'),
         loveMsg:   getSetting('footer_love_msg', 'נבנה באהבה לחינוך'),
         col1:      getSetting('footer_col1_title', 'פתרונות'),
         col1Items: getSetting('footer_col1_items', 'מסכים חכמים, מחשוב וטאבלטים, מעבדות STEM, תשתיות למידה').split(',').map(s => s.trim()),
@@ -170,12 +170,10 @@ const Footer = () => {
                             <div>
                                 <h4 className="text-[10px] font-black text-[#1D1D1F] mb-5 uppercase tracking-[0.2em]">{content.col2}</h4>
                                 <nav className="flex flex-col gap-3">
-                                    {content.col2Items.map(item => (
-                                        <Link key={item} to="/help"
-                                            className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">
-                                            {item}
-                                        </Link>
-                                    ))}
+                                    <Link to="/vod?tab=help" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">מרכז עזרה</Link>
+                                    <Link to="/vod" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">מדריכי וידאו</Link>
+                                    <Link to="/magazine" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">בלוג חדשנות</Link>
+                                    <Link to="/vod?tab=support" className="text-[13px] text-[#86868B] font-medium hover:text-[#007AFF] transition-colors w-fit">תמיכה טכנית</Link>
                                 </nav>
                             </div>
 
@@ -215,8 +213,8 @@ const Footer = () => {
                     {/* ── Mid bar — links + locale ──────────────────────── */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div className="flex items-center gap-5">
-                            <Link to="/" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
-                            <Link to="/" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.terms}</Link>
+                            <Link to="/privacy" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.privacy}</Link>
+                            <Link to="/terms" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">{content.terms}</Link>
                             <Link to="/contact" className="text-[11px] text-[#AEAEB2] font-medium hover:text-[#007AFF] transition-colors">צור קשר</Link>
                         </div>
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 border border-black/[0.06] shadow-sm">
