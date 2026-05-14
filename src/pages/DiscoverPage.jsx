@@ -198,7 +198,8 @@ const DiscoverPage = () => {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                            className="text-4xl md:text-[60px] font-black tracking-tight leading-[1.06] text-[#1D1D1F]"
+                            className="font-black leading-[1.0] text-[#1D1D1F]"
+                            style={{ fontSize: 'clamp(36px, 6vw, 80px)', letterSpacing: '-0.04em' }}
                         >
                             {(() => {
                                 const t = getSetting('discover_title', 'הטכנולוגיה שמעצבת את המחר.');

@@ -2,20 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
 
-const card = { border: '1px solid rgba(0,0,0,0.07)', shadow: '0 2px 12px rgba(0,0,0,0.06)' };
-
-function SettingCard({ title, icon, accent = '#007AFF', children }) {
+function SettingCard({ title, Icon, accent = '#007AFF', children }) {
     return (
-        <div className="bg-white rounded-[20px] overflow-hidden" style={{ border: card.border, boxShadow: card.shadow }}>
-            <div className="h-0.5" style={{ background: accent }} />
-            <div className="px-6 py-4 border-b border-black/06 bg-[#FAFAFA] flex items-center justify-between">
-                <span className="text-xl">{icon}</span>
+        <div className="rounded-[22px] overflow-hidden" style={{
+            background: 'rgba(255,255,255,0.90)',
+            backdropFilter: 'blur(40px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.80)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}>
+            <div className="h-[3px]" style={{ background: accent }} />
+            <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
+                style={{ background: 'rgba(248,248,250,0.85)' }}>
+                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                    style={{ background: `${accent}14`, border: `1px solid ${accent}20` }}>
+                    {Icon && <Icon size={15} style={{ color: accent }} />}
+                </div>
                 <h3 className="text-[#1D1D1F] font-black text-base">{title}</h3>
             </div>
             <div className="p-6 space-y-4">{children}</div>
@@ -53,45 +62,41 @@ export default function AdminSettings() {
     const setSiteSetting  = (key, value) => updateGlobalSettings({ [key]: value });
 
     // ─── Business info (Firestore) ──────────────────────────────────────────────
-    const [bizName,      setBizName]      = useState(getSetting('biz_name',    'NextClass'));
-    const [bizPhone,     setBizPhone]     = useState(getSetting('biz_phone',   '058-5856356'));
-    const [bizWhatsapp,  setBizWhatsapp]  = useState(getSetting('biz_whatsapp','972585856356'));
-    const [bizEmail,     setBizEmail]     = useState(getSetting('biz_email',   'nextclass.en@gmail.com'));
-    const [bizAddress,   setBizAddress]   = useState(getSetting('biz_address', 'בראלי 10, תל אביב'));
-    const [bizHours,     setBizHours]     = useState(getSetting('contact_hours',  'ראשון–חמישי 08:00–18:00'));
-    const [bizInstagram, setBizInstagram] = useState(getSetting('biz_instagram',''));
-    const [bizFacebook,  setBizFacebook]  = useState(getSetting('biz_facebook', ''));
-    const [bizYoutube,   setBizYoutube]   = useState(getSetting('biz_youtube',  ''));
+    const [bizName,      setBizName]      = useState(getSetting('biz_name',        'NextClass'));
+    const [bizPhone,     setBizPhone]     = useState(getSetting('contact_phone',    '058-5856356'));
+    const [bizWhatsapp,  setBizWhatsapp]  = useState(getSetting('whatsapp_number',  '972585856356'));
+    const [bizEmail,     setBizEmail]     = useState(getSetting('contact_email',    'nextclass.en@gmail.com'));
+    const [bizAddress,   setBizAddress]   = useState(getSetting('contact_address',  'בראלי 10, תל אביב'));
+    const [bizHours,     setBizHours]     = useState(getSetting('contact_hours',    'ראשון–חמישי 08:00–18:00'));
+    const [bizInstagram, setBizInstagram] = useState(getSetting('biz_instagram',    ''));
+    const [bizFacebook,  setBizFacebook]  = useState(getSetting('biz_facebook',     ''));
+    const [bizYoutube,   setBizYoutube]   = useState(getSetting('biz_youtube',      ''));
     const [bizSaved,     setBizSaved]     = useState(false);
 
     // Keep form in sync if Firestore updates after mount
     useEffect(() => {
-        setBizName(getSetting('biz_name',    'NextClass'));
-        setBizPhone(getSetting('biz_phone',   '058-5856356'));
-        setBizWhatsapp(getSetting('biz_whatsapp','972585856356'));
-        setBizEmail(getSetting('biz_email',   'nextclass.en@gmail.com'));
-        setBizAddress(getSetting('biz_address','בראלי 10, תל אביב'));
-        setBizHours(getSetting('contact_hours',  'ראשון–חמישי 08:00–18:00'));
+        setBizName(getSetting('biz_name',        'NextClass'));
+        setBizPhone(getSetting('contact_phone',    '058-5856356'));
+        setBizWhatsapp(getSetting('whatsapp_number',  '972585856356'));
+        setBizEmail(getSetting('contact_email',    'nextclass.en@gmail.com'));
+        setBizAddress(getSetting('contact_address','בראלי 10, תל אביב'));
+        setBizHours(getSetting('contact_hours',    'ראשון–חמישי 08:00–18:00'));
         setBizInstagram(getSetting('biz_instagram',''));
-        setBizFacebook(getSetting('biz_facebook', ''));
-        setBizYoutube(getSetting('biz_youtube',   ''));
+        setBizFacebook(getSetting('biz_facebook',  ''));
+        setBizYoutube(getSetting('biz_youtube',    ''));
     }, []); // runs once; Firestore listener in SettingsContext handles live updates
 
     const saveBiz = async () => {
         await updateGlobalSettings({
-            biz_name:      bizName,
-            biz_phone:     bizPhone,
-            biz_whatsapp:  bizWhatsapp,
-            biz_email:     bizEmail,
-            biz_address:   bizAddress,
-            contact_hours: bizHours,
-            biz_instagram: bizInstagram,
-            biz_facebook:  bizFacebook,
-            biz_youtube:   bizYoutube,
-            // Legacy keys for Footer / Contact page compatibility
+            biz_name:        bizName,
             contact_phone:   bizPhone,
+            whatsapp_number: bizWhatsapp,
             contact_email:   bizEmail,
             contact_address: bizAddress,
+            contact_hours:   bizHours,
+            biz_instagram:   bizInstagram,
+            biz_facebook:    bizFacebook,
+            biz_youtube:     bizYoutube,
         });
         showToast('פרטי העסק נשמרו בהצלחה', 'success');
         setBizSaved(true);
@@ -147,7 +152,7 @@ export default function AdminSettings() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* ── Business Info ──────────────────────────────────────────── */}
-                <SettingCard title="פרטי עסק ויצירת קשר" icon="🏢" accent="#007AFF">
+                <SettingCard title="פרטי עסק ויצירת קשר" Icon={Building2} accent="#007AFF">
                     <AdminInput label="שם העסק" value={bizName} onChange={setBizName} />
                     <AdminInput label="טלפון (מוצג בפוטר ובדף צור קשר)" value={bizPhone} onChange={setBizPhone} dir="ltr" placeholder="058-5856356" />
                     <AdminInput label="WhatsApp (מספר בינלאומי, ללא +)" value={bizWhatsapp} onChange={setBizWhatsapp} dir="ltr" placeholder="972585856356" />
@@ -161,7 +166,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── Social Media ───────────────────────────────────────────── */}
-                <SettingCard title="רשתות חברתיות" icon="📱" accent="#AF52DE">
+                <SettingCard title="רשתות חברתיות" Icon={Smartphone} accent="#AF52DE">
                     <AdminInput label="Instagram (שם משתמש בלבד)" value={bizInstagram} onChange={setBizInstagram} dir="ltr" placeholder="nextclass.il" />
                     <AdminInput label="Facebook (URL מלא או שם)" value={bizFacebook} onChange={setBizFacebook} dir="ltr" placeholder="nextclassil" />
                     <AdminInput label="YouTube (URL ערוץ)" value={bizYoutube} onChange={setBizYoutube} dir="ltr" placeholder="@nextclass" />
@@ -172,7 +177,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── Security / PIN ────────────────────────────────────────── */}
-                <SettingCard title="אבטחה — שינוי PIN" icon="🔐" accent="#5856D6">
+                <SettingCard title="אבטחה — שינוי PIN" Icon={Lock} accent="#5856D6">
                     <AdminInput label="PIN נוכחי" type="password" value={currentPin} onChange={setCurrentPin} placeholder="••••" dir="ltr" />
                     <AdminInput label="PIN חדש (מינימום 4 ספרות)" type="password" value={newPin} onChange={setNewPin} placeholder="••••" dir="ltr" />
                     <AdminInput label="אישור PIN חדש" type="password" value={confirmPin} onChange={setConfirmPin} placeholder="••••" dir="ltr" />
@@ -190,7 +195,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── Notifications ─────────────────────────────────────────── */}
-                <SettingCard title="התראות מערכת" icon="🔔" accent="#FF9500">
+                <SettingCard title="התראות מערכת" Icon={Bell} accent="#FF9500">
                     <div className="space-y-4">
                         <AdminToggle label="הזמנות חדשות" sub="קבל התראה על כל הזמנה נכנסת" value={notifOrders} onChange={setNotifOrders} />
                         <AdminToggle label="מלאי נמוך" sub="התראה כאשר מוצר מתחת לסף" value={notifLowStock} onChange={setNotifLowStock} />
@@ -199,7 +204,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── Site Toggles ──────────────────────────────────────────── */}
-                <SettingCard title="הגדרות אתר" icon="⚙️" accent="#34C759">
+                <SettingCard title="הגדרות אתר" Icon={Settings} accent="#34C759">
                     <div className="space-y-4">
                         <AdminToggle
                             label="מצב תחזוקה"
@@ -224,7 +229,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── Catalog & Content ─────────────────────────────────────── */}
-                <SettingCard title="תוכן קטלוג ואתר" icon="✏️" accent="#FF9500">
+                <SettingCard title="תוכן קטלוג ואתר" Icon={PenLine} accent="#FF9500">
                     <AdminInput label="כותרת ראשית (עמוד קטלוג)" value={catTitle} onChange={setCatTitle} />
                     <AdminInput label="תת-כותרת" value={catSubtitle} onChange={setCatSubtitle} rows={2} />
                     <AdminInput label="תווית Badge" value={catBadge} onChange={setCatBadge} placeholder="הקטלוג המוסדי" />
@@ -237,7 +242,7 @@ export default function AdminSettings() {
                 </SettingCard>
 
                 {/* ── System Maintenance ────────────────────────────────────── */}
-                <SettingCard title="תחזוקת מערכת" icon="🛠️" accent="#8E8E93">
+                <SettingCard title="תחזוקת מערכת" Icon={Wrench} accent="#8E8E93">
                     <div className="space-y-4">
                         <div className="flex flex-col gap-2">
                             <AdminButton variant="outline" onClick={async () => {

@@ -230,7 +230,7 @@ const ProductCard = ({ product }) => {
 
                         {/* Product badges — data-driven */}
                         {(_isBestSeller || isNew) && (
-                            <div className={`absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
+                            <div className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
                                 _isBestSeller
                                     ? 'bg-gradient-to-r from-orange-500 to-red-500'
                                     : 'bg-gradient-to-r from-blue-500 to-indigo-500'
@@ -247,7 +247,7 @@ const ProductCard = ({ product }) => {
                         {/* Specs hover overlay — slides up from bottom of image */}
                         {specs?.length > 0 && (
                             <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-[0.22,1,0.36,1] pointer-events-none z-20">
-                                <div className="bg-[#1D1D1F]/80 backdrop-blur-md px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-end">
+                                <div className="bg-[#1D1D1F]/80 backdrop-blur-md px-4 py-3 flex flex-wrap gap-x-4 gap-y-1.5 justify-start" dir="rtl">
                                     {specs.slice(0, 4).map((s, i) => (
                                         <span key={i} className="text-[10px] font-bold text-white/90 whitespace-nowrap">
                                             {s.label}: <span className="text-white">{s.value}</span>
@@ -375,6 +375,10 @@ const ProductCard = ({ product }) => {
                             פרטים והצעה
                         </Link>
                     )}
+                    {/* Trust micro-line */}
+                    <p className="text-center text-[10px] text-[#AEAEB2] font-medium mt-2.5 tracking-wide">
+                        שירות מקצועי · ייעוץ ללא עלות · רמה ללא פשרות
+                    </p>
                 </div>
 
                 {/* ── Specular light reflection — follows mouse ────────── */}

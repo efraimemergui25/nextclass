@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    MessageSquare, 
-    Send, 
-    User, 
-    ShieldCheck, 
-    Clock, 
+import {
+    MessageSquare,
+    Send,
+    User,
+    ShieldCheck,
+    Clock,
     HelpCircle,
     ChevronDown,
-    Plus
+    Plus,
+    X
 } from 'lucide-react';
 import { db } from '../firebase';
 import { 
@@ -45,6 +46,8 @@ const ProductQA = ({ productId }) => {
                 ...doc.data()
             }));
             setQuestions(data);
+            setLoading(false);
+        }, () => {
             setLoading(false);
         });
 

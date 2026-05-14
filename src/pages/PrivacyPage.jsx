@@ -113,8 +113,8 @@ function Section({ s, open, onToggle, index }) {
 
 export default function PrivacyPage() {
     const { getSetting } = useSettings();
-    const email       = getSetting('contact_email', 'efraimemergui25@gmail.com');
-    const phone       = getSetting('contact_phone', '058-585-6356');
+    const email       = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const phone       = getSetting('contact_phone', '058-5856356');
     const dpoName     = getSetting('legal_dpo_name', 'אפרים אמרגי');
     const lastUpdated = getSetting('legal_privacy_updated', '14 במאי 2026');
 

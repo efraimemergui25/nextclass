@@ -66,8 +66,8 @@ function Section({ s, open, onToggle, index }) {
 
 export default function TermsPage() {
     const { getSetting } = useSettings();
-    const email       = getSetting('contact_email', 'efraimemergui25@gmail.com');
-    const phone       = getSetting('contact_phone', '058-585-6356');
+    const email       = getSetting('contact_email', 'nextclass.en@gmail.com');
+    const phone       = getSetting('contact_phone', '058-5856356');
     const lastUpdated = getSetting('legal_terms_updated', '14 במאי 2026');
 
     const sections = [

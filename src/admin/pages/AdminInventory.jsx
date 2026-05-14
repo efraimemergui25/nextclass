@@ -1,11 +1,13 @@
 /* eslint-disable */
 
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
+import { CheckCircle2, AlertTriangle, XCircle, Box } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 
 const FILTERS = ['הכל', 'נמוך', 'אזל', 'תקין'];
@@ -66,30 +68,36 @@ function EditStockInput({ value, onSave, onCancel }) {
 }
 
 // ─── Summary card ─────────────────────────────────────────────────────────────
-function StockCard({ label, value, color, icon }) {
+function StockCard({ label, value, color, Icon, tooltip }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-4 text-right relative overflow-hidden"
-            style={glass}
+            className="rounded-[20px] p-4 text-right relative overflow-hidden"
+            style={{
+                background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
+                backdropFilter: 'blur(40px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                border: `1px solid ${color}22`,
+                boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
+            }}
         >
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
-            <div className="flex items-center justify-between mb-2">
-                <span className="text-xl">{icon}</span>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: `${color}12` }}>
-                    <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+            <div className="flex items-start justify-between mb-3">
+                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0"
+                    style={{ background: `${color}16`, border: `1px solid ${color}20` }}>
+                    {Icon && <Icon size={16} style={{ color }} />}
                 </div>
+                <div className="w-1.5 h-1.5 rounded-full mt-1" style={{ background: color }} />
             </div>
-            <p className="text-2xl font-black tracking-tighter" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[11px] font-bold mt-0.5">{label}</p>
+            <p className="text-[28px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
+            <p className="text-[#86868B] text-[11px] font-bold mt-1.5 flex items-center gap-0.5">
+                {label}{tooltip && <InfoTooltip text={tooltip} />}
+            </p>
         </motion.div>
     );
 }
 
 export default function AdminInventory() {
-    const { inventory, updateStock } = useAdminData();
+    const { inventory, updateStock, updateProductDetails } = useAdminData();
     const { showToast } = useAdminToast();
     const [searchParams] = useSearchParams();
     const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -172,9 +180,12 @@ export default function AdminInventory() {
 
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-4">
-                <StockCard label="מלאי תקין" value={okCount} color="#34C759" icon="✅" />
-                <StockCard label="מלאי נמוך" value={lowCount} color="#FF9500" icon="⚠️" />
-                <StockCard label="אזל מהמלאי" value={outCount} color="#FF3B30" icon="🚫" />
+                <StockCard label="מלאי תקין" value={okCount} color="#34C759" Icon={CheckCircle2}
+                    tooltip="מוצרים שכמות המלאי שלהם גבוהה מסף ההתרעה." />
+                <StockCard label="מלאי נמוך" value={lowCount} color="#FF9500" Icon={AlertTriangle}
+                    tooltip="מוצרים שהמלאי שלהם הגיע לסף ההתרעה — כדאי לחדש." />
+                <StockCard label="אזל מהמלאי" value={outCount} color="#FF3B30" Icon={XCircle}
+                    tooltip="מוצרים עם 0 יחידות — לא ניתן להזמין עד לחידוש המלאי." />
             </div>
 
             {/* Filters */}
@@ -226,7 +237,7 @@ export default function AdminInventory() {
                                         }}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                       />
-                                    : <div className="w-full h-full flex items-center justify-center text-lg opacity-40">📦</div>}
+                                    : <div className="w-full h-full flex items-center justify-center opacity-30"><Box size={18} className="text-[#86868B]" /></div>}
                             </div>
 
                             {/* Name + category */}
@@ -284,83 +295,143 @@ export default function AdminInventory() {
                 </AnimatePresence>
 
                 {filtered.length === 0 && (
-                    <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                        <span className="text-5xl">📦</span>
+                    <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
+                        <Box size={40} className="opacity-30" />
                         <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
                     </div>
                 )}
             </div>
 
-            {/* Product Detail Modal */}
-            <AnimatePresence>
-                {selectedProduct && (
-                    <ProductModal 
-                        product={selectedProduct} 
-                        onClose={() => setSelectedProduct(null)} 
-                        onSave={handleSaveProduct}
-                    />
-                )}
-            </AnimatePresence>
+            {/* Product Detail Modal — rendered via portal to escape filter stacking context */}
+            {createPortal(
+                <AnimatePresence>
+                    {selectedProduct && (
+                        <ProductModal
+                            product={selectedProduct}
+                            onClose={() => setSelectedProduct(null)}
+                            onSave={handleSaveProduct}
+                        />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }
 
 function ProductModal({ product, onClose, onSave }) {
-    const [title, setTitle] = useState(product.title);
-    const [price, setPrice] = useState(product.price);
-    const [category, setCategory] = useState(product.category);
+    const [title, setTitle]         = useState(product.title);
+    const [price, setPrice]         = useState(product.price);
+    const [category, setCategory]   = useState(product.category);
     const [isFeatured, setIsFeatured] = useState(product.isFeatured || false);
-    const [image, setImage] = useState(product.image);
+    const [image, setImage]         = useState(product.image);
+    const [stock, setStock]         = useState(product.stock ?? 0);
+    const [threshold, setThreshold] = useState(product.threshold ?? 5);
+
+    const stockColor = stock === 0 ? '#FF3B30' : stock <= threshold ? '#FF9500' : '#34C759';
+    const stockLabel = stock === 0 ? 'אזל' : stock <= threshold ? 'מלאי נמוך' : 'תקין';
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/20 backdrop-blur-sm" 
+                className="absolute inset-0 bg-black/25 backdrop-blur-sm"
             />
             <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                initial={{ opacity: 0, scale: 0.96, y: 16 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-xl bg-white rounded-[32px] shadow-2xl overflow-hidden"
+                exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl overflow-hidden"
                 dir="rtl"
             >
-                <div className="p-8">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-2xl font-black text-[#1D1D1F]">עריכת מוצר</h3>
-                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
+                {/* Header */}
+                <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-black/[0.06]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0">
+                            <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
+                                onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                        </div>
+                        <div>
+                            <h3 className="text-[17px] font-black text-[#1D1D1F] leading-tight">{product.title}</h3>
+                            <p className="text-[11px] text-[#AEAEB2] font-medium">{product.sku || product.id}</p>
+                        </div>
                     </div>
+                    <button onClick={onClose}
+                        className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA] transition-colors text-sm">
+                        ✕
+                    </button>
+                </div>
 
-                    <div className="space-y-6">
-                        <div className="flex gap-6">
-                            <div className="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0">
-                                <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
-                                    onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                <div className="px-7 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+                    {/* ── מלאי — הכי חשוב, ראשון ── */}
+                    <div className="rounded-2xl p-4 border-2 border-[#007AFF]/20 bg-[#007AFF]/04">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-black uppercase tracking-widest text-[#007AFF]">ניהול מלאי</span>
+                            <span className="text-[11px] font-black px-2.5 py-1 rounded-full"
+                                style={{ background: `${stockColor}15`, color: stockColor }}>
+                                {stockLabel}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">כמות במלאי</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={stock}
+                                    onChange={e => setStock(Math.max(0, Number(e.target.value)))}
+                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#1D1D1F] text-center outline-none focus:ring-2 transition-all"
+                                    style={{ border: `2px solid ${stockColor}40`, focusRingColor: stockColor }}
+                                />
                             </div>
-                            <div className="flex-1 space-y-4">
-                                <AdminInput label="שם המוצר" value={title} onChange={setTitle} />
-                                <AdminInput label="קטגוריה" value={category} onChange={setCategory} />
+                            <div>
+                                <label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1.5">סף התראה (נמוך)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={threshold}
+                                    onChange={e => setThreshold(Math.max(0, Number(e.target.value)))}
+                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#FF9500] text-center outline-none focus:ring-2 focus:ring-[#FF9500]/30 transition-all border-2 border-[#FF9500]/20"
+                                />
                             </div>
                         </div>
+                        <p className="text-[10px] text-[#AEAEB2] font-medium mt-2 text-right">
+                            כשהמלאי יורד מתחת לסף — המוצר מסומן כ"נמוך" בכל המערכת
+                        </p>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* ── פרטי מוצר ── */}
+                    <div className="space-y-3">
+                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פרטי מוצר</p>
+                        <AdminInput label="שם המוצר" value={title} onChange={setTitle} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="קטגוריה" value={category} onChange={setCategory} />
                             <AdminInput label="מחיר (₪)" type="number" value={price} onChange={v => setPrice(Number(v))} />
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest px-1">נבחרת העונה (Best Seller)</label>
-                                <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100">
-                                    <AdminToggle value={isFeatured} onChange={setIsFeatured} />
-                                </div>
-                            </div>
                         </div>
-
-                        <AdminInput label="כתובת תמונה" value={image} onChange={setImage} />
                     </div>
 
-                    <div className="mt-10 flex gap-3">
-                        <AdminButton className="flex-1" onClick={() => onSave({ title, price, category, isFeatured, image })}>שמור שינויים</AdminButton>
-                        <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
+                    {/* ── תמונה ── */}
+                    <AdminInput label="כתובת תמונה" value={image} onChange={setImage} />
+
+                    {/* ── Best Seller ── */}
+                    <div className="flex items-center justify-between p-3.5 bg-[#F5F5F7] rounded-2xl">
+                        <AdminToggle value={isFeatured} onChange={setIsFeatured} />
+                        <div className="text-right">
+                            <p className="text-[13px] font-black text-[#1D1D1F]">נבחרת העונה</p>
+                            <p className="text-[11px] text-[#AEAEB2] font-medium">מוצג בעמוד הראשי</p>
+                        </div>
                     </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
+                    <AdminButton className="flex-1" onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold) })}>
+                        שמור שינויים
+                    </AdminButton>
+                    <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
                 </div>
             </motion.div>
         </div>

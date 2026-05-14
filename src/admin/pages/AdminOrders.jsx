@@ -2,9 +2,10 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate } from '../components/AdminComponents';
+import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
@@ -39,21 +40,30 @@ const QUOTE_STATUSES     = ['הכל', 'חדש', 'ביצירת קשר', 'הוצע
 const QUOTE_STATUS_FLOW  = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'במשא ומתן', 'נסגר'];
 
 // ─── Mini KPI stat ────────────────────────────────────────────────────────────
-function Stat({ label, value, color, icon }) {
+function Stat({ label, value, color, Icon, tooltip }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-4 text-right relative overflow-hidden"
-            style={glass}
+            className="rounded-[20px] p-4 text-right relative overflow-hidden"
+            style={{
+                background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
+                backdropFilter: 'blur(40px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                border: `1px solid ${color}22`,
+                boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
+            }}
         >
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
-            <div className="flex items-center justify-between mb-1">
-                <span className="text-xl">{icon}</span>
-                <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+            <div className="flex items-start justify-between mb-3">
+                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                    style={{ background: `${color}16`, border: `1px solid ${color}22` }}>
+                    {Icon && <Icon size={15} style={{ color }} />}
+                </div>
+                <div className="w-1.5 h-1.5 rounded-full mt-1" style={{ background: color }} />
             </div>
-            <p className="text-2xl font-black tracking-tighter" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[10px] font-black uppercase tracking-widest mt-0.5">{label}</p>
+            <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
+            <p className="text-[#86868B] text-[10px] font-bold uppercase tracking-widest mt-1.5 flex items-center gap-0.5">
+                {label}{tooltip && <InfoTooltip text={tooltip} />}
+            </p>
         </motion.div>
     );
 }
@@ -212,11 +222,16 @@ function QuotesPipeline() {
         <div className="space-y-5">
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <Stat label="חדשות" value={stats.new} color="#FF3B30" icon="🔴" />
-                <Stat label="יצירת קשר" value={stats.contacting} color="#FF9500" icon="📞" />
-                <Stat label="הוצע מחיר" value={stats.quoted} color="#007AFF" icon="📋" />
-                <Stat label="משא ומתן" value={stats.negotiating} color="#5856D6" icon="🤝" />
-                <Stat label="נסגרו" value={stats.closed} color="#34C759" icon="✅" />
+                <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={Bell}
+                    tooltip="בקשות הצעת מחיר שנקלטו ועדיין לא טופלו." />
+                <Stat label="יצירת קשר" value={stats.contacting} color="#FF9500" Icon={Phone}
+                    tooltip="הצעות שנוצר עמן קשר ראשוני — ממתינות לפגישה או פרטים נוספים." />
+                <Stat label="הוצע מחיר" value={stats.quoted} color="#007AFF" Icon={FileText}
+                    tooltip="הצעות שנשלחה להן הצעת מחיר רשמית — ממתינות לתגובת הלקוח." />
+                <Stat label="משא ומתן" value={stats.negotiating} color="#5856D6" Icon={TrendingUp}
+                    tooltip="הצעות בשלב הסכמה על תנאים — הסיכוי הגבוה ביותר לסגירה." />
+                <Stat label="נסגרו" value={stats.closed} color="#34C759" Icon={CheckCircle2}
+                    tooltip="עסקאות שנסגרו בהצלחה — הלקוח אישר ורכש." />
             </div>
 
             {/* Filters */}
@@ -292,8 +307,8 @@ function QuotesPipeline() {
                 </AnimatePresence>
 
                 {filtered.length === 0 && (
-                    <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                        <span className="text-5xl">📋</span>
+                    <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
+                        <FileText size={40} className="opacity-30" />
                         <p className="text-sm font-bold text-[#6E6E73]">אין בקשות הצעות מחיר תואמות</p>
                     </div>
                 )}
@@ -347,7 +362,7 @@ function QuotesPipeline() {
                                 target="_blank" rel="noopener noreferrer"
                                 className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-black text-sm text-white transition-all hover:opacity-90"
                                 style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 8px 24px rgba(37,211,102,0.3)' }}>
-                                💬 פתח WhatsApp עם {selected.contactName}
+                                פתח WhatsApp עם {selected.contactName}
                             </a>
                         )}
 
@@ -512,10 +527,14 @@ function OrdersList() {
     return (
         <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Stat label="חדשות" value={stats.new} color="#FF3B30" icon="🔴" />
-                <Stat label="ממתינות" value={stats.pending} color="#FF9500" icon="🟡" />
-                <Stat label="נשלחו" value={stats.shipped} color="#5856D6" icon="🟣" />
-                <Stat label="נמסרו" value={stats.delivered} color="#34C759" icon="🟢" />
+                <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={AlertCircle}
+                    tooltip="הזמנות חדשות שנקלטו ועדיין לא טופלו." />
+                <Stat label="ממתינות" value={stats.pending} color="#FF9500" Icon={Bell}
+                    tooltip="הזמנות באישור — ממתינות לאישור פנימי לפני שילוח." />
+                <Stat label="נשלחו" value={stats.shipped} color="#5856D6" Icon={Package}
+                    tooltip="הזמנות שיצאו לשילוח — בדרך ללקוח." />
+                <Stat label="נמסרו" value={stats.delivered} color="#34C759" Icon={CheckCircle2}
+                    tooltip="הזמנות שנמסרו בהצלחה ללקוח." />
             </div>
 
             <div className="flex flex-col lg:flex-row gap-3">
@@ -584,8 +603,8 @@ function OrdersList() {
                 </AnimatePresence>
 
                 {filtered.length === 0 && (
-                    <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                        <span className="text-5xl">📭</span>
+                    <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
+                        <Package size={40} className="opacity-30" />
                         <p className="text-sm font-bold text-[#6E6E73]">אין הזמנות תואמות לחיפוש</p>
                     </div>
                 )}
@@ -614,7 +633,7 @@ function OrdersList() {
                                     const inv = inventory.find(p => String(p.id) === String(selected.productId));
                                     const backup = initialProducts.find(p => String(p.id) === String(selected.productId));
                                     const img = selected.productImage || inv?.image || backup?.image;
-                                    return img ? <img src={img} alt={selected.product} className="w-full h-full object-cover" /> : <span className="text-4xl">📦</span>;
+                                    return img ? <img src={img} alt={selected.product} className="w-full h-full object-cover" /> : <Box size={32} className="text-[#AEAEB2] opacity-40" />;
                                 })()}
                             </div>
                             <div className="grid grid-cols-2 gap-3 flex-1">
@@ -665,8 +684,8 @@ function OrdersList() {
 // MAIN EXPORT — tab toggle between quotes and orders
 // ════════════════════════════════════════════════════════════════════════════
 const TABS = [
-    { id: 'quotes', label: 'הצעות מחיר', emoji: '📋' },
-    { id: 'orders', label: 'הזמנות',     emoji: '📦' },
+    { id: 'quotes', label: 'הצעות מחיר', Icon: FileText },
+    { id: 'orders', label: 'הזמנות',     Icon: Package },
 ];
 
 export default function AdminOrders() {
@@ -690,7 +709,7 @@ export default function AdminOrders() {
                         style={tab === t.id
                             ? { background: '#007AFF', color: 'white', boxShadow: '0 4px 14px rgba(0,122,255,0.35)' }
                             : { color: '#86868B' }}>
-                        <span>{t.emoji}</span>
+                        <t.Icon size={14} />
                         {t.label}
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-black"
                             style={{ background: tab === t.id ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)' }}>

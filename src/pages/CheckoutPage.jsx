@@ -71,6 +71,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, dir = '
                 onChange={e => onChange(e.target.value)}
                 placeholder={placeholder}
                 dir={dir}
+                maxLength={type === 'email' ? 254 : 120}
                 className="w-full h-12 px-4 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)]"
             />
         </div>
@@ -88,6 +89,7 @@ export default function CheckoutPage() {
     const [submitting, setSubmitting] = useState(false);
     const [quoteId, setQuoteId]   = useState('');
     const [errors, setErrors]     = useState({});
+    const [consentGiven, setConsentGiven] = useState(false);
 
     const [form, setForm] = useState({
         // Step 1
@@ -512,6 +514,7 @@ export default function CheckoutPage() {
                                                         onChange={e => set('notes')(e.target.value)}
                                                         placeholder="ספר לנו על הצרכים המיוחדים שלך, מגבלות התקנה, כמויות גדולות במיוחד וכו׳..."
                                                         rows={4}
+                                                        maxLength={2000}
                                                         className="w-full px-4 py-3 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)] resize-none"
                                                     />
                                                 </div>
@@ -519,6 +522,27 @@ export default function CheckoutPage() {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+
+                                {/* Consent checkbox — shown on step 3 only */}
+                                {step === 3 && (
+                                    <div className="px-8 md:px-10 pt-2 pb-4">
+                                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '14px 16px', background: '#F9F9FB', borderRadius: 14, border: '1px solid #E5E5EA', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={consentGiven}
+                                                onChange={e => setConsentGiven(e.target.checked)}
+                                                style={{ width: 18, height: 18, accentColor: '#007AFF', flexShrink: 0, marginTop: 2, cursor: 'pointer' }}
+                                            />
+                                            <span style={{ fontSize: 13, color: '#3C3C43', lineHeight: 1.6 }}>
+                                                קראתי ואני מסכים/ה ל
+                                                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none' }}> מדיניות הפרטיות </a>
+                                                ול
+                                                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none' }}> תנאי השימוש </a>
+                                                של NextClass, ולאיסוף המידע לצורך עיבוד הצעת המחיר.
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
 
                                 {/* Step nav buttons */}
                                 <div className="px-8 md:px-10 pb-8 flex items-center justify-between gap-4 border-t border-[#F5F5F7] pt-6">
@@ -546,10 +570,10 @@ export default function CheckoutPage() {
                                         <motion.button
                                             type="button"
                                             onClick={handleSubmit}
-                                            disabled={submitting}
+                                            disabled={submitting || !consentGiven}
                                             whileTap={{ scale: 0.97 }}
-                                            className="flex items-center gap-2 px-8 py-3 rounded-full font-black text-sm text-white shadow-xl cursor-pointer"
-                                            style={{ background: submitting ? '#C7C7CC' : 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+                                            className="flex items-center gap-2 px-8 py-3 rounded-full font-black text-sm text-white shadow-xl"
+                                            style={{ background: (submitting || !consentGiven) ? '#C7C7CC' : 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', cursor: (submitting || !consentGiven) ? 'not-allowed' : 'pointer' }}
                                         >
                                             {submitting ? 'שולח...' : allowPayments ? 'אשר הזמנה ועבור לתשלום' : 'שלח הצעת מחיר'}
                                             <Send size={14} />

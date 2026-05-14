@@ -1064,9 +1064,9 @@ const ProductDetailPage = () => {
                             {[
                                 {
                                     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>,
-                                    href: `tel:${getSetting('contact_phone','03-9999999')}`,
+                                    href: `tel:${getSetting('contact_phone','058-5856356')}`,
                                     label: getSetting('pd_support_phone_label','תמיכה טלפונית'),
-                                    value: getSetting('contact_phone','03-9999999'),
+                                    value: getSetting('contact_phone','058-5856356'),
                                     color: '#007AFF',
                                 },
                                 {
@@ -1078,7 +1078,7 @@ const ProductDetailPage = () => {
                                 },
                                 {
                                     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>,
-                                    href: `https://wa.me/${getSetting('biz_whatsapp','972585856356')}`,
+                                    href: `https://wa.me/${getSetting('whatsapp_number','972585856356')}`,
                                     label: getSetting('pd_support_wa_label','וואטסאפ'),
                                     value: getSetting('pd_support_wa_value','זמינים 9:00–21:00'),
                                     color: '#25D366',

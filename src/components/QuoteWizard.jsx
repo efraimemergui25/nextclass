@@ -75,11 +75,16 @@ const PRICE_MATRIX = {
         school:   { from: '150,000', label: 'חבילת קמפוס – אקדמיה',  timeline: '4–6 שבועות' },
         district: { from: '550,000', label: 'פתרון ארגוני – אקדמיה', timeline: 'לפי תכנית מפורטת' },
     },
+    other: {
+        pilot:    { from: '15,000',  label: 'חבילת פיילוט – מותאמת אישית', timeline: '7–14 ימי עסקים' },
+        school:   { from: '65,000',  label: 'חבילה מותאמת אישית',         timeline: 'לפי תכנית מפורטת' },
+        district: { from: '250,000', label: 'פתרון מקיף – מותאם אישית',   timeline: 'לפי תכנית מפורטת' },
+    },
 };
 
 const BASE_INCLUDES = {
     elementary: {
-        pilot:    ['מסכים אינטראקטיביים 75" ל-1–5 כיתות', 'התקנה מקצועית + אחריות 3 שנים', 'הדרכת צוות מורים מלאה', 'תמיכה טכנית 24/7'],
+        pilot:    ['מסכים אינטראקטיביים 75" ל-1–5 כיתות', 'שירות ישיר ומקצועי לכל שלב', 'הדרכת צוות מורים מלאה', 'תמיכה טכנית 24/7'],
         school:   ['מסכים אינטראקטיביים לכל הכיתות', 'תשתית רשת בית-ספרית מהירה', 'ניהול מרכזי (MDM) לכל המכשירים', 'הדרכה שנתית + תמיכה שוטפת'],
         district: ['פריסה מלאה בכל מוסדות המחוז', 'מערכת ניהול מחוזית אחידה', 'מנהל לקוח ייעודי', 'SLA מועדף + uptime מובטח'],
     },
@@ -91,7 +96,12 @@ const BASE_INCLUDES = {
     academy: {
         pilot:    ['חדרי הוראה חכמים ל-1–5 אולמות', 'מערכת הקלטה ושידור חי', 'אינטגרציה עם מערכת הלמידה הקיימת', 'תמיכה טכנית 24/7'],
         school:   ['פתרון קמפוס מלא לכל האולמות', 'סטודיו להפקת תוכן דיגיטלי', 'מערכת ניהול תוכן ולמידה (LMS)', 'הדרכה שוטפת + תמיכה'],
-        district: ['תשתית דיגיטלית ארגונית מלאה', 'אינטגרציה עם מערכות ERP/SIS', 'מנהל לקוח ייעודי', 'SLA + אחריות מורחבת'],
+        district: ['תשתית דיגיטלית ארגונית מלאה', 'אינטגרציה עם מערכות ERP/SIS', 'מנהל לקוח ייעודי', 'SLA מועדף + שירות ישיר מובטח'],
+    },
+    other: {
+        pilot:    ['פתרון מותאם לצרכים ספציפיים', 'ייעוץ אישי ומקצועי ראשוני', 'הצעת מחיר מדויקת', 'תמיכה ישירה בכל שלב'],
+        school:   ['מיפוי צרכים מלא', 'פתרון מקיף מותאם', 'ליווי אישי לאורך כל הדרך', 'תמיכה שוטפת'],
+        district: ['ייעוץ ארגוני מעמיק', 'תכנון ופריסה מותאמים', 'מנהל לקוח ייעודי', 'שירות ישיר מובטח'],
     },
 };
 
@@ -103,7 +113,7 @@ const BUDGET_NOTES = {
 
 const BENEFITS = [
     { iconPath: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z", title: 'מענה תוך 24 שעות', desc: 'יועץ מומחה יחזור אליכם עם הצעה מפורטת ומדויקת' },
-    { iconPath: "M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z", title: 'כולל התקנה והדרכה', desc: 'כל הפתרונות שלנו כוללים פריסה מלאה ואחריות' },
+    { iconPath: "M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z", title: 'שירות מהיר ואישי', desc: 'מענה ישיר ומקצועי בכל שלב — ללא ביניים וללא בירוקרטיה' },
     { iconPath: "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z", title: 'מותאם לתקציב ציבורי', desc: 'ניסיון עם מכרזים, מימון ממשלתי ומסלולי תשלום' },
     { iconPath: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z", title: '800+ מוסדות בישראל', desc: 'מבתי ספר יסודיים ועד אוניברסיטאות ומכללות' },
 ];
@@ -189,7 +199,7 @@ const QuoteWizard = () => {
 
     const pkg          = PRICE_MATRIX[institution]?.[scale];
     const baseIncludes = BASE_INCLUDES[institution]?.[scale] || [];
-    const bizPhone     = getSetting('biz_phone', '058-5856356');
+    const bizPhone     = getSetting('contact_phone', '058-5856356');
 
     const includesList = useMemo(() => {
         const extras = [];
@@ -314,10 +324,11 @@ const QuoteWizard = () => {
                                 {!done && step === 1 && (
                                     <motion.div key="s1" variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.22 }} className="w-full">
                                         <p className="text-[13px] font-bold text-[#1D1D1F] text-center mb-4 tracking-tight">מה המוסד שלכם?</p>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-2 gap-3">
                                             <SelectionCard title="יסודי"    subtitle="כיתות א'–ו'"   icon={<IconSchool />}  isSelected={institution === 'elementary'} onClick={() => handleInstitution('elementary')} />
                                             <SelectionCard title="על-יסודי" subtitle="כיתות ז'–י״ב" icon={<IconGrad />}    isSelected={institution === 'high'}        onClick={() => handleInstitution('high')} />
                                             <SelectionCard title="אקדמיה"   subtitle="מכללה / אוני'" icon={<IconAcademy />} isSelected={institution === 'academy'}    onClick={() => handleInstitution('academy')} />
+                                            <SelectionCard title="אחר"      subtitle="סוג מוסד אחר"  icon={<IconAcademy />} isSelected={institution === 'other'}      onClick={() => handleInstitution('other')} />
                                         </div>
                                     </motion.div>
                                 )}
@@ -478,7 +489,7 @@ const QuoteWizard = () => {
                                                     <div className="bg-white rounded-xl p-3 border border-gray-100 text-center">
                                                         <div className="text-[9px] font-black text-[#007AFF] uppercase tracking-widest mb-1">החל מ</div>
                                                         <div className="text-xl font-black text-[#1D1D1F] tracking-tighter">₪{pkg?.from}</div>
-                                                        <div className="text-[9px] text-gray-400 font-medium mt-0.5">*לפני מע״מ, כולל התקנה</div>
+                                                        <div className="text-[9px] text-gray-400 font-medium mt-0.5">*לפני מע״מ</div>
                                                     </div>
                                                     <div className="bg-white rounded-xl p-3 border border-gray-100 text-center">
                                                         <div className="text-[9px] font-black text-[#86868B] uppercase tracking-widest mb-1">זמן פריסה</div>

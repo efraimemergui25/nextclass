@@ -8,7 +8,14 @@ const AdminAuthContext = createContext(null);
 
 const LOCAL_SESSION_KEY = 'nextclass_admin_local_session';
 const LOCAL_PIN_KEY     = 'nextclass_admin_pin';
-const DEFAULT_PIN       = '123456';
+const EXPIRY_KEY        = 'nextclass_admin_expiry';
+const SESSION_TTL_MS    = 12 * 60 * 60 * 1000; // 12 hours
+
+function isSessionExpired() {
+    const expiry = localStorage.getItem(EXPIRY_KEY);
+    if (!expiry) return false; // Firebase-auth sessions manage their own expiry
+    return Date.now() > Number(expiry);
+}
 
 export function AdminAuthProvider({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,13 +27,30 @@ export function AdminAuthProvider({ children }) {
                 setIsAuthenticated(true);
                 setIsLoading(false);
             } else {
-                // Fallback: check local session
+                // Fallback: check local session + expiry
                 const local = localStorage.getItem(LOCAL_SESSION_KEY);
-                setIsAuthenticated(local === '1');
+                const expired = isSessionExpired();
+                if (expired) {
+                    localStorage.removeItem(LOCAL_SESSION_KEY);
+                    localStorage.removeItem(EXPIRY_KEY);
+                }
+                setIsAuthenticated(local === '1' && !expired);
                 setIsLoading(false);
             }
         });
         return () => unsubscribe();
+    }, []);
+
+    // Auto-logout when local session expires (checked every 5 minutes)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (isSessionExpired()) {
+                localStorage.removeItem(LOCAL_SESSION_KEY);
+                localStorage.removeItem(EXPIRY_KEY);
+                setIsAuthenticated(false);
+            }
+        }, 5 * 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
     const login = useCallback(async (pin) => {
@@ -36,10 +60,11 @@ export function AdminAuthProvider({ children }) {
             localStorage.removeItem(LOCAL_SESSION_KEY);
             return { success: true };
         } catch (_firebaseErr) {
-            // Fallback: local PIN (default 123456, changeable from settings)
-            const localPin = localStorage.getItem(LOCAL_PIN_KEY) || DEFAULT_PIN;
-            if (pin === localPin) {
+            // Fallback: local PIN — only works if explicitly set; no hardcoded default
+            const localPin = localStorage.getItem(LOCAL_PIN_KEY);
+            if (localPin && pin === localPin) {
                 localStorage.setItem(LOCAL_SESSION_KEY, '1');
+                localStorage.setItem(EXPIRY_KEY, String(Date.now() + SESSION_TTL_MS));
                 setIsAuthenticated(true);
                 return { success: true };
             }
@@ -50,6 +75,7 @@ export function AdminAuthProvider({ children }) {
     const logout = useCallback(async () => {
         try { await signOut(auth); } catch {}
         localStorage.removeItem(LOCAL_SESSION_KEY);
+        localStorage.removeItem(EXPIRY_KEY);
         setIsAuthenticated(false);
     }, []);
 

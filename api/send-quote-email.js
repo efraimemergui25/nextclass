@@ -3,6 +3,9 @@
  * POST /api/send-quote-email
  */
 
+import { isRateLimited } from './_rateLimit.js';
+import { logSecurityEvent } from './_logEvent.js';
+
 const RESEND_URL  = 'https://api.resend.com/emails';
 const FROM_NAME   = 'NextClass';
 const FROM_ADDR   = process.env.RESEND_FROM || 'onboarding@resend.dev';
@@ -401,6 +404,18 @@ function teamEmailHtml(quote) {
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
+    if (isRateLimited(ip, { max: 5, windowMs: 60_000 })) {
+        logSecurityEvent('rate_limited', { endpoint: 'send-quote-email', ip });
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+
+    if (JSON.stringify(req.body ?? {}).length > 32_000) {
+        logSecurityEvent('payload_too_large', { endpoint: 'send-quote-email', ip });
+        return res.status(413).json({ error: 'Payload too large' });
+    }
+
     if (!process.env.RESEND_API_KEY) {
         console.warn('[send-quote-email] RESEND_API_KEY not set');
         return res.status(200).json({ skipped: true, reason: 'RESEND_API_KEY not set' });

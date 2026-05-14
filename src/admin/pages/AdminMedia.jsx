@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader } from '../components/AdminComponents';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
@@ -274,8 +275,130 @@ function AddUrlDialog({ onAdd, onClose }) {
     );
 }
 
+// ── ProductImages tab ─────────────────────────────────────────────────────────
+function ProductImagesTab({ onCopy, copied }) {
+    const { inventory } = useAdminData();
+    const [search, setSearch] = useState('');
+    const items = inventory.filter(p => p.image).filter(p =>
+        !search || (p.title || p.name || '').toLowerCase().includes(search.toLowerCase())
+    );
+    return (
+        <div className="space-y-4">
+            <div className="relative">
+                <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש מוצר..."
+                    className="w-full pr-9 pl-4 py-2.5 bg-white rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none"
+                    style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }} />
+            </div>
+            <p className="text-[11px] text-[#AEAEB2] font-bold">{items.length} מוצרים עם תמונות</p>
+            <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {items.map(p => (
+                    <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                        className="relative rounded-2xl overflow-hidden group cursor-pointer" style={CARD}>
+                        <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
+                            <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={e => { e.target.style.display = 'none'; }} />
+                            <AnimatePresence>
+                                <motion.div initial={{ opacity: 0 }} whileHover={{ opacity: 1 }}
+                                    className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <button onClick={() => onCopy(p.image)}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
+                                        style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
+                                        {copied === p.image ? <Check size={12} /> : <Copy size={12} />}
+                                        {copied === p.image ? 'הועתק' : 'העתק URL'}
+                                    </button>
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
+                        <div className="px-3 py-2.5 text-right">
+                            <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{p.title || p.name}</p>
+                            <p className="text-[10px] text-[#AEAEB2]">מ.ק. {p.id}</p>
+                        </div>
+                    </motion.div>
+                ))}
+            </motion.div>
+        </div>
+    );
+}
+
+// ── VodTab ────────────────────────────────────────────────────────────────────
+function VodTab({ onCopy, copied }) {
+    const [videos, setVideos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+
+    useEffect(() => {
+        const q = query(collection(db, 'vod_courses'), orderBy('createdAt', 'desc'));
+        return onSnapshot(q, snap => {
+            setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoading(false);
+        }, () => setLoading(false));
+    }, []);
+
+    const items = videos.filter(v =>
+        !search || (v.title || v.name || '').toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (loading) return (
+        <div className="py-20 text-center">
+            <div className="w-8 h-8 border-2 border-[#FF3B30]/30 border-t-[#FF3B30] rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-[#AEAEB2] font-bold text-sm">טוען VOD...</p>
+        </div>
+    );
+
+    if (items.length === 0 && !loading) return (
+        <div className="py-20 text-center rounded-[24px]" style={CARD}>
+            <Film size={40} className="mx-auto text-[#D1D1D6] mb-3" />
+            <p className="text-[#AEAEB2] font-bold">{search ? 'לא נמצאו סרטונים' : 'אין סרטוני VOD עדיין'}</p>
+            <p className="text-[#C7C7CC] text-sm mt-1">הוסף קורסים דרך עמוד ניהול ה-VOD</p>
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            <div className="relative">
+                <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש קורס..."
+                    className="w-full pr-9 pl-4 py-2.5 bg-white rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none"
+                    style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }} />
+            </div>
+            <p className="text-[11px] text-[#AEAEB2] font-bold">{items.length} קורסי VOD</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map(v => (
+                    <motion.div key={v.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-2xl overflow-hidden" style={CARD}>
+                        {v.thumbnail && (
+                            <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
+                                <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover"
+                                    onError={e => { e.target.style.display = 'none'; }} />
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                        <Film className="w-5 h-5 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="px-4 py-3 text-right">
+                            <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{v.title || v.name}</p>
+                            <p className="text-[11px] text-[#86868B] mt-0.5">{v.lessonsCount || v.lessons?.length || 0} שיעורים</p>
+                            {v.videoUrl && (
+                                <button onClick={() => onCopy(v.videoUrl)}
+                                    className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[#007AFF] hover:underline">
+                                    {copied === v.videoUrl ? <Check size={10} /> : <Copy size={10} />}
+                                    העתק URL
+                                </button>
+                            )}
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function AdminMedia() {
     const { showToast } = useAdminToast();
+    const [tab, setTab] = useState('library');
     const [media, setMedia] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -392,9 +515,9 @@ export default function AdminMedia() {
         <div dir="rtl" className="space-y-6">
             <AdminSectionHeader
                 title="ספריית מדיה"
-                subtitle="נהל תמונות וסרטונים — העלה קבצים, הוסף קישורים, הכל נשמר בענן"
+                subtitle="תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד"
                 action={
-                    <div className="flex items-center gap-2.5">
+                    tab === 'library' ? (
                         <button
                             onClick={() => setShowUrlDialog(true)}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all"
@@ -403,9 +526,37 @@ export default function AdminMedia() {
                             <Link2 size={13} />
                             הוסף קישור
                         </button>
-                    </div>
+                    ) : null
                 }
             />
+
+            {/* Tab switcher */}
+            <div className="flex items-center gap-2">
+                {[
+                    { id: 'library',  label: 'ספרייה', Icon: FolderOpen },
+                    { id: 'products', label: 'תמונות מוצרים', Icon: Image },
+                    { id: 'vod',      label: 'סרטוני VOD', Icon: Film },
+                ].map(t => (
+                    <button key={t.id} onClick={() => setTab(t.id)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                        style={{
+                            background: tab === t.id ? '#007AFF' : 'rgba(255,255,255,0.88)',
+                            color: tab === t.id ? 'white' : '#6E6E73',
+                            border: `1px solid ${tab === t.id ? '#007AFF' : 'rgba(0,0,0,0.07)'}`,
+                            boxShadow: tab === t.id ? '0 2px 12px rgba(0,122,255,0.25)' : 'none',
+                        }}>
+                        <t.Icon size={13} />
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* VOD and Product tabs render their own content */}
+            {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} />}
+            {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} />}
+
+            {tab !== 'library' && null}
+            {tab === 'library' && (<>
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -557,6 +708,7 @@ export default function AdminMedia() {
             <AnimatePresence>
                 {showUrlDialog && <AddUrlDialog onAdd={handleAddUrl} onClose={() => setShowUrlDialog(false)} />}
             </AnimatePresence>
+            </>)}
         </div>
     );
 }

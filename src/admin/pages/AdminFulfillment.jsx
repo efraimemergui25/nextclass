@@ -15,15 +15,15 @@ import {
     Truck, Package, Building2, Link2, Plus, Trash2, Edit2,
     Clock, CheckCircle, AlertTriangle, Send, X, Phone,
     Mail, Calendar, TrendingUp, RefreshCw, ChevronDown,
-    ArrowRight, Star, Zap
+    ArrowRight, Star, Zap, Factory, Box, Timer
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const FULFILLMENT_TYPES = [
-    { id: 'supplier', label: 'ספק חיצוני', color: '#007AFF', emoji: '🏭', desc: 'Drop-ship — מגיע ישירות מהספק' },
-    { id: 'stock',    label: 'מלאי פיזי',  color: '#34C759', emoji: '📦', desc: 'מוצר זמין במחסן שלנו' },
-    { id: 'preorder', label: 'הזמנה מראש', color: '#FF9500', emoji: '⏳', desc: 'זמין להזמנה — מגיע בהמשך' },
+    { id: 'supplier', label: 'ספק חיצוני', color: '#007AFF', Icon: Factory, desc: 'Drop-ship — מגיע ישירות מהספק' },
+    { id: 'stock',    label: 'מלאי פיזי',  color: '#34C759', Icon: Box,     desc: 'מוצר זמין במחסן שלנו' },
+    { id: 'preorder', label: 'הזמנה מראש', color: '#FF9500', Icon: Timer,   desc: 'זמין להזמנה — מגיע בהמשך' },
 ];
 
 const STATUSES = [
@@ -70,7 +70,8 @@ function FulfillmentPill({ type }) {
     return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black"
             style={{ background: `${t.color}15`, color: t.color }}>
-            {t.emoji} {t.label}
+            <t.Icon size={9} />
+            {t.label}
         </span>
     );
 }
@@ -629,7 +630,7 @@ function ProductMappingTab({ suppliers, showToast }) {
         <div className="space-y-3">
             <div className="p-4 rounded-2xl text-right text-[12px] font-medium text-[#007AFF]"
                 style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.12)' }} dir="rtl">
-                💡 מיפוי ספקים לכל מוצר — קובע מאין מגיע המוצר ומה זמן האספקה ללקוח. שינויים נשמרים מיד לכל גולש.
+                מיפוי ספקים לכל מוצר — קובע מאין מגיע המוצר ומה זמן האספקה ללקוח. שינויים נשמרים מיד לכל גולש.
             </div>
 
             {products.length === 0 ? (
@@ -668,7 +669,7 @@ function ProductMappingTab({ suppliers, showToast }) {
                                                 onClick={() => setField(p.id, 'fulfillmentType', t.id)}
                                                 className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer ${ftId === t.id ? 'text-white' : 'text-[#86868B] bg-gray-50 hover:bg-gray-100'}`}
                                                 style={ftId === t.id ? { background: t.color } : {}}>
-                                                {t.emoji} {t.label}
+                                                <t.Icon size={9} /> {t.label}
                                             </button>
                                         ))}
                                     </div>

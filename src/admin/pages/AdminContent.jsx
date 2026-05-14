@@ -9,9 +9,13 @@ import {
     AdminButton
 } from '../components/AdminComponents';
 import {
-    Eye, Layout, Type, Image as ImageIcon, Search,
-    ShoppingCart, Plus, Trash2, Save, RotateCcw,
-    ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X
+    Eye, Layout, Type, Image as ImageIcon, Search, Menu,
+    ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw,
+    ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X,
+    Palette, Navigation, Award, Layers, LayoutGrid, UserCircle, Package,
+    Ruler, Shield, Headphones, HelpCircle, Info, Clock, Phone, Compass,
+    Heart, BookOpen, Bot, MessageSquare, Video, Wrench, Settings, Home,
+    FileText, Star, List, Play, Newspaper, Link2, PanelBottom,
 } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
@@ -198,8 +202,8 @@ const FIELD_SECTIONS = [
             { key: 'quote_price_label',    label: 'תווית מחיר',       type: 'text',     default: 'החל מ' },
             { key: 'quote_price_note',     label: 'הערת מחיר',        type: 'text',     default: '*לפני מע״מ, כולל התקנה, הדרכה ואחריות' },
             { key: 'quote_timeline_label', label: 'תווית זמן פריסה',  type: 'text',     default: 'זמן פריסה משוער' },
-            { key: 'biz_phone',            label: 'טלפון עסקי',       type: 'text',     default: '058-5856356' },
-            { key: 'biz_whatsapp',         label: 'וואטסאפ עסקי',     type: 'text',     default: '972585856356' },
+            { key: 'contact_phone',        label: 'טלפון ליצירת קשר',  type: 'text',     default: '058-5856356' },
+            { key: 'whatsapp_number',      label: 'מספר וואטסאפ',      type: 'text',     default: '972585856356' },
         ],
     },
     {
@@ -464,7 +468,7 @@ const FIELD_SECTIONS = [
             { key: 'ai_greeting_pd',   label: 'הודעת פתיחה (מוצר)',type: 'textarea', default: 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר?' },
             { key: 'ai_placeholder',   label: 'טקסט שורת הקלדה',  type: 'text',     default: 'מה תרצו לבדוק?' },
             { key: 'ai_wa_label',      label: 'מענה אנושי (כותרת)',type: 'text',     default: 'מענה אנושי בוואטסאפ' },
-            { key: 'ai_wa_status',     label: 'סטטוס וואטסאפ',     type: 'text',     default: 'יועץ טכנולוגי זמין כעת ✅' },
+            { key: 'ai_wa_status',     label: 'סטטוס וואטסאפ',     type: 'text',     default: 'יועץ טכנולוגי זמין כעת' },
             { key: 'ai_chip1',         label: 'צ׳יפ מהיר 1',       type: 'text',     default: 'הצעת מחיר' },
             { key: 'ai_chip2',         label: 'צ׳יפ מהיר 2',       type: 'text',     default: 'מפרט טכני' },
             { key: 'ai_chip3',         label: 'צ׳יפ מהיר 3',       type: 'text',     default: 'ייעוץ' },
@@ -482,9 +486,9 @@ const FIELD_SECTIONS = [
             { key: 'contact_hero_title',      label: 'כותרת ראשית',       type: 'text',     default: 'הכיתה שלכם מחכה. בואו נתחיל.' },
             { key: 'contact_hero_subtitle',   label: 'תיאור עליון',       type: 'textarea', default: 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.' },
             { key: 'contact_concierge_title', label: 'כותרת ייעוץ אישי',  type: 'text',     default: 'ייעוץ אישי ומיידי' },
-            { key: 'contact_concierge_desc',  label: 'תיאור ייעוץ אישי',  type: 'textarea', default: 'נציג מקצועי מחכה לכם עכשיו.' },
+            { key: 'contact_concierge_desc',  label: 'תיאור ייעוץ אישי',  type: 'textarea', default: 'נציג מקצועי מחכה לכם עכשיו כדי לאפיין את הפתרון המדויק למוסד שלכם.' },
             { key: 'contact_form_title',      label: 'כותרת טופס',        type: 'text',     default: 'בואו נצא לדרך.' },
-            { key: 'contact_form_desc',       label: 'תיאור טופס',        type: 'textarea', default: 'מלאו את הפרטים ונחזור אליכם תוך יום עסקים.' },
+            { key: 'contact_form_desc',       label: 'תיאור טופס',        type: 'textarea', default: 'השאירו פרטים ונחזור אליכם עם חבילה מותאמת אישית.' },
             { key: 'contact_form_btn',        label: 'כפתור שליחה',       type: 'text',     default: 'שלח פנייה' },
             { key: 'contact_success_title',   label: 'כותרת הצלחה',      type: 'text',     default: 'הפנייה התקבלה' },
             { key: 'contact_success_msg',     label: 'הודעת הצלחה',       type: 'textarea', default: 'הצוות שלנו כבר מעבד את הבקשה שלך. נחזור אליך תוך פחות מ-24 שעות.' },
@@ -492,15 +496,16 @@ const FIELD_SECTIONS = [
             { key: 'contact_label_inst',      label: 'תווית: מוסד',       type: 'text',     default: 'מוסד / חברה' },
             { key: 'contact_label_msg',       label: 'תווית: הודעה',      type: 'text',     default: 'איך נוכל לעזור?' },
             { key: 'contact_trust_title',     label: 'כותרת שותפות',      type: 'text',     default: 'שותפות ארוכת טווח' },
-            { key: 'contact_trust_desc',      label: 'תיאור שותפות',      type: 'textarea', default: 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך.' },
+            { key: 'contact_trust_desc',      label: 'תיאור שותפות',      type: 'textarea', default: 'אנחנו לא רק ספקים. אנחנו השותפים שלכם לכל אורך הדרך – מאפיון הצרכים ועד לשירות טכני מלא בכיתה.' },
             { key: 'contact_phone',           label: 'טלפון',             type: 'text',     default: '058-5856356' },
-            { key: 'contact_email',           label: 'מייל',              type: 'text',     default: 'efraimemergui25@gmail.com' },
+            { key: 'contact_email',           label: 'מייל',              type: 'text',     default: 'nextclass.en@gmail.com' },
             { key: 'whatsapp_number',         label: 'מספר וואטסאפ',      type: 'text',     default: '972585856356' },
             { key: 'contact_address',         label: 'כתובת',             type: 'text',     default: 'בראלי 10, תל אביב' },
             { key: 'contact_hours',           label: 'שעות פעילות',       type: 'text',     default: 'ראשון–חמישי 08:00–18:00' },
             { key: 'contact_wa_label',        label: 'תווית וואטסאפ',     type: 'text',     default: 'זמינים ב-WhatsApp' },
             { key: 'contact_wa_btn',          label: 'כפתור וואטסאפ',     type: 'text',     default: 'התחל שיחה עכשיו' },
             { key: 'contact_time_hint',       label: 'הערת זמן נוכחי',    type: 'text',     default: 'זמן נוכחי במטה בתל אביב: ' },
+            { key: 'contact_support_label',   label: 'תווית תמיכה',        type: 'text',     default: 'אנחנו כאן בשבילך' },
         ],
     },
     {
@@ -739,7 +744,73 @@ const DEFAULT_NAV_ITEMS = [
     { id: 'magazine', path: '/magazine', labelKey: 'nav_magazine', defaultLabel: 'מגזין',         visible: true },
     { id: 'contact',  path: '/contact',  labelKey: 'nav_contact',  defaultLabel: 'צור קשר',       visible: true },
 ];
-const NAV_ICONS = { home: '🏠', catalog: '🛍️', compare: '⚖️', story: '📖', vod: '🎬', magazine: '📰', contact: '📞' };
+// SVG icon components — replace all emoji icons in the admin UI
+const GROUP_ICON_COMPONENTS = {
+    homepage: <Home size={16} />,
+    pages:    <FileText size={16} />,
+    brand:    <Palette size={16} />,
+    tools:    <Wrench size={16} />,
+    system:   <Settings size={16} />,
+};
+
+const SECTION_ICON_COMPONENTS = {
+    branding:               <Palette size={13} />,
+    header:                 <Navigation size={13} />,
+    hero:                   <Home size={13} />,
+    trust_badges:           <Award size={13} />,
+    homepage_sections:      <Layers size={13} />,
+    homepage_vp:            <Star size={13} />,
+    feature_tiles:          <LayoutGrid size={13} />,
+    shoppable_image:        <ImageIcon size={13} />,
+    quote_wizard:           <FileText size={13} />,
+    expert_consultation:    <UserCircle size={13} />,
+    home_discover_products: <Search size={13} />,
+    catalog_full:           <List size={13} />,
+    search_section:         <Search size={13} />,
+    product_detail:         <Package size={13} />,
+    sidebar_sections:       <Layout size={13} />,
+    pd_dims_section:        <Ruler size={13} />,
+    pd_warranty_section:    <Shield size={13} />,
+    pd_support_section:     <Headphones size={13} />,
+    pd_faq_section:         <HelpCircle size={13} />,
+    pd_reviews_section:     <Star size={13} />,
+    accessories_section:    <Link2 size={13} />,
+    about_page:             <Info size={13} />,
+    about_timeline:         <Clock size={13} />,
+    contact_page:           <Phone size={13} />,
+    discover_section:       <Compass size={13} />,
+    wishlist_section:       <Heart size={13} />,
+    magazine:               <Newspaper size={13} />,
+    footer_config:          <PanelBottom size={13} />,
+    ai_assistant:           <Bot size={13} />,
+    qa_section:             <MessageSquare size={13} />,
+    cart_checkout:          <ShoppingCart size={13} />,
+    videos:                 <Video size={13} />,
+    accessibility_section:  <Eye size={13} />,
+    visibility:             <Eye size={13} />,
+    menu_reorder:           <Menu size={13} />,
+    legal:                  <FileText size={13} />,
+};
+
+const NAV_ICON_COMPONENTS = {
+    home:     <Home size={15} />,
+    catalog:  <ShoppingBag size={15} />,
+    compare:  <ArrowRightLeft size={15} />,
+    story:    <BookOpen size={15} />,
+    vod:      <Play size={15} />,
+    magazine: <Newspaper size={15} />,
+    contact:  <Phone size={15} />,
+};
+
+const SIDEBAR_SECTION_ICONS = {
+    'pd-features': <Star size={14} />,
+    'pd-dims':     <Ruler size={14} />,
+    'pd-specs':    <List size={14} />,
+    'pd-warranty': <FileText size={14} />,
+    'pd-support':  <Headphones size={14} />,
+    'pd-qa':       <HelpCircle size={14} />,
+    'pd-reviews':  <Star size={14} />,
+};
 
 // ─── Image Field with preview ─────────────────────────────────────────────────
 function ImageField({ field, value, onChange }) {
@@ -768,7 +839,7 @@ function ImageField({ field, value, onChange }) {
 
     return (
         <div className="space-y-2.5">
-            <label className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right block">{field.label}</label>
+            <label className="text-[11px] font-black text-[#86868B] tracking-widest text-right block">{field.label}</label>
             {/* URL Input */}
             <input
                 type="text"
@@ -876,7 +947,7 @@ const NavMenuManager = ({ showToast }) => {
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-4">
                 <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#007AFF] transition-colors font-bold">איפוס לברירת מחדל</button>
-                <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
+                <p className="text-[11px] font-black text-[#86868B] tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
             </div>
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
@@ -886,7 +957,7 @@ const NavMenuManager = ({ showToast }) => {
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#007AFF] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
-                        <span className="text-xl shrink-0">{NAV_ICONS[item.id] || '🔗'}</span>
+                        <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
                         <div className="flex-1 text-right">
                             <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
                             <p className="text-[10px] text-gray-400 font-mono">{item.path}</p>
@@ -947,7 +1018,7 @@ const SidebarSectionManager = ({ showToast }) => {
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-2">
                 <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5856D6] transition-colors font-bold">איפוס לברירת מחדל</button>
-                <p className="text-[11px] font-black text-[#86868B] uppercase tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
+                <p className="text-[11px] font-black text-[#86868B] tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
             </div>
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
@@ -957,7 +1028,7 @@ const SidebarSectionManager = ({ showToast }) => {
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5856D6] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
-                        <span className="text-xl shrink-0">{item.emoji}</span>
+                        <span className="text-[#6E6E73] shrink-0">{SIDEBAR_SECTION_ICONS[item.id] || <List size={14} />}</span>
                         <div className="flex-1 text-right">
                             <input type="text" value={item.label} onChange={e => updateLabel(item.id, e.target.value)} onBlur={() => persist(itemsRef.current)}
                                 className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5856D6] focus:outline-none transition-colors text-right px-0"
@@ -1103,17 +1174,17 @@ const MagazineSection = ({ showToast }) => {
                             <p className="text-sm font-black text-[#1D1D1F]">{editing === 'new' ? 'כתבה חדשה' : 'עריכת כתבה'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">כותרת *</label><input className={inputCls} dir="rtl" value={form.title} onChange={e => setField('title', e.target.value)} placeholder="כותרת הכתבה" /></div>
-                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">קטגוריה</label><input className={inputCls} dir="rtl" value={form.category} onChange={e => setField('category', e.target.value)} placeholder="חדשנות פדגוגית" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">כותרת *</label><input className={inputCls} dir="rtl" value={form.title} onChange={e => setField('title', e.target.value)} placeholder="כותרת הכתבה" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">קטגוריה</label><input className={inputCls} dir="rtl" value={form.category} onChange={e => setField('category', e.target.value)} placeholder="חדשנות פדגוגית" /></div>
                         </div>
-                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תקציר</label><textarea className={`${inputCls} resize-none`} dir="rtl" rows={2} value={form.excerpt} onChange={e => setField('excerpt', e.target.value)} placeholder="תיאור קצר..." /></div>
-                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">קישור לכתבה *</label><input className={inputCls} dir="ltr" value={form.url} onChange={e => setField('url', e.target.value)} placeholder="https://..." /></div>
+                        <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">תקציר</label><textarea className={`${inputCls} resize-none`} dir="rtl" rows={2} value={form.excerpt} onChange={e => setField('excerpt', e.target.value)} placeholder="תיאור קצר..." /></div>
+                        <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">קישור לכתבה *</label><input className={inputCls} dir="ltr" value={form.url} onChange={e => setField('url', e.target.value)} placeholder="https://..." /></div>
                         <div className="grid grid-cols-3 gap-2">
-                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">מקור</label><input className={inputCls} dir="rtl" value={form.source} onChange={e => setField('source', e.target.value)} placeholder="eSchool News" /></div>
-                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תאריך</label><input className={inputCls} dir="rtl" value={form.date} onChange={e => setField('date', e.target.value)} placeholder="ינואר 2026" /></div>
-                            <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">זמן קריאה</label><input className={inputCls} dir="rtl" value={form.readTime} onChange={e => setField('readTime', e.target.value)} placeholder="5 דקות קריאה" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">מקור</label><input className={inputCls} dir="rtl" value={form.source} onChange={e => setField('source', e.target.value)} placeholder="eSchool News" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">תאריך</label><input className={inputCls} dir="rtl" value={form.date} onChange={e => setField('date', e.target.value)} placeholder="ינואר 2026" /></div>
+                            <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">זמן קריאה</label><input className={inputCls} dir="rtl" value={form.readTime} onChange={e => setField('readTime', e.target.value)} placeholder="5 דקות קריאה" /></div>
                         </div>
-                        <div><label className="text-[10px] font-black text-[#86868B] uppercase tracking-widest block mb-1 text-right">תמונה (URL)</label><input className={inputCls} dir="ltr" value={form.image} onChange={e => setField('image', e.target.value)} placeholder="https://images.unsplash.com/..." /></div>
+                        <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">תמונה (URL)</label><input className={inputCls} dir="ltr" value={form.image} onChange={e => setField('image', e.target.value)} placeholder="https://images.unsplash.com/..." /></div>
                         <div className="flex gap-2 pt-1">
                             <button onClick={closeEdit} className="flex-1 py-2 rounded-xl text-[12px] font-black text-[#86868B] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">ביטול</button>
                             <button onClick={handleSave} className="flex-1 py-2 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">שמור כתבה</button>
@@ -1131,7 +1202,7 @@ function Sidebar({ activeGroup, setActiveGroup }) {
         <div className="w-52 shrink-0 flex flex-col gap-2" style={{ minWidth: 200 }}>
             {/* Logo row */}
             <div className="px-4 py-3 mb-1">
-                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-[0.22em]">תוכן האתר</p>
+                <p className="text-[10px] font-black text-[#AEAEB2] tracking-tight">תוכן האתר</p>
             </div>
 
             {SECTION_GROUPS.map(group => {
@@ -1159,7 +1230,7 @@ function Sidebar({ activeGroup, setActiveGroup }) {
                                 <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-8 -mt-8" />
                             </div>
                         )}
-                        <span className="text-[20px] shrink-0 relative z-10">{group.icon}</span>
+                        <span className={`shrink-0 relative z-10 ${isActive ? 'text-white' : 'text-[#6E6E73]'}`}>{GROUP_ICON_COMPONENTS[group.id] || <Settings size={16} />}</span>
                         <span className={`text-[13px] font-bold flex-1 text-right relative z-10 ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
                             {group.label}
                         </span>
@@ -1203,13 +1274,13 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
             {/* Header */}
             <button
                 onClick={onToggle}
-                className="w-full flex items-center gap-3.5 px-5 py-4 text-right transition-colors hover:bg-black/[0.01] group"
+                className="w-full flex items-center gap-3.5 px-5 py-4 text-right transition-colors hover:bg-black/[0.025] group"
             >
                 <div
                     className="w-1 h-7 rounded-full shrink-0 transition-all duration-300"
                     style={{ background: isOpen ? sec.accent : '#E5E5EA' }}
                 />
-                <span className="text-[18px] shrink-0">{sec.icon}</span>
+                <span className="text-[#6E6E73] shrink-0" style={{ color: isOpen ? sec.accent : undefined }}>{SECTION_ICON_COMPONENTS[sec.id] || <Settings size={13} />}</span>
                 <div className="flex-1 text-right">
                     <p className={`text-[13px] font-bold leading-snug transition-colors ${isOpen ? 'text-[#1D1D1F]' : 'text-[#3C3C43]'}`}>
                         {sec.label}
@@ -1436,7 +1507,7 @@ export default function AdminContent({ showToast }) {
             {/* Search results */}
             {searchResults ? (
                 <div className="flex flex-col gap-2.5">
-                    <p className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-[0.2em]">
+                    <p className="text-[11px] font-black text-[#AEAEB2] tracking-[0.2em]">
                         {searchResults.length} קטעים נמצאו עבור &quot;{globalSearch}&quot;
                     </p>
                     {searchResults.length === 0
@@ -1477,7 +1548,7 @@ export default function AdminContent({ showToast }) {
                                 {/* Group title pill */}
                                 {currentGroupDef && (
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-xl">{currentGroupDef.icon}</span>
+                                        <span className="text-[#6E6E73] shrink-0">{GROUP_ICON_COMPONENTS[currentGroupDef.id] || <Settings size={16} />}</span>
                                         <h2 className="text-[15px] font-black text-[#1D1D1F]">{currentGroupDef.label}</h2>
                                         <div className="flex-1 h-px bg-black/[0.05]" />
                                         <button
@@ -1501,7 +1572,7 @@ export default function AdminContent({ showToast }) {
                                         {sub.label && (
                                             <div className="flex items-center gap-2.5 mt-1">
                                                 <div className="h-px flex-1 bg-black/[0.05]" />
-                                                <span className="text-[10px] font-black text-[#C7C7CC] uppercase tracking-[0.22em] whitespace-nowrap px-1">
+                                                <span className="text-[10px] font-black text-[#C7C7CC] tracking-tight whitespace-nowrap px-1">
                                                     {sub.label}
                                                 </span>
                                                 <div className="h-px flex-1 bg-black/[0.05]" />

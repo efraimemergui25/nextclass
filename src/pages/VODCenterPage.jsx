@@ -408,8 +408,8 @@ const TABS = [
 
 export default function VODCenterPage() {
     const { getSetting } = useSettings();
-    const phone = getSetting('contact_phone', '058-585-6356');
-    const email = getSetting('contact_email', 'efraimemergui25@gmail.com');
+    const phone = getSetting('contact_phone', '058-5856356');
+    const email = getSetting('contact_email', 'nextclass.en@gmail.com');
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [videos, setVideos] = useState(loadVideos);

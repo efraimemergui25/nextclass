@@ -50,10 +50,10 @@ const CatalogGrid = () => {
         priceMax:   parseInt(getSetting('catalog_price_max', '30000'), 10),
         viewGrid:   getSetting('catalog_view_grid', 'תצוגת רשת'),
         viewList:   getSetting('catalog_view_list', 'תצוגת רשימה'),
-        sortRel:    getSetting('sort_rel', 'רלוונטיות'),
-        sortAsc:    getSetting('sort_asc', 'מחיר: מהנמוך לגבוה'),
-        sortDesc:   getSetting('sort_desc', 'מחיר: מהגבוה לנמוך'),
-        sortName:   getSetting('sort_name', 'שם המוצר (א-ת)'),
+        sortRel:    getSetting('catalog_sort_rel', 'רלוונטיות'),
+        sortAsc:    getSetting('catalog_sort_pasc', 'מחיר: מהנמוך לגבוה'),
+        sortDesc:   getSetting('catalog_sort_pdesc', 'מחיר: מהגבוה לנמוך'),
+        sortName:   getSetting('catalog_sort_name', 'שם המוצר (א-ת)'),
     }), [getSetting]);
 
     const [selectedCategory, setSelectedCategory] = useState("הכל");

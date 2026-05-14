@@ -6,6 +6,7 @@ import {
     doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
+import { AdminSectionHeader } from '../components/AdminComponents';
 import { MessageSquare, Send, Trash2, CheckCircle, Clock, User } from 'lucide-react';
 
 export default function AdminQA() {
@@ -52,23 +53,22 @@ export default function AdminQA() {
 
     return (
         <div className="space-y-8">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">שאלות גולשים</h1>
-                    <p className="text-[#86868B] font-medium mt-1">ניהול שאלות ותשובות ממדפי המוצרים</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="px-4 py-2 rounded-full text-sm font-bold"
-                        style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
-                        {pending.length} ממתינות
+            <AdminSectionHeader
+                title="שאלות ותשובות"
+                subtitle="שאלות שנשאלו על דפי מוצרים — ניהול ומתן תשובות"
+                action={
+                    <div className="flex items-center gap-3">
+                        <div className="px-4 py-2 rounded-full text-sm font-bold"
+                            style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
+                            {pending.length} ממתינות
+                        </div>
+                        <div className="px-4 py-2 rounded-full text-sm font-bold"
+                            style={{ background: 'rgba(52,199,89,0.10)', color: '#34C759' }}>
+                            {answered.length} נענו
+                        </div>
                     </div>
-                    <div className="px-4 py-2 rounded-full text-sm font-bold"
-                        style={{ background: 'rgba(52,199,89,0.10)', color: '#34C759' }}>
-                        {answered.length} נענו
-                    </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Tabs */}
             <div className="flex items-center gap-2 p-1.5 rounded-2xl w-fit"

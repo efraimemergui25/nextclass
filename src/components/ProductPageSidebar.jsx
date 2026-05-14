@@ -18,10 +18,10 @@ const ICON_PATHS = {
 function SidebarIcon({ name, active }) {
     return (
         <svg
-            className="w-[17px] h-[17px] shrink-0 transition-colors duration-200"
-            style={{ color: active ? '#007AFF' : '#AEAEB2' }}
+            className="w-[19px] h-[19px] shrink-0 transition-colors duration-200"
+            style={{ color: active ? '#007AFF' : '#2C2C2E' }}
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            strokeWidth={active ? 2.2 : 1.5}
+            strokeWidth={active ? 2.2 : 1.8}
         >
             <path strokeLinecap="round" strokeLinejoin="round" d={ICON_PATHS[name] || ICON_PATHS.clipboard} />
         </svg>
@@ -106,12 +106,12 @@ const ProductPageSidebar = ({ visible = true }) => {
                     <div
                         className="rounded-[20px] overflow-hidden"
                         style={{
-                            width: 200,
-                            background: 'rgba(255,255,255,0.92)',
+                            width: 218,
+                            background: 'rgba(255,255,255,0.97)',
                             backdropFilter: 'blur(56px) saturate(2.2)',
                             WebkitBackdropFilter: 'blur(56px) saturate(2.2)',
-                            border: '1px solid rgba(255,255,255,0.88)',
-                            boxShadow: '0 8px 40px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            boxShadow: '0 12px 48px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)',
                         }}
                     >
                         {sections.map((s, i) => {
@@ -122,20 +122,21 @@ const ProductPageSidebar = ({ visible = true }) => {
                                     onClick={() => scrollTo(s.id)}
                                     whileHover={{ backgroundColor: 'rgba(0,122,255,0.06)' }}
                                     whileTap={{ scale: 0.98 }}
-                                    className="w-full flex items-center gap-4 transition-all cursor-pointer py-4 px-5"
+                                    className="w-full flex items-center gap-3.5 transition-all cursor-pointer py-[14px] px-5"
                                     style={{
-                                        borderRight: active ? '4px solid #007AFF' : '4px solid transparent',
-                                        borderBottom: i < sections.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none',
+                                        borderLeft: active ? '3px solid #007AFF' : '3px solid transparent',
+                                        borderBottom: i < sections.length - 1 ? '1px solid rgba(0,0,0,0.055)' : 'none',
+                                        background: active ? 'rgba(0,122,255,0.05)' : 'transparent',
                                     }}
                                 >
                                     <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'scale-100'}`}>
                                         <SidebarIcon name={s.icon} active={active} />
                                     </div>
                                     <span
-                                        className={`flex-1 text-[12.5px] transition-colors duration-200 text-right leading-tight ${
+                                        className={`flex-1 text-[13px] transition-colors duration-200 text-right leading-tight ${
                                             active
                                                 ? 'text-[#007AFF] font-bold'
-                                                : 'text-[#6E6E73] font-medium'
+                                                : 'text-[#1D1D1F] font-semibold'
                                         }`}
                                     >
                                         {s.label}

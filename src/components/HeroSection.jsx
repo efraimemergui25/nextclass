@@ -16,6 +16,9 @@ const HeroSection = () => {
         hero_description: getSetting('hero_description', 'הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.'),
         hero_cta:        getSetting('hero_cta', 'גלו את הפתרונות שלנו'),
         hero_bg_image:   getSetting('hero_bg_image', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'),
+        trust_1:         getSetting('hero_trust_pill_1', 'שירות ישיר ומהיר'),
+        trust_2:         getSetting('hero_trust_pill_2', 'ייעוץ ללא עלות'),
+        trust_3:         getSetting('hero_trust_pill_3', '+500 מוסדות חינוך'),
     }), [getSetting]);
 
     const handleScrollDown = () => {
@@ -65,7 +68,7 @@ const HeroSection = () => {
                 </motion.span>
 
                 {/* Staggered headline */}
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-3">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-2">
                     {titleWords.map((word, i) => (
                         <motion.span
                             key={word}
@@ -103,6 +106,21 @@ const HeroSection = () => {
                 >
                     {content.hero_description}
                 </motion.p>
+
+                {/* Trust micro-pills */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.0, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6"
+                >
+                    {[content.trust_1, content.trust_2, content.trust_3].map((t, i) => (
+                        <span key={i} className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 tracking-wide">
+                            <span className="text-[#007AFF]">✓</span>
+                            {t}
+                        </span>
+                    ))}
+                </motion.div>
 
                 {/* CTA Row — Single button */}
                 <motion.div

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Ticket, BarChart2, Percent } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminToggle } from '../components/AdminComponents';
@@ -205,7 +206,7 @@ export default function AdminMarketing() {
     return (
         <div dir="rtl" className="space-y-5">
             <AdminSectionHeader
-                title="שיווק"
+                title="שיווק וקידום מכירות"
                 subtitle={`${coupons.length} קופונים · ${activeCoupons} פעילים · פס הכרזה: ${bannerActive ? 'פעיל' : 'כבוי'}`}
                 action={<AdminButton onClick={() => setShowNew(true)}>+ קופון חדש</AdminButton>}
             />
@@ -213,18 +214,27 @@ export default function AdminMarketing() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'קופונים פעילים', value: activeCoupons, color: '#34C759', icon: '🎟️' },
-                    { label: 'שימושים כולל', value: totalUses, color: '#007AFF', icon: '📊' },
-                    { label: 'ממוצע הנחה', value: `${avgDiscount}%`, color: '#FF9500', icon: '💸' },
-                ].map(({ label, value, color, icon }) => (
-                    <div key={label} className="rounded-2xl p-4 text-right relative overflow-hidden" style={glass}>
-                        <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                            style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
-                        <div className="flex items-center justify-between mb-2 pt-1">
-                            <span className="text-xl">{icon}</span>
+                    { label: 'קופונים פעילים', value: activeCoupons, color: '#34C759', Icon: Ticket },
+                    { label: 'שימושים כולל', value: totalUses, color: '#007AFF', Icon: BarChart2 },
+                    { label: 'ממוצע הנחה', value: `${avgDiscount}%`, color: '#FF9500', Icon: Percent },
+                ].map(({ label, value, color, Icon }) => (
+                    <div key={label} className="rounded-[20px] p-4 text-right relative overflow-hidden"
+                        style={{
+                            background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
+                            backdropFilter: 'blur(40px) saturate(200%)',
+                            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                            border: `1px solid ${color}22`,
+                            boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
+                        }}>
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                                style={{ background: `${color}16`, border: `1px solid ${color}20` }}>
+                                <Icon size={15} style={{ color }} />
+                            </div>
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
                         </div>
-                        <p className="text-2xl font-black tracking-tighter" style={{ color }}>{value}</p>
-                        <p className="text-[#86868B] text-[11px] font-bold mt-0.5">{label}</p>
+                        <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
+                        <p className="text-[#86868B] text-[10px] font-bold mt-1.5 uppercase tracking-widest">{label}</p>
                     </div>
                 ))}
             </div>
@@ -245,7 +255,7 @@ export default function AdminMarketing() {
 
                 {coupons.length === 0 && (
                     <div className="py-16 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                        <span className="text-4xl">🎟️</span>
+                        <Ticket size={36} className="opacity-30" />
                         <p className="text-sm font-medium">אין קופונים. צור קופון חדש.</p>
                     </div>
                 )}

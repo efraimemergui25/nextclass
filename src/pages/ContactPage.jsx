@@ -225,7 +225,7 @@ const ContactPage = () => {
                                     <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF]">
                                         <Heart size={20} className="fill-[#007AFF]" />
                                     </div>
-                                    <h4 className="text-xl font-bold text-[#1D1D1F]">{getSetting('about_v3_desc', 'אנחנו כאן בשבילך')}</h4>
+                                    <h4 className="text-xl font-bold text-[#1D1D1F]">{getSetting('contact_support_label', 'אנחנו כאן בשבילך')}</h4>
                                 </div>
                                 <div className="space-y-6">
                                     {[

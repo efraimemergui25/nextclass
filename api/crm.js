@@ -12,6 +12,9 @@
  *  4. Copy the token → add as HUBSPOT_API_KEY in Vercel dashboard
  */
 
+import { isRateLimited } from './_rateLimit.js';
+import { logSecurityEvent } from './_logEvent.js';
+
 const HUBSPOT_BASE = 'https://api.hubapi.com';
 
 async function hubspotRequest(path, body) {
@@ -30,25 +33,41 @@ async function hubspotRequest(path, body) {
     return res.json();
 }
 
+function sanitize(str, maxLen = 200) {
+    return String(str ?? '').replace(/[<>"']/g, '').trim().slice(0, maxLen);
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
+    if (isRateLimited(ip, { max: 5, windowMs: 60_000 })) {
+        logSecurityEvent('rate_limited', { endpoint: 'crm', ip });
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+
+    if (JSON.stringify(req.body ?? {}).length > 16_000) {
+        logSecurityEvent('payload_too_large', { endpoint: 'crm', ip });
+        return res.status(413).json({ error: 'Payload too large' });
+    }
 
     const key = process.env.HUBSPOT_API_KEY;
     if (!key) return res.status(200).json({ skipped: true, reason: 'HUBSPOT_API_KEY not set' });
 
     const { quote } = req.body ?? {};
-    if (!quote) return res.status(400).json({ error: 'Missing quote payload' });
+    if (!quote || typeof quote !== 'object') return res.status(400).json({ error: 'Missing quote payload' });
 
     try {
         // 1. Create / update Contact
+        const nameParts = sanitize(quote.contactName, 120).split(' ');
         const contact = await hubspotRequest('/crm/v3/objects/contacts', {
             properties: {
-                firstname: (quote.contactName || '').split(' ')[0] || 'לא ידוע',
-                lastname:  (quote.contactName || '').split(' ').slice(1).join(' ') || '',
-                email:     quote.email || '',
-                phone:     quote.phone || '',
-                company:   quote.institution || '',
-                jobtitle:  quote.contactRole || '',
+                firstname: nameParts[0] || 'לא ידוע',
+                lastname:  nameParts.slice(1).join(' ') || '',
+                email:     sanitize(quote.email, 254),
+                phone:     sanitize(quote.phone, 30),
+                company:   sanitize(quote.institution, 150),
+                jobtitle:  sanitize(quote.contactRole, 100),
             },
         }).catch(() => null); // ignore duplicate contact error
 

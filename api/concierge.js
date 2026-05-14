@@ -6,6 +6,8 @@
  * Set GROQ_API_KEY in Vercel → Environment Variables (free at groq.com)
  */
 
+import { logSecurityEvent } from './_logEvent.js';
+
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
@@ -53,11 +55,39 @@ async function callAnthropic(apiKey, messages, systemPrompt) {
     return data.content?.[0]?.text ?? '';
 }
 
+// Simple in-memory rate limiter (per-IP, resets on cold start)
+const rateLimitMap = new Map();
+function isRateLimited(ip) {
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip) || { count: 0, reset: now + 60_000 };
+    if (now > entry.reset) { entry.count = 0; entry.reset = now + 60_000; }
+    entry.count++;
+    rateLimitMap.set(ip, entry);
+    return entry.count > 20; // max 20 requests per minute per IP
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { messages, systemPrompt } = req.body ?? {};
-    if (!messages?.length) return res.status(400).json({ error: 'Missing messages' });
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
+    if (isRateLimited(ip)) {
+        logSecurityEvent('rate_limited', { endpoint: 'concierge', ip });
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+
+    const body = req.body ?? {};
+    const { messages, systemPrompt } = body;
+
+    // Payload guards
+    if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'Missing messages' });
+    if (messages.length > 20) return res.status(400).json({ error: 'Too many messages' });
+    if (JSON.stringify(body).length > 32_000) return res.status(413).json({ error: 'Payload too large' });
+
+    // Sanitise: truncate each message content
+    const safeMessages = messages.map(m => ({
+        role: String(m.role || 'user').slice(0, 10),
+        content: String(m.content || '').slice(0, 2000),
+    }));
 
     const groqKey = process.env.GROQ_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -69,9 +99,9 @@ export default async function handler(req, res) {
     try {
         let text;
         if (groqKey) {
-            text = await callGroq(groqKey, messages, systemPrompt || '');
+            text = await callGroq(groqKey, safeMessages, String(systemPrompt || '').slice(0, 1000));
         } else {
-            text = await callAnthropic(anthropicKey, messages, systemPrompt || '');
+            text = await callAnthropic(anthropicKey, safeMessages, String(systemPrompt || '').slice(0, 1000));
         }
         res.status(200).json({ text });
     } catch (err) {

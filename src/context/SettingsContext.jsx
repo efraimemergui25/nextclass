@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
@@ -17,9 +17,13 @@ export const SettingsProvider = ({ children }) => {
         }
     });
 
+    // True once the first Firestore snapshot has arrived — prevents false seeding on empty state
+    const [firestoreLoaded, setFirestoreLoaded] = useState(false);
+    const settingsRef = useRef(settings);
+    settingsRef.current = settings;
+
     // ─── Live Firestore Sync ────────────────────────────────────────────────
     useEffect(() => {
-        // Listen to global settings in Firestore — falls back to localStorage on permission error
         const unsub = onSnapshot(
             doc(db, 'cms_settings', FIREBASE_DOC_ID),
             (snap) => {
@@ -28,19 +32,17 @@ export const SettingsProvider = ({ children }) => {
                     setSettings(cloudData);
                     localStorage.setItem(LS_KEY, JSON.stringify(cloudData));
                 }
+                setFirestoreLoaded(true);
             },
             (err) => {
-                // Permission denied or network error — keep using localStorage cache silently
                 console.warn('SettingsContext: Firestore unavailable, using local cache', err.code);
+                setFirestoreLoaded(true); // still mark loaded so admin can seed
             }
         );
 
-        // Still listen to storage events for cross-tab sync if local changes happen
         const handleStorageChange = (e) => {
             if (e.key === LS_KEY) {
-                try {
-                    setSettings(JSON.parse(e.newValue || '{}'));
-                } catch {}
+                try { setSettings(JSON.parse(e.newValue || '{}')); } catch {}
             }
         };
 
@@ -52,32 +54,46 @@ export const SettingsProvider = ({ children }) => {
     }, []);
 
     const getSetting = useCallback((key, defaultValue) => {
-        const val = settings[key];
+        const val = settingsRef.current[key];
         if (val === undefined || val === null) return defaultValue;
         return val;
-    }, [settings]);
+    }, []);
 
     const isVisible = useCallback((key, defaultVal = true) => {
         return getSetting(key, defaultVal) !== false;
     }, [getSetting]);
 
-    const updateGlobalSettings = async (newSettings) => {
+    const updateGlobalSettings = useCallback(async (newSettings) => {
         try {
             await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), newSettings, { merge: true });
         } catch (err) {
             console.error('Failed to update global settings', err);
         }
-    };
+    }, []);
 
-    const value = {
-        settings,
-        getSetting,
-        isVisible,
-        updateGlobalSettings
-    };
+    /**
+     * Called by AdminContent on mount (admin is authenticated).
+     * Writes only the keys that don't yet exist in Firestore — never overwrites existing values.
+     * This eliminates the need for manual push scripts when adding new CMS fields.
+     */
+    const seedMissingDefaults = useCallback(async (defaults) => {
+        if (!firestoreLoaded) return;
+        const current = settingsRef.current;
+        const missing = Object.fromEntries(
+            Object.entries(defaults).filter(([k]) => current[k] === undefined || current[k] === null)
+        );
+        if (Object.keys(missing).length === 0) return;
+        try {
+            await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), missing, { merge: true });
+            if (import.meta.env.DEV) console.log('[CMS] Seeded missing defaults:', Object.keys(missing));
+        } catch (err) {
+            // Admin may not be authenticated yet — silently skip, next load will retry
+            if (import.meta.env.DEV) console.warn('[CMS] Seed skipped (auth?):', err.code);
+        }
+    }, [firestoreLoaded]);
 
     return (
-        <SettingsContext.Provider value={value}>
+        <SettingsContext.Provider value={{ settings, getSetting, isVisible, updateGlobalSettings, seedMissingDefaults, firestoreLoaded }}>
             {children}
         </SettingsContext.Provider>
     );
@@ -85,8 +101,6 @@ export const SettingsProvider = ({ children }) => {
 
 export const useSettings = () => {
     const context = useContext(SettingsContext);
-    if (!context) {
-        throw new Error('useSettings must be used within a SettingsProvider');
-    }
+    if (!context) throw new Error('useSettings must be used within a SettingsProvider');
     return context;
 };

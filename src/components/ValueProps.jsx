@@ -12,20 +12,20 @@ const ValueProps = () => {
         title: getSetting('vp_title', 'סטנדרט חדש של שירות למוסדות חינוך'),
         props: [
             {
-                title: getSetting('vp_prop1_title', "אחריות מוסדית מורחבת"),
-                description: getSetting('vp_prop1_desc', "שקט נפשי לשנים עם שירות טכנאי עד לכיתת הלימוד."),
+                title: getSetting('vp_prop1_title', "שירות ישיר ואישי"),
+                description: getSetting('vp_prop1_desc', "מענה אישי, ישיר ומהיר — לא תורים, לא טיקטים. מישהו שיודע מי אתם ועונה בזמן אמת."),
                 gradient: "from-blue-500 to-blue-600",
                 glow: "rgba(0,122,255,0.15)",
             },
             {
-                title: getSetting('vp_prop2_title', "ליווי והטמעה פדגוגית"),
-                description: getSetting('vp_prop2_desc', "הדרכות לצוותי ההוראה כדי להפיק את המקסימום מהטכנולוגיה."),
+                title: getSetting('vp_prop2_title', "מהיר. תמיד."),
+                description: getSetting('vp_prop2_desc', "פגישה, ייעוץ, מוצר — הכל קורה מהר. הסטנדרט שלנו הוא שמהירות היא חלק מהמקצוענות."),
                 gradient: "from-violet-500 to-purple-600",
                 glow: "rgba(139,92,246,0.15)",
             },
             {
-                title: getSetting('vp_prop3_title', "מאושר משרד החינוך"),
-                description: getSetting('vp_prop3_desc', "עמידה מלאה בתקנים המחמירים ביותר לבטיחות ואיכות."),
+                title: getSetting('vp_prop3_title', "מחיר שקוף — תמיד"),
+                description: getSetting('vp_prop3_desc', "הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים — ללא הפתעות, ללא עלויות נסתרות."),
                 gradient: "from-emerald-500 to-teal-500",
                 glow: "rgba(16,185,129,0.15)",
             }

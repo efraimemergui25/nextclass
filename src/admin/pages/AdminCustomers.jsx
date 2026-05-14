@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { InboxIcon } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { StatusBadge, AdminSectionHeader, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate } from '../components/AdminComponents';
 
@@ -176,8 +177,8 @@ export default function AdminCustomers() {
                         ))}
                     </AnimatePresence>
                     {filteredContacts.length === 0 && (
-                        <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                            <span className="text-5xl">📭</span>
+                        <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
+                            <InboxIcon size={40} className="opacity-30" />
                             <p className="text-sm font-bold text-[#6E6E73]">אין פניות תואמות לחיפוש</p>
                         </div>
                     )}

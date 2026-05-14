@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BarChart2, Box } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
@@ -174,13 +175,13 @@ export default function AdminAnalytics() {
 
             {/* ── KPI Row (always visible) ─────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <AdminKPICard title="כניסות ייחודיות" icon="👁️" value={totalVisits}
+                <AdminKPICard title="כניסות ייחודיות" icon="traffic" value={totalVisits}
                     trend={14} trendUp color="#007AFF" delay={0} />
-                <AdminKPICard title="עסקאות מוצלחות" icon="🛒" value={totalSales}
+                <AdminKPICard title="עסקאות מוצלחות" icon="orders" value={totalSales}
                     trend={8} trendUp color="#34C759" delay={0.05} />
-                <AdminKPICard title="יחס המרה" icon="📈" value={`${avgConv}%`}
+                <AdminKPICard title="יחס המרה" icon="traffic" value={`${avgConv}%`}
                     trend={2} trendUp color="#5856D6" delay={0.1} />
-                <AdminKPICard title="הכנסות ברוטו" icon="💰" value={`₪${kpis.totalRevenue.toLocaleString()}`}
+                <AdminKPICard title="הכנסות ברוטו" icon="revenue" value={`₪${kpis.totalRevenue.toLocaleString()}`}
                     trend={12} trendUp color="#FF9500" delay={0.15} />
             </div>
 
@@ -362,7 +363,7 @@ export default function AdminAnalytics() {
                                                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
                                                     {p.image
                                                         ? <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
-                                                        : <span className="text-xs">📦</span>}
+                                                        : <Box size={13} className="text-[#AEAEB2]" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-[#1D1D1F] text-[11px] font-bold truncate text-right">{p.title}</p>
@@ -442,7 +443,7 @@ export default function AdminAnalytics() {
 function EmptyChart({ label = 'אין נתונים להצגה' }) {
     return (
         <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
-            <span className="text-2xl">📊</span>
+            <BarChart2 size={24} className="opacity-40" />
             <span className="text-sm font-medium">{label}</span>
         </div>
     );

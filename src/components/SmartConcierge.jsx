@@ -252,7 +252,7 @@ function getQuickReplies(messages, settings) {
 // ── Main component ───────────────────────────────────────────────────────────
 const SmartConcierge = () => {
     const { getSetting } = useSettings();
-    const whatsappNumber = getSetting('biz_whatsapp', '972585856356');
+    const whatsappNumber = getSetting('whatsapp_number', '972585856356');
     const location = useLocation();
     const navigate = useNavigate();
     const isProductPage = location.pathname.startsWith('/catalog/');

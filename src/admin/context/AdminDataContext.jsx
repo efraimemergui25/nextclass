@@ -28,14 +28,19 @@ function computeRealAnalytics(orders) {
         labels.push(label);
         visits.push(rawVisits[iso] || 0);
         
-        // Compute real sales and revenue for this day
-        const dayOrders = orders.filter(o => {
+        // Sales = all non-cancelled orders (matches kpis.totalOrders)
+        const dayAll = orders.filter(o => {
             const od = new Date(o.dateTs || o.id);
             return od.toISOString().split('T')[0] === iso && o.status !== 'בוטל';
         });
-        
-        sales.push(dayOrders.length);
-        revenue.push(dayOrders.reduce((sum, o) => sum + (o.total || 0), 0));
+        // Revenue = completed orders only (matches kpis.totalRevenue which counts status='נמסר')
+        const dayCompleted = orders.filter(o => {
+            const od = new Date(o.dateTs || o.id);
+            return od.toISOString().split('T')[0] === iso && o.status === 'נמסר';
+        });
+
+        sales.push(dayAll.length);
+        revenue.push(dayCompleted.reduce((sum, o) => sum + (o.total || 0), 0));
     }
     
     return { labels, visits, sales, revenue };

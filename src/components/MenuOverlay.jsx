@@ -17,7 +17,6 @@ const SPRING      = { type: 'spring', stiffness: 240, damping: 32, mass: 1.2 };
 const SPRING_FAST = { type: 'spring', stiffness: 440, damping: 32, mass: 0.5 };
 const SPRING_ITEM = { type: 'spring', stiffness: 350, damping: 26, mass: 0.8 };
 
-/* SF Pro Display — renders at Mac quality with antialiasing */
 const SF = `-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif`;
 
 const MenuOverlay = ({ isOpen, onClose }) => {
@@ -32,6 +31,7 @@ const MenuOverlay = ({ isOpen, onClose }) => {
 
     const siteName = getSetting('site_name', 'NextClass');
     const siteLogo = getSetting('site_logo_url', '');
+    const phone    = getSetting('contact_phone', '058-5856356');
     const anyHovered = hoveredId !== null;
 
     return (
@@ -52,24 +52,19 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                     }}
                 >
                     {/* ── Glass layers ── */}
-                    {/* Top edge shine */}
                     <div className="absolute inset-x-0 top-0 h-[1px] pointer-events-none"
                         style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 20%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 80%, transparent 100%)' }} />
-                    {/* Blue ambient — upper right */}
                     <div className="absolute pointer-events-none" style={{
                         top: '-50%', right: '-18%', width: 1000, height: 1000, borderRadius: '50%',
                         background: 'radial-gradient(circle, rgba(0,122,255,0.05) 0%, rgba(0,122,255,0.015) 42%, transparent 68%)',
                     }} />
-                    {/* Purple ambient — lower left */}
                     <div className="absolute pointer-events-none" style={{
                         bottom: '-35%', left: '-18%', width: 850, height: 850, borderRadius: '50%',
                         background: 'radial-gradient(circle, rgba(88,86,214,0.042) 0%, transparent 62%)',
                     }} />
-                    {/* Central lift */}
                     <div className="absolute inset-0 pointer-events-none" style={{
                         background: 'radial-gradient(ellipse 88% 70% at 50% 46%, rgba(255,255,255,0.62) 0%, transparent 100%)',
                     }} />
-                    {/* Grain */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.02, mixBlendMode: 'overlay' }}>
                         <filter id="nc-grain">
                             <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" />
@@ -80,7 +75,6 @@ const MenuOverlay = ({ isOpen, onClose }) => {
 
                     {/* ── Top bar ── */}
                     <div className="relative z-10 flex items-center justify-between px-8 sm:px-12 pt-8 shrink-0">
-                        {/* Close */}
                         <motion.button
                             onClick={onClose}
                             initial={{ opacity: 0, rotate: -90, scale: 0.45 }}
@@ -102,7 +96,6 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                             <X className="w-[14px] h-[14px]" style={{ color: '#1D1D1F', strokeWidth: 2.6 }} />
                         </motion.button>
 
-                        {/* Logo */}
                         <motion.div
                             initial={{ opacity: 0, x: 18 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -152,14 +145,25 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                         },
                                     }}
                                     transition={{ ...SPRING, delay: 0.08 + i * 0.075 }}
-                                    className="w-full text-center"
+                                    className="w-full text-center relative"
                                     onHoverStart={() => setHoveredId(item.id)}
                                     onHoverEnd={() => setHoveredId(null)}
                                 >
+                                    {/* Per-item ambient glow */}
+                                    <motion.div
+                                        className="absolute inset-0 pointer-events-none"
+                                        animate={{ opacity: isHovered ? 1 : 0 }}
+                                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                                        style={{
+                                            background: 'radial-gradient(ellipse 70% 100% at 50% 50%, rgba(0,122,255,0.07) 0%, transparent 72%)',
+                                            filter: 'blur(2px)',
+                                        }}
+                                    />
+
                                     <Link
                                         to={item.path}
                                         onClick={onClose}
-                                        className="block select-none"
+                                        className="block select-none relative"
                                         style={{
                                             padding: 'clamp(6px, 1.1vh, 14px) 3rem',
                                             WebkitTapHighlightColor: 'transparent',
@@ -175,10 +179,11 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                                             className="block leading-[1]"
                                             style={{
                                                 fontWeight: 700,
-                                                letterSpacing: '-0.035em',
+                                                letterSpacing: isHovered ? '-0.02em' : '-0.035em',
                                                 fontSize: 'clamp(1.85rem, 4.8vw, 3.35rem)',
-                                                color: isHovered ? '#111' : 'rgba(0,0,0,0.82)',
-                                                transition: 'color 0.22s ease',
+                                                fontStyle: isHovered ? 'italic' : 'normal',
+                                                color: isHovered ? '#007AFF' : 'rgba(0,0,0,0.82)',
+                                                transition: 'color 0.22s ease, font-style 0s, letter-spacing 0.22s ease',
                                                 WebkitFontSmoothing: 'antialiased',
                                                 MozOsxFontSmoothing: 'grayscale',
                                                 textRendering: 'optimizeLegibility',
@@ -193,8 +198,35 @@ const MenuOverlay = ({ isOpen, onClose }) => {
                         })}
                     </nav>
 
-                    {/* ── Bottom balance weight (mirrors top bar height) ── */}
-                    <div className="shrink-0" style={{ height: 'clamp(40px, 6vh, 72px)' }} />
+                    {/* ── Footer ── */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: 0.52, duration: 0.45 }}
+                        className="relative z-10 shrink-0 flex items-center justify-center"
+                        style={{
+                            paddingBottom: 'clamp(24px, 4vh, 44px)',
+                            paddingTop: '14px',
+                            gap: '10px',
+                        }}
+                    >
+                        <span style={{
+                            fontSize: '11px', fontWeight: 500,
+                            color: 'rgba(0,0,0,0.22)', letterSpacing: '0.04em',
+                            fontFamily: SF, direction: 'ltr',
+                        }}>
+                            {phone}
+                        </span>
+                        <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(0,0,0,0.18)', display: 'inline-block', flexShrink: 0 }} />
+                        <span style={{
+                            fontSize: '10.5px', fontWeight: 800,
+                            color: 'rgba(0,0,0,0.18)', letterSpacing: '0.18em',
+                            fontFamily: SF,
+                        }}>
+                            NEXTCLASS
+                        </span>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>

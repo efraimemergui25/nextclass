@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Box } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
@@ -69,7 +70,7 @@ function ProductCard({ product, onEdit }) {
                         }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">🛍️</div>
+                    <div className="w-full h-full flex items-center justify-center opacity-20"><ShoppingBag size={28} className="text-[#86868B]" /></div>
                 )}
                 <div className="absolute top-2 left-2 flex gap-1">
                     <StatusBadge status={stockStatus} />
@@ -146,7 +147,7 @@ function ProductRow({ product, onEdit }) {
                         }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                    : <div className="w-full h-full flex items-center justify-center text-xl opacity-20">🛍️</div>}
+                    : <div className="w-full h-full flex items-center justify-center opacity-20"><ShoppingBag size={16} className="text-[#86868B]" /></div>}
             </div>
             <div className="flex-1 min-w-0 text-right">
                 <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 group-hover:text-[#007AFF] transition-colors">{product.title}</p>
@@ -361,8 +362,8 @@ export default function AdminProducts() {
                         ))}
                     </AnimatePresence>
                     {filtered.length === 0 && (
-                        <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                            <span className="text-5xl">🛍️</span>
+                        <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
+                            <ShoppingBag size={40} className="opacity-30" />
                             <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
                         </div>
                     )}

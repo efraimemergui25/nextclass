@@ -202,7 +202,7 @@ export default function AdminCommunity() {
         <div dir="rtl" className="space-y-5">
             <AdminSectionHeader
                 title="ניהול קהילה"
-                subtitle="רשימת תפוצה, מנויי ניוזלטר וניהול קשרי לקוחות"
+                subtitle="רשימת תפוצה ומנויי ניוזלטר"
                 action={
                     <div className="flex items-center gap-2.5">
                         {selected.size > 0 && (
