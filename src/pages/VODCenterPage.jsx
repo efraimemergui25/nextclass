@@ -452,7 +452,7 @@ export default function VODCenterPage() {
  transition={{ delay: 0.1, duration: 0.6 }}
  className="text-4xl md:text-7xl font-apple-display text-[#1D1D1F] tracking-tighter mb-10 leading-[1.05] whitespace-nowrap"
  >
- הכוח להוביל <span className="text-[#007AFF]">את הלמידה.</span>
+ עתיד הלמידה,{' '}<span className="text-[#007AFF]">עכשיו.</span>
  </motion.h1>
 
  <motion.div

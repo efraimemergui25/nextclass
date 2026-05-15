@@ -142,8 +142,8 @@ const MagazinePage = () => {
  <Sparkles size={10} /><span>NextClass Institute · מגזין חדשנות פדגוגית</span>
  </div>
  <h1 className="font-apple-display text-[#1D1D1F] text-4xl md:text-7xl tracking-tighter leading-[0.95] mb-5">
- תובנות שמובילות{' '}
- <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שינוי.</span>
+ הרעיונות שמשנים{' '}
+ <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>חינוך.</span>
  </h1>
  <p className="text-[15px] text-gray-400 font-medium max-w-xl mx-auto">מאמרים, מחקרים וכלים מעולם הטכנולוגיה החינוכית — נבחרו עבורכם.</p>
  </motion.div>
