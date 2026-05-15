@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
 import initialProducts, { productMeta } from '../../data/products';
 import { useAdminToast } from './AdminToastContext';
@@ -7,16 +7,12 @@ import { useAdminToast } from './AdminToastContext';
 const AdminDataContext = createContext(null);
 
 // ─── Analytics Engine (Real-Time Computation) ──────────────────────────────
-function computeRealAnalytics(orders) {
+function computeRealAnalytics(orders, firestoreVisits = {}) {
     const days = 30;
     const labels = [];
     const visits = [];
     const sales = [];
     const revenue = [];
-    
-    // Load real visits
-    let rawVisits = {};
-    try { rawVisits = JSON.parse(localStorage.getItem('nextclass_visits') || '{}'); } catch {}
 
     const now = new Date();
     
@@ -26,7 +22,7 @@ function computeRealAnalytics(orders) {
         const label = `${d.getDate()}/${d.getMonth() + 1}`;
         
         labels.push(label);
-        visits.push(rawVisits[iso] || 0);
+        visits.push(firestoreVisits[iso] || 0);
         
         // Sales = all non-cancelled orders (matches kpis.totalOrders)
         const dayAll = orders.filter(o => {
@@ -56,11 +52,12 @@ export function AdminDataProvider({ children }) {
     const [inventory, setInventory] = useState([]);
     const [coupons, setCoupons] = useState([]);
     const [activityLog, setActivityLog] = useState([]);
+    const [pageViewsByDate, setPageViewsByDate] = useState({});
     const [loading, setLoading] = useState(true);
 
     const isInitialized = useRef({ orders: false, quotes: false, contacts: false, inventory: false });
 
-    const analytics = React.useMemo(() => computeRealAnalytics(orders), [orders]);
+    const analytics = React.useMemo(() => computeRealAnalytics(orders, pageViewsByDate), [orders, pageViewsByDate]);
     const products = inventory;
 
     // ─── Live Listeners (Firebase) ──────────────────────────────────────────
@@ -174,8 +171,26 @@ export function AdminDataProvider({ children }) {
             setActivityLog(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a,b) => b.ts - a.ts));
         });
 
+        // Real page view tracking from Firestore (last 90 days)
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        const pvQuery = query(
+            collection(db, 'page_views'),
+            where('date', '>=', cutoffStr),
+            orderBy('date', 'desc')
+        );
+        const unsubPageViews = onSnapshot(pvQuery, (snap) => {
+            const byDate = {};
+            snap.docs.forEach(d => {
+                const { date } = d.data();
+                if (date) byDate[date] = (byDate[date] || 0) + 1;
+            });
+            setPageViewsByDate(byDate);
+        }, () => {});
+
         return () => {
-            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity();
+            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews();
         };
     }, []);
 

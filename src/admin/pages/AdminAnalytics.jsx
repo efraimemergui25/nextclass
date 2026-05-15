@@ -95,6 +95,22 @@ export default function AdminAnalytics() {
     const totalRevenue = useMemo(() => analytics?.revenue.reduce((a, b) => a + b, 0) || 0, [analytics]);
     const avgConv      = useMemo(() => totalVisits ? ((totalSales / totalVisits) * 100).toFixed(1) : '0.0', [totalVisits, totalSales]);
 
+    // Week-over-week trends (last 7 days vs previous 7 days)
+    const weekTrend = useMemo(() => {
+        const calc = (arr) => {
+            if (!arr || arr.length < 14) return null;
+            const recent = arr.slice(-7).reduce((a, b) => a + b, 0);
+            const prior  = arr.slice(-14, -7).reduce((a, b) => a + b, 0);
+            if (prior === 0) return recent > 0 ? 100 : null;
+            return Math.round((recent - prior) / prior * 100);
+        };
+        return {
+            visits:  calc(analytics?.visits),
+            sales:   calc(analytics?.sales),
+            revenue: calc(analytics?.revenue),
+        };
+    }, [analytics]);
+
     // Category revenue breakdown
     const categoryRevenue = useMemo(() => {
         const map = {};
@@ -176,13 +192,19 @@ export default function AdminAnalytics() {
             {/* ── KPI Row (always visible) ─────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <AdminKPICard title="כניסות ייחודיות" icon="traffic" value={totalVisits}
-                    trend={14} trendUp color="#007AFF" delay={0} />
+                    trend={weekTrend.visits !== null ? Math.abs(weekTrend.visits) : undefined}
+                    trendUp={weekTrend.visits === null || weekTrend.visits >= 0}
+                    color="#007AFF" delay={0} />
                 <AdminKPICard title="עסקאות מוצלחות" icon="orders" value={totalSales}
-                    trend={8} trendUp color="#34C759" delay={0.05} />
+                    trend={weekTrend.sales !== null ? Math.abs(weekTrend.sales) : undefined}
+                    trendUp={weekTrend.sales === null || weekTrend.sales >= 0}
+                    color="#34C759" delay={0.05} />
                 <AdminKPICard title="יחס המרה" icon="traffic" value={`${avgConv}%`}
-                    trend={2} trendUp color="#5856D6" delay={0.1} />
+                    color="#5856D6" delay={0.1} />
                 <AdminKPICard title="הכנסות ברוטו" icon="revenue" value={`₪${kpis.totalRevenue.toLocaleString()}`}
-                    trend={12} trendUp color="#FF9500" delay={0.15} />
+                    trend={weekTrend.revenue !== null ? Math.abs(weekTrend.revenue) : undefined}
+                    trendUp={weekTrend.revenue === null || weekTrend.revenue >= 0}
+                    color="#FF9500" delay={0.15} />
             </div>
 
             <AnimatePresence mode="wait">
@@ -243,7 +265,7 @@ export default function AdminAnalytics() {
                         exit={{ opacity: 0, y: -8 }}
                         className="space-y-5"
                     >
-                        <Card title="כניסות ייחודיות — 30 ימים" subtitle="מקור: localStorage nextclass_visits"
+                        <Card title="כניסות ייחודיות — 30 ימים" subtitle="מבוסס על sessions ייחודיים · Firestore"
                             accent="linear-gradient(90deg,#007AFF,#5856D6)"
                             action={<span className="text-[#007AFF] text-xs font-black">{totalVisits.toLocaleString()} סה״כ</span>}>
                             {totalVisits > 0 ? (
@@ -412,11 +434,11 @@ export default function AdminAnalytics() {
                                             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/04">
                                                 <div className="text-center">
                                                     <p className="text-2xl font-black text-[#1D1D1F]">{inventory.length}</p>
-                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-widest">סה״כ מוצרים</p>
+                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-tight">סה״כ מוצרים</p>
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-2xl font-black text-[#34C759]">{active}</p>
-                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-widest">מוצרים פעילים</p>
+                                                    <p className="text-[10px] text-[#AEAEB2] font-black tracking-tight">מוצרים פעילים</p>
                                                 </div>
                                             </div>
                                         </div>

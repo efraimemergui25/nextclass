@@ -51,6 +51,8 @@ import AdminApp from './admin/AdminApp';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import CookieConsent from './components/CookieConsent';
+import { db } from './firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 
 // ─── Analytics helpers ───────────────────────────────────────────────────────
@@ -66,15 +68,24 @@ function AnalyticsTracker() {
     useEffect(() => {
         if (location.pathname.startsWith('/admin')) return;
 
-        // LocalStorage visit counter (admin heatmap)
-        try {
-            const today = new Date().toISOString().split('T')[0];
-            const visits = JSON.parse(localStorage.getItem('nextclass_visits') || '{}');
-            visits[today] = (visits[today] || 0) + 1;
-            localStorage.setItem('nextclass_visits', JSON.stringify(visits));
-        } catch {}
+        const today = new Date().toISOString().split('T')[0];
 
-        // GA4 page_view
+        // Session ID — one per browser tab, resets on tab close
+        let sid = sessionStorage.getItem('nc_sid');
+        if (!sid) {
+            sid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            sessionStorage.setItem('nc_sid', sid);
+        }
+
+        // Write one doc per session per day to Firestore (merge:true = idempotent)
+        setDoc(doc(db, 'page_views', `${today}_${sid}`), {
+            date: today,
+            sessionId: sid,
+            path: location.pathname,
+            ts: serverTimestamp(),
+        }, { merge: true }).catch(() => {});
+
+        // GA4
         if (typeof window.gtag === 'function') {
             window.gtag('event', 'page_view', {
                 page_path: location.pathname + location.search,
