@@ -1,19 +1,35 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── Info Tooltip — reusable dark popover ─────────────────────────────────────
+// ─── Info Tooltip — Portal-based so overflow:hidden on parent cards never clips it
 export function InfoTooltip({ text }) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen]   = useState(false);
+    const [pos,  setPos]    = useState({ top: 0, left: 0 });
+    const btnRef            = useRef(null);
+
+    const reposition = useCallback(() => {
+        if (!btnRef.current) return;
+        const r = btnRef.current.getBoundingClientRect();
+        setPos({
+            top:  r.top + window.scrollY - 8,   // 8px gap above button
+            left: r.left + r.width / 2,          // centered on button
+        });
+    }, []);
+
+    const show = useCallback(() => { reposition(); setOpen(true);  }, [reposition]);
+    const hide = useCallback(() => { setOpen(false); }, []);
+
     return (
-        <span className="relative inline-flex items-center" style={{ verticalAlign: 'middle' }}>
+        <span className="inline-flex items-center" style={{ verticalAlign: 'middle' }}>
             <motion.button
-                onMouseEnter={() => setOpen(true)}
-                onMouseLeave={() => setOpen(false)}
-                onFocus={() => setOpen(true)}
-                onBlur={() => setOpen(false)}
-                onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+                ref={btnRef}
+                onMouseEnter={show}
+                onMouseLeave={hide}
+                onFocus={show}
+                onBlur={hide}
+                onClick={e => { e.stopPropagation(); open ? hide() : show(); }}
                 className="w-[15px] h-[15px] rounded-full flex items-center justify-center ml-1 shrink-0"
                 style={{ background: 'rgba(0,0,0,0.08)', border: 'none', padding: 0, lineHeight: 1, cursor: 'pointer' }}
                 whileHover={{ scale: 1.25 }}
@@ -22,39 +38,51 @@ export function InfoTooltip({ text }) {
             >
                 <span style={{ fontSize: 9, fontWeight: 900, color: '#6E6E73', userSelect: 'none' }}>i</span>
             </motion.button>
-            <AnimatePresence>
-                {open && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 6, scale: 0.93 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 6, scale: 0.93 }}
-                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                        className="absolute z-50 bottom-full mb-2.5 right-0 pointer-events-none"
-                        style={{ minWidth: 200, maxWidth: 240 }}
-                    >
-                        <div style={{
-                            background: 'rgba(29,29,31,0.93)',
-                            backdropFilter: 'blur(24px) saturate(200%)',
-                            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                            borderRadius: 13,
-                            padding: '9px 13px',
-                            boxShadow: '0 12px 40px rgba(0,0,0,0.30)',
-                            border: '1px solid rgba(255,255,255,0.10)',
-                        }}>
-                            <p style={{ color: '#F5F5F7', fontSize: 11, fontWeight: 500, lineHeight: 1.55, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
-                        </div>
-                        {/* Arrow */}
-                        <div style={{
-                            position: 'absolute', bottom: -5, right: 14,
-                            width: 10, height: 10,
-                            background: 'rgba(29,29,31,0.93)',
-                            transform: 'rotate(45deg)',
-                            borderRight: '1px solid rgba(255,255,255,0.10)',
-                            borderBottom: '1px solid rgba(255,255,255,0.10)',
-                        }} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
+            {createPortal(
+                <AnimatePresence>
+                    {open && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 4, scale: 0.94 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.94 }}
+                            transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                            style={{
+                                position: 'absolute',
+                                top: pos.top,
+                                left: pos.left,
+                                transform: 'translate(-50%, -100%)',
+                                zIndex: 99999,
+                                minWidth: 200,
+                                maxWidth: 260,
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            <div style={{
+                                background: 'rgba(29,29,31,0.95)',
+                                backdropFilter: 'blur(28px) saturate(200%)',
+                                WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+                                borderRadius: 13,
+                                padding: '10px 14px',
+                                boxShadow: '0 16px 48px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.18)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                            }}>
+                                <p style={{ color: '#F5F5F7', fontSize: 11.5, fontWeight: 500, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
+                            </div>
+                            {/* Arrow pointing down */}
+                            <div style={{
+                                position: 'absolute', bottom: -5, left: '50%',
+                                transform: 'translateX(-50%) rotate(45deg)',
+                                width: 10, height: 10,
+                                background: 'rgba(29,29,31,0.95)',
+                                borderRight: '1px solid rgba(255,255,255,0.12)',
+                                borderBottom: '1px solid rgba(255,255,255,0.12)',
+                            }} />
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </span>
     );
 }
