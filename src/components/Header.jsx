@@ -53,10 +53,8 @@ const Header = () => {
  }, [CATEGORIES, activeProducts]);
 
  const navLinks = useMemo(() => {
- const saved = getSetting('nav_items', null);
- const items = Array.isArray(saved) ? saved : DEFAULT_NAV_ITEMS;
- return items
- .filter(item => item.visible !== false)
+ return DEFAULT_NAV_ITEMS
+ .filter(item => getSetting(`vis_nav_${item.id}`, true) !== false)
  .map(item => ({
  path: item.path,
  label: getSetting(item.labelKey, item.defaultLabel),

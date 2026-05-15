@@ -1019,55 +1019,58 @@ const VisibilitySection = ({ content, onChange }) => (
 // ─── Nav Menu Manager ─────────────────────────────────────────────────────────
 const NavMenuManager = ({ showToast }) => {
     const { getSetting, updateGlobalSettings } = useSettings();
-    const [items, setItems] = useState(() => {
-        const saved = getSetting('nav_items', null);
-        return Array.isArray(saved) ? saved : DEFAULT_NAV_ITEMS;
-    });
-    const itemsRef = React.useRef(items);
+
+    // Each item's visibility is stored as an individual boolean key: vis_nav_<id>
+    // Never as a complex array — this prevents all sync/serialization bugs
+    const buildItems = () => DEFAULT_NAV_ITEMS.map(item => ({
+        ...item,
+        visible: getSetting(`vis_nav_${item.id}`, true),
+    }));
+
+    const [items, setItems] = useState(buildItems);
 
     useEffect(() => {
-        const fromFirestore = getSetting('nav_items', null);
-        if (Array.isArray(fromFirestore)) { setItems(fromFirestore); itemsRef.current = fromFirestore; }
+        setItems(buildItems());
     }, [getSetting]);
 
-    const persist = async (newItems) => {
-        try { await updateGlobalSettings({ nav_items: newItems }); showToast('תפריט הניווט עודכן', 'success'); }
-        catch { showToast('שגיאה בשמירת התפריט', 'error'); }
-    };
-    const handleReorder = (newItems) => { setItems(newItems); itemsRef.current = newItems; };
-    const handleDragEnd = () => persist(itemsRef.current);
     const toggleVisibility = async (id) => {
-        const newItems = items.map(item => item.id === id ? { ...item, visible: !item.visible } : item);
-        setItems(newItems); itemsRef.current = newItems; await persist(newItems);
+        const current = items.find(i => i.id === id);
+        const newVal = current ? !current.visible : false;
+        setItems(prev => prev.map(i => i.id === id ? { ...i, visible: newVal } : i));
+        try {
+            await updateGlobalSettings({ [`vis_nav_${id}`]: newVal });
+            showToast('תפריט עודכן', 'success');
+        } catch { showToast('שגיאה בשמירה', 'error'); }
     };
+
     const handleReset = async () => {
-        const reset = DEFAULT_NAV_ITEMS.map(d => ({ ...d, visible: true }));
-        setItems(reset); itemsRef.current = reset; await persist(reset);
+        const updates = {};
+        DEFAULT_NAV_ITEMS.forEach(item => { updates[`vis_nav_${item.id}`] = true; });
+        setItems(DEFAULT_NAV_ITEMS.map(i => ({ ...i, visible: true })));
+        try { await updateGlobalSettings(updates); showToast('תפריט אופס', 'success'); }
+        catch { showToast('שגיאה בשמירה', 'error'); }
     };
 
     return (
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-4">
-                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#007AFF] transition-colors font-bold">איפוס לברירת מחדל</button>
-                <p className="text-[11px] font-black text-[#86868B] tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#007AFF] transition-colors font-bold">הצג הכל</button>
+                <p className="text-[11px] font-black text-[#86868B] text-right">מתג להסתרה / הצגה בתפריט</p>
             </div>
-            <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <div className="space-y-2">
                 {items.map((item) => (
-                    <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
-                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none' }}
-                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#007AFF]/30 transition-colors select-none">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#007AFF] transition-colors">
-                            <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
-                        </svg>
+                    <div key={item.id}
+                        style={{ opacity: item.visible === false ? 0.45 : 1 }}
+                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-[#007AFF]/30 transition-colors">
                         <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
                         <div className="flex-1 text-right">
                             <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
                             <p className="text-[10px] text-gray-400 font-mono">{item.path}</p>
                         </div>
                         <AdminToggle value={item.visible !== false} onChange={() => toggleVisibility(item.id)} />
-                    </Reorder.Item>
+                    </div>
                 ))}
-            </Reorder.Group>
+            </div>
         </div>
     );
 };
