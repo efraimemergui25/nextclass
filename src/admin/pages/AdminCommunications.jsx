@@ -150,7 +150,7 @@ function TemplateEditor({ template, onSave, onCancel }) {
 
     return (
         <div className="rounded-2xl p-5 mb-4" style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.08)' }}>
-            <p className="text-[12px] font-black text-[#1D1D1F] mb-4 tracking-widest">עריכת תבנית</p>
+            <p className="text-[12px] font-black text-[#1D1D1F] mb-4">עריכת תבנית</p>
             <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
                     <label className="text-[11px] font-bold text-[#86868B] block mb-1.5">שם התבנית</label>
@@ -284,7 +284,7 @@ function CustomerCard({ lead, onStatusChange }) {
                                     boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                                 }}
                             >
-                                <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest px-2 py-1 mb-1">שנה סטטוס</p>
+                                <p className="text-[10px] font-black text-[#AEAEB2] px-2 py-1 mb-1">שנה סטטוס</p>
                                 {Object.entries(STATUSES).map(([s, meta]) => (
                                     <button
                                         key={s}
@@ -315,7 +315,7 @@ function CustomerCard({ lead, onStatusChange }) {
                         style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.05)' }}
                     >
                         <div className="flex items-center justify-end gap-1.5 mb-1">
-                            <span className="text-[10px] font-black text-[#86868B] tracking-wider">{label}</span>
+                            <span className="text-[10px] font-black text-[#86868B]">{label}</span>
                             <Icon className="w-3 h-3 text-[#AEAEB2]" strokeWidth={2} />
                         </div>
                         <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{value}</p>
@@ -327,7 +327,7 @@ function CustomerCard({ lead, onStatusChange }) {
             {(total || lead.scale || lead.budget || equipment.length > 0) && (
                 <div className="rounded-xl p-4 mb-3 text-right"
                     style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.12)' }}>
-                    <p className="text-[10px] font-black text-[#007AFF] tracking-widest mb-3">פרטי הצעה</p>
+                    <p className="text-[10px] font-black text-[#007AFF] mb-3">פרטי הצעה</p>
                     <div className="grid grid-cols-3 gap-3 mb-3">
                         {total && (
                             <div>
@@ -384,7 +384,7 @@ function CustomerCard({ lead, onStatusChange }) {
                 <div className="rounded-xl p-3 text-right"
                     style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRight: '3px solid #F59E0B' }}>
                     <div className="flex items-center justify-end gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-black text-[#D97706] tracking-wider">הערות</span>
+                        <span className="text-[10px] font-black text-[#D97706]">הערות</span>
                         <StickyNote className="w-3 h-3 text-[#D97706]" strokeWidth={2} />
                     </div>
                     <p className="text-[12px] text-[#374151] leading-relaxed">{lead.notes}</p>
@@ -600,17 +600,141 @@ export default function AdminCommunications() {
             {/* ── RIGHT PANEL ────────────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto p-6">
                 {!selected ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-4">
-                        <div
-                            className="w-16 h-16 rounded-3xl flex items-center justify-center"
-                            style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.15)' }}
-                        >
-                            <MessageSquare className="w-8 h-8 text-[#007AFF]" strokeWidth={1.5} />
+                    <div className="max-w-[740px] mx-auto space-y-5">
+                        {/* ── Overview header ───────────────────────────────── */}
+                        <div>
+                            <h2 className="text-[20px] font-black text-[#1D1D1F] mb-1">סקירה כללית</h2>
+                            <p className="text-[13px] text-[#6E6E73]">
+                                {leads.filter(l => l.date === new Date().toLocaleDateString('he-IL')).length} הזמנות חדשות היום
+                                {' · '}סה״כ {leads.length} לידים
+                            </p>
                         </div>
-                        <div className="text-center">
-                            <p className="text-[16px] font-black text-[#1D1D1F] mb-1">בחר לקוח כדי להתחיל</p>
-                            <p className="text-[13px] text-[#AEAEB2]">בחר הזמנה מהרשימה כדי לשלוח הודעה</p>
+
+                        {/* ── Pipeline stats grid ───────────────────────────── */}
+                        <div className="grid grid-cols-3 gap-4">
+                            {Object.entries(STATUSES).map(([status, meta]) => {
+                                const count = leads.filter(l => (l.status || 'חדש') === status).length;
+                                if (count === 0) return null;
+                                return (
+                                    <motion.button
+                                        key={status}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => setFilterStatus(status)}
+                                        className="text-right p-4 rounded-2xl transition-all"
+                                        style={{
+                                            background: meta.bg,
+                                            border: `1px solid ${meta.color}22`,
+                                        }}
+                                    >
+                                        <p
+                                            className="text-[32px] font-black leading-none mb-1"
+                                            style={{ color: meta.color }}
+                                        >
+                                            {count}
+                                        </p>
+                                        <p className="text-[12px] font-bold" style={{ color: meta.color }}>
+                                            {status}
+                                        </p>
+                                    </motion.button>
+                                );
+                            })}
                         </div>
+
+                        {/* ── דורשים מענה מיידי ─────────────────────────────── */}
+                        {(() => {
+                            const urgent = leads
+                                .filter(l => !l.status || l.status === 'חדש')
+                                .slice(0, 5);
+                            if (urgent.length === 0) return null;
+                            return (
+                                <div>
+                                    <p className="text-[13px] font-black text-[#1D1D1F] mb-3">דורשים מענה מיידי</p>
+                                    <div className="space-y-1.5">
+                                        {urgent.map(lead => {
+                                            const s = STATUSES[lead.status] || STATUSES['חדש'];
+                                            return (
+                                                <motion.div
+                                                    key={lead._docId}
+                                                    whileHover={{ x: -2 }}
+                                                    onClick={() => { setSelected(lead); setActiveTpl(null); setCustomMsg(''); }}
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.88)',
+                                                        border: '1px solid rgba(0,0,0,0.06)',
+                                                        borderRight: `3px solid ${s.dot}`,
+                                                        backdropFilter: 'blur(12px)',
+                                                    }}
+                                                >
+                                                    <StatusDot status={lead.status} />
+                                                    <span className="text-[13px] font-black text-[#1D1D1F] flex-1 truncate">
+                                                        {lead.contactName || '—'}
+                                                    </span>
+                                                    <span className="text-[11px] text-[#86868B] truncate max-w-[140px]">
+                                                        {lead.institution || '—'}
+                                                    </span>
+                                                    <span className="text-[10px] text-[#AEAEB2] shrink-0">
+                                                        {lead.date || ''}
+                                                    </span>
+                                                    {lead.phone && (
+                                                        <span className="text-[11px] font-mono text-[#6E6E73] shrink-0">
+                                                            {lead.phone}
+                                                        </span>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* ── פעילות אחרונה ─────────────────────────────────── */}
+                        {(() => {
+                            const recent = leads.slice(0, 5);
+                            if (recent.length === 0) return null;
+                            return (
+                                <div>
+                                    <p className="text-[13px] font-black text-[#1D1D1F] mb-3">פעילות אחרונה</p>
+                                    <div className="space-y-1.5">
+                                        {recent.map(lead => {
+                                            const s = STATUSES[lead.status] || STATUSES['חדש'];
+                                            return (
+                                                <motion.div
+                                                    key={lead._docId}
+                                                    whileHover={{ x: -2 }}
+                                                    onClick={() => { setSelected(lead); setActiveTpl(null); setCustomMsg(''); }}
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.88)',
+                                                        border: '1px solid rgba(0,0,0,0.06)',
+                                                        borderRight: `3px solid ${s.dot}`,
+                                                        backdropFilter: 'blur(12px)',
+                                                    }}
+                                                >
+                                                    <StatusDot status={lead.status} />
+                                                    <span className="text-[13px] font-black text-[#1D1D1F] flex-1 truncate">
+                                                        {lead.contactName || '—'}
+                                                    </span>
+                                                    <span className="text-[11px] text-[#86868B] truncate max-w-[140px]">
+                                                        {lead.institution || '—'}
+                                                    </span>
+                                                    <StatusBadgePill status={lead.status || 'חדש'} />
+                                                    <span className="text-[10px] text-[#AEAEB2] shrink-0">
+                                                        {lead.date || ''}
+                                                    </span>
+                                                    {lead.phone && (
+                                                        <span className="text-[11px] font-mono text-[#6E6E73] shrink-0">
+                                                            {lead.phone}
+                                                        </span>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 ) : (
                     <div className="max-w-[740px] mx-auto space-y-4">
@@ -656,7 +780,7 @@ export default function AdminCommunications() {
                             }}
                         >
                             <div className="flex items-center justify-between mb-4">
-                                <p className="text-[12px] font-black text-[#1D1D1F] tracking-widest">תבניות מהירות</p>
+                                <p className="text-[12px] font-black text-[#1D1D1F]">תבניות מהירות</p>
                                 <button
                                     onClick={() => { setAddingTpl(true); setEditingTpl(null); }}
                                     className="flex items-center gap-1 text-[12px] font-black text-[#007AFF] hover:text-[#0055D4] transition-colors"

@@ -257,7 +257,7 @@ const ContactPage = () => {
  loading="lazy"
  allowFullScreen
  referrerPolicy="no-referrer-when-downgrade"
- src={`https://maps.google.com/maps?q=${encodeURIComponent(contactContent.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+ src={`https://www.google.com/maps?q=${encodeURIComponent(contactContent.address)}&output=embed`}
  />
  </div>
  </div>

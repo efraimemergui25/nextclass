@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
 const LS_KEY = 'nextclass_cms_settings';
 
@@ -1169,6 +1170,85 @@ const VideosSection = ({ showToast }) => {
     );
 };
 
+// ─── Static Articles Sub-Section ─────────────────────────────────────────────
+function getCatColor(cat) { return CATEGORY_COLORS[cat] ?? { bg: 'bg-blue-50', text: 'text-[#007AFF]', dot: 'bg-[#007AFF]' }; }
+
+const StaticArticlesSection = ({ firestoreArticles, showToast }) => {
+    const [importing, setImporting] = useState(null);
+
+    const unimported = STATIC_ARTICLES.filter(
+        a => !firestoreArticles.some(f => f.title === a.title)
+    );
+
+    const handleImport = async (article) => {
+        setImporting(article.id);
+        try {
+            await addDoc(collection(db, 'magazine_articles'), {
+                title: article.title,
+                excerpt: article.excerpt,
+                category: article.category,
+                date: article.date,
+                readTime: article.readTime,
+                image: article.image,
+                url: article.url,
+                source: article.source,
+                createdAt: serverTimestamp(),
+            });
+            showToast('כתבה נוספה לאדמין', 'success');
+        } catch {
+            showToast('שגיאה בייבוא הכתבה', 'error');
+        } finally {
+            setImporting(null);
+        }
+    };
+
+    return (
+        <div className="mt-6 pt-5 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] text-[#86868B] font-bold">{unimported.length} כתבות לא מנוהלות</p>
+                <p className="text-[12px] font-black text-[#1D1D1F]">כתבות סטטיות</p>
+            </div>
+
+            {unimported.length === 0 ? (
+                <div className="py-8 text-center text-[#AEAEB2] text-[13px] font-bold bg-gray-50 rounded-2xl">
+                    כל הכתבות הסטטיות כבר מנוהלות באדמין
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {unimported.map(article => {
+                        const c = getCatColor(article.category);
+                        return (
+                            <div key={article.id}
+                                className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-[#FAFAFA] text-right">
+                                <button
+                                    onClick={() => handleImport(article)}
+                                    disabled={importing === article.id}
+                                    className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black text-white bg-[#34C759] hover:bg-[#2DB84D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                                    {importing === article.id ? '...' : 'הוסף לאדמין'}
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[12px] font-black text-[#1D1D1F] truncate">
+                                        {article.title.length > 60 ? article.title.slice(0, 60) + '…' : article.title}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5 justify-end">
+                                        <span className="text-[9px] text-[#AEAEB2]">{article.source}</span>
+                                        <span className="text-[9px] text-[#AEAEB2]">·</span>
+                                        <span className="text-[9px] text-[#AEAEB2]">{article.date}</span>
+                                    </div>
+                                </div>
+                                <span className={`shrink-0 inline-flex items-center gap-1 ${c.bg} ${c.text} text-[9px] font-black px-2.5 py-1 rounded-full`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                                    {article.category}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ─── Magazine Section ─────────────────────────────────────────────────────────
 const EMPTY_ARTICLE = { title: '', category: '', excerpt: '', date: '', readTime: '', image: '', url: '', source: '' };
 
@@ -1293,6 +1373,9 @@ const MagazineSection = ({ showToast }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Static Articles Section */}
+            <StaticArticlesSection firestoreArticles={articles} showToast={showToast} />
         </div>
     );
 };
