@@ -186,7 +186,7 @@ const ContactPage = () => {
  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-stretch">
 
  {/* ── Left Side: Connection Hub ────── */}
- <div className="lg:col-span-5 flex flex-col gap-8">
+ <div className="lg:col-span-5 flex flex-col gap-8 self-stretch">
 
  {/* Personal Concierge Card */}
  <motion.div
@@ -220,7 +220,7 @@ const ContactPage = () => {
  </motion.div>
 
  {/* Human Touch: The Support Team */}
- <div className="glass-apple gestalt-card p-5 sm:p-10 bg-white/40 border border-white/60">
+ <div className="glass-apple gestalt-card p-5 sm:p-10 bg-white/40 border border-white/60 flex flex-col flex-1">
  <div className="flex items-center gap-4 mb-8 text-right">
  <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF]">
  <Heart size={20} className="fill-[#007AFF]" />
@@ -248,12 +248,12 @@ const ContactPage = () => {
  </div>
 
  {/* Google Maps embed */}
- <div className="mt-8 rounded-2xl overflow-hidden shadow-sm border border-[#E5E5EA]" style={{ height: 180 }}>
+ <div className="mt-8 rounded-2xl overflow-hidden shadow-sm border border-[#E5E5EA] flex-1 min-h-[220px]">
  <iframe
  title="מיקום NextClass"
  width="100%"
- height="180"
- style={{ border: 0 }}
+ height="100%"
+ style={{ border: 0, minHeight: 220, display: 'block' }}
  loading="lazy"
  allowFullScreen
  referrerPolicy="no-referrer-when-downgrade"
