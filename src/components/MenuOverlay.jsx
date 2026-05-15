@@ -168,62 +168,24 @@ const MenuOverlay = ({ isOpen, onClose }) => {
        );
       })}
 
-      {/* ── Luxurious close button — below last item ── */}
+      {/* ── Close button — Apple-style circle, no border ── */}
       <motion.div
-       className="flex items-center justify-center mt-8"
-       initial={{ opacity: 0, y: 28, filter: 'blur(10px)' }}
-       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-       exit={{ opacity: 0, y: 16, filter: 'blur(6px)', transition: { duration: 0.2 } }}
-       transition={{ ...SPRING, delay: 0.08 + navItems.length * 0.075 + 0.08 }}
+       className="flex items-center justify-center mt-10"
+       initial={{ opacity: 0, scale: 0.7, filter: 'blur(8px)' }}
+       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+       exit={{ opacity: 0, scale: 0.7, filter: 'blur(6px)', transition: { duration: 0.18 } }}
+       transition={{ ...SPRING_FAST, delay: 0.08 + navItems.length * 0.075 + 0.06 }}
       >
        <motion.button
         onClick={onClose}
-        whileHover={{ scale: 1.05, y: -3, boxShadow: '0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)' }}
-        whileTap={{ scale: 0.93 }}
+        whileHover={{ scale: 1.12, backgroundColor: 'rgba(0,0,0,0.13)' }}
+        whileTap={{ scale: 0.88 }}
         transition={SPRING_FAST}
-        className="group relative flex items-center gap-3 overflow-hidden cursor-pointer"
-        style={{
-         padding: '14px 32px',
-         borderRadius: '100px',
-         background: 'rgba(255,255,255,0.78)',
-         backdropFilter: 'blur(48px) saturate(200%)',
-         WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-         border: '1px solid rgba(255,255,255,0.92)',
-         boxShadow: '0 10px 44px rgba(0,0,0,0.09), 0 2px 10px rgba(0,0,0,0.055), inset 0 1px 0 rgba(255,255,255,1)',
-        }}
+        className="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer"
+        style={{ background: 'rgba(0,0,0,0.08)', border: 'none' }}
         aria-label="סגור תפריט"
        >
-        {/* Shimmer sweep */}
-        <motion.div
-         className="absolute inset-0 pointer-events-none"
-         style={{
-          background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%)',
-          borderRadius: 'inherit',
-         }}
-         animate={{ x: ['-180%', '180%'] }}
-         transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 3.2, ease: 'easeInOut' }}
-        />
-
-        {/* X circle */}
-        <motion.div
-         className="relative w-[26px] h-[26px] rounded-full flex items-center justify-center shrink-0"
-         style={{ background: 'rgba(0,0,0,0.07)' }}
-         animate={{ rotate: [0, 0] }}
-         whileHover={{ rotate: 90 }}
-         transition={SPRING_FAST}
-        >
-         <X size={12} style={{ strokeWidth: 2.8, color: '#1D1D1F' }} />
-        </motion.div>
-
-        <span style={{
-         fontSize: 15,
-         fontWeight: 700,
-         letterSpacing: '-0.025em',
-         color: 'rgba(0,0,0,0.72)',
-         fontFamily: SF,
-        }}>
-         סגור
-        </span>
+        <X size={17} style={{ strokeWidth: 2.2, color: 'rgba(0,0,0,0.60)' }} />
        </motion.button>
       </motion.div>
      </nav>
