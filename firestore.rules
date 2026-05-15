@@ -23,6 +23,11 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if false;
     }
+    match /newsletter_subs/{docId} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

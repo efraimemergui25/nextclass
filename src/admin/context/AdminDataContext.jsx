@@ -339,7 +339,11 @@ export function AdminDataProvider({ children }) {
             thisMonthRevenue: thisMonth.filter(o => o.status === 'נמסר').reduce((s, o) => s + (o.total || 0), 0),
             lowStockCount: lowStock.length,
             contactsNew: contacts.filter(c => c.status === 'חדש').length,
-            conversionRate: (analytics.sales.reduce((a, b) => a + b, 0) / Math.max(1, analytics.visits.reduce((a, b) => a + b, 0)) * 100).toFixed(1),
+            conversionRate: (() => {
+                const v = analytics.visits.reduce((a, b) => a + b, 0);
+                const s = analytics.sales.reduce((a, b) => a + b, 0);
+                return v > 0 ? (s / v * 100).toFixed(1) : '0.0';
+            })(),
             avgOrderValue: completedOrders.length ? Math.round(totalRevenue / completedOrders.length) : 0,
         };
     }, [orders, inventory, contacts, analytics]);

@@ -146,7 +146,7 @@ export default function AdminCustomers() {
                     {filteredContacts.length > 0 && (
                         <div className="hidden lg:grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-2 text-right">
                             {['סטטוס', 'שם / מייל', 'נושא', 'תאריך', ''].map((h, i) => (
-                                <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                                <p key={i} className="text-[10px] font-black tracking-tight text-[#AEAEB2]">{h}</p>
                             ))}
                         </div>
                     )}
@@ -191,7 +191,7 @@ export default function AdminCustomers() {
                     {filteredCustomers.length > 0 && (
                         <div className="hidden lg:grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-2 text-right">
                             {['', 'לקוח', 'מייל / טלפון', 'עיר', 'הזמנות', 'סה״כ'].map((h, i) => (
-                                <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                                <p key={i} className="text-[10px] font-black tracking-tight text-[#AEAEB2]">{h}</p>
                             ))}
                         </div>
                     )}
@@ -247,20 +247,20 @@ export default function AdminCustomers() {
 
                         <div className="rounded-2xl p-4 text-right"
                             style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.10)' }}>
-                            <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-1">נושא</p>
+                            <p className="text-[#86868B] text-[10px] font-black tracking-tight mb-1">נושא</p>
                             <p className="text-[#1D1D1F] font-bold text-sm">{selected.subject}</p>
                         </div>
 
                         {selected.message && (
                             <div className="rounded-2xl p-4 text-right"
                                 style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                                <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest mb-2">הודעה</p>
+                                <p className="text-[#AEAEB2] text-[10px] font-black tracking-tight mb-2">הודעה</p>
                                 <p className="text-[#1D1D1F] text-sm leading-relaxed whitespace-pre-line">{selected.message}</p>
                             </div>
                         )}
 
                         <div className="flex flex-wrap gap-2 justify-end items-center">
-                            <p className="text-[#86868B] text-[10px] font-black tracking-widest">עדכן סטטוס:</p>
+                            <p className="text-[#86868B] text-[10px] font-black tracking-tight">עדכן סטטוס:</p>
                             {CONTACT_STATUSES.map(s => (
                                 <motion.button key={s} type="button"
                                     whileTap={{ scale: 0.95 }}
@@ -282,7 +282,7 @@ export default function AdminCustomers() {
                             return (
                                 <div className="rounded-2xl p-4 space-y-2 max-h-40 overflow-y-auto custom-scrollbar"
                                     style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest mb-2 text-right">היסטוריית הערות</p>
+                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-tight mb-2 text-right">היסטוריית הערות</p>
                                     {notes.map((n, i) => (
                                         <div key={i} className="bg-white rounded-xl px-3 py-2.5 text-right"
                                             style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
