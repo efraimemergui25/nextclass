@@ -23,14 +23,19 @@ const MenuOverlay = ({ isOpen, onClose }) => {
  const { getSetting } = useSettings();
  const [hoveredId, setHoveredId] = useState(null);
 
- // Uses same vis_nav_* individual keys as Header.jsx — stays in sync
- const navItems = useMemo(() => DEFAULT_NAV_ITEMS
-  .filter(item => getSetting(`vis_nav_${item.id}`, true) !== false)
-  .map(item => ({
-   id:   item.id,
-   name: getSetting(item.labelKey, item.defaultLabel),
-   path: item.path,
-  })), [getSetting]);
+ const navItems = useMemo(() => {
+  const savedOrder = getSetting('mob_nav_order', null);
+  const base = Array.isArray(savedOrder)
+   ? savedOrder.map(id => DEFAULT_NAV_ITEMS.find(i => i.id === id)).filter(Boolean)
+   : DEFAULT_NAV_ITEMS;
+  return base
+   .filter(item => getSetting(`vis_mob_${item.id}`, true) !== false)
+   .map(item => ({
+    id:   item.id,
+    name: getSetting(item.labelKey, item.defaultLabel),
+    path: item.path,
+   }));
+ }, [getSetting]);
 
  const siteName = getSetting('site_name', 'NextClass');
  const siteLogo = getSetting('site_logo_url', '');

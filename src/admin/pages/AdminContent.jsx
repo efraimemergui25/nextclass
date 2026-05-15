@@ -723,7 +723,8 @@ const SECTION_GROUPS = [
         accent: '#FF9500',
         subGroups: [
             { label: 'זהות האתר ומצב מערכת', sections: ['branding'] },
-            { label: 'תפריט ניווט', sections: ['header', 'menu_reorder'] },
+            { label: 'תפריט ניווט צף (דסקטופ)', sections: ['header', 'menu_reorder'] },
+            { label: 'תפריט נייד (המבורגר)', sections: ['mobile_menu_reorder'] },
             { label: 'כותרת תחתונה (Footer)', sections: ['footer_config'] },
         ],
     },
@@ -752,8 +753,9 @@ const SECTION_GROUPS = [
 
 // ─── All Sections flat list ───────────────────────────────────────────────────
 const ALL_SECTIONS = [
-    { id: 'visibility',   label: 'נראות רכיבים',            icon: '👁️', accent: '#FF2D55', type: 'visibility' },
-    { id: 'menu_reorder', label: 'ניווט ראשי — סדר וגרירה', icon: '☰',  accent: '#007AFF', type: 'menu_reorder' },
+    { id: 'visibility',        label: 'נראות רכיבים',              icon: '👁️', accent: '#FF2D55', type: 'visibility' },
+    { id: 'menu_reorder',      label: 'תפריט צף (דסקטופ)',          icon: '☰',  accent: '#007AFF', type: 'menu_reorder' },
+    { id: 'mobile_menu_reorder', label: 'תפריט נייד (המבורגר)',     icon: '📱', accent: '#34C759', type: 'mobile_menu_reorder' },
     ...FIELD_SECTIONS,
     { id: 'videos',    label: 'ספריית VOD',   icon: '🎬', accent: '#FF3B30', type: 'videos' },
     { id: 'magazine',  label: 'כתבות מגזין',  icon: '📰', accent: '#007AFF', type: 'magazine' },
@@ -1055,7 +1057,7 @@ const NavMenuManager = ({ showToast }) => {
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-4">
                 <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#007AFF] transition-colors font-bold">הצג הכל</button>
-                <p className="text-[11px] font-black text-[#86868B] text-right">מתג להסתרה / הצגה בתפריט</p>
+                <p className="text-[11px] font-black text-[#86868B] text-right">שולט בתפריט הצף בלבד · תפריט המובייל מציג הכל תמיד</p>
             </div>
             <div className="space-y-2">
                 {items.map((item) => (
@@ -1071,6 +1073,74 @@ const NavMenuManager = ({ showToast }) => {
                     </div>
                 ))}
             </div>
+        </div>
+    );
+};
+
+// ─── Mobile Menu Manager ─────────────────────────────────────────────────────
+const MobileMenuManager = ({ showToast }) => {
+    const { getSetting, updateGlobalSettings } = useSettings();
+
+    const buildItems = () => {
+        const savedOrder = getSetting('mob_nav_order', null);
+        const base = Array.isArray(savedOrder)
+            ? savedOrder.map(id => DEFAULT_NAV_ITEMS.find(i => i.id === id)).filter(Boolean)
+            : DEFAULT_NAV_ITEMS;
+        return base.map(item => ({
+            ...item,
+            visible: getSetting(`vis_mob_${item.id}`, true),
+        }));
+    };
+
+    const [items, setItems] = React.useState(buildItems);
+    const itemsRef = React.useRef(items);
+
+    useEffect(() => { const u = buildItems(); setItems(u); itemsRef.current = u; }, [getSetting]);
+
+    const persist = async (newItems) => {
+        const updates = { mob_nav_order: newItems.map(i => i.id) };
+        newItems.forEach(i => { updates[`vis_mob_${i.id}`] = i.visible; });
+        try { await updateGlobalSettings(updates); showToast('תפריט נייד עודכן', 'success'); }
+        catch { showToast('שגיאה בשמירה', 'error'); }
+    };
+
+    const handleReorder = (n) => { setItems(n); itemsRef.current = n; };
+    const handleDragEnd = () => persist(itemsRef.current);
+
+    const toggleVisibility = async (id) => {
+        const n = items.map(i => i.id === id ? { ...i, visible: !i.visible } : i);
+        setItems(n); itemsRef.current = n; await persist(n);
+    };
+
+    const handleReset = async () => {
+        const r = DEFAULT_NAV_ITEMS.map(i => ({ ...i, visible: true }));
+        setItems(r); itemsRef.current = r; await persist(r);
+    };
+
+    return (
+        <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#34C759] transition-colors font-bold">הצג הכל ואפס סדר</button>
+                <p className="text-[11px] font-black text-[#86868B] text-right">גרור לשינוי סדר · מתג להסתרה/הצגה</p>
+            </div>
+            <p className="text-[10px] text-[#AEAEB2] text-right mb-3">עצמאי מתפריט הצף — הגדרות נפרדות לחלוטין</p>
+            <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {items.map((item) => (
+                    <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
+                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none' }}
+                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#34C759]/40 transition-colors select-none">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#34C759] transition-colors">
+                            <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
+                        </svg>
+                        <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
+                        <div className="flex-1 text-right">
+                            <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{item.path}</p>
+                        </div>
+                        <AdminToggle value={item.visible !== false} onChange={() => toggleVisibility(item.id)} />
+                    </Reorder.Item>
+                ))}
+            </Reorder.Group>
         </div>
     );
 };
@@ -1454,7 +1524,7 @@ function Sidebar({ activeGroup, setActiveGroup }) {
 
 // ─── Section Accordion ────────────────────────────────────────────────────────
 function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, showToast }) {
-    const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine';
+    const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.type === 'mobile_menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine';
     const fieldCount = sec.fields ? sec.fields.length : null;
     const location = SECTION_LOCATIONS[sec.id];
     const firstTextField = sec.fields ? sec.fields.find(f => f.type === 'text' || f.type === 'textarea') : null;
@@ -1464,6 +1534,7 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
     const specialBadge = () => {
         if (sec.type === 'visibility') return `${VISIBILITY_ITEMS.length} פריטים`;
         if (sec.type === 'menu_reorder') return '↕ גרירה';
+        if (sec.type === 'mobile_menu_reorder') return '↕ גרירה';
         if (sec.id === 'sidebar_sections') return '↕ גרירה';
         if (sec.type === 'videos') return 'VOD';
         if (sec.type === 'magazine') return 'Firestore';
@@ -1534,6 +1605,7 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                             {/* Special sections */}
                             {sec.type === 'visibility' && <VisibilitySection content={content} onChange={onChange} />}
                             {sec.type === 'menu_reorder' && <NavMenuManager showToast={showToast} />}
+                            {sec.type === 'mobile_menu_reorder' && <MobileMenuManager showToast={showToast} />}
                             {sec.id === 'sidebar_sections' && <SidebarSectionManager showToast={showToast} />}
                             {sec.type === 'videos' && <VideosSection showToast={showToast} />}
                             {sec.type === 'magazine' && <MagazineSection showToast={showToast} />}
