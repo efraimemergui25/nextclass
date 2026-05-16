@@ -7,7 +7,7 @@ import {
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader } from '../components/AdminComponents';
-import { MessageSquare, Send, Trash2, CheckCircle, Clock, User } from 'lucide-react';
+import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink } from 'lucide-react';
 
 export default function AdminQA() {
     const [activeTab, setActiveTab] = useState('pending');
@@ -135,10 +135,15 @@ export default function AdminQA() {
                                                 <User size={10} />
                                                 {item.author}
                                             </span>
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                            <a
+                                                href={`/catalog/${item.productId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-70 cursor-pointer"
                                                 style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
                                                 {item.productId}
-                                            </span>
+                                                <ExternalLink size={9} />
+                                            </a>
                                         </div>
                                         <p className="font-black text-[#1D1D1F] text-[17px] leading-snug">{item.question}</p>
                                     </div>
