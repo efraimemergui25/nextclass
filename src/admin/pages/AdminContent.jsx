@@ -1668,8 +1668,13 @@ export default function AdminContent({ showToast }) {
     useEffect(() => {
         try {
             const savedData = localStorage.getItem(LS_KEY);
-            if (savedData) setContent(JSON.parse(savedData));
-            else setContent(ALL_FIELD_DEFAULTS);
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
+                setContent(Object.fromEntries(Object.entries(parsed).filter(([k]) => allowed.has(k))));
+            } else {
+                setContent(ALL_FIELD_DEFAULTS);
+            }
         } catch {}
     }, []);
 
@@ -1681,9 +1686,11 @@ export default function AdminContent({ showToast }) {
 
     const handleSave = async () => {
         try {
-            await updateGlobalSettings(content);
-            localStorage.setItem(LS_KEY, JSON.stringify(content));
-            window.dispatchEvent(new StorageEvent('storage', { key: LS_KEY, newValue: JSON.stringify(content) }));
+            // Only write CMS field keys — never overwrite vis_nav_*, vis_mob_*, mob_nav_order, etc.
+            const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
+            const fieldContent = Object.fromEntries(Object.entries(content).filter(([k]) => allowed.has(k)));
+            await updateGlobalSettings(fieldContent);
+            // SettingsContext's onSnapshot will sync localStorage with the full merged Firestore doc
             setSaved(true);
             setHasChanges(false);
             showToast('כל השינויים נשמרו בסנכרון ענן מלא', 'success');
