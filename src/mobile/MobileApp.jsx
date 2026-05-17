@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -33,8 +33,8 @@ const PAGE_TITLES = {
     '/vod':       'מרכז הדרכה',
     '/magazine':  'מגזין',
     '/menu':      'תפריט',
-    '/checkout':  'תשלום',
     '/compare':   'השוואת מוצרים',
+    '/checkout':  'תשלום',
 };
 
 const BOTTOM_TABS = [
@@ -56,10 +56,22 @@ function MobileAnalytics() {
             sessionStorage.setItem('nc_sid', sid);
         }
         setDoc(doc(db, 'page_views', `${today}_${sid}`), {
-            date: today, sessionId: sid, path: location.pathname, ts: serverTimestamp(),
+            date: today, sessionId: sid, path: location.pathname,
+            platform: 'mobile', ts: serverTimestamp(),
         }, { merge: true }).catch(() => {});
     }, [location]);
     return null;
+}
+
+// ─── Dynamic product title resolver ───────────────────────────────────────────
+function usePageTitle(pathname) {
+    const { getActiveProductById } = useProducts();
+    const productMatch = pathname.match(/^\/catalog\/(.+)$/);
+    if (productMatch) {
+        const product = getActiveProductById(productMatch[1]);
+        return product?.title || 'מוצר';
+    }
+    return PAGE_TITLES[pathname] || '';
 }
 
 // ─── Bottom Navigation ────────────────────────────────────────────────────────
@@ -72,12 +84,12 @@ function MobileBottomNav() {
     return (
         <nav dir="rtl" style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-            background: 'rgba(255,255,255,0.88)',
+            background: 'rgba(255,255,255,0.92)',
             backdropFilter: 'blur(48px) saturate(200%)',
             WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-            borderTop: '0.5px solid rgba(0,0,0,0.12)',
+            borderTop: '0.5px solid rgba(0,0,0,0.10)',
             display: 'flex', alignItems: 'stretch', justifyContent: 'space-around',
-            paddingBottom: 'env(safe-area-inset-bottom, 12px)',
+            paddingBottom: 'env(safe-area-inset-bottom, 10px)',
             fontFamily: SF,
         }}>
             {BOTTOM_TABS.map(({ id, path, label, Icon }) => {
@@ -90,8 +102,8 @@ function MobileBottomNav() {
                     <motion.button
                         key={id}
                         onClick={() => navigate(path)}
-                        whileTap={{ scale: 0.82 }}
-                        transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+                        whileTap={{ scale: 0.80 }}
+                        transition={{ type: 'spring', stiffness: 600, damping: 30 }}
                         style={{
                             flex: 1,
                             display: 'flex', flexDirection: 'column',
@@ -109,9 +121,9 @@ function MobileBottomNav() {
                                 style={{
                                     position: 'absolute', top: 5,
                                     width: 48, height: 30, borderRadius: 15,
-                                    background: 'rgba(0,122,255,0.1)',
+                                    background: 'rgba(0,122,255,0.10)',
                                 }}
-                                transition={{ type: 'spring', stiffness: 500, damping: 36 }}
+                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                             />
                         )}
                         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -124,17 +136,21 @@ function MobileBottomNav() {
                                 }}
                             />
                             {badge > 0 && (
-                                <span style={{
-                                    position: 'absolute', top: -5, right: -8,
-                                    background: '#FF3B30', color: '#fff',
-                                    borderRadius: 99, minWidth: 17, height: 17,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 10, fontWeight: 800,
-                                    border: '1.5px solid white',
-                                    padding: '0 3px',
-                                }}>
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    style={{
+                                        position: 'absolute', top: -5, right: -8,
+                                        background: '#FF3B30', color: '#fff',
+                                        borderRadius: 99, minWidth: 17, height: 17,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 10, fontWeight: 800,
+                                        border: '1.5px solid white',
+                                        padding: '0 3px',
+                                    }}
+                                >
                                     {badge > 9 ? '9+' : badge}
-                                </span>
+                                </motion.span>
                             )}
                         </div>
                         <span style={{
@@ -149,17 +165,6 @@ function MobileBottomNav() {
             })}
         </nav>
     );
-}
-
-// ─── Dynamic product title resolver ───────────────────────────────────────────
-function usePageTitle(pathname) {
-    const { getActiveProductById } = useProducts();
-    const productMatch = pathname.match(/^\/catalog\/(.+)$/);
-    if (productMatch) {
-        const product = getActiveProductById(productMatch[1]);
-        return product?.title || 'מוצר';
-    }
-    return PAGE_TITLES[pathname] || '';
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
@@ -179,10 +184,10 @@ function MobileHeader() {
             zIndex: 200,
             height: 56,
             paddingTop: 'env(safe-area-inset-top, 0px)',
-            background: 'rgba(255,255,255,0.88)',
+            background: 'rgba(255,255,255,0.92)',
             backdropFilter: 'blur(48px) saturate(200%)',
             WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-            borderBottom: '0.5px solid rgba(0,0,0,0.1)',
+            borderBottom: '0.5px solid rgba(0,0,0,0.10)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             direction: 'rtl', fontFamily: SF,
         }}>
@@ -200,7 +205,7 @@ function MobileHeader() {
                     }}
                 >
                     <ChevronRight size={22} strokeWidth={2.2} />
-                    {!isProduct && <span>חזרה</span>}
+                    {!isProduct && <span style={{ fontSize: 15 }}>חזרה</span>}
                 </motion.button>
             )}
 
@@ -228,11 +233,16 @@ function MobileHeader() {
                 <AnimatePresence mode="popLayout">
                     <motion.span
                         key={location.pathname}
-                        initial={{ opacity: 0, y: 6 }}
+                        initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
-                        style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F', letterSpacing: '-0.02em' }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
+                        style={{
+                            fontWeight: 700, fontSize: 16, color: '#1D1D1F',
+                            letterSpacing: '-0.02em',
+                            maxWidth: '55%', overflow: 'hidden',
+                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}
                     >
                         {title}
                     </motion.span>
@@ -246,6 +256,7 @@ function MobileHeader() {
 export default function MobileApp() {
     const location = useLocation();
     const hideBottomNav = location.pathname === '/checkout';
+    const hideHeader    = location.pathname === '/checkout';
 
     return (
         <div dir="rtl" style={{
@@ -253,18 +264,18 @@ export default function MobileApp() {
             background: '#F2F2F7',
             fontFamily: SF,
             overflowX: 'hidden',
-            paddingTop: 56,
+            paddingTop: hideHeader ? 0 : 56,
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
         }}>
             <MobileAnalytics />
-            <MobileHeader />
+            {!hideHeader && <MobileHeader />}
 
             <AnimatePresence mode="popLayout">
                 <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
-                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.20, ease: [0.22, 1, 0.36, 1] } }}
+                    exit={{ opacity: 0, transition: { duration: 0.08 } }}
                 >
                     <Routes location={location}>
                         <Route path="/"           element={<MobileLanding />} />

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
@@ -186,8 +186,15 @@ export default function MobileCatalog() {
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '12px 16px 24px' }}>
-                    {filtered.map(p => (
-                        <MobileProductCard key={p.id} product={p} size="md" />
+                    {filtered.map((p, i) => (
+                        <motion.div
+                            key={p.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: Math.min(i, 5) * 0.04, duration: 0.25 }}
+                        >
+                            <MobileProductCard product={p} size="md" />
+                        </motion.div>
                     ))}
                 </div>
             )}
