@@ -86,6 +86,20 @@ export default function MobileCatalog() {
         await refetch?.();
     }, [refetch]);
 
+    // Gesture velocity — swipe horizontally to switch category
+    const handleCategorySwipe = useCallback((_, info) => {
+        const { velocity, offset } = info;
+        if (Math.abs(offset.x) < Math.abs(offset.y) * 1.3) return;
+        const idx = categories.indexOf(category);
+        if (velocity.x < -380 && idx < categories.length - 1) {
+            haptic('select');
+            setCategory(categories[idx + 1]);
+        } else if (velocity.x > 380 && idx > 0) {
+            haptic('select');
+            setCategory(categories[idx - 1]);
+        }
+    }, [categories, category]);
+
     const isLoading = activeProducts.length === 0;
 
     return (
@@ -226,7 +240,11 @@ export default function MobileCatalog() {
                         <p style={{ fontSize: 14 }}>נסה לשנות את הקטגוריה או מונח החיפוש</p>
                     </div>
                 ) : (
-                    // Virtual scrolling grid
+                    // Virtual scrolling grid — wrapped in gesture velocity detector
+                    <motion.div
+                        onPanEnd={handleCategorySwipe}
+                        style={{ touchAction: 'pan-y' }}
+                    >
                     <div
                         ref={listRef}
                         style={{ height: virtualizer.getTotalSize(), position: 'relative', padding: '0 16px' }}
@@ -259,6 +277,7 @@ export default function MobileCatalog() {
                             </div>
                         ))}
                     </div>
+                    </motion.div>
                 )}
             </div>
         </PullToRefresh>

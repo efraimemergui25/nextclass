@@ -24,6 +24,7 @@ const HeroSection = () => {
  const sectionRef = useRef(null);
  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
+ const bgBlur = useTransform(scrollYProgress, [0, 0.7], ['blur(0px)', 'blur(18px)']);
 
  const handleScrollDown = () => {
  window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
@@ -41,7 +42,7 @@ const HeroSection = () => {
  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
  initial={{ scale: 1.08 }}
  animate={{ scale: 1.0 }}
- style={{ backgroundImage: `url('${content.hero_bg_image}')`, y: bgY, scale: 1.15 }}
+ style={{ backgroundImage: `url('${content.hero_bg_image}')`, y: bgY, scale: 1.15, filter: bgBlur }}
  transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
  />
 

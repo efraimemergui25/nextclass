@@ -156,11 +156,31 @@ const ProductCard = ({ product }) => {
  /* ── Perspective wrapper ──────────────────────────────────────────── */
  <div
  ref={cardRef}
- style={{ perspective: 1000 }}
+ style={{ perspective: 1000, position: 'relative', isolation: 'isolate' }}
  className="h-full touch-manipulation group"
  onMouseMove={handleMouseMove}
  onMouseLeave={handleMouseLeave}
  >
+ {/* ── Ambient color glow — CSS image copy, matches product colors ── */}
+ {image && imgLoaded && !imgError && (
+ <div
+  aria-hidden="true"
+  style={{
+  position: 'absolute',
+  bottom: -10, left: '12%', right: '12%',
+  height: '45%',
+  backgroundImage: `url(${image})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  filter: 'blur(30px) saturate(8) brightness(1.15)',
+  opacity: 0.28,
+  borderRadius: 24,
+  zIndex: -1,
+  pointerEvents: 'none',
+  transition: 'opacity 0.6s ease',
+  }}
+ />
+ )}
  {/* ── 3D tiltable card ────────────────────────────────────────── */}
  <motion.div
  style={{

@@ -95,16 +95,22 @@ export default function GlassCanvas({ mood }) {
  className="absolute bottom-[-10%] left-[-5%] w-[750px] h-[750px] rounded-full opacity-[0.05]"
  />
 
- {/* Aurora Orb 3 — Accent, mid */}
+ {/* Aurora Orb 3 — Morphing liquid blob, mid */}
  <motion.div
  animate={{
+ borderRadius: [
+  '60% 40% 30% 70% / 60% 30% 70% 40%',
+  '30% 60% 70% 40% / 50% 60% 30% 60%',
+  '40% 60% 60% 40% / 40% 70% 30% 60%',
+  '60% 40% 30% 70% / 60% 30% 70% 40%',
+ ],
  x: [0, 28, -28, 0],
  y: [0, -18, 36, 0],
  scale: [1, 1.04, 0.97, 1],
  }}
- transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut', delay: 8 }}
+ transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 8 }}
  style={{ willChange: 'transform', filter: 'blur(150px)', backgroundColor: '#30D158' }}
- className="absolute top-[45%] left-[30%] w-[600px] h-[600px] rounded-full opacity-[0.03]"
+ className="absolute top-[45%] left-[30%] w-[600px] h-[600px] opacity-[0.035]"
  />
 
  {/* Aurora Orb 4 — Warm accent, lower-right */}

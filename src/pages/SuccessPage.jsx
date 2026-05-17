@@ -34,8 +34,35 @@ const SuccessPage = () => {
 
  return (
   <PageTransition>
-   <div className="bg-[#F5F5F7] min-h-[calc(100vh-73px)] font-sans text-[#1D1D1F] antialiased flex items-center justify-center p-6" dir="rtl">
-    <div className="max-w-xl w-full text-center">
+   <div className="bg-[#F5F5F7] min-h-[calc(100vh-73px)] font-sans text-[#1D1D1F] antialiased flex items-center justify-center p-6 relative overflow-hidden" dir="rtl">
+
+    {/* Morphing liquid blob — celebration background */}
+    <motion.div
+     aria-hidden="true"
+     animate={{
+      borderRadius: [
+       '60% 40% 30% 70% / 60% 30% 70% 40%',
+       '30% 60% 70% 40% / 50% 60% 30% 60%',
+       '40% 60% 60% 40% / 40% 70% 30% 60%',
+       '60% 40% 30% 70% / 60% 30% 70% 40%',
+      ],
+      scale: [1, 1.08, 0.96, 1],
+      rotate: [0, 8, -4, 0],
+     }}
+     transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+     style={{
+      position: 'absolute',
+      width: 640, height: 640,
+      top: '50%', left: '50%',
+      translateX: '-50%', translateY: '-50%',
+      background: 'radial-gradient(circle, rgba(52,199,89,0.18) 0%, rgba(0,122,255,0.10) 55%, transparent 75%)',
+      filter: 'blur(60px)',
+      pointerEvents: 'none',
+      zIndex: 0,
+     }}
+    />
+
+    <div className="max-w-xl w-full text-center relative z-10">
 
      {/* Success checkmark */}
      <motion.div
