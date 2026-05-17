@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
@@ -8,22 +8,22 @@ import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
 import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import CookieConsent from '../components/CookieConsent';
 
-import MobileLanding   from './pages/MobileLanding';
-import MobileCatalog   from './pages/MobileCatalog';
-import MobileProduct   from './pages/MobileProduct';
-import MobileCart      from './pages/MobileCart';
-import MobileCheckout  from './pages/MobileCheckout';
-import MobileFavorites from './pages/MobileFavorites';
-import MobileContact   from './pages/MobileContact';
-import MobileAbout     from './pages/MobileAbout';
-import MobileVOD       from './pages/MobileVOD';
-import MobileMagazine  from './pages/MobileMagazine';
-import MobileMenu      from './pages/MobileMenu';
-import MobileCompare   from './pages/MobileCompare';
-import CookieConsent   from '../components/CookieConsent';
-import PrivacyPage     from '../pages/PrivacyPage';
-import TermsPage       from '../pages/TermsPage';
+const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
+const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
+const MobileProduct   = lazy(() => import('./pages/MobileProduct'));
+const MobileCart      = lazy(() => import('./pages/MobileCart'));
+const MobileCheckout  = lazy(() => import('./pages/MobileCheckout'));
+const MobileFavorites = lazy(() => import('./pages/MobileFavorites'));
+const MobileContact   = lazy(() => import('./pages/MobileContact'));
+const MobileAbout     = lazy(() => import('./pages/MobileAbout'));
+const MobileVOD       = lazy(() => import('./pages/MobileVOD'));
+const MobileMagazine  = lazy(() => import('./pages/MobileMagazine'));
+const MobileMenu      = lazy(() => import('./pages/MobileMenu'));
+const MobileCompare   = lazy(() => import('./pages/MobileCompare'));
+const MobilePrivacy   = lazy(() => import('./pages/MobilePrivacy'));
+const MobileTerms     = lazy(() => import('./pages/MobileTerms'));
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -300,23 +300,25 @@ export default function MobileApp() {
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.20, ease: [0.22, 1, 0.36, 1] } }}
                     exit={{ opacity: 0, transition: { duration: 0.08 } }}
                 >
-                    <Routes location={location}>
-                        <Route path="/"           element={<MobileLanding />} />
-                        <Route path="/catalog"    element={<MobileCatalog />} />
-                        <Route path="/catalog/:id" element={<MobileProduct />} />
-                        <Route path="/cart"       element={<MobileCart />} />
-                        <Route path="/checkout"   element={<MobileCheckout />} />
-                        <Route path="/favorites"  element={<MobileFavorites />} />
-                        <Route path="/contact"    element={<MobileContact />} />
-                        <Route path="/story"      element={<MobileAbout />} />
-                        <Route path="/vod"        element={<MobileVOD />} />
-                        <Route path="/magazine"   element={<MobileMagazine />} />
-                        <Route path="/menu"       element={<MobileMenu />} />
-                        <Route path="/compare"    element={<MobileCompare />} />
-                        <Route path="/privacy"    element={<PrivacyPage />} />
-                        <Route path="/terms"      element={<TermsPage />} />
-                        <Route path="*"           element={<MobileLanding />} />
-                    </Routes>
+                    <Suspense fallback={<div style={{ minHeight: '60vh', background: '#F2F2F7' }} />}>
+                        <Routes location={location}>
+                            <Route path="/"           element={<MobileLanding />} />
+                            <Route path="/catalog"    element={<MobileCatalog />} />
+                            <Route path="/catalog/:id" element={<MobileProduct />} />
+                            <Route path="/cart"       element={<MobileCart />} />
+                            <Route path="/checkout"   element={<MobileCheckout />} />
+                            <Route path="/favorites"  element={<MobileFavorites />} />
+                            <Route path="/contact"    element={<MobileContact />} />
+                            <Route path="/story"      element={<MobileAbout />} />
+                            <Route path="/vod"        element={<MobileVOD />} />
+                            <Route path="/magazine"   element={<MobileMagazine />} />
+                            <Route path="/menu"       element={<MobileMenu />} />
+                            <Route path="/compare"    element={<MobileCompare />} />
+                            <Route path="/privacy"    element={<MobilePrivacy />} />
+                            <Route path="/terms"      element={<MobileTerms />} />
+                            <Route path="*"           element={<MobileLanding />} />
+                        </Routes>
+                    </Suspense>
                 </motion.div>
             </AnimatePresence>
 

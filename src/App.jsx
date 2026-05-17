@@ -1,4 +1,4 @@
-import { useEffect, Component } from 'react';
+import { useEffect, Component, lazy, Suspense } from 'react';
 
 class AppErrorBoundary extends Component {
     state = { crashed: false, error: null };
@@ -23,19 +23,6 @@ import { AnimatePresence } from 'framer-motion';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
-import LandingPage from './pages/LandingPage';
-import CatalogPage from './pages/CatalogPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import AboutPage from './pages/AboutPage';
-import SuccessStoriesPage from './pages/SuccessStoriesPage';
-import ContactPage from './pages/ContactPage';
-import VODCenterPage from './pages/VODCenterPage';
-import MagazinePage from './pages/MagazinePage';
-import ComparePage from './pages/ComparePage';
-import DiscoverPage from './pages/DiscoverPage';
-import WishlistPage from './pages/WishlistPage';
 import AnnouncementBar from './components/AnnouncementBar';
 import DynamicIsland from './components/DynamicIsland';
 import SmartConcierge from './components/SmartConcierge';
@@ -47,14 +34,28 @@ import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
-import AdminApp from './admin/AdminApp';
-import PrivacyPage from './pages/PrivacyPage';
-import TermsPage from './pages/TermsPage';
 import CookieConsent from './components/CookieConsent';
+
+const AdminApp          = lazy(() => import('./admin/AdminApp'));
+const LandingPage       = lazy(() => import('./pages/LandingPage'));
+const CatalogPage       = lazy(() => import('./pages/CatalogPage'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
+const CartPage          = lazy(() => import('./pages/CartPage'));
+const CheckoutPage      = lazy(() => import('./pages/CheckoutPage'));
+const AboutPage         = lazy(() => import('./pages/AboutPage'));
+const SuccessStoriesPage = lazy(() => import('./pages/SuccessStoriesPage'));
+const ContactPage       = lazy(() => import('./pages/ContactPage'));
+const VODCenterPage     = lazy(() => import('./pages/VODCenterPage'));
+const MagazinePage      = lazy(() => import('./pages/MagazinePage'));
+const ComparePage       = lazy(() => import('./pages/ComparePage'));
+const DiscoverPage      = lazy(() => import('./pages/DiscoverPage'));
+const WishlistPage      = lazy(() => import('./pages/WishlistPage'));
+const PrivacyPage       = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage         = lazy(() => import('./pages/TermsPage'));
+const MobileApp         = lazy(() => import('./mobile/MobileApp'));
 import { db } from './firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import useIsMobile from './hooks/useIsMobile';
-import MobileApp from './mobile/MobileApp';
 
 
 // ─── Analytics helpers ───────────────────────────────────────────────────────
@@ -161,12 +162,20 @@ function AppContent() {
 
     // ─── Admin Route Isolation (desktop only) ─────────────────────────────────
     if (location.pathname.startsWith('/admin')) {
-        return <AdminApp />;
+        return (
+            <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F5F5F7' }} />}>
+                <AdminApp />
+            </Suspense>
+        );
     }
 
     // ─── Mobile App — completely separate codebase ─────────────────────────────
     if (isMobile) {
-        return <MobileApp />;
+        return (
+            <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F2F2F7' }} />}>
+                <MobileApp />
+            </Suspense>
+        );
     }
 
     // ─── Maintenance Mode ──────────────────────────────────────────────────────
@@ -217,7 +226,9 @@ function AppContent() {
             </PageErrorBoundary>
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
                 <PageErrorBoundary>
-                    <AnimatedRoutes />
+                    <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+                        <AnimatedRoutes />
+                    </Suspense>
                 </PageErrorBoundary>
             </main>
             <PageErrorBoundary>
