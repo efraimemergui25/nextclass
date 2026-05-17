@@ -18,6 +18,8 @@ const cartBtnVariants = {
 const SPRING_TILT = { stiffness: 300, damping: 28 };
 const SPRING_ACTION = { type: 'spring', stiffness: 420, damping: 22 };
 
+const GENERIC_FALLBACK = "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'><rect width='800' height='600' fill='%23f5f5f7'/><g opacity='0.25' transform='translate(400,300)'><rect x='-44' y='-32' width='88' height='64' rx='10' stroke='%23aeaeb2' stroke-width='3.5' fill='none'/><circle cx='-14' cy='-7' r='9' stroke='%23aeaeb2' stroke-width='2.5' fill='none'/><polyline points='-30,22 -10,2 8,16 24,-4 44,22' stroke='%23aeaeb2' stroke-width='2.5' fill='none' stroke-linejoin='round' stroke-linecap='round'/></g></svg>";
+
 // ─── Premium image fallback ───────────────────────────────────────────────────
 const ImageFallback = memo(() => (
  <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-3">
@@ -52,8 +54,19 @@ const ProductCard = ({ product }) => {
  const discountPct = salePrice ? Math.round((1 - Number(salePrice) / Number(price)) * 100) : 0;
  const stockStatus = stock === undefined ? null : stock > 10 ? 'ok' : stock > 0 ? 'low' : 'out';
 
- const [imgError, setImgError] = useState(false);
+ const [displaySrc, setDisplaySrc] = useState(() => image || _seedImage || GENERIC_FALLBACK);
  const [imgLoaded, setImgLoaded] = useState(false);
+ const [imgError, setImgError] = useState(false);
+ const fallbackStage = useRef(0);
+
+ // Reset image state whenever the primary URL changes (e.g. Firestore real-time update)
+ useEffect(() => {
+ if (!image) return;
+ fallbackStage.current = 0;
+ setDisplaySrc(image);
+ setImgLoaded(false);
+ setImgError(false);
+ }, [image]);
 
  const { addToCompare, removeFromCompare, isSelected } = useCompare();
  const { cartItems, addToCart, removeFromCart } = useCart();
@@ -124,18 +137,20 @@ const ProductCard = ({ product }) => {
  const allowOrders = isVisible('allow_orders', true);
 
  // ─── Stable handlers ──────────────────────────────────────────────────────
- const handleImgError = useCallback((e) => {
- const tried = Number(e.target.dataset.tried || 0);
- if (tried === 0 && _seedImage && _seedImage !== e.target.src) {
- e.target.dataset.tried = '1';
- e.target.src = _seedImage;
- } else if (tried <= 1) {
- e.target.dataset.tried = '2';
- e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
- } else {
- setImgError(true);
+ const handleImgError = useCallback(() => {
+ const stage = fallbackStage.current;
+ if (stage === 0 && _seedImage && _seedImage !== displaySrc) {
+ fallbackStage.current = 1;
+ setImgLoaded(false);
+ setDisplaySrc(_seedImage);
+ } else if (displaySrc !== GENERIC_FALLBACK) {
+ // Data URI fallback — guaranteed to load, never fails
+ fallbackStage.current = 2;
+ setImgLoaded(false);
+ setDisplaySrc(GENERIC_FALLBACK);
  }
- }, [_seedImage]);
+ // GENERIC_FALLBACK is a data URI — it cannot fail, so imgError stays false
+ }, [displaySrc, _seedImage]);
 
  const handleCompareClick = useCallback((e) => {
  e.preventDefault();
@@ -167,14 +182,14 @@ const ProductCard = ({ product }) => {
  onMouseLeave={handleMouseLeave}
  >
  {/* ── Ambient color glow — CSS image copy, matches product colors ── */}
- {image && imgLoaded && !imgError && (
+ {displaySrc && imgLoaded && !imgError && (
  <div
   aria-hidden="true"
   style={{
   position: 'absolute',
   bottom: -10, left: '12%', right: '12%',
   height: '45%',
-  backgroundImage: `url(${image})`,
+  backgroundImage: `url(${displaySrc})`,
   backgroundSize: 'cover',
   backgroundPosition: 'center',
   filter: 'blur(30px) saturate(8) brightness(1.15)',
@@ -201,16 +216,17 @@ const ProductCard = ({ product }) => {
  >
  {/* ── Image Container ─────────────────────────────────── */}
  <div className="w-full relative aspect-[16/9] md:aspect-[4/3] overflow-hidden bg-white/30">
- {imgError || !image ? (
+ {imgError ? (
  <ImageFallback />
  ) : (
  <img
- src={image}
+ src={displaySrc}
  alt={title}
  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105"
  onError={handleImgError}
  onLoad={() => setImgLoaded(true)}
- loading="lazy"
+ loading="eager"
+ referrerPolicy="no-referrer"
  style={{
   filter: imgLoaded ? 'blur(0px)' : 'blur(12px)',
   transform: imgLoaded ? 'scale(1)' : 'scale(1.04)',

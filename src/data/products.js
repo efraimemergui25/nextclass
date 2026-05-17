@@ -48,7 +48,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מקרן לייזר מקצועי 5000 לומן למרחבי למידה",
         price: 7200,
-        image: "https://images.unsplash.com/photo-1517604931442-7e0caff332bb?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1579036095242-fe07594274ca?auto=format&fit=crop&q=80&w=800",
         description: "מקרן לייזר עוצמתי ללא צורך בהחלפת נורה. בהירות גבוהה במיוחד המאפשרת הקרנה בחדרים מוארים ללא החשכה.",
         specs: [
             { label: "טכנולוגיה", value: "Laser Phosphor" },
@@ -69,7 +69,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מסך מגע אינטראקטיבי Ultra 98\" 4K",
         price: 28000,
-        image: "https://images.unsplash.com/photo-1492690138406-80f089167f5c?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=800",
         videoUrl: "https://videos.pexels.com/video-files/2278095/2278095-uhd_2560_1440_30fps.mp4",
         description: "מסך ענק לאודיטוריומים ומרכזי חדשנות. מחליף לחלוטין את הצורך במקרן עם ניגודיות עילאית ושחור מוחלט.",
         specs: [
@@ -91,7 +91,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מקרן טווח קצר (Short Throw) לקולנוע כיתתי",
         price: 4900,
-        image: "https://images.unsplash.com/photo-1516321497487-e288fb19a13f?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=800",
         description: "מקרן להתקנה קרובה לקיר המונע הצללה של המורה על התמונה. מושלם לשימוש עם לוחות מחיקים אינטראקטיביים.",
         specs: [
             { label: "יחס הקרנה", value: "0.49:1" },
@@ -112,7 +112,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מסך מגע נייד Flex 65\" עם עגלה מוטורית",
         price: 8900,
-        image: "https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
         description: "חוויית למידה ניידת. עגלה מוטורית שקטה המאפשרת שינוי זווית המסך למצב שולחן מגע אינטראקטיבי.",
         specs: [
             { label: "גודל", value: "65 אינץ'" },
@@ -133,7 +133,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מקרן לייזר מקצועי 7000 לומן לאודיטוריום",
         price: 18500,
-        image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&q=80&w=800",
         description: "פתרון עוצמתי לאולמות כנסים בבתי ספר. תומך בעדשות מתחלפות ושליטה מלאה דרך הרשת הארגונית.",
         specs: [
             { label: "עוצמה", value: "7000 ANSI Lumens" },
@@ -154,7 +154,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מסך מגע 75\" Zero Bonding Android 13",
         price: 11200,
-        image: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
         description: "הדור הבא של מסכי המגע. טכנולוגיית Zero Bonding המבטלת את המרווח בין הזכוכית לפאנל לכתיבה טבעית.",
         specs: [
             { label: "דיוק כתיבה", value: "0.5 מ\"מ" },
@@ -175,7 +175,7 @@ const defaultProducts = [
         category: "מסכים אינטראקטיביים והקרנה",
         title: "מקרן LED נייד למסעות שטח חינוכיים",
         price: 1500,
-        image: "https://images.unsplash.com/photo-1461151304267-38535e770d79?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1637656375538-9dfe600ccfd2?auto=format&fit=crop&q=80&w=800",
         description: "מקרן קומפקטי קל משקל עם סוללה מובנית. מתאים לפעילויות חוץ ותצוגה מהירה ללא תשתית קבועה.",
         specs: [
             { label: "משקל", value: "800 גרם" },
@@ -283,7 +283,7 @@ const defaultProducts = [
         category: "מחשוב לצוות ותלמידים",
         title: "טאבלט למידה מוקשח 10\" עם עט סטיילוס",
         price: 1800,
-        image: "https://images.unsplash.com/photo-1542744173-8e0ee268cf36?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800",
         description: "טאבלט למידה אקטיבית. כולל עט רגיש למגע ושכבת הגנה נגד חבטות. מתאים לסיורים לימודיים ושימוש בשטח.",
         specs: [
             { label: "מסך", value: "10.1\" WUXGA Touch" },
@@ -346,7 +346,7 @@ const defaultProducts = [
         category: "מחשוב לצוות ותלמידים",
         title: "Chromebook Touch 2-in-1 מתהפך לתלמיד",
         price: 1550,
-        image: "https://images.unsplash.com/photo-1526657782461-9fe134027df5?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800",
         description: "מחשב משולב טאבלט. מסך מגע מסתובב 360 מעלות ומצלמה כפולה (קדמית ואחורית) לתיעוד שיעורים במצב טאבלט.",
         specs: [
             { label: "מנגנון", value: "ציר 360 מעלות" },
@@ -367,7 +367,7 @@ const defaultProducts = [
         category: "מחשוב לצוות ותלמידים",
         title: "תחנת עבודה ניידת לצוות IT מוסדי",
         price: 5500,
-        image: "https://images.unsplash.com/photo-1525373612132-b3e2773d2013?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800",
         description: "מחשב נייד מוקשח במיוחד לצוותי תחזוקה. כולל יציאות מורשת (Serial) לניהול תשתיות וסוללה כפולה.",
         specs: [
             { label: "חיבוריות", value: "RS232, RJ45, USB-C, SIM 4G" },
@@ -388,7 +388,7 @@ const defaultProducts = [
         category: "מחשוב לצוות ותלמידים",
         title: "מחשב למידה היברידי Surface style לתלמידים",
         price: 3200,
-        image: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800",
         description: "מחשב נייד עם מקלדת נתיקה. משלב את הקלילות של טאבלט עם הפרודוקטיביות של מחשב Windows.",
         specs: [
             { label: "מסך", value: "13\" PixelSense Touch" },
@@ -409,7 +409,7 @@ const defaultProducts = [
         category: "מחשוב לצוות ותלמידים",
         title: "מחשב נייד מורה דק סוללה ליום שלם",
         price: 4200,
-        image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800",
         description: "האיזון המושלם בין משקל לביצועים. עוצב במיוחד למורים שעוברים בין כיתות עם צורך בסוללה חזקה ואמינה.",
         specs: [
             { label: "עובי", value: "14.9 מ\"מ" },
@@ -432,7 +432,7 @@ const defaultProducts = [
         category: "מעבדות STEM ומרחבי חדשנות",
         title: "מדפסת תלת מימד מקצועית Pro-Grade",
         price: 12500,
-        image: "https://images.unsplash.com/photo-1542031021-36ba9069d51e?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1563520239648-a24e51d4b570?auto=format&fit=crop&q=80&w=800",
         description: "מדפסת תא סגור עם פילטר פחם ודיוק מיקרוני. מתאימה להדפסה של מגוון חומרים בסביבה חינוכית בטוחה.",
         specs: [
             { label: "נפח הדפסה", value: "300x300x350 מ\"מ" },
@@ -516,7 +516,7 @@ const defaultProducts = [
         category: "מעבדות STEM ומרחבי חדשנות",
         title: "זרוע רובוטית לימודית 6 צירים",
         price: 8200,
-        image: "https://images.unsplash.com/photo-1561149831-201509bc0281?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&q=80&w=800",
         description: "זרוע רובוטית לתעשייה 4.0 בתוך הכיתה. מאפשרת למידה של לוגיקת תפעול פס ייצור ורובוטיקה שיתופית.",
         specs: [
             { label: "עומס עבודה", value: "500 גרם" },
@@ -558,7 +558,7 @@ const defaultProducts = [
         category: "מעבדות STEM ומרחבי חדשנות",
         title: "מדפסת תלת מימד בנפח תעשייתי",
         price: 24000,
-        image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1661882217431-b64b303fb1d0?auto=format&fit=crop&q=80&w=800",
         description: "מדפסת ענקית להדפסת מודלים שלמים בקנה מידה 1:1. מיועדת למרחבי מייקרים אזוריים ומרכזי פסג\"ה.",
         specs: [
             { label: "נפח הדפסה", value: "600x600x600 מ\"מ" },
@@ -621,7 +621,7 @@ const defaultProducts = [
         category: "מעבדות STEM ומרחבי חדשנות",
         title: "מכונת חיתוך לייזר שולחנית בטיחותית",
         price: 16500,
-        image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd278e?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1596552571892-2dda2c594670?auto=format&fit=crop&q=80&w=800",
         description: "חיתוך עץ, אקריליק ונייר בלייזר 40W. מערכת בטיחות המכבה את הלייזר עם פתיחת המכסה. כולל מסנן עשן.",
         specs: [
             { label: "שטח עבודה", value: "50x30 ס\"מ" },
@@ -728,7 +728,7 @@ const defaultProducts = [
         category: "אודיו ווידאו למרחבי למידה",
         title: "מיקרופון תקרתי (Ceiling Array)",
         price: 5800,
-        image: "https://images.unsplash.com/photo-1478737270239-2fccd27fd0fc?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1558317751-bc3ed6f85f72?auto=format&fit=crop&q=80&w=800",
         description: "מיקרופון המותקן בתקרה אקוסטית וקולט את כל הכיתה בצורה שקופה. טכנולוגיית Beamforming לבידוד קול הדובר.",
         specs: [
             { label: "קפסולות", value: "128 MEMS Microphones" },
@@ -856,7 +856,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "עגלת טעינה ואחסון חכמה ל-36 כרומבוקים",
         price: 4500,
-        image: "https://images.unsplash.com/photo-1522071823991-b1ae5e3a39aa?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=800",
         description: "עגלת פלדה ממוגנת עם בקר טעינה חכם המאזן את העומס החשמלי. שומרת על אורך חיי הסוללה של המכשירים.",
         specs: [
             { label: "קיבולת", value: "36 מחשבים עד 15.6 אינץ'" },
@@ -898,7 +898,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "עגלת טעינה וחיטוי UV-C ל-24 טאבלטים",
         price: 5200,
-        image: "https://images.unsplash.com/photo-1555616635-640970017d73?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=800",
         description: "עגלה המשלבת טעינה מהירה עם מנורות UV-C לחיטוי חיידקים ווירוסים בין שיעור לשיעור.",
         specs: [
             { label: "חיטוי", value: "UV-C Germicidal Lamps" },
@@ -919,7 +919,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "ארון תקשורת (AV Rack) ממוגן לשרתים",
         price: 3100,
-        image: "https://images.unsplash.com/photo-1558494949-ef010ccdcc32?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?auto=format&fit=crop&q=80&w=800",
         description: "ארון תקשורת כיתתי מעוצב ושקט. שומר על המעבדים, המבצעים והשרתים הכיתתיים מוגנים וקרירים.",
         specs: [
             { label: "גודל", value: "12U / 18U" },
@@ -982,7 +982,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "תושבת קיר מוטורית למסכי ענק",
         price: 3600,
-        image: "https://images.unsplash.com/photo-1542332213-9b5a5a3fab35?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800",
         description: "מנגנון הרמה חשמלי למסכי 86\"-110\". מאפשר להתאים את גובה המסך לגיל התלמידים (יסודי/תיכון).",
         specs: [
             { label: "עומס מקסימלי", value: "160 ק\"ג" },
@@ -1003,7 +1003,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "מערך כבילה וניהול תקשורת",
         price: 650,
-        image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800",
         description: "פתרון מקצועי להסתרת כבלים בכיתות חכמות. שומר על מראה נקי ומונע תקלות ניתוק בשוגג.",
         specs: [
             { label: "תכולה", value: "תעלות, תיבות חיבורים, שרוולים" },
@@ -1024,7 +1024,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "בסיס נייד כבד למסכים עד 110\"",
         price: 2200,
-        image: "https://images.unsplash.com/photo-1542744095-2ad4870fbbc3?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
         description: "עגלה יציבה במיוחד למסכים הגדולים ביותר בשוק. מאפשרת העברה של מסכי 98 אינץ' בין אולמות ללא חשד להתהפכות.",
         specs: [
             { label: "מבנה", value: "פלדה עבת דופן (Heavy Duty)" },
@@ -1045,7 +1045,7 @@ const defaultProducts = [
         category: "תשתיות ועגלות טעינה",
         title: "יחידת UPS אל-פסק מוסדית",
         price: 1450,
-        image: "https://images.unsplash.com/photo-1560177112-fbf15f070119?auto=format&fit=crop&q=80&w=800",
+        image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800",
         description: "מגן על הציוד היקר בכיתה (מקרנים, מסכים) מפני הפסקות וקפיצות חשמל. מאפשר קירור מקרן לפני כיבוי מלא.",
         specs: [
             { label: "הספק", value: "2000VA / 1200W" },

@@ -32,6 +32,7 @@ function ScrollProgress() {
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
+const GENERIC_FALLBACK = "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'><rect width='800' height='600' fill='%23f5f5f7'/><g opacity='0.25' transform='translate(400,300)'><rect x='-44' y='-32' width='88' height='64' rx='10' stroke='%23aeaeb2' stroke-width='3.5' fill='none'/><circle cx='-14' cy='-7' r='9' stroke='%23aeaeb2' stroke-width='2.5' fill='none'/><polyline points='-30,22 -10,2 8,16 24,-4 44,22' stroke='%23aeaeb2' stroke-width='2.5' fill='none' stroke-linejoin='round' stroke-linecap='round'/></g></svg>";
 
 // ─── Memoised fallback component ─────────────────────────────────────────────
 const ImageFallback = memo(() => (
@@ -252,7 +253,15 @@ const ProductDetailPage = () => {
  const showPrices = isVisible('show_prices', true);
  const allowOrders = isVisible('allow_orders', true);
 
+ // Must be before displaySrc useState so we can initialize from product.image
+ const product = useMemo(
+  () => fetchProduct(id) ?? {},
+  [id, fetchProduct]
+ );
+
  const [imgError, setImgError] = useState(false);
+ const [displaySrc, setDisplaySrc] = useState(() => product.image || product._seedImage || GENERIC_FALLBACK);
+ const fallbackStage = useRef(0);
  const [activeColor, setActiveColor] = useState(COLORS[0]);
  const [selectedAccessories, setSelectedAccessories] = useState(new Set());
  const [showStickyBar, setShowStickyBar] = useState(false);
@@ -309,11 +318,6 @@ const ProductDetailPage = () => {
  }, [id, trackView]);
 
  // ─── Derived values (memoised) ────────────────────────────────────────────
- const product = useMemo(
- () => fetchProduct(id) ?? {},
- [id, fetchProduct]
- );
-
  const currentProductId = useMemo(
  () => `${product?.id ?? 'unknown'}-${activeColor.id}`,
  [product?.id, activeColor.id]
@@ -343,16 +347,29 @@ const ProductDetailPage = () => {
  return dp?.dimensions || [];
  }, [product.id, product.dimensions]);
 
+ // Reset image state whenever product.image changes (e.g. Firestore real-time update)
+ useEffect(() => {
+ const src = product.image || product._seedImage;
+ if (!src) return;
+ fallbackStage.current = 0;
+ setDisplaySrc(src);
+ setImgError(false);
+ }, [product.image, product._seedImage]);
+
  // ─── Stable handlers (useCallback — prevents re-render of motion.button) ─
- const handleImgError = useCallback((e) => {
- if (!e.target.dataset.triedFallback) {
- e.target.dataset.triedFallback = 'true';
- // Use reliable Pexels fallback instead of Unsplash
- e.target.src = 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=800';
- } else {
- setImgError(true);
+ const handleImgError = useCallback(() => {
+ const stage = fallbackStage.current;
+ const seedImage = product._seedImage;
+ if (stage === 0 && seedImage && seedImage !== displaySrc) {
+ fallbackStage.current = 1;
+ setDisplaySrc(seedImage);
+ } else if (displaySrc !== GENERIC_FALLBACK) {
+ // Data URI fallback — guaranteed to load, never fails
+ fallbackStage.current = 2;
+ setDisplaySrc(GENERIC_FALLBACK);
  }
- }, []);
+ // GENERIC_FALLBACK is a data URI, cannot fail
+ }, [displaySrc, product._seedImage]);
 
  const handleCartToggle = useCallback(() => {
  if (isInCart) {
@@ -576,59 +593,14 @@ const ProductDetailPage = () => {
  <div
  className="w-full rounded-[2rem] shadow-xl overflow-hidden ring-1 ring-black/5 transition-apple-fluid relative"
  >
- {product.videoUrl ? (
- /* ── Cinematic Video Mode (Figure-Ground) ─────── */
- <div className="relative w-full aspect-square md:aspect-[4/3] bg-gray-900 overflow-hidden">
- {/* Always-visible product image (behind video) */}
- {!imgError && product.image && (
- <img
- src={product.image}
- alt={product.title}
- className="absolute inset-0 w-full h-full object-cover"
- onError={handleImgError}
- />
- )}
-
- {/* Video overlaid on top — without blend mode */}
- <video
- key={product.videoUrl}
- autoPlay
- loop
- muted
- playsInline
- className="absolute inset-0 w-full h-full object-cover opacity-95"
- >
- <source src={product.videoUrl} type="video/mp4" />
- </video>
-
- {/* Figure — ultra-sharp glass badge floating above */}
- <div className="absolute inset-0 z-10 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 via-transparent to-transparent">
- <motion.div
- initial={{ opacity: 0, y: 16 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.3, duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
- className="bg-white/30 backdrop-blur-md border border-white/40 rounded-2xl px-5 py-4 inline-flex flex-col gap-1 w-fit"
- >
- <span className="text-[10px] font-bold text-white/70">{product.category}</span>
- <span className="text-white font-black text-lg md:text-xl tracking-tighter leading-tight line-clamp-1">{product.title}</span>
- <span className="text-white/90 font-black text-2xl tracking-tighter">{formattedPrice}</span>
- </motion.div>
- </div>
-
- {/* Cinematic badge */}
- <div className="absolute top-4 left-4 z-10 bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
- <span className="text-white text-[10px] font-bold">{content.liveDemo}</span>
- </div>
- </div>
- ) : imgError || !product.image ? (
+ {imgError ? (
  <div className="w-full aspect-square md:aspect-[4/3]"><ImageFallback /></div>
  ) : (
- /* ── Static Image Mode ─────────────────────────── */
  <img
- src={product.image}
+ src={displaySrc}
  alt={product.title}
  className="w-full aspect-square md:aspect-[4/3] object-cover"
+ referrerPolicy="no-referrer"
  onError={handleImgError}
  loading="eager"
  />

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Heart, ShoppingBag, Scale, Check, Share2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { haptic } from '../utils/haptic';
 import useLongPress from '../hooks/useLongPress';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
+const GENERIC_FALLBACK = "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'><rect width='800' height='600' fill='%23f5f5f7'/><g opacity='0.25' transform='translate(400,300)'><rect x='-44' y='-32' width='88' height='64' rx='10' stroke='%23aeaeb2' stroke-width='3.5' fill='none'/><circle cx='-14' cy='-7' r='9' stroke='%23aeaeb2' stroke-width='2.5' fill='none'/><polyline points='-30,22 -10,2 8,16 24,-4 44,22' stroke='%23aeaeb2' stroke-width='2.5' fill='none' stroke-linejoin='round' stroke-linecap='round'/></g></svg>";
 
 // ─── Heart burst particles ────────────────────────────────────────────────────
 function HeartBurst({ visible }) {
@@ -179,6 +180,19 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const [burst, setBurst]                = useState(false);
     const [contextMenu, setContextMenu]    = useState(false);
     const [imgLoaded, setImgLoaded]        = useState(false);
+    const [imgError, setImgError]          = useState(false);
+    const [displaySrc, setDisplaySrc]      = useState(() => product.image || product._seedImage || GENERIC_FALLBACK);
+    const fallbackStage                    = useRef(0);
+
+    // Reset image state whenever the primary URL changes (Firestore real-time update)
+    useEffect(() => {
+        const url = product.image || product._seedImage;
+        if (!url) return;
+        fallbackStage.current = 0;
+        setDisplaySrc(url);
+        setImgLoaded(false);
+        setImgError(false);
+    }, [product.image, product._seedImage]);
 
     const cardRef = useRef(null);
     const cardInView = useInView(cardRef, { once: true, margin: '-10px' });
@@ -295,7 +309,9 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     position: 'relative',
                 }}>
-                    {(product.image || product._seedImage) ? (
+                    {imgError ? (
+                        <span style={{ fontSize: isSmall ? 30 : 40, opacity: 0.4 }}>🖥️</span>
+                    ) : (
                         <>
                             {!imgLoaded && (
                                 <div style={{
@@ -306,18 +322,23 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                 }} />
                             )}
                             <motion.img
-                                src={product.image || product._seedImage}
+                                src={displaySrc}
                                 alt={product.title}
+                                referrerPolicy="no-referrer"
                                 onLoad={() => setImgLoaded(true)}
-                                onError={e => {
-                                    const tried = Number(e.target.dataset.tried || 0);
-                                    if (tried === 0 && product._seedImage && product._seedImage !== e.target.src) {
-                                        e.target.dataset.tried = '1';
-                                        e.target.src = product._seedImage;
-                                    } else if (tried <= 1) {
-                                        e.target.dataset.tried = '2';
-                                        e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
+                                onError={() => {
+                                    const stage = fallbackStage.current;
+                                    if (stage === 0 && product._seedImage && product._seedImage !== displaySrc) {
+                                        fallbackStage.current = 1;
+                                        setImgLoaded(false);
+                                        setDisplaySrc(product._seedImage);
+                                    } else if (displaySrc !== GENERIC_FALLBACK) {
+                                        // Data URI fallback — guaranteed to load
+                                        fallbackStage.current = 2;
+                                        setImgLoaded(false);
+                                        setDisplaySrc(GENERIC_FALLBACK);
                                     }
+                                    // GENERIC_FALLBACK is a data URI, cannot fail
                                 }}
                                 initial={{ scale: 1.08, filter: 'blur(8px)', opacity: 0 }}
                                 animate={imgLoaded ? { scale: 1, filter: 'blur(0px)', opacity: 1 } : {}}
@@ -325,12 +346,10 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                 style={{
                                     width: '90%', height: '90%', objectFit: 'contain',
                                 }}
-                                loading="lazy"
+                                loading="eager"
                             />
                             <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
                         </>
-                    ) : (
-                        <span style={{ fontSize: isSmall ? 30 : 40, opacity: 0.4 }}>🖥️</span>
                     )}
                 </div>
 

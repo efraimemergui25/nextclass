@@ -49,7 +49,7 @@ const HeroSection = () => {
  const subWords = content.hero_subline.split(' ');
 
  return (
- <section ref={sectionRef} className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased pb-20">
+ <section ref={sectionRef} className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased pb-20" style={{ backgroundColor: '#1a1a2e' }}>
 
  {/* Background — parallax while scrolling + scale-in on mount */}
  <motion.div
