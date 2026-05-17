@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductsContext';
 import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -19,6 +20,7 @@ import MobileAbout     from './pages/MobileAbout';
 import MobileVOD       from './pages/MobileVOD';
 import MobileMagazine  from './pages/MobileMagazine';
 import MobileMenu      from './pages/MobileMenu';
+import MobileCompare   from './pages/MobileCompare';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -32,6 +34,7 @@ const PAGE_TITLES = {
     '/magazine':  'מגזין',
     '/menu':      'תפריט',
     '/checkout':  'תשלום',
+    '/compare':   'השוואת מוצרים',
 };
 
 const BOTTOM_TABS = [
@@ -148,6 +151,17 @@ function MobileBottomNav() {
     );
 }
 
+// ─── Dynamic product title resolver ───────────────────────────────────────────
+function usePageTitle(pathname) {
+    const { getActiveProductById } = useProducts();
+    const productMatch = pathname.match(/^\/catalog\/(.+)$/);
+    if (productMatch) {
+        const product = getActiveProductById(productMatch[1]);
+        return product?.title || 'מוצר';
+    }
+    return PAGE_TITLES[pathname] || '';
+}
+
 // ─── Header ───────────────────────────────────────────────────────────────────
 function MobileHeader() {
     const location  = useLocation();
@@ -157,7 +171,7 @@ function MobileHeader() {
     const siteLogo  = getSetting('site_logo_url', '');
     const isHome    = location.pathname === '/';
     const isProduct = location.pathname.startsWith('/catalog/');
-    const title     = PAGE_TITLES[location.pathname] || '';
+    const title     = usePageTitle(location.pathname);
 
     return (
         <header style={{
@@ -264,6 +278,7 @@ export default function MobileApp() {
                         <Route path="/vod"        element={<MobileVOD />} />
                         <Route path="/magazine"   element={<MobileMagazine />} />
                         <Route path="/menu"       element={<MobileMenu />} />
+                        <Route path="/compare"    element={<MobileCompare />} />
                         <Route path="*"           element={<MobileLanding />} />
                     </Routes>
                 </motion.div>

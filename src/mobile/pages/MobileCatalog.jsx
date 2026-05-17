@@ -165,7 +165,20 @@ export default function MobileCatalog() {
             </div>
 
             {/* ── Product grid ───────────────────────────────────────── */}
-            {filtered.length === 0 ? (
+            {activeProducts.length === 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '12px 16px 24px' }}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} style={{ background: '#fff', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                            <div style={{ width: '100%', aspectRatio: '1', background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                            <div style={{ padding: '12px' }}>
+                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', marginBottom: 8 }} />
+                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', width: '60%' }} />
+                            </div>
+                        </div>
+                    ))}
+                    <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+                </div>
+            ) : filtered.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 24px', color: '#86868B' }}>
                     <div style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
                     <p style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F', marginBottom: 6 }}>לא נמצאו מוצרים</p>

@@ -9,7 +9,7 @@ const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica N
 
 export default function MobileVOD() {
     const { getSetting } = useSettings();
-    const [videos, setVideos] = useState([]);
+    const [videos,   setVideos]   = useState(null);
     const [selected, setSelected] = useState(null);
 
     const pageTitle = getSetting('vod_title', 'עתיד הלמידה, עכשיו.');
@@ -18,7 +18,7 @@ export default function MobileVOD() {
     useEffect(() => {
         getDocs(query(collection(db, 'vod_videos'), orderBy('order', 'asc')))
             .then(snap => setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-            .catch(() => {});
+            .catch(() => setVideos([]));
     }, []);
 
     return (
@@ -53,7 +53,20 @@ export default function MobileVOD() {
             )}
 
             {/* ── Videos list ───────────────────────────────────────── */}
-            {videos.length === 0 ? (
+            {videos === null ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} style={{ background: '#fff', borderRadius: 18, overflow: 'hidden', display: 'flex', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                            <div style={{ width: 110, height: 80, background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', flexShrink: 0 }} />
+                            <div style={{ flex: 1, padding: '16px 14px' }}>
+                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', marginBottom: 8 }} />
+                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', width: '50%' }} />
+                            </div>
+                        </div>
+                    ))}
+                    <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+                </div>
+            ) : videos.length === 0 ? (
                 <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center' }}>
                     <div style={{ fontSize: 44, marginBottom: 12 }}>🎬</div>
                     <p style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F', marginBottom: 6 }}>תוכן בדרך</p>
