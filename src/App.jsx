@@ -53,6 +53,8 @@ import TermsPage from './pages/TermsPage';
 import CookieConsent from './components/CookieConsent';
 import { db } from './firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import useIsMobile from './hooks/useIsMobile';
+import MobileApp from './mobile/MobileApp';
 
 
 // ─── Analytics helpers ───────────────────────────────────────────────────────
@@ -151,13 +153,19 @@ function App() {
 }
 
 function AppContent() {
-    const location = useLocation();
+    const location  = useLocation();
     const { getSetting } = useSettings();
     const maintenance = getSetting('maintenance_mode', false);
+    const isMobile  = useIsMobile();
 
-    // ─── Admin Route Isolation ────────────────────────────────────────────────
+    // ─── Admin Route Isolation (desktop only) ─────────────────────────────────
     if (location.pathname.startsWith('/admin')) {
         return <AdminApp />;
+    }
+
+    // ─── Mobile App — completely separate codebase ─────────────────────────────
+    if (isMobile) {
+        return <MobileApp />;
     }
 
     // ─── Maintenance Mode ──────────────────────────────────────────────────────
