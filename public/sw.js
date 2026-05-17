@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextclass-v3';
+const CACHE_NAME = 'nextclass-v4';
 
 self.addEventListener('message', (e) => {
     if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
@@ -31,8 +31,8 @@ self.addEventListener('fetch', (e) => {
     const isFirebase = url.hostname.includes('firebase') || url.hostname.includes('googleapis.com');
     const isExternal = url.origin !== self.location.origin;
 
-    if (isFirebase) return;
-    if (isExternal && request.destination !== 'image') return;
+    // Never intercept external requests — let browser handle images/CDN directly
+    if (isFirebase || isExternal) return;
 
     // SPA navigation: serve index.html for all same-origin navigations
     if (request.mode === 'navigate') {
