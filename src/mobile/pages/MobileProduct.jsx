@@ -398,6 +398,90 @@ function QASection({ productId, c }) {
     );
 }
 
+// ─── Sticky Section Nav ───────────────────────────────────────────────────────
+function SectionNav({ sections, c }) {
+    const [active, setActive] = useState(sections[0]?.id || '');
+    const navRef = useRef(null);
+
+    useEffect(() => {
+        if (!sections.length) return;
+        const onScroll = () => {
+            const offset = 130;
+            let found = sections[0]?.id || '';
+            for (const s of sections) {
+                const el = document.getElementById(s.id);
+                if (!el) continue;
+                if (el.getBoundingClientRect().top <= offset) found = s.id;
+            }
+            setActive(prev => {
+                if (prev === found) return prev;
+                // scroll nav pill into view
+                setTimeout(() => {
+                    const pill = navRef.current?.querySelector(`[data-id="${found}"]`);
+                    pill?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }, 0);
+                return found;
+            });
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, [sections]);
+
+    const scrollTo = (id) => {
+        haptic('light');
+        setActive(id);
+        const el = document.getElementById(id);
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - 112;
+        window.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    if (!sections.length) return null;
+
+    return (
+        <div ref={navRef} style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 140,
+            background: c.navBg,
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            borderBottom: `0.5px solid ${c.border}`,
+            display: 'flex',
+            gap: 6,
+            padding: '8px 14px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+        }}>
+            {sections.map(({ id, label }) => (
+                <motion.button
+                    key={id}
+                    data-id={id}
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => scrollTo(id)}
+                    style={{
+                        flexShrink: 0,
+                        padding: '6px 14px',
+                        borderRadius: 99,
+                        border: 'none',
+                        background: active === id ? '#007AFF' : c.input,
+                        color: active === id ? '#fff' : c.text3,
+                        fontSize: 13,
+                        fontWeight: active === id ? 700 : 500,
+                        cursor: 'pointer',
+                        fontFamily: SF,
+                        transition: 'background 0.18s, color 0.18s',
+                        WebkitTapHighlightColor: 'transparent',
+                    }}
+                >
+                    {label}
+                </motion.button>
+            ))}
+        </div>
+    );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function MobileProduct() {
     const { id }   = useParams();
@@ -423,6 +507,15 @@ export default function MobileProduct() {
     const related = activeProducts
         .filter(p => p.category === product?.category && String(p.id) !== String(id))
         .slice(0, 6);
+
+    const sections = product ? [
+        ...(product.specs?.length > 0    ? [{ id: 'section-specs',    label: 'מפרט' }]      : []),
+        ...(product.features?.length > 0  ? [{ id: 'section-features', label: 'תכונות' }]    : []),
+        ...(product.warranty              ? [{ id: 'section-warranty', label: 'אחריות' }]     : []),
+        ...(isVisible('vis_reviews', true) ? [{ id: 'section-reviews', label: 'ביקורות' }]   : []),
+        { id: 'section-qa',      label: 'שאלות' },
+        ...(related.length > 0            ? [{ id: 'section-related',  label: 'דומים' }]      : []),
+    ] : [];
 
     if (!product) return (
         <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
@@ -567,9 +660,12 @@ export default function MobileProduct() {
                 )}
             </div>
 
+            {/* ── Section Nav ───────────────────────────────────────────── */}
+            <SectionNav sections={sections} c={c} />
+
             {/* ── Accordion Sections ────────────────────────────────────── */}
             {product.specs?.length > 0 && (
-                <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+                <div id="section-specs" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                     <Accordion title="מפרט טכני" defaultOpen c={c}>
                         {product.specs.map((s, i) => (
                             <div key={i} style={{
@@ -587,7 +683,7 @@ export default function MobileProduct() {
             )}
 
             {product.features?.length > 0 && (
-                <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+                <div id="section-features" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                     <Accordion title="תכונות בולטות" c={c}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {product.features.map((f, i) => (
@@ -604,7 +700,7 @@ export default function MobileProduct() {
             )}
 
             {product.warranty && (
-                <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+                <div id="section-warranty" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                     <Accordion title="אחריות ותנאים" c={c}>
                         <p style={{ fontSize: 14, color: c.text2, lineHeight: 1.65 }}>{product.warranty}</p>
                     </Accordion>
@@ -636,7 +732,7 @@ export default function MobileProduct() {
                     },
                 ];
                 return (
-                    <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+                    <div id="section-reviews" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                         <Accordion title="חוות דעת" c={c}>
                             {/* Average rating header */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -683,7 +779,7 @@ export default function MobileProduct() {
             })()}
 
             {/* ── Q&A ──────────────────────────────────────────────────── */}
-            <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+            <div id="section-qa" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                 <Accordion title="שאלות ותשובות" c={c}>
                     <QASection productId={id} c={c} />
                 </Accordion>
@@ -691,7 +787,7 @@ export default function MobileProduct() {
 
             {/* ── Related Products ─────────────────────────────────────── */}
             {related.length > 0 && (
-                <section style={{ marginBottom: 10 }}>
+                <section id="section-related" style={{ marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                         <button onClick={() => navigate(`/catalog?category=${encodeURIComponent(product.category)}`)}
                             style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>

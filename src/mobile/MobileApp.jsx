@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
-import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send } from 'lucide-react';
+import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -574,163 +574,296 @@ function getRouteIndex(pathname) {
     return i === -1 ? 5 : i;
 }
 
-// ─── Floating WhatsApp ────────────────────────────────────────────────────────
-function MobileFloatingWhatsApp() {
-    const { getSetting } = useSettings();
-    const { colors: c }  = useTheme();
-    const rawPhone = getSetting('whatsapp_number', '972585856356');
-    const phone    = rawPhone.replace(/\D/g, '');
-    const url      = `https://wa.me/${phone}`;
-
-    return (
-        <motion.a
-            href={url} target="_blank" rel="noopener noreferrer"
-            initial={{ scale: 0 }} animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 1.2 }}
-            whileTap={{ scale: 0.88 }}
-            aria-label="WhatsApp"
-            style={{
-                position: 'fixed', bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
-                left: 16, zIndex: 150,
-                width: 50, height: 50, borderRadius: 25,
-                background: '#25D366', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 20px rgba(37,211,102,0.45)',
-                textDecoration: 'none',
-                WebkitTapHighlightColor: 'transparent',
-            }}
-        >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-        </motion.a>
-    );
-}
-
-// ─── Floating AI Assistant ────────────────────────────────────────────────────
-function MobileFloatingAI() {
+// ─── Unified Smart Concierge (AI + WhatsApp + Phone + Accessibility) ─────────
+function MobileSmartConcierge() {
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
     const [open, setOpen]   = useState(false);
+    const [tab, setTab]     = useState('ai'); // 'ai' | 'wa' | 'phone' | 'a11y'
     const [input, setInput] = useState('');
     const [msgs, setMsgs]   = useState([]);
+    const [a11y, setA11y]   = useState(() => {
+        try { return JSON.parse(localStorage.getItem('nc_a11y') || '{}'); } catch { return {}; }
+    });
     const bottomRef = useRef(null);
 
-    const greeting  = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך. מה תרצה לדעת?');
+    const rawPhone  = getSetting('whatsapp_number', '972585856356');
+    const phone     = rawPhone.replace(/\D/g, '');
+    const callPhone = getSetting('contact_phone', '058-5856356');
+    const greeting  = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך.');
     const botName   = getSetting('ai_title', 'NextClass AI');
+    const botRole   = getSetting('ai_role', 'Institutional Concierge');
     const thinkMsg  = getSetting('ai_thinking', 'מעבד את בקשתך...');
+    const chip1     = getSetting('ai_chip1', 'הצעת מחיר');
+    const chip2     = getSetting('ai_chip2', 'מפרט טכני');
+    const chip3     = getSetting('ai_chip3', 'ייעוץ');
+    const waLabel   = getSetting('ai_wa_label', 'מענה אנושי בוואטסאפ');
+    const waStatus  = getSetting('ai_wa_status', 'יועץ טכנולוגי זמין כעת');
+    const conciergeLabel = getSetting('concierge_label', 'צריכים התייעצות?');
 
     useEffect(() => { setMsgs([{ role: 'ai', text: greeting }]); }, [greeting]);
     useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
 
-    const send = () => {
-        if (!input.trim()) return;
-        const text = input.trim();
+    const applyA11y = (updates) => {
+        const next = { ...a11y, ...updates };
+        setA11y(next);
+        localStorage.setItem('nc_a11y', JSON.stringify(next));
+        const root = document.documentElement;
+        root.style.fontSize = next.fontSize ? '118%' : '';
+        root.style.filter   = next.contrast ? 'contrast(1.5) brightness(0.92)' : next.grayscale ? 'grayscale(1)' : '';
+        if (next.motion) root.style.setProperty('--motion-duration', '0ms');
+        else root.style.removeProperty('--motion-duration');
+    };
+
+    const send = (text) => {
+        if (!text.trim()) return;
         setInput('');
         setMsgs(p => [...p, { role: 'user', text }]);
         haptic('medium');
         setTimeout(() => setMsgs(p => [...p, { role: 'ai', text: thinkMsg }]), 900);
     };
 
+    const TABS = [
+        { id: 'ai',    label: 'AI', icon: <Bot size={16} /> },
+        { id: 'wa',    label: 'WhatsApp', icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> },
+        { id: 'phone', label: 'טלפון', icon: <Phone size={16} /> },
+        { id: 'a11y',  label: 'נגישות', icon: <Accessibility size={16} /> },
+    ];
+
+    const tabAccent = { ai: '#007AFF', wa: '#25D366', phone: '#34C759', a11y: '#5856D6' };
+
     return (
         <>
             {/* FAB */}
             <motion.button
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 1.4 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 1.2 }}
                 whileTap={{ scale: 0.88 }}
                 onClick={() => { haptic('select'); setOpen(o => !o); }}
-                aria-label="עוזר AI"
+                aria-label={conciergeLabel}
                 style={{
-                    position: 'fixed', bottom: 'calc(128px + env(safe-area-inset-bottom, 0px))',
+                    position: 'fixed', bottom: 'calc(78px + env(safe-area-inset-bottom, 0px))',
                     left: 16, zIndex: 150,
-                    width: 50, height: 50, borderRadius: 25,
-                    background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                    width: 52, height: 52, borderRadius: 26,
+                    background: open ? '#1D1D1F' : 'linear-gradient(135deg, #007AFF, #5856D6)',
                     color: '#fff', border: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 20px rgba(0,122,255,0.45)',
+                    boxShadow: open ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,122,255,0.5)',
                     cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                    transition: 'background 0.22s, box-shadow 0.22s',
                     fontFamily: SF,
                 }}
             >
-                {open ? <X size={20} /> : <MessageCircle size={20} />}
+                <AnimatePresence mode="popLayout">
+                    <motion.div key={open ? 'x' : 'chat'}
+                        initial={{ scale: 0.5, rotate: -90, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        exit={{ scale: 0.5, rotate: 90, opacity: 0 }}
+                        transition={{ duration: 0.18 }}>
+                        {open ? <X size={22} /> : <MessageCircle size={22} />}
+                    </motion.div>
+                </AnimatePresence>
             </motion.button>
 
-            {/* Chat bottom sheet */}
+            {/* Bottom sheet */}
             <AnimatePresence>
                 {open && (
                     <>
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setOpen(false)}
-                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 160, backdropFilter: 'blur(4px)' }}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', zIndex: 160, backdropFilter: 'blur(5px)' }}
                         />
                         <motion.div
                             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                             transition={{ type: 'spring', stiffness: 340, damping: 36 }}
                             style={{
                                 position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 161,
-                                background: c.surface, borderRadius: '20px 20px 0 0',
-                                height: '65dvh', display: 'flex', flexDirection: 'column',
-                                boxShadow: '0 -8px 48px rgba(0,0,0,0.18)',
+                                background: c.surface, borderRadius: '24px 24px 0 0',
+                                height: '72dvh', display: 'flex', flexDirection: 'column',
+                                boxShadow: '0 -8px 48px rgba(0,0,0,0.2)',
                                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                                 fontFamily: SF, direction: 'rtl',
                             }}
                         >
-                            {/* Handle bar */}
-                            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+                            {/* Handle */}
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
                                 <div style={{ width: 36, height: 4, borderRadius: 2, background: c.divider }} />
                             </div>
+
                             {/* Header */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px 12px', borderBottom: `0.5px solid ${c.divider}` }}>
-                                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <MessageCircle size={16} color="#fff" />
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: 14, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{botName}</p>
-                                    <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600 }}>● מחובר</p>
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 12px' }}>
                                 <motion.button whileTap={{ scale: 0.88 }} onClick={() => setOpen(false)}
-                                    style={{ marginRight: 'auto', background: 'none', border: 'none', cursor: 'pointer', padding: 6, WebkitTapHighlightColor: 'transparent' }}>
-                                    <X size={18} color={c.text4} />
+                                    style={{ background: c.bg, border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                                    <X size={16} color={c.text4} />
                                 </motion.button>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: 15, fontWeight: 800, color: c.text }}>{getSetting('concierge_header', 'דברו איתנו')}</p>
+                                    <p style={{ fontSize: 11, color: c.text4 }}>{conciergeLabel}</p>
+                                </div>
+                                <div style={{ width: 32 }} />
                             </div>
-                            {/* Messages */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {msgs.map((m, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-start' : 'flex-end' }}>
-                                        <div style={{
-                                            maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 18px 4px' : '18px 18px 4px 18px',
-                                            background: m.role === 'user' ? '#007AFF' : c.bg,
-                                            color: m.role === 'user' ? '#fff' : c.text,
-                                            fontSize: 14, lineHeight: 1.5,
-                                            border: m.role !== 'user' ? `0.5px solid ${c.border}` : 'none',
-                                        }}>{m.text}</div>
-                                    </div>
+
+                            {/* Tab bar */}
+                            <div style={{ display: 'flex', gap: 6, padding: '0 14px 10px' }}>
+                                {TABS.map(t => (
+                                    <motion.button key={t.id} whileTap={{ scale: 0.93 }}
+                                        onClick={() => { haptic('select'); setTab(t.id); }}
+                                        style={{
+                                            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                            padding: '9px 6px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s',
+                                            background: tab === t.id ? `${tabAccent[t.id]}15` : c.bg,
+                                            color: tab === t.id ? tabAccent[t.id] : c.text4,
+                                        }}>
+                                        {t.icon}
+                                        <span style={{ fontSize: 9, fontWeight: 700 }}>{t.label}</span>
+                                        {tab === t.id && <motion.div layoutId="tab-underline" style={{ width: 16, height: 2, borderRadius: 1, background: tabAccent[t.id] }} />}
+                                    </motion.button>
                                 ))}
-                                <div ref={bottomRef} />
                             </div>
-                            {/* Input */}
-                            <div style={{ padding: '10px 12px 14px', display: 'flex', gap: 8, borderTop: `0.5px solid ${c.divider}` }}>
-                                <input
-                                    value={input} onChange={e => setInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && send()}
-                                    placeholder={getSetting('ai_placeholder', 'שאל אותי על מוצרים...')}
-                                    style={{
-                                        flex: 1, background: c.input, border: 'none', borderRadius: 12,
-                                        padding: '11px 14px', fontSize: 14, color: c.text,
-                                        outline: 'none', direction: 'rtl', fontFamily: SF,
-                                    }}
-                                />
-                                <motion.button whileTap={{ scale: 0.88 }} onClick={send}
-                                    style={{
-                                        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-                                        background: input.trim() ? '#007AFF' : c.input,
-                                        border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s',
-                                    }}>
-                                    <Send size={16} color={input.trim() ? '#fff' : c.text4} />
-                                </motion.button>
+
+                            {/* Tab content */}
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                                <AnimatePresence mode="wait">
+                                    <motion.div key={tab}
+                                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.16 }}
+                                        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                    >
+                                        {/* ── AI Tab ── */}
+                                        {tab === 'ai' && (
+                                            <>
+                                                <div style={{ padding: '0 14px 8px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `0.5px solid ${c.divider}` }}>
+                                                    <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <Bot size={18} color="#fff" />
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: 14, fontWeight: 800, color: c.text }}>{botName}</p>
+                                                        <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600 }}>● {botRole}</p>
+                                                    </div>
+                                                </div>
+                                                {/* Quick chips */}
+                                                <div style={{ display: 'flex', gap: 6, padding: '10px 14px 0', flexWrap: 'wrap' }}>
+                                                    {[chip1, chip2, chip3].map(chip => (
+                                                        <motion.button key={chip} whileTap={{ scale: 0.92 }}
+                                                            onClick={() => send(chip)}
+                                                            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.15)', borderRadius: 99, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                                                            {chip}
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                                <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                    {msgs.map((m, i) => (
+                                                        <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-start' : 'flex-end' }}>
+                                                            <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 18px 4px' : '18px 18px 4px 18px', background: m.role === 'user' ? '#007AFF' : c.bg, color: m.role === 'user' ? '#fff' : c.text, fontSize: 14, lineHeight: 1.5, border: m.role !== 'user' ? `0.5px solid ${c.border}` : 'none' }}>
+                                                                {m.text}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div ref={bottomRef} />
+                                                </div>
+                                                <div style={{ padding: '10px 12px 12px', display: 'flex', gap: 8, borderTop: `0.5px solid ${c.divider}` }}>
+                                                    <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(input)}
+                                                        placeholder={getSetting('ai_placeholder', 'שאל אותי על מוצרים...')}
+                                                        style={{ flex: 1, background: c.input, border: 'none', borderRadius: 12, padding: '11px 14px', fontSize: 14, color: c.text, outline: 'none', direction: 'rtl', fontFamily: SF }} />
+                                                    <motion.button whileTap={{ scale: 0.88 }} onClick={() => send(input)}
+                                                        style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: input.trim() ? '#007AFF' : c.input, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s' }}>
+                                                        <Send size={16} color={input.trim() ? '#fff' : c.text4} />
+                                                    </motion.button>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* ── WhatsApp Tab ── */}
+                                        {tab === 'wa' && (
+                                            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                                <div style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)', borderRadius: 20, padding: '24px 20px', textAlign: 'center' }}>
+                                                    <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                                                        <svg width={32} height={32} viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                    </div>
+                                                    <h3 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 6 }}>{waLabel}</h3>
+                                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 18 }}>{waStatus}</p>
+                                                    <motion.a href={`https://wa.me/${phone}`} target="_blank" rel="noopener noreferrer" whileTap={{ scale: 0.96 }}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 14, color: '#fff', fontSize: 15, fontWeight: 700, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.3)' }}>
+                                                        {getSetting('contact_wa_btn', 'התחל שיחה עכשיו')}
+                                                    </motion.a>
+                                                </div>
+                                                <div style={{ background: c.surface, borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: c.cardShadow }}>
+                                                    <div style={{ width: 8, height: 8, borderRadius: 4, background: '#34C759', flexShrink: 0 }} />
+                                                    <p style={{ fontSize: 13, color: c.text2, fontWeight: 600 }}>{getSetting('phone_sub', "זמין א'–ה', 9:00–18:00")}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Phone Tab ── */}
+                                        {tab === 'phone' && (
+                                            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                                <div style={{ background: 'linear-gradient(135deg, #34C759, #30B052)', borderRadius: 20, padding: '24px 20px', textAlign: 'center' }}>
+                                                    <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                                                        <Phone size={32} color="white" />
+                                                    </div>
+                                                    <h3 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 6 }}>{getSetting('phone_label', 'שיחה עם מומחה')}</h3>
+                                                    <p style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', marginBottom: 18 }}>{callPhone}</p>
+                                                    <motion.a href={`tel:${callPhone.replace(/\D/g,'')}`} whileTap={{ scale: 0.96 }}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 14, color: '#fff', fontSize: 15, fontWeight: 700, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.3)' }}>
+                                                        <Phone size={16} /> התקשר עכשיו
+                                                    </motion.a>
+                                                </div>
+                                                <div style={{ background: c.surface, borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: c.cardShadow }}>
+                                                    <div style={{ width: 8, height: 8, borderRadius: 4, background: '#34C759', flexShrink: 0 }} />
+                                                    <p style={{ fontSize: 13, color: c.text2, fontWeight: 600 }}>{getSetting('pd_support_wa_value', 'זמינים 9:00–21:00')}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Accessibility Tab ── */}
+                                        {tab === 'a11y' && (
+                                            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                <div style={{ background: c.surface, borderRadius: 18, overflow: 'hidden', boxShadow: c.cardShadow }}>
+                                                    <div style={{ padding: '14px 16px', borderBottom: `0.5px solid ${c.divider}` }}>
+                                                        <p style={{ fontSize: 15, fontWeight: 800, color: c.text }}>{getSetting('a11y_widget_title', 'מרכז נגישות')}</p>
+                                                        <p style={{ fontSize: 12, color: c.text3 }}>{getSetting('a11y_widget_subtitle', 'התאם את חוויית הגלישה שלך')}</p>
+                                                    </div>
+                                                    {[
+                                                        { key: 'fontSize',  label: getSetting('a11y_font_label', 'גודל גופן גדול'), emoji: '🔤' },
+                                                        { key: 'contrast',  label: getSetting('a11y_contrast_label', 'ניגוד גבוה'),      emoji: '☀️' },
+                                                        { key: 'motion',    label: getSetting('a11y_motion_label', 'ביטול אנימציות'),   emoji: '⏸️' },
+                                                        { key: 'grayscale', label: getSetting('a11y_grayscale_label', 'גווני אפור'),     emoji: '🔲' },
+                                                    ].map(({ key, label, emoji }) => (
+                                                        <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `0.5px solid ${c.divider}` }}>
+                                                            <motion.button whileTap={{ scale: 0.92 }}
+                                                                onClick={() => applyA11y({ [key]: !a11y[key] })}
+                                                                style={{
+                                                                    width: 46, height: 26, borderRadius: 13,
+                                                                    background: a11y[key] ? '#5856D6' : c.bg,
+                                                                    border: `1.5px solid ${a11y[key] ? '#5856D6' : c.border}`,
+                                                                    position: 'relative', cursor: 'pointer',
+                                                                    transition: 'background 0.2s, border-color 0.2s',
+                                                                    WebkitTapHighlightColor: 'transparent',
+                                                                }}>
+                                                                <motion.div
+                                                                    animate={{ x: a11y[key] ? 20 : 2 }}
+                                                                    transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+                                                                    style={{ position: 'absolute', top: 2, width: 18, height: 18, borderRadius: 9, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}
+                                                                />
+                                                            </motion.button>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                                <span style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{label}</span>
+                                                                <span style={{ fontSize: 20 }}>{emoji}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => applyA11y({ fontSize: false, contrast: false, motion: false, grayscale: false })}
+                                                        style={{ width: '100%', padding: '14px', background: 'none', border: 'none', color: '#FF3B30', fontSize: 13, fontWeight: 700, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                                                        {getSetting('a11y_reset_label', 'איפוס הגדרות נגישות')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
                             </div>
                         </motion.div>
                     </>
@@ -910,8 +1043,7 @@ function MobileAppInner() {
 
             {!hideBottomNav && <MobileBottomNav />}
             <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-            <MobileFloatingWhatsApp />
-            <MobileFloatingAI />
+            <MobileSmartConcierge />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />
