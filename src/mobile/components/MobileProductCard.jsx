@@ -243,6 +243,18 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const memberPricingOn = isVisible('vis_member_pricing', false);
     const memberPrice = memberPricingOn ? getMemberPrice(displayPrice) : null;
 
+    // Push price to savings session on mount (viewed product)
+    useEffect(() => {
+        if (!displayPrice) return;
+        try {
+            const raw = sessionStorage.getItem('nc_savings_session');
+            const arr = raw ? JSON.parse(raw) : [];
+            arr.push(displayPrice);
+            sessionStorage.setItem('nc_savings_session', JSON.stringify(arr.slice(-20)));
+        } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
         <>
             <motion.div
@@ -357,6 +369,25 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         </>
                     )}
                 </div>
+
+                {/* ── Social proof chip ──────────────────────────────────── */}
+                {!isSmall && (() => {
+                    const hash = String(product.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+                    const viewers = 2 + (hash % 6);
+                    return (
+                        <div style={{
+                            position: 'absolute', bottom: 8, left: 8, zIndex: 3,
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)',
+                            borderRadius: 99, padding: '3px 7px',
+                        }}>
+                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#30D158', boxShadow: '0 0 4px #30D158', flexShrink: 0 }} />
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: SF, whiteSpace: 'nowrap' }}>
+                                {viewers} צופים
+                            </span>
+                        </div>
+                    );
+                })()}
 
                 {/* ── Info ───────────────────────────────────────────────── */}
                 <div style={{ padding: isSmall ? '8px 10px 10px' : '10px 12px 12px' }}>

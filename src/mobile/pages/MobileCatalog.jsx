@@ -21,14 +21,8 @@ const SORT_OPTIONS = [
     { id: 'name',       label: 'שם (א-ת)' },
 ];
 
-// Preset price ranges — null means "no limit"
-const PRICE_PRESETS = [
-    { id: 'all',   label: 'הכל',            min: null, max: null },
-    { id: 'u5',    label: 'עד ₪5,000',       min: null, max: 5000 },
-    { id: '5-15',  label: '₪5,000–₪15,000',  min: 5000, max: 15000 },
-    { id: '15-30', label: '₪15,000–₪30,000', min: 15000, max: 30000 },
-    { id: 'o30',   label: 'מעל ₪30,000',     min: 30000, max: null },
-];
+const PRICE_MIN_GLOBAL = 0;
+const PRICE_MAX_GLOBAL = 100000;
 
 export default function MobileCatalog() {
     const [searchParams] = useSearchParams();
@@ -45,14 +39,15 @@ export default function MobileCatalog() {
     const [sortBy,      setSortBy]      = useState('default');
     const [showSort,    setShowSort]    = useState(false);
 
-    // Filter drawer state
+    // Filter drawer state — price range slider (draft values while drawer is open)
     const [showFilter,      setShowFilter]      = useState(false);
-    const [pricePreset,     setPricePreset]      = useState('all');
+    const [draftMin,        setDraftMin]        = useState(PRICE_MIN_GLOBAL);
+    const [draftMax,        setDraftMax]        = useState(PRICE_MAX_GLOBAL);
     // Applied state (only committed when user taps Apply)
-    const [appliedPreset,   setAppliedPreset]    = useState('all');
+    const [appliedMin,      setAppliedMin]      = useState(PRICE_MIN_GLOBAL);
+    const [appliedMax,      setAppliedMax]      = useState(PRICE_MAX_GLOBAL);
 
-    const activePreset = PRICE_PRESETS.find(p => p.id === appliedPreset) ?? PRICE_PRESETS[0];
-    const filterActive = appliedPreset !== 'all';
+    const filterActive = appliedMin > PRICE_MIN_GLOBAL || appliedMax < PRICE_MAX_GLOBAL;
     const filterCount  = filterActive ? 1 : 0;
 
     const filtered = useMemo(() => {
@@ -67,14 +62,13 @@ export default function MobileCatalog() {
             );
         }
         // Price range filter
-        if (activePreset.min != null) list = list.filter(p => (p.price || 0) >= activePreset.min);
-        if (activePreset.max != null) list = list.filter(p => (p.price || 0) <= activePreset.max);
+        list = list.filter(p => (p.price || 0) >= appliedMin && (p.price || 0) <= appliedMax);
 
         if (sortBy === 'price-asc')  list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0));
         if (sortBy === 'price-desc') list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0));
         if (sortBy === 'name')       list = [...list].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'he'));
         return list;
-    }, [activeProducts, category, search, sortBy, allLabel, activePreset]);
+    }, [activeProducts, category, search, sortBy, allLabel, appliedMin, appliedMax]);
 
     // Group into rows of 2 for virtual scrolling
     const rows = useMemo(() => {
@@ -128,18 +122,22 @@ export default function MobileCatalog() {
     // Filter drawer handlers
     const openFilter = () => {
         haptic('select');
-        setPricePreset(appliedPreset); // sync local draft to applied
+        setDraftMin(appliedMin); // sync draft to applied when opening
+        setDraftMax(appliedMax);
         setShowFilter(true);
     };
     const applyFilter = () => {
         haptic('select');
-        setAppliedPreset(pricePreset);
+        setAppliedMin(draftMin);
+        setAppliedMax(draftMax);
         setShowFilter(false);
     };
     const resetFilter = () => {
         haptic('select');
-        setPricePreset('all');
-        setAppliedPreset('all');
+        setDraftMin(PRICE_MIN_GLOBAL);
+        setDraftMax(PRICE_MAX_GLOBAL);
+        setAppliedMin(PRICE_MIN_GLOBAL);
+        setAppliedMax(PRICE_MAX_GLOBAL);
         setShowFilter(false);
     };
 
@@ -412,39 +410,63 @@ export default function MobileCatalog() {
                                     </motion.button>
                                 </div>
 
-                                {/* Price range section */}
-                                <p style={{ fontSize: 13, fontWeight: 700, color: c.text3, letterSpacing: '0.03em', marginBottom: 12 }}>טווח מחיר</p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-                                    {PRICE_PRESETS.map(preset => {
-                                        const active = pricePreset === preset.id;
-                                        return (
-                                            <motion.button
-                                                key={preset.id}
-                                                whileTap={{ scale: 0.97 }}
-                                                onClick={() => { haptic('select'); setPricePreset(preset.id); }}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                    padding: '13px 16px',
-                                                    background: active ? 'rgba(0,122,255,0.08)' : c.bg,
-                                                    border: active ? `1.5px solid #007AFF` : `1px solid ${c.border}`,
-                                                    borderRadius: 14,
-                                                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                                                    fontFamily: SF,
-                                                }}
-                                            >
-                                                <span style={{ fontSize: 15, fontWeight: active ? 700 : 500, color: active ? '#007AFF' : c.text }}>
-                                                    {preset.label}
-                                                </span>
-                                                {active && (
-                                                    <div style={{ width: 20, height: 20, borderRadius: 99, background: '#007AFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                                                            <path d="M1 4L3.5 6.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </motion.button>
-                                        );
-                                    })}
+                                {/* Price range section — dual range sliders */}
+                                <p style={{ fontSize: 13, fontWeight: 700, color: c.text3, letterSpacing: '0.03em', marginBottom: 16 }}>טווח מחיר</p>
+
+                                {/* Price display */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    gap: 8, marginBottom: 20, direction: 'rtl',
+                                }}>
+                                    <span style={{ fontSize: 17, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>
+                                        ₪{draftMin.toLocaleString()}
+                                    </span>
+                                    <span style={{ fontSize: 14, color: c.text4, fontWeight: 500 }}>—</span>
+                                    <span style={{ fontSize: 17, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>
+                                        {draftMax >= PRICE_MAX_GLOBAL ? 'ללא הגבלה' : `₪${draftMax.toLocaleString()}`}
+                                    </span>
+                                </div>
+
+                                {/* Min slider */}
+                                <div style={{ marginBottom: 12 }}>
+                                    <p style={{ fontSize: 11, fontWeight: 600, color: c.text4, marginBottom: 6 }}>מחיר מינימלי</p>
+                                    <input
+                                        type="range"
+                                        min={PRICE_MIN_GLOBAL}
+                                        max={PRICE_MAX_GLOBAL}
+                                        step={500}
+                                        value={draftMin}
+                                        onChange={e => {
+                                            const val = Number(e.target.value);
+                                            setDraftMin(Math.min(val, draftMax - 500));
+                                        }}
+                                        style={{
+                                            width: '100%', direction: 'rtl',
+                                            accentColor: '#007AFF', height: 4,
+                                            cursor: 'pointer',
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Max slider */}
+                                <div style={{ marginBottom: 28 }}>
+                                    <p style={{ fontSize: 11, fontWeight: 600, color: c.text4, marginBottom: 6 }}>מחיר מקסימלי</p>
+                                    <input
+                                        type="range"
+                                        min={PRICE_MIN_GLOBAL}
+                                        max={PRICE_MAX_GLOBAL}
+                                        step={500}
+                                        value={draftMax}
+                                        onChange={e => {
+                                            const val = Number(e.target.value);
+                                            setDraftMax(Math.max(val, draftMin + 500));
+                                        }}
+                                        style={{
+                                            width: '100%', direction: 'rtl',
+                                            accentColor: '#007AFF', height: 4,
+                                            cursor: 'pointer',
+                                        }}
+                                    />
                                 </div>
 
                                 {/* Action buttons */}

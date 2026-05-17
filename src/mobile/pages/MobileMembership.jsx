@@ -140,6 +140,113 @@ const FAQItem = ({ q, a, open, onToggle }) => (
   </div>
 );
 
+// ── Tier Unlock Journey ───────────────────────────────────────────────────────
+const JOURNEY_CONFIG = {
+  free:    { discount: 5,  label: 'פרטי',    step: 0 },
+  member:  { discount: 12, label: 'מוסדי',   step: 1 },
+  premium: { discount: 18, label: 'פרימיום', step: 2 },
+};
+
+function TierJourney() {
+  const { memberTier, tierColor } = useAuth();
+  const cfg = JOURNEY_CONFIG[memberTier] ?? JOURNEY_CONFIG.free;
+  const currentStep = cfg.step;
+
+  const steps = [
+    { label: 'פרטי',    tier: 'free' },
+    { label: 'מוסדי',   tier: 'member' },
+    { label: 'פרימיום', tier: 'premium' },
+  ];
+
+  const nextTierKey = memberTier === 'free' ? 'member' : memberTier === 'member' ? 'premium' : null;
+  const nextTierCfg = nextTierKey ? JOURNEY_CONFIG[nextTierKey] : null;
+  const diff = nextTierCfg ? nextTierCfg.discount - cfg.discount : 0;
+
+  return (
+    <BlurFade delay={0}>
+      <div style={{
+        margin: '24px 16px 0',
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderRadius: 20,
+        padding: '20px 16px 18px',
+        direction: 'rtl',
+      }}>
+        <p style={{ fontFamily: SF, fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 18px', textAlign: 'right' }}>
+          מסע השדרוג שלך
+        </p>
+
+        {/* Stepper */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {steps.map((s, i) => {
+            const done    = i < currentStep;
+            const current = i === currentStep;
+            const future  = i > currentStep;
+            return (
+              <React.Fragment key={s.tier}>
+                {/* Connector line */}
+                {i > 0 && (
+                  <div style={{
+                    flex: 1, height: 3, borderRadius: 99,
+                    background: i <= currentStep ? tierColor : 'rgba(255,255,255,0.15)',
+                    transition: 'background 0.4s',
+                    margin: '0 4px',
+                  }} />
+                )}
+                {/* Circle */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <motion.div
+                    animate={current ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+                    transition={current ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : {}}
+                    style={{
+                      width: 38, height: 38, borderRadius: 99,
+                      background: done ? tierColor : current ? tierColor : 'transparent',
+                      border: future ? '2px solid rgba(255,255,255,0.2)' : `2px solid ${tierColor}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: current ? `0 0 14px ${tierColor}66` : 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {done ? (
+                      <span style={{ color: '#fff', fontSize: 14, fontWeight: 900 }}>✓</span>
+                    ) : (
+                      <span style={{ fontFamily: SF, fontSize: 11, fontWeight: 800,
+                        color: future ? 'rgba(255,255,255,0.35)' : '#fff' }}>
+                        {i + 1}
+                      </span>
+                    )}
+                  </motion.div>
+                  <span style={{ fontFamily: SF, fontSize: 11, fontWeight: current ? 800 : 500,
+                    color: current ? tierColor : future ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)',
+                    whiteSpace: 'nowrap' }}>
+                    {s.label}
+                  </span>
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Status text */}
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 900, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            אתה ב{cfg.label}
+          </p>
+          {nextTierCfg ? (
+            <p style={{ fontFamily: SF, fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+              שדרג ל{nextTierCfg.label} וחסוך עוד {diff}%
+            </p>
+          ) : (
+            <p style={{ fontFamily: SF, fontSize: 13, color: tierColor, fontWeight: 700, margin: 0 }}>
+              הגעת לרמה הגבוהה ביותר ✓
+            </p>
+          )}
+        </div>
+      </div>
+    </BlurFade>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MobileMembership() {
   const { openAuthModal, isMember } = useAuth();
@@ -231,6 +338,9 @@ export default function MobileMembership() {
           )}
         </BlurFade>
       </div>
+
+      {/* ── Tier Unlock Journey ──────────────────────────────────────── */}
+      <TierJourney />
 
       <div style={{ padding: '0 16px' }}>
 

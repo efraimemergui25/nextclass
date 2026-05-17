@@ -10,6 +10,35 @@ const ROLES = [
     { value: 'other',       label: 'אחר' },
 ];
 
+// ─── Auto-detect institution from email domain ────────────────────────────────
+const KNOWN_DOMAINS = {
+    'tau.ac.il':       'אוניברסיטת תל אביב',
+    'huji.ac.il':      'האוניברסיטה העברית',
+    'technion.ac.il':  'הטכניון',
+    'bgu.ac.il':       'אוניברסיטת בן גוריון',
+    'biu.ac.il':       'אוניברסיטת בר אילן',
+    'haifa.ac.il':     'אוניברסיטת חיפה',
+    'weizmann.ac.il':  'מכון ויצמן',
+    'openu.ac.il':     'האוניברסיטה הפתוחה',
+    'hit.ac.il':       'מכון טכנולוגי חולון',
+    'jct.ac.il':       'מכללת לב',
+    'afeka.ac.il':     'אפקה - מכללה אקדמית להנדסה',
+    'colman.ac.il':    'המכללה האקדמית נתניה',
+    'sce.ac.il':       'המכללה האקדמית סמי שמעון',
+};
+
+function detectInstitution(email) {
+    if (!email || !email.includes('@')) return null;
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return null;
+    if (KNOWN_DOMAINS[domain]) return KNOWN_DOMAINS[domain];
+    if (domain.endsWith('.ac.il') || domain.endsWith('.edu.il') || domain.endsWith('.school.il')) {
+        const prefix = domain.split('.')[0];
+        return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return null;
+}
+
 function GoogleIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 24 24">
@@ -31,7 +60,17 @@ export default function AuthModal() {
     const firstRef = useRef(null);
 
     const [form, setForm] = useState({ email: '', password: '', name: '', institution: '', role: 'teacher' });
+    const [institutionSuggestion, setInstitutionSuggestion] = useState('');
     const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleEmailBlur = () => {
+        if (tab !== 'signup') return;
+        const suggestion = detectInstitution(form.email);
+        if (suggestion && !form.institution) {
+            setForm(f => ({ ...f, institution: suggestion }));
+            setInstitutionSuggestion(suggestion);
+        }
+    };
 
     useEffect(() => {
         if (authOpen) {
@@ -235,11 +274,18 @@ export default function AuthModal() {
                                         {tab === 'signup' && (
                                             <>
                                                 <FloatingInput ref={firstRef} label="שם מלא" icon={<User size={15} color="#AEAEB2" />} value={form.name} onChange={set('name')} />
-                                                <FloatingInput label="שם מוסד (בית ספר / עמותה)" icon={<Building2 size={15} color="#AEAEB2" />} value={form.institution} onChange={set('institution')} />
+                                                <div>
+                                                    <FloatingInput label="שם מוסד (בית ספר / עמותה)" icon={<Building2 size={15} color="#AEAEB2" />} value={form.institution} onChange={v => { set('institution')(v); if (v !== institutionSuggestion) setInstitutionSuggestion(''); }} />
+                                                    {institutionSuggestion && form.institution === institutionSuggestion && (
+                                                        <p style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginTop: -8, marginBottom: 10, paddingRight: 4 }}>
+                                                            זוהה אוטומטית: {institutionSuggestion} ✓
+                                                        </p>
+                                                    )}
+                                                </div>
                                                 <RoleSelect value={form.role} onChange={set('role')} />
                                             </>
                                         )}
-                                        <FloatingInput ref={tab === 'signin' ? firstRef : undefined} label="אימייל" type="email" icon={<Mail size={15} color="#AEAEB2" />} value={form.email} onChange={set('email')} />
+                                        <FloatingInput ref={tab === 'signin' ? firstRef : undefined} label="אימייל" type="email" icon={<Mail size={15} color="#AEAEB2" />} value={form.email} onChange={set('email')} onBlur={handleEmailBlur} />
                                         <FloatingInput label="סיסמה" type={showPass ? 'text' : 'password'} icon={<Lock size={15} color="#AEAEB2" />} value={form.password} onChange={set('password')}
                                             suffix={<button type="button" onClick={() => setShowPass(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 2 }}>
                                                 {showPass ? <EyeOff size={15} color="#AEAEB2" /> : <Eye size={15} color="#AEAEB2" />}
@@ -323,7 +369,7 @@ function ProfileView() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 import { forwardRef } from 'react';
-const FloatingInput = forwardRef(function FloatingInput({ label, type = 'text', icon, suffix, value, onChange }, ref) {
+const FloatingInput = forwardRef(function FloatingInput({ label, type = 'text', icon, suffix, value, onChange, onBlur: onBlurProp }, ref) {
     const [focused, setFocused] = useState(false);
     return (
         <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -335,7 +381,7 @@ const FloatingInput = forwardRef(function FloatingInput({ label, type = 'text', 
                 value={value}
                 onChange={e => onChange(e.target.value)}
                 onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                onBlur={() => { setFocused(false); onBlurProp?.(); }}
                 style={{
                     width: '100%', height: 52, borderRadius: 14,
                     background: focused ? '#fff' : '#F2F2F7',

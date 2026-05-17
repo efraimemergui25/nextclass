@@ -68,6 +68,17 @@ export default function MobileMenu() {
     const { cartCount }     = useCart();
     const { wishlistCount } = useWishlist();
 
+    // Profile completeness ring
+    const completeness = (() => {
+        let pts = 0;
+        if (firstName || user?.displayName) pts += 30;
+        if (institution) pts += 35;
+        if (memberTier !== 'free') pts += 35;
+        return pts;
+    })();
+    const CIRCUMFERENCE = 2 * Math.PI * 22; // r=22 → ~138.2
+    const dashOffset = CIRCUMFERENCE * (1 - completeness / 100);
+
     // Tier progress toward next level
     const TIER_ORDER = ['free', 'member', 'premium'];
     const tierIdx = TIER_ORDER.indexOf(memberTier);
@@ -102,15 +113,30 @@ export default function MobileMenu() {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: nextTierLabel ? 14 : 0 }}>
-                        {/* Avatar */}
-                        <div style={{
-                            width: 50, height: 50, borderRadius: 16, flexShrink: 0,
-                            background: `linear-gradient(135deg, ${tierColor}33, ${tierColor}66)`,
-                            border: `2px solid ${tierColor}55`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 20, fontWeight: 900, color: tierColor,
-                        }}>
-                            {(firstName || '?')[0].toUpperCase()}
+                        {/* Avatar + progress ring */}
+                        <div style={{ position: 'relative', flexShrink: 0, width: 54, height: 54 }}>
+                            <div style={{
+                                width: 50, height: 50, borderRadius: 16,
+                                background: `linear-gradient(135deg, ${tierColor}33, ${tierColor}66)`,
+                                border: `2px solid ${tierColor}55`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 20, fontWeight: 900, color: tierColor,
+                                position: 'absolute', top: 2, left: 2,
+                            }}>
+                                {(firstName || '?')[0].toUpperCase()}
+                            </div>
+                            {/* SVG progress ring */}
+                            <svg width="54" height="54" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
+                                <circle cx="27" cy="27" r="22" fill="none" stroke={`${tierColor}20`} strokeWidth="2.5" />
+                                <circle
+                                    cx="27" cy="27" r="22" fill="none"
+                                    stroke={tierColor} strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeDasharray={CIRCUMFERENCE}
+                                    strokeDashoffset={dashOffset}
+                                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                                />
+                            </svg>
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontSize: 16, fontWeight: 800, color: c.text, letterSpacing: '-0.03em', marginBottom: 2 }}>
@@ -126,6 +152,15 @@ export default function MobileMenu() {
                             }}>
                                 {tierLabel}
                             </span>
+                            {completeness < 100 ? (
+                                <p style={{ fontSize: 11, color: c.text3, fontWeight: 500, marginTop: 3 }}>
+                                    פרופיל: {completeness}% הושלם
+                                </p>
+                            ) : (
+                                <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600, marginTop: 3 }}>
+                                    פרופיל שלם ✓
+                                </p>
+                            )}
                         </div>
                     </div>
                     {/* Tier progress bar toward next level */}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, useAnimate } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -19,6 +19,7 @@ import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
 import MobileAuthSheet from './components/MobileAuthSheet';
 import PersonalizationLayer from '../components/PersonalizationLayer';
+import ExitIntentSheet from '../components/ExitIntentSheet';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -108,6 +109,53 @@ function usePageTitle(pathname) {
         : (PAGE_TITLES[pathname] || '');
 }
 
+// ─── Animated tab icon with spring bounce on count increase ──────────────────
+function AnimatedTabIcon({ Icon, isActive, count, color }) {
+    const [scope, animate] = useAnimate();
+    const prevCountRef = useRef(count);
+
+    useEffect(() => {
+        if (count > prevCountRef.current) {
+            animate(scope.current, { scale: [1, 1.4, 0.9, 1] }, {
+                type: 'spring', stiffness: 600, damping: 18, duration: 0.45,
+            });
+        }
+        prevCountRef.current = count;
+    }, [count, animate, scope]);
+
+    return (
+        <div ref={scope} style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
+            <Icon
+                size={22}
+                style={{
+                    color: isActive ? '#007AFF' : color,
+                    strokeWidth: isActive ? 2.2 : 1.8,
+                    transition: 'color 0.15s',
+                }}
+            />
+            {count > 0 && (
+                <motion.span
+                    key={count}
+                    initial={{ scale: 1.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 600, damping: 22 }}
+                    style={{
+                        position: 'absolute', top: -5, right: -8,
+                        background: '#FF3B30', color: '#fff',
+                        borderRadius: 99, minWidth: 17, height: 17,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, fontWeight: 800,
+                        border: '1.5px solid white',
+                        padding: '0 3px',
+                    }}
+                >
+                    {count > 9 ? '9+' : count}
+                </motion.span>
+            )}
+        </div>
+    );
+}
+
 // ─── Bottom Navigation ────────────────────────────────────────────────────────
 function MobileBottomNav() {
     const location  = useLocation();
@@ -132,6 +180,7 @@ function MobileBottomNav() {
                     ? location.pathname === '/'
                     : location.pathname.startsWith(path);
                 const badge = id === 'cart' ? cartCount : id === 'favorites' ? wishlistCount : 0;
+                const usesAnimatedIcon = id === 'cart' || id === 'favorites';
 
                 return (
                     <motion.button
@@ -166,35 +215,25 @@ function MobileBottomNav() {
                                 transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                             />
                         )}
-                        <div style={{ position: 'relative', zIndex: 1 }}>
-                            <Icon
-                                size={22}
-                                style={{
-                                    color: isActive ? '#007AFF' : c.text4,
-                                    strokeWidth: isActive ? 2.2 : 1.8,
-                                    transition: 'color 0.15s',
-                                }}
+                        {usesAnimatedIcon ? (
+                            <AnimatedTabIcon
+                                Icon={Icon}
+                                isActive={isActive}
+                                count={badge}
+                                color={c.text4}
                             />
-                            {badge > 0 && (
-                                <motion.span
-                                    key={badge}
-                                    initial={{ scale: 1.5 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 600, damping: 22 }}
+                        ) : (
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <Icon
+                                    size={22}
                                     style={{
-                                        position: 'absolute', top: -5, right: -8,
-                                        background: '#FF3B30', color: '#fff',
-                                        borderRadius: 99, minWidth: 17, height: 17,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 10, fontWeight: 800,
-                                        border: '1.5px solid white',
-                                        padding: '0 3px',
+                                        color: isActive ? '#007AFF' : c.text4,
+                                        strokeWidth: isActive ? 2.2 : 1.8,
+                                        transition: 'color 0.15s',
                                     }}
-                                >
-                                    {badge > 9 ? '9+' : badge}
-                                </motion.span>
-                            )}
-                        </div>
+                                />
+                            </div>
+                        )}
                         <span style={{
                             fontSize: 10, fontWeight: isActive ? 700 : 500,
                             color: isActive ? '#007AFF' : c.text4,
@@ -1137,9 +1176,13 @@ function PullToRefresh({ scrollRef }) {
     );
 }
 
+// Tab paths in order for swipe navigation (RTL: swipe right = prev, swipe left = next)
+const SWIPE_TAB_PATHS = ['/', '/catalog', '/discover', '/cart', '/favorites'];
+
 // ─── Inner app (needs ThemeProvider in scope) ─────────────────────────────────
 function MobileAppInner() {
     const location = useLocation();
+    const navigate  = useNavigate();
     const { colors: c } = useTheme();
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
@@ -1156,6 +1199,43 @@ function MobileAppInner() {
     const headerBg   = useTransform(scrollY, [0, 80], ['rgba(255,255,255,0.0)', 'rgba(255,255,255,0.12)']);
 
     useEffect(() => { prevPathRef.current = location.pathname; }, [location.pathname]);
+
+    // ─── Swipe between tabs ───────────────────────────────────────────────────
+    const touchStartRef = useRef(null);
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        const onTouchStart = (e) => {
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        };
+        const onTouchEnd = (e) => {
+            if (!touchStartRef.current) return;
+            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+            touchStartRef.current = null;
+
+            if (Math.abs(dx) > 60 && Math.abs(dy) < 40) {
+                const currentTabIdx = SWIPE_TAB_PATHS.indexOf(location.pathname);
+                if (currentTabIdx === -1) return;
+                // RTL: swipe right (dx > 0) = go to previous tab, swipe left (dx < 0) = next tab
+                if (dx > 0 && currentTabIdx > 0) {
+                    haptic('select');
+                    navigate(SWIPE_TAB_PATHS[currentTabIdx - 1]);
+                } else if (dx < 0 && currentTabIdx < SWIPE_TAB_PATHS.length - 1) {
+                    haptic('select');
+                    navigate(SWIPE_TAB_PATHS[currentTabIdx + 1]);
+                }
+            }
+        };
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchend', onTouchEnd, { passive: true });
+        return () => {
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [location.pathname, navigate]);
 
     const slideVariants = {
         initial: (dir) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
@@ -1228,6 +1308,7 @@ function MobileAppInner() {
             <MobileSmartConcierge />
             <MobileAuthSheet />
             <PersonalizationLayer />
+            <ExitIntentSheet />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />

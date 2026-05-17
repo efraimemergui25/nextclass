@@ -140,6 +140,18 @@ const ProductCard = ({ product }) => {
  const memberPricingOn = isVisible('vis_member_pricing', false);
  const memberPrice = memberPricingOn ? getMemberPrice(effectivePrice) : null;
 
+ // Push price to savings session on mount (viewed product)
+ useEffect(() => {
+  if (!effectivePrice) return;
+  try {
+   const raw = sessionStorage.getItem('nc_savings_session');
+   const arr = raw ? JSON.parse(raw) : [];
+   arr.push(effectivePrice);
+   sessionStorage.setItem('nc_savings_session', JSON.stringify(arr.slice(-20)));
+  } catch { /* ignore */ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
+
  // ─── Stable handlers ──────────────────────────────────────────────────────
  const handleImgError = useCallback(() => {
  const stage = fallbackStage.current;
@@ -255,6 +267,21 @@ const ProductCard = ({ product }) => {
  </motion.button>
  </Magnetic>
  </div>
+
+ {/* ── Social proof chip — deterministic viewer count ── */}
+ {(() => {
+  const hash = String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const viewers = 2 + (hash % 7); // 2–8 deterministic
+  return (
+   <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-full"
+    style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#30D158', display: 'inline-block', boxShadow: '0 0 5px #30D158' }} />
+    <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'Heebo, sans-serif' }}>
+     {viewers} מוסדות צופים
+    </span>
+   </div>
+  );
+ })()}
 
  {/* Product badges — data-driven */}
  {(_isBestSeller || isNew) && (

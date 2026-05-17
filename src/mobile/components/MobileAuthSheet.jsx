@@ -24,8 +24,37 @@ const ROLES = [
     { value: 'other',       label: 'אחר' },
 ];
 
+// ─── Auto-detect institution from email domain ────────────────────────────────
+const KNOWN_DOMAINS = {
+    'tau.ac.il':       'אוניברסיטת תל אביב',
+    'huji.ac.il':      'האוניברסיטה העברית',
+    'technion.ac.il':  'הטכניון',
+    'bgu.ac.il':       'אוניברסיטת בן גוריון',
+    'biu.ac.il':       'אוניברסיטת בר אילן',
+    'haifa.ac.il':     'אוניברסיטת חיפה',
+    'weizmann.ac.il':  'מכון ויצמן',
+    'openu.ac.il':     'האוניברסיטה הפתוחה',
+    'hit.ac.il':       'מכון טכנולוגי חולון',
+    'jct.ac.il':       'מכללת לב',
+    'afeka.ac.il':     'אפקה - מכללה אקדמית להנדסה',
+    'colman.ac.il':    'המכללה האקדמית נתניה',
+    'sce.ac.il':       'המכללה האקדמית סמי שמעון',
+};
+
+function detectInstitution(email) {
+    if (!email || !email.includes('@')) return null;
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return null;
+    if (KNOWN_DOMAINS[domain]) return KNOWN_DOMAINS[domain];
+    if (domain.endsWith('.ac.il') || domain.endsWith('.edu.il') || domain.endsWith('.school.il')) {
+        const prefix = domain.split('.')[0];
+        return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return null;
+}
+
 // ─── Input ────────────────────────────────────────────────────────────────────
-const MInput = forwardRef(function MInput({ label, type = 'text', value, onChange, icon, suffix }, ref) {
+const MInput = forwardRef(function MInput({ label, type = 'text', value, onChange, icon, suffix, onBlur: onBlurProp }, ref) {
     const [focused, setFocused] = useState(false);
     return (
         <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -37,7 +66,7 @@ const MInput = forwardRef(function MInput({ label, type = 'text', value, onChang
                 value={value}
                 onChange={e => onChange(e.target.value)}
                 onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                onBlur={() => { setFocused(false); onBlurProp?.(); }}
                 style={{
                     width: '100%', height: 52, borderRadius: 14,
                     background: focused ? '#fff' : '#F2F2F7',
@@ -64,7 +93,17 @@ export default function MobileAuthSheet() {
     const [loading,  setLoading]  = useState(false);
     const [error,    setError]    = useState('');
     const [form,     setForm]     = useState({ email: '', password: '', name: '', institution: '', role: 'teacher' });
+    const [institutionSuggestion, setInstitutionSuggestion] = useState('');
     const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleEmailBlur = () => {
+        if (tab !== 'signup') return;
+        const suggestion = detectInstitution(form.email);
+        if (suggestion && !form.institution) {
+            setForm(f => ({ ...f, institution: suggestion }));
+            setInstitutionSuggestion(suggestion);
+        }
+    };
 
     useEffect(() => {
         if (authOpen) { setError(''); setStep('form'); }
@@ -252,11 +291,18 @@ export default function MobileAuthSheet() {
                                         {tab === 'signup' && (
                                             <>
                                                 <MInput label="שם מלא" value={form.name} onChange={set('name')} icon={<User size={16} color="#AEAEB2" />} />
-                                                <MInput label="שם מוסד (בית ספר)" value={form.institution} onChange={set('institution')} icon={<Building2 size={16} color="#AEAEB2" />} />
+                                                <div>
+                                                    <MInput label="שם מוסד (בית ספר)" value={form.institution} onChange={v => { set('institution')(v); if (v !== institutionSuggestion) setInstitutionSuggestion(''); }} icon={<Building2 size={16} color="#AEAEB2" />} />
+                                                    {institutionSuggestion && form.institution === institutionSuggestion && (
+                                                        <p style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginTop: -8, marginBottom: 10, paddingRight: 4 }}>
+                                                            זוהה אוטומטית: {institutionSuggestion} ✓
+                                                        </p>
+                                                    )}
+                                                </div>
                                                 <MRoleSelect value={form.role} onChange={set('role')} />
                                             </>
                                         )}
-                                        <MInput label="אימייל" type="email" value={form.email} onChange={set('email')} icon={<Mail size={16} color="#AEAEB2" />} />
+                                        <MInput label="אימייל" type="email" value={form.email} onChange={set('email')} icon={<Mail size={16} color="#AEAEB2" />} onBlur={handleEmailBlur} />
                                         <MInput label="סיסמה" type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')}
                                             icon={<Lock size={16} color="#AEAEB2" />}
                                             suffix={

@@ -244,15 +244,25 @@ const Header = () => {
  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
  </svg>
  {cartCount > 0 && (
- <motion.span
-  key={cartCount}
-  initial={{ scale: 1.6, opacity: 0 }}
-  animate={{ scale: 1, opacity: 1 }}
-  transition={{ type: 'spring', stiffness: 600, damping: 20 }}
-  className="absolute top-1 right-1 bg-[#007AFF] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none"
- >
-  {cartCount}
- </motion.span>
+ <>
+  {/* Ripple ring on count change */}
+  <motion.span
+   key={`ring-${cartCount}`}
+   initial={{ scale: 0.6, opacity: 0.7 }}
+   animate={{ scale: 2.2, opacity: 0 }}
+   transition={{ duration: 0.55, ease: 'easeOut' }}
+   className="absolute top-1 right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-[#007AFF] pointer-events-none"
+  />
+  <motion.span
+   key={cartCount}
+   initial={{ scale: 1.6, opacity: 0 }}
+   animate={{ scale: 1, opacity: 1 }}
+   transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+   className="absolute top-1 right-1 bg-[#007AFF] text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm pointer-events-none"
+  >
+   {cartCount}
+  </motion.span>
+ </>
  )}
  </motion.button>
 

@@ -39,6 +39,7 @@ import { AuthProvider } from './context/AuthContext';
 import AuthModal from './components/AuthModal';
 import CookieConsent from './components/CookieConsent';
 import PersonalizationLayer, { MemberBar } from './components/PersonalizationLayer';
+import ExitIntentSheet from './components/ExitIntentSheet';
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
 const LandingPage       = lazy(() => import('./pages/LandingPage'));
@@ -252,6 +253,7 @@ function AppContent() {
             <CookieConsent />
             <AuthModal />
             <PersonalizationLayer />
+            <ExitIntentSheet />
         </div>
     );
 }

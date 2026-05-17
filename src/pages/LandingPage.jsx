@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
 import HeroSection from '../components/HeroSection';
@@ -13,17 +14,33 @@ import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 
 const SECTION_DEFS = [
- { key: 'vis_hero', Component: HeroSection },
- { key: 'vis_social_proof', Component: SocialProofStrip },
- { key: 'vis_catalog', Component: HomeProductsSection },
- { key: 'vis_value_props', Component: ValueProps },
- { key: 'vis_ecosystem', Component: EcosystemVisualizer },
- { key: 'vis_shoppable', Component: ShoppableImage },
- { key: 'vis_quote_wizard', Component: QuoteWizard },
+ { key: 'vis_hero', Component: HeroSection, delay: 0 },
+ { key: 'vis_social_proof', Component: SocialProofStrip, delay: 0.04 },
+ { key: 'vis_catalog', Component: HomeProductsSection, delay: 0.06 },
+ { key: 'vis_value_props', Component: ValueProps, delay: 0.04 },
+ { key: 'vis_ecosystem', Component: EcosystemVisualizer, delay: 0.05 },
+ { key: 'vis_shoppable', Component: ShoppableImage, delay: 0.04 },
+ { key: 'vis_quote_wizard', Component: QuoteWizard, delay: 0.04 },
 ];
 
+// ── Scroll-triggered reveal with precise IntersectionObserver timing ──────────
+function ScrollReveal({ children, delay = 0, distance = 28 }) {
+ const ref = useRef(null);
+ const inView = useInView(ref, { once: true, margin: '-12% 0px' });
+ return (
+  <motion.div
+   ref={ref}
+   initial={{ opacity: 0, y: distance, filter: 'blur(8px)' }}
+   animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
+   transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1], delay }}
+  >
+   {children}
+  </motion.div>
+ );
+}
+
 function PersonalizedHeroBanner() {
- const { user, personalGreeting, shortGreeting, tierLabel, tierColor, firstName, institution } = useAuth();
+ const { user, personalGreeting, tierLabel, tierColor, firstName, institution } = useAuth();
  if (!user || !firstName) return null;
  return (
   <AnimatePresence>
@@ -39,7 +56,6 @@ function PersonalizedHeroBanner() {
      style={{ background: `linear-gradient(135deg, ${tierColor}14, ${tierColor}06)`, border: `1px solid ${tierColor}28` }}
      className="rounded-2xl px-6 py-4 flex items-center gap-4 shadow-sm"
     >
-     {/* Avatar */}
      <div
       style={{ background: `linear-gradient(135deg, ${tierColor}30, ${tierColor}55)`, border: `2px solid ${tierColor}50`, color: tierColor }}
       className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-black shrink-0"
@@ -67,26 +83,13 @@ const LandingPage = () => {
  return (
  <PageTransition>
   <PersonalizedHeroBanner />
- <motion.div
- initial="hidden"
- whileInView="visible"
- viewport={{ once: true, margin: '-100px' }}
- variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
- className="flex flex-col bg-white -mt-[56px] md:-mt-[68px] w-full overflow-x-hidden"
- >
- {visibleSections.map(({ key, Component }) => (
- <motion.div
- key={key}
- variants={{
- hidden: { opacity: 0, y: 30, filter: 'blur(10px)' },
- visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
- }}
- transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
- >
- <Component />
- </motion.div>
- ))}
- </motion.div>
+  <div className="flex flex-col bg-white -mt-[56px] md:-mt-[68px] w-full overflow-x-hidden">
+   {visibleSections.map(({ key, Component, delay }, idx) => (
+    <ScrollReveal key={key} delay={delay} distance={idx === 0 ? 0 : 28}>
+     <Component />
+    </ScrollReveal>
+   ))}
+  </div>
  </PageTransition>
  );
 };
