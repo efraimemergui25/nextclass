@@ -226,7 +226,6 @@ const ProductCard = ({ product }) => {
  onError={handleImgError}
  onLoad={() => setImgLoaded(true)}
  loading="eager"
- referrerPolicy="no-referrer"
  style={{
   filter: imgLoaded ? 'blur(0px)' : 'blur(12px)',
   transform: imgLoaded ? 'scale(1)' : 'scale(1.04)',

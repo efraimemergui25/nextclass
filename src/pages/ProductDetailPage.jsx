@@ -600,7 +600,6 @@ const ProductDetailPage = () => {
  src={displaySrc}
  alt={product.title}
  className="w-full aspect-square md:aspect-[4/3] object-cover"
- referrerPolicy="no-referrer"
  onError={handleImgError}
  loading="eager"
  />

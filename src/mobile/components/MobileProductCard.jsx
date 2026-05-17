@@ -324,7 +324,6 @@ export default function MobileProductCard({ product, size = 'md' }) {
                             <motion.img
                                 src={displaySrc}
                                 alt={product.title}
-                                referrerPolicy="no-referrer"
                                 onLoad={() => setImgLoaded(true)}
                                 onError={() => {
                                     const stage = fallbackStage.current;
