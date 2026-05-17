@@ -68,28 +68,31 @@ function MobileAnalytics() {
     return null;
 }
 
-// ─── Scroll to top on every route change ─────────────────────────────────────
-function ScrollToTop() {
+// ─── Route effects: scroll-to-top + document.title (always rendered) ─────────
+function RouteEffects() {
     const { pathname } = useLocation();
+    const { getActiveProductById } = useProducts();
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
-    }, [pathname]);
+
+        const productMatch = pathname.match(/^\/catalog\/(.+)$/);
+        const pageTitle = productMatch
+            ? (getActiveProductById(productMatch[1])?.title || 'מוצר')
+            : (PAGE_TITLES[pathname] || '');
+        document.title = pageTitle ? `${pageTitle} | NextClass` : 'NextClass';
+    }, [pathname, getActiveProductById]);
+
     return null;
 }
 
-// ─── Dynamic product title resolver + document.title updater ─────────────────
+// ─── Dynamic product title resolver (header display only) ────────────────────
 function usePageTitle(pathname) {
     const { getActiveProductById } = useProducts();
     const productMatch = pathname.match(/^\/catalog\/(.+)$/);
-    const title = productMatch
+    return productMatch
         ? (getActiveProductById(productMatch[1])?.title || 'מוצר')
         : (PAGE_TITLES[pathname] || '');
-
-    useEffect(() => {
-        document.title = title ? `${title} | NextClass` : 'NextClass';
-    }, [title]);
-
-    return title;
 }
 
 // ─── Bottom Navigation ────────────────────────────────────────────────────────
@@ -287,7 +290,7 @@ export default function MobileApp() {
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
         }}>
             <MobileAnalytics />
-            <ScrollToTop />
+            <RouteEffects />
             {!hideHeader && <MobileHeader />}
 
             <AnimatePresence mode="popLayout">
