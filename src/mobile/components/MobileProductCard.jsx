@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Heart, ShoppingBag, Scale, Check, Share2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
@@ -86,13 +86,15 @@ function ContextMenu({ product, onClose }) {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                animate={{ opacity: 1, backdropFilter: 'blur(6px)' }}
+                exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                transition={{ duration: 0.18 }}
                 onClick={onClose}
                 style={{
                     position: 'fixed', inset: 0, zIndex: 999,
                     background: 'rgba(0,0,0,0.45)',
+                    backdropFilter: 'blur(0px)',
                     display: 'flex', alignItems: 'flex-end',
                 }}
             >
@@ -178,6 +180,9 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const [contextMenu, setContextMenu]    = useState(false);
     const [imgLoaded, setImgLoaded]        = useState(false);
 
+    const cardRef = useRef(null);
+    const cardInView = useInView(cardRef, { once: true, margin: '-10px' });
+
     const wishlisted = isInWishlist(product.id);
     const inCompare  = isSelected(product.id);
     const isSmall    = size === 'sm';
@@ -221,9 +226,12 @@ export default function MobileProductCard({ product, size = 'md' }) {
     return (
         <>
             <motion.div
+                ref={cardRef}
                 {...longPressHandlers}
                 whileTap={{ scale: 0.965 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 36 }}
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={cardInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 onClick={() => navigate(`/catalog/${product.id}`)}
                 style={{
                     background: c.surface,
@@ -297,14 +305,15 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                     animation: 'shimmer 1.4s infinite',
                                 }} />
                             )}
-                            <img
+                            <motion.img
                                 src={product.image}
                                 alt={product.title}
                                 onLoad={() => setImgLoaded(true)}
+                                initial={{ scale: 1.08, filter: 'blur(8px)', opacity: 0 }}
+                                animate={imgLoaded ? { scale: 1, filter: 'blur(0px)', opacity: 1 } : {}}
+                                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                                 style={{
                                     width: '90%', height: '90%', objectFit: 'contain',
-                                    opacity: imgLoaded ? 1 : 0,
-                                    transition: 'opacity 0.3s',
                                 }}
                                 loading="lazy"
                             />

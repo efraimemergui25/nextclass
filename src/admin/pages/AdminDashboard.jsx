@@ -1,7 +1,7 @@
 /* eslint-disable */
 
-import { useMemo, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { motion, useInView, useMotionValue, animate as animateMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
     Wrench, Tag, Image, RefreshCw, Package, ExternalLink,
@@ -16,6 +16,26 @@ import initialProducts from '../../data/products';
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
+// ─── Animated counter ─────────────────────────────────────────────────────────
+function AnimatedNumber({ value, prefix = '', suffix = '', duration = 1.4 }) {
+    const ref = useRef(null);
+    const inView = useInView(ref, { once: true });
+    const motionValue = useMotionValue(0);
+    const [display, setDisplay] = useState('0');
+
+    useEffect(() => {
+        if (!inView) return;
+        const controls = animateMotion(motionValue, value, {
+            duration,
+            ease: [0.22, 1, 0.36, 1],
+            onUpdate: (v) => setDisplay(Math.round(v).toLocaleString('he-IL')),
+        });
+        return controls.stop;
+    }, [inView, value]);
+
+    return <span ref={ref}>{prefix}{display}{suffix}</span>;
+}
+
 // ─── Activity icon per type ───────────────────────────────────────────────────
 const ACTIVITY_ICONS = {
     product:   { color: '#007AFF', Icon: Box },
@@ -28,7 +48,12 @@ const ACTIVITY_ICONS = {
 // ─── Glass card wrapper ───────────────────────────────────────────────────────
 function Card({ title, subtitle, accent, action, children, className = '' }) {
     return (
-        <div className={`rounded-[22px] overflow-hidden ${className}`}
+        <motion.div
+            className={`rounded-[22px] overflow-hidden ${className}`}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             style={{
                 background: 'rgba(255,255,255,0.88)',
                 backdropFilter: 'blur(28px) saturate(200%)',
@@ -50,7 +75,7 @@ function Card({ title, subtitle, accent, action, children, className = '' }) {
                 )}
                 {children}
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -188,52 +213,89 @@ export default function AdminDashboard() {
 
             {/* ── Primary KPIs ───────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <AdminKPICard title="הכנסות" icon="revenue"
-                    value={`₪${kpis.totalRevenue.toLocaleString()}`}
-                    subtitle={`₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`}
-                    trend={trendRevenue.value} trendUp={trendRevenue.up} color="#34C759" delay={0}
-                    sparkData={periodData?.revenue}
-                    tooltip="סך כל ההכנסות מהזמנות שהושלמו. לחץ לפירוט לפי יום."
-                    onClick={() => setDrilldown('revenue')} />
-                <AdminKPICard title="עסקאות" icon="orders"
-                    value={kpis.totalOrders}
-                    subtitle={`${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`}
-                    trend={trendSales.value} trendUp={trendSales.up} color="#007AFF" delay={0.05}
-                    sparkData={periodData?.sales}
-                    tooltip="מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו. לחץ לפירוט."
-                    onClick={() => setDrilldown('orders')} />
-                <AdminKPICard title="יחס המרה" icon="traffic"
-                    value={`${kpis.conversionRate}%`}
-                    subtitle="מכניסות ייחודיות"
-                    trend={trendVisits.value} trendUp={trendVisits.up} color="#5856D6" delay={0.1}
-                    sparkData={periodData?.visits}
-                    tooltip="אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100."
-                    onClick={() => setDrilldown('conversion')} />
-                <AdminKPICard title="ממוצע עסקה" icon="products"
-                    value={`₪${kpis.avgOrderValue.toLocaleString()}`}
-                    subtitle={`${kpis.completedOrders} הזמנות הושלמו`}
-                    color="#FF9500" delay={0.15}
-                    sparkData={periodData?.revenue}
-                    tooltip="ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו."
-                    onClick={() => setDrilldown('avg')} />
+                {[
+                    {
+                        title: 'הכנסות', icon: 'revenue', color: '#34C759', delay: 0,
+                        value: `₪${kpis.totalRevenue.toLocaleString()}`,
+                        subtitle: `₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`,
+                        trend: trendRevenue.value, trendUp: trendRevenue.up,
+                        sparkData: periodData?.revenue,
+                        tooltip: 'סך כל ההכנסות מהזמנות שהושלמו. לחץ לפירוט לפי יום.',
+                        onClick: () => setDrilldown('revenue'),
+                    },
+                    {
+                        title: 'עסקאות', icon: 'orders', color: '#007AFF', delay: 0.05,
+                        value: kpis.totalOrders,
+                        subtitle: `${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`,
+                        trend: trendSales.value, trendUp: trendSales.up,
+                        sparkData: periodData?.sales,
+                        tooltip: 'מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו. לחץ לפירוט.',
+                        onClick: () => setDrilldown('orders'),
+                    },
+                    {
+                        title: 'יחס המרה', icon: 'traffic', color: '#5856D6', delay: 0.1,
+                        value: `${kpis.conversionRate}%`,
+                        subtitle: 'מכניסות ייחודיות',
+                        trend: trendVisits.value, trendUp: trendVisits.up,
+                        sparkData: periodData?.visits,
+                        tooltip: 'אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100.',
+                        onClick: () => setDrilldown('conversion'),
+                    },
+                    {
+                        title: 'ממוצע עסקה', icon: 'products', color: '#FF9500', delay: 0.15,
+                        value: `₪${kpis.avgOrderValue.toLocaleString()}`,
+                        subtitle: `${kpis.completedOrders} הזמנות הושלמו`,
+                        sparkData: periodData?.revenue,
+                        tooltip: 'ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו.',
+                        onClick: () => setDrilldown('avg'),
+                    },
+                ].map((kpi, i) => (
+                    <motion.div key={kpi.title}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 28 }}
+                    >
+                        <AdminKPICard {...kpi} />
+                    </motion.div>
+                ))}
             </div>
 
             {/* ── Secondary KPIs ──────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <AdminKPICard title="מלאי נמוך" icon="alert" value={kpis.lowStockCount}
-                    subtitle="מוצרים תחת סף" color="#FF3B30" delay={0.2}
-                    tooltip="מספר מוצרים שמלאיים נמוך מסף ההתרעה שהוגדר לכל מוצר." />
-                <AdminKPICard title="פניות חדשות" icon="empty" value={kpis.contactsNew}
-                    subtitle="ממתינות לטיפול" color="#FF9500" delay={0.25}
-                    tooltip="פניות דרך טופס יצירת קשר שטרם טופלו ועדיין פתוחות." />
-                <AdminKPICard title="כניסות" icon="traffic" value={periodVisits}
-                    subtitle={period === '1' ? 'היום' : `${period} ימים`}
-                    color="#007AFF" delay={0.3}
-                    tooltip="מספר כניסות לאתר בתקופה הנבחרת. מבוסס על נתוני localStorage המקומי." />
-                <AdminKPICard title="קטלוג פעיל" icon="products"
-                    value={inventory.filter(p => p.isActive !== false).length}
-                    subtitle={`מתוך ${inventory.length} מוצרים`} color="#5856D6" delay={0.35}
-                    tooltip="מוצרים המוצגים כעת בחנות. מוצרים שהוסתרו ידנית אינם נספרים." />
+                {[
+                    {
+                        title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.2,
+                        value: kpis.lowStockCount,
+                        subtitle: 'מוצרים תחת סף',
+                        tooltip: 'מספר מוצרים שמלאיים נמוך מסף ההתרעה שהוגדר לכל מוצר.',
+                    },
+                    {
+                        title: 'פניות חדשות', icon: 'empty', color: '#FF9500', delay: 0.25,
+                        value: kpis.contactsNew,
+                        subtitle: 'ממתינות לטיפול',
+                        tooltip: 'פניות דרך טופס יצירת קשר שטרם טופלו ועדיין פתוחות.',
+                    },
+                    {
+                        title: 'כניסות', icon: 'traffic', color: '#007AFF', delay: 0.3,
+                        value: periodVisits,
+                        subtitle: period === '1' ? 'היום' : `${period} ימים`,
+                        tooltip: 'מספר כניסות לאתר בתקופה הנבחרת. מבוסס על נתוני localStorage המקומי.',
+                    },
+                    {
+                        title: 'קטלוג פעיל', icon: 'products', color: '#5856D6', delay: 0.35,
+                        value: inventory.filter(p => p.isActive !== false).length,
+                        subtitle: `מתוך ${inventory.length} מוצרים`,
+                        tooltip: 'מוצרים המוצגים כעת בחנות. מוצרים שהוסתרו ידנית אינם נספרים.',
+                    },
+                ].map((kpi, i) => (
+                    <motion.div key={kpi.title}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 28 }}
+                    >
+                        <AdminKPICard {...kpi} />
+                    </motion.div>
+                ))}
             </div>
 
             {/* ── Charts Row ──────────────────────────────────────────────────── */}

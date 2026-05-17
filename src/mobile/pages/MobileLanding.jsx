@@ -11,15 +11,15 @@ import MobileProductCard from '../components/MobileProductCard';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
-function FadeSection({ children, delay = 0 }) {
+function BlurFade({ children, delay = 0, blur = true }) {
     const ref = useRef(null);
-    const inView = useInView(ref, { once: true, margin: '-40px' });
+    const inView = useInView(ref, { once: true, margin: '-30px' });
     return (
         <motion.div
             ref={ref}
-            initial={{ opacity: 0, y: 18 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay }}
+            initial={{ opacity: 0, y: 22, filter: blur ? 'blur(6px)' : 'none', scale: 0.98 }}
+            animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 } : {}}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
         >
             {children}
         </motion.div>
@@ -99,7 +99,11 @@ export default function MobileLanding() {
                         </div>
                     )}
 
-                    <div style={{ padding: featuredProduct?.image ? '0 22px 22px' : '30px 22px 22px' }}>
+                    <motion.div
+                        animate={{ y: [0, -4, 0] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{ padding: featuredProduct?.image ? '0 22px 22px' : '30px 22px 22px' }}
+                    >
                         <div style={{ display: 'inline-block', background: 'rgba(0,122,255,0.2)', color: '#64D2FF', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, marginBottom: 10, letterSpacing: '0.04em' }}>
                             NextClass · ציוד חינוכי מקצועי
                         </div>
@@ -109,24 +113,29 @@ export default function MobileLanding() {
                         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 20 }}>
                             {heroSub}
                         </p>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('light'); navigate('/catalog'); }} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            background: '#007AFF', color: '#fff', border: 'none', borderRadius: 14,
-                            padding: '12px 20px', fontSize: 15, fontWeight: 700,
-                            cursor: 'pointer', letterSpacing: '-0.02em',
-                            WebkitTapHighlightColor: 'transparent',
-                            boxShadow: '0 4px 20px rgba(0,122,255,0.4)',
-                        }}>
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            animate={{ boxShadow: ['0 4px 20px rgba(0,122,255,0.4)', '0 4px 32px rgba(0,122,255,0.7)', '0 4px 20px rgba(0,122,255,0.4)'] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                            onClick={() => { haptic('light'); navigate('/catalog'); }}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                background: '#007AFF', color: '#fff', border: 'none', borderRadius: 14,
+                                padding: '12px 20px', fontSize: 15, fontWeight: 700,
+                                cursor: 'pointer', letterSpacing: '-0.02em',
+                                WebkitTapHighlightColor: 'transparent',
+                            }}
+                        >
                             גלה את הקטלוג
                             <ArrowLeft size={16} strokeWidth={2.5} />
                         </motion.button>
-                    </div>
+                    </motion.div>
                 </motion.div>
             </div>
 
             {/* ── Recently viewed ────────────────────────────────────── */}
             {recentlyViewed.length > 0 && (
-                <FadeSection delay={0.05}>
+                <BlurFade delay={0.05}>
                 <section style={{ marginTop: 26 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                         <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
@@ -140,11 +149,11 @@ export default function MobileLanding() {
                         ))}
                     </div>
                 </section>
-                </FadeSection>
+                </BlurFade>
             )}
 
             {/* ── Categories ────────────────────────────────────────── */}
-            <FadeSection delay={0.08}>
+            <BlurFade delay={0.08}>
             <section style={{ marginTop: 26 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                     <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
@@ -160,28 +169,34 @@ export default function MobileLanding() {
                             </div>
                         ))
                     ) : categories.map((cat, i) => (
-                        <motion.button key={cat} whileTap={{ scale: 0.93 }}
-                            onClick={() => { haptic('select'); navigate(`/catalog?category=${encodeURIComponent(cat)}`); }}
-                            style={{
-                                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                                background: c.surface, border: 'none', borderRadius: 16, padding: '14px 14px',
-                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                                boxShadow: c.cardShadow, minWidth: 76,
-                            }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 11, background: `${CAT_ACCENTS[i % CAT_ACCENTS.length]}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                                {CAT_EMOJIS[i % CAT_EMOJIS.length]}
-                            </div>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text, textAlign: 'center', lineHeight: 1.25, maxWidth: 68, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {cat}
-                            </span>
-                        </motion.button>
+                        <motion.div key={cat}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.05, type: 'spring', stiffness: 500, damping: 30 }}
+                        >
+                            <motion.button whileTap={{ scale: 0.93 }}
+                                onClick={() => { haptic('select'); navigate(`/catalog?category=${encodeURIComponent(cat)}`); }}
+                                style={{
+                                    flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                                    background: c.surface, border: 'none', borderRadius: 16, padding: '14px 14px',
+                                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                    boxShadow: c.cardShadow, minWidth: 76,
+                                }}>
+                                <div style={{ width: 40, height: 40, borderRadius: 11, background: `${CAT_ACCENTS[i % CAT_ACCENTS.length]}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                                    {CAT_EMOJIS[i % CAT_EMOJIS.length]}
+                                </div>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: c.text, textAlign: 'center', lineHeight: 1.25, maxWidth: 68, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {cat}
+                                </span>
+                            </motion.button>
+                        </motion.div>
                     ))}
                 </div>
             </section>
-            </FadeSection>
+            </BlurFade>
 
             {/* ── Best sellers ──────────────────────────────────────── */}
-            <FadeSection delay={0.1}>
+            <BlurFade delay={0.1}>
             <section style={{ marginTop: 26 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                     <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
@@ -199,11 +214,11 @@ export default function MobileLanding() {
                     )}
                 </div>
             </section>
-            </FadeSection>
+            </BlurFade>
 
             {/* ── New arrivals ──────────────────────────────────────── */}
             {(isLoading || newArrivals?.length > 0) && (
-                <FadeSection delay={0.12}>
+                <BlurFade delay={0.12}>
                 <section style={{ marginTop: 26 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                         <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
@@ -231,11 +246,11 @@ export default function MobileLanding() {
                         </div>
                     )}
                 </section>
-                </FadeSection>
+                </BlurFade>
             )}
 
             {/* ── Value props ───────────────────────────────────────── */}
-            <FadeSection delay={0.14}>
+            <BlurFade delay={0.14}>
             <section style={{ margin: '26px 16px 0', background: c.surface, borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
                 {VALUE_PROPS.map(({ Icon, title, desc }, i) => (
                     <div key={title} style={{
@@ -253,10 +268,10 @@ export default function MobileLanding() {
                     </div>
                 ))}
             </section>
-            </FadeSection>
+            </BlurFade>
 
             {/* ── Quote CTA ─────────────────────────────────────────── */}
-            <FadeSection delay={0.16}>
+            <BlurFade delay={0.16}>
             <div style={{ margin: '18px 16px 0' }}>
                 <motion.div
                     whileTap={{ scale: 0.98 }}
@@ -271,12 +286,19 @@ export default function MobileLanding() {
                     <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em', marginBottom: 8 }}>NEXTCLASS · לימוד מתקדם</p>
                     <h3 style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', marginBottom: 8, lineHeight: 1.2 }}>מחפש הצעת מחיר?</h3>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 18 }}>נחזור אליך תוך 24 שעות עם פתרון מותאם.</p>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.18)', padding: '10px 18px', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, border: '1px solid rgba(255,255,255,0.26)' }}>
-                        שלח בקשה <ArrowLeft size={15} />
+                    <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-flex' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.18)', padding: '10px 18px', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, border: '1px solid rgba(255,255,255,0.26)' }}>
+                            שלח בקשה <ArrowLeft size={15} />
+                        </div>
+                        <motion.div
+                            animate={{ x: ['-100%', '200%'] }}
+                            transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+                            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)', pointerEvents: 'none' }}
+                        />
                     </div>
                 </motion.div>
             </div>
-            </FadeSection>
+            </BlurFade>
 
             {/* ── Mini footer ───────────────────────────────────────── */}
             <div style={{ margin: '24px 16px 0', textAlign: 'center' }}>

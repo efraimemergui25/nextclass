@@ -9,6 +9,44 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
+function FloatingInput({ value, onChange, label, type = 'text', inputDir = 'rtl', multiline = false, rows = 4, c, focused, onFocus, onBlur }) {
+    const float = focused || value.length > 0;
+    return (
+        <div style={{ position: 'relative', paddingTop: 8 }}>
+            <motion.label
+                animate={{ y: float ? -22 : 4, scale: float ? 0.78 : 1, color: focused ? '#007AFF' : c.text3 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+                style={{
+                    position: 'absolute', right: 16, top: 14,
+                    transformOrigin: 'right center',
+                    fontSize: 15, fontWeight: 500, pointerEvents: 'none', zIndex: 2,
+                    background: float ? c.surface : 'transparent', padding: float ? '0 4px' : 0,
+                    borderRadius: 4, display: 'block',
+                }}
+            >
+                {label}
+            </motion.label>
+            {multiline ? (
+                <textarea value={value} onChange={onChange} rows={rows} onFocus={onFocus} onBlur={onBlur}
+                    style={{ width: '100%', paddingTop: 22, paddingBottom: 12, paddingRight: 16, paddingLeft: 16,
+                        background: c.input, border: `1.5px solid ${focused ? '#007AFF' : 'transparent'}`,
+                        borderRadius: 12, fontSize: 16, color: c.text, fontFamily: SF,
+                        direction: 'rtl', outline: 'none', boxSizing: 'border-box',
+                        resize: 'none', transition: 'border-color 0.2s', }}
+                />
+            ) : (
+                <input value={value} onChange={onChange} type={type} dir={inputDir} onFocus={onFocus} onBlur={onBlur}
+                    style={{ width: '100%', paddingTop: 22, paddingBottom: 12, paddingRight: 16, paddingLeft: 16,
+                        background: c.input, border: `1.5px solid ${focused ? '#007AFF' : 'transparent'}`,
+                        borderRadius: 12, fontSize: 16, color: c.text, fontFamily: SF,
+                        direction: inputDir, outline: 'none', boxSizing: 'border-box',
+                        transition: 'border-color 0.2s', }}
+                />
+            )}
+        </div>
+    );
+}
+
 export default function MobileContact() {
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
@@ -20,6 +58,7 @@ export default function MobileContact() {
     const [loading, setLoading] = useState(false);
     const [sent,    setSent]    = useState(false);
     const [fieldErr, setFieldErr] = useState('');
+    const [focus, setFocus] = useState({ name: false, phone: false, message: false });
 
     const isValidPhone = (p) => /^0[2-9]\d{7,8}$/.test(p.replace(/[-\s]/g, ''));
 
@@ -27,6 +66,9 @@ export default function MobileContact() {
         setForm(f => ({ ...f, [k]: e.target.value }));
         setFieldErr('');
     };
+
+    const handleFocus = k => () => setFocus(f => ({ ...f, [k]: true }));
+    const handleBlur  = k => () => setFocus(f => ({ ...f, [k]: false }));
 
     const handleSubmit = async () => {
         if (!form.name.trim() || form.name.trim().length < 2) {
@@ -49,14 +91,6 @@ export default function MobileContact() {
             setFieldErr('שליחת ההודעה נכשלה. אנא נסה שנית.');
         }
         setLoading(false);
-    };
-
-    const inputStyle = {
-        width: '100%', padding: '14px 16px',
-        background: c.input, border: '1px solid transparent',
-        borderRadius: 12, fontSize: 16, color: c.text,
-        fontFamily: SF, direction: 'rtl', outline: 'none',
-        boxSizing: 'border-box', transition: 'border-color 0.15s',
     };
 
     return (
@@ -126,18 +160,60 @@ export default function MobileContact() {
                 </h3>
 
                 {sent ? (
-                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                        <div style={{ width: 56, height: 56, borderRadius: 99, background: 'rgba(52,199,89,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                            <Check size={26} color="#34C759" strokeWidth={2.5} />
-                        </div>
-                        <p style={{ fontSize: 17, fontWeight: 800, color: c.text, marginBottom: 6 }}>ההודעה נשלחה!</p>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                        style={{ textAlign: 'center', padding: '24px 0' }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 22, delay: 0.1 }}
+                            style={{ width: 64, height: 64, borderRadius: 99, background: 'rgba(52,199,89,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}
+                        >
+                            <Check size={30} color="#34C759" strokeWidth={2.5} />
+                        </motion.div>
+                        <p style={{ fontSize: 18, fontWeight: 800, color: c.text, marginBottom: 6, letterSpacing: '-0.03em' }}>ההודעה נשלחה!</p>
                         <p style={{ fontSize: 14, color: c.text3 }}>נחזור אליך בהקדם.</p>
-                    </div>
+                    </motion.div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <input value={form.name} onChange={handleChange('name')} placeholder="שם מלא *" style={inputStyle} />
-                        <input value={form.phone} onChange={handleChange('phone')} placeholder="טלפון *" type="tel" dir="ltr" style={{ ...inputStyle, direction: 'ltr' }} />
-                        <textarea value={form.message} onChange={handleChange('message')} placeholder="הודעה..." rows={4} style={{ ...inputStyle, resize: 'none' }} />
+                    <motion.div
+                        animate={fieldErr ? { x: [-6, 6, -5, 5, -3, 3, 0] } : { x: 0 }}
+                        transition={{ duration: 0.4 }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+                    >
+                        <FloatingInput
+                            value={form.name}
+                            onChange={handleChange('name')}
+                            label="שם מלא *"
+                            c={c}
+                            focused={focus.name}
+                            onFocus={handleFocus('name')}
+                            onBlur={handleBlur('name')}
+                        />
+                        <FloatingInput
+                            value={form.phone}
+                            onChange={handleChange('phone')}
+                            label="טלפון *"
+                            type="tel"
+                            inputDir="ltr"
+                            c={c}
+                            focused={focus.phone}
+                            onFocus={handleFocus('phone')}
+                            onBlur={handleBlur('phone')}
+                        />
+                        <FloatingInput
+                            value={form.message}
+                            onChange={handleChange('message')}
+                            label="הודעה..."
+                            multiline
+                            rows={4}
+                            c={c}
+                            focused={focus.message}
+                            onFocus={handleFocus('message')}
+                            onBlur={handleBlur('message')}
+                        />
                         {fieldErr && (
                             <div style={{ background: 'rgba(255,59,48,0.08)', borderRadius: 10, padding: '10px 14px', color: '#FF3B30', fontSize: 13, fontWeight: 600 }}>
                                 {fieldErr}
@@ -155,11 +231,18 @@ export default function MobileContact() {
                                 cursor: loading ? 'not-allowed' : 'pointer',
                                 WebkitTapHighlightColor: 'transparent',
                                 boxShadow: loading ? 'none' : '0 4px 20px rgba(0,122,255,0.28)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
                         >
-                            {loading ? 'שולח...' : 'שלח הודעה'}
+                            {loading ? (
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                                    style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,0.3)', borderTop: '2.5px solid #fff', borderRadius: '50%', margin: '0 auto' }}
+                                />
+                            ) : 'שלח הודעה'}
                         </motion.button>
-                    </div>
+                    </motion.div>
                 )}
             </div>
         </div>

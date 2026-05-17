@@ -1,6 +1,6 @@
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -200,7 +200,7 @@ function MobileBottomNav() {
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function MobileHeader() {
+function MobileHeader({ headerBlur, headerBg }) {
     const location  = useLocation();
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
@@ -211,15 +211,19 @@ function MobileHeader() {
     const isProduct = location.pathname.startsWith('/catalog/');
     const title     = usePageTitle(location.pathname);
 
+    const backdropFilterValue = headerBlur
+        ? useTransform(headerBlur, v => `blur(${48 + v}px) saturate(200%)`)
+        : 'blur(48px) saturate(200%)';
+
     return (
-        <header style={{
+        <motion.header style={{
             position: 'fixed', top: 0, left: 0, right: 0,
             zIndex: 200,
             height: 56,
             paddingTop: 'env(safe-area-inset-top, 0px)',
             background: c.navBg,
-            backdropFilter: 'blur(48px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+            backdropFilter: backdropFilterValue,
+            WebkitBackdropFilter: backdropFilterValue,
             borderBottom: `0.5px solid ${c.navBorder}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             direction: 'rtl', fontFamily: SF,
@@ -282,7 +286,7 @@ function MobileHeader() {
                     </motion.span>
                 </AnimatePresence>
             )}
-        </header>
+        </motion.header>
     );
 }
 
@@ -317,16 +321,21 @@ function MobileAppInner() {
     const prevIdx       = getRouteIndex(prevPathRef.current);
     const direction     = currentIdx >= prevIdx ? 1 : -1;
 
+    const scrollRef = useRef(null);
+    const { scrollY } = useScroll({ container: scrollRef });
+    const headerBlur = useTransform(scrollY, [0, 80], [0, 8]);
+    const headerBg   = useTransform(scrollY, [0, 80], ['rgba(255,255,255,0.0)', 'rgba(255,255,255,0.12)']);
+
     useEffect(() => { prevPathRef.current = location.pathname; }, [location.pathname]);
 
     const slideVariants = {
         initial: (dir) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
         animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 340, damping: 36, mass: 0.8 } },
-        exit: (dir) => ({ x: dir > 0 ? '-20%' : '20%', opacity: 0, transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }),
+        exit: (dir) => ({ x: dir > 0 ? '-20%' : '20%', opacity: 0, filter: 'blur(4px)', transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }),
     };
 
     return (
-        <div dir="rtl" style={{
+        <div ref={scrollRef} dir="rtl" style={{
             minHeight: '100dvh',
             background: c.bg,
             fontFamily: SF,
@@ -338,7 +347,7 @@ function MobileAppInner() {
             <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
-            {!hideHeader && <MobileHeader />}
+            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} />}
             <OfflineBanner />
 
             <AnimatePresence mode="popLayout" custom={direction}>
