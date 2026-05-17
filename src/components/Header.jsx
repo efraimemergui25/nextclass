@@ -85,6 +85,7 @@ const Header = () => {
  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
  const [isSearchOpen, setIsSearchOpen] = useState(false);
  const [hidden, setHidden] = useState(false);
+ const [scrolled, setScrolled] = useState(false);
  const [dropdownPos, setDropdownPos] = useState({ top: 0, centerX: 0 });
 
  const productsRef = useRef(null);
@@ -104,6 +105,7 @@ const Header = () => {
  const previous = scrollY.getPrevious() ?? 0;
  if (latest > previous && latest > 80) setHidden(true);
  else setHidden(false);
+ setScrolled(latest > 40);
  });
 
  const handleKeyDown = useCallback((e) => {
@@ -170,7 +172,15 @@ const Header = () => {
  }}
  animate={hidden ? 'hidden' : 'visible'}
  transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
- className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl bg-white/45 backdrop-blur-3xl backdrop-saturate-[1.8] border border-gray-200/50 shadow-[0_20px_50px_rgba(0,0,0,0.12)] rounded-full px-6 py-2 flex items-center justify-between gap-4 pointer-events-auto will-change-transform transform-gpu"
+ className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-6xl backdrop-saturate-[1.8] border rounded-full px-6 py-2 flex items-center justify-between gap-4 pointer-events-auto will-change-transform transform-gpu"
+ style={{
+ background: scrolled ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.45)',
+ backdropFilter: scrolled ? 'blur(56px) saturate(2)' : 'blur(24px) saturate(1.8)',
+ WebkitBackdropFilter: scrolled ? 'blur(56px) saturate(2)' : 'blur(24px) saturate(1.8)',
+ borderColor: scrolled ? 'rgba(200,200,210,0.55)' : 'rgba(200,200,210,0.35)',
+ boxShadow: scrolled ? '0 20px 60px rgba(0,0,0,0.16)' : '0 20px 50px rgba(0,0,0,0.12)',
+ transition: 'background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
+ }}
  >
  {/* ═══ RIGHT ZONE — Logo ═══ */}
  <Link to="/" className="flex items-center gap-2.5 text-[#1D1D1F] hover:opacity-80 transition-opacity duration-300 shrink-0 z-[120]">

@@ -62,18 +62,30 @@ function Chip({ label, sub, icon, active, onClick, color }) {
 }
 
 function FormField({ label, type = 'text', value, onChange, placeholder, dir = 'rtl', required }) {
+ const [focused, setFocused] = useState(false);
+ const lifted = focused || value?.length > 0;
  return (
- <div className="flex flex-col gap-1.5">
- <label className="text-[12px] font-black text-[#1D1D1F]">{label}{required && <span className="text-[#FF375F] ml-1">*</span>}</label>
+ <div className="relative">
  <input
  type={type}
  value={value}
  onChange={e => onChange(e.target.value)}
- placeholder={placeholder}
+ onFocus={() => setFocused(true)}
+ onBlur={() => setFocused(false)}
+ placeholder={lifted ? (placeholder ?? '') : ''}
  dir={dir}
  maxLength={type === 'email' ? 254 : 120}
- className="w-full h-12 px-4 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)]"
+ className="w-full h-14 px-4 pt-4 rounded-2xl border-2 border-[#E5E5EA] bg-white text-[#1D1D1F] font-medium text-sm outline-none transition-all focus:border-[#007AFF] focus:shadow-[0_0_0_4px_rgba(0,122,255,0.12)] peer"
  />
+ <label style={{
+ position: 'absolute', right: 16, top: lifted ? 6 : 16,
+ fontSize: lifted ? 10 : 13, fontWeight: lifted ? 800 : 600,
+ color: focused ? '#007AFF' : lifted ? '#AEAEB2' : '#6E6E73',
+ transition: 'all 0.18s cubic-bezier(0.25,0.46,0.45,0.94)',
+ pointerEvents: 'none', lineHeight: 1,
+ }}>
+ {label}{required && <span style={{ color: '#FF375F', marginRight: 2 }}>*</span>}
+ </label>
  </div>
  );
 }
