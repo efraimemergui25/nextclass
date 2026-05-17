@@ -1,0 +1,42 @@
+{
+  "name": "NextClass — פתרונות טכנולוגיה לחינוך",
+  "short_name": "NextClass",
+  "description": "הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#007AFF",
+  "orientation": "portrait-primary",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["education", "shopping"],
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "קטלוג מוצרים",
+      "short_name": "קטלוג",
+      "url": "/catalog",
+      "description": "גלה את כל המוצרים"
+    },
+    {
+      "name": "צור קשר",
+      "short_name": "קשר",
+      "url": "/contact",
+      "description": "שלח הצעת מחיר"
+    }
+  ]
+}

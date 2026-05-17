@@ -5,6 +5,8 @@ import { useRef } from 'react';
 import { ArrowLeft, ChevronLeft, Star, Truck, Headphones } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useTheme } from '../context/ThemeContext';
+import { haptic } from '../utils/haptic';
 import MobileProductCard from '../components/MobileProductCard';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
@@ -33,7 +35,6 @@ const VALUE_PROPS = [
     { Icon: Headphones, title: 'ליווי מתמיד',   desc: 'שירות מלא לאחר הרכישה' },
 ];
 
-// Recently viewed from localStorage
 function useRecentlyViewed(allProducts) {
     return useMemo(() => {
         try {
@@ -43,11 +44,26 @@ function useRecentlyViewed(allProducts) {
     }, [allProducts]);
 }
 
+// ─── Skeleton card ────────────────────────────────────────────────────────────
+function SkeletonCard({ c }) {
+    return (
+        <div style={{ width: 152, flexShrink: 0, background: c.surface, borderRadius: 14, overflow: 'hidden', boxShadow: c.cardShadow }}>
+            <div style={{ width: '100%', aspectRatio: '1', background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+            <div style={{ padding: '8px 10px' }}>
+                <div style={{ height: 10, borderRadius: 5, background: c.shimmerA, marginBottom: 6 }} />
+                <div style={{ height: 10, borderRadius: 5, background: c.shimmerA, width: '60%' }} />
+            </div>
+        </div>
+    );
+}
+
 export default function MobileLanding() {
     const navigate = useNavigate();
     const { getSetting }  = useSettings();
+    const { colors: c }   = useTheme();
     const { featuredProduct, bestSellers, newArrivals, activeProducts } = useProducts();
     const recentlyViewed = useRecentlyViewed(activeProducts);
+    const isLoading = activeProducts.length === 0;
 
     const categories = [...new Set(activeProducts.map(p => p.category))].filter(Boolean).slice(0, 6);
 
@@ -55,7 +71,8 @@ export default function MobileLanding() {
     const heroSub   = getSetting('hero_subtitle', 'הפתרונות הטכנולוגיים המתקדמים ביותר למוסדות חינוך.');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24 }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24, background: c.bg, minHeight: '100vh' }}>
+            <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
 
             {/* ── Hero ──────────────────────────────────────────────── */}
             <div style={{ padding: '14px 16px 0' }}>
@@ -72,7 +89,6 @@ export default function MobileLanding() {
                         WebkitTapHighlightColor: 'transparent',
                     }}
                 >
-                    {/* Glows */}
                     <div style={{ position: 'absolute', top: -60, right: -40, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,122,255,0.28) 0%, transparent 70%)', pointerEvents: 'none' }} />
                     <div style={{ position: 'absolute', bottom: -40, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(88,86,214,0.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
@@ -93,7 +109,7 @@ export default function MobileLanding() {
                         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 20 }}>
                             {heroSub}
                         </p>
-                        <motion.button whileTap={{ scale: 0.95 }} style={{
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('light'); navigate('/catalog'); }} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             background: '#007AFF', color: '#fff', border: 'none', borderRadius: 14,
                             padding: '12px 20px', fontSize: 15, fontWeight: 700,
@@ -116,7 +132,7 @@ export default function MobileLanding() {
                         <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
                             ראה הכל <ChevronLeft size={13} strokeWidth={2.5} />
                         </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.03em' }}>צפית לאחרונה</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>צפית לאחרונה</h2>
                     </div>
                     <div style={{ display: 'flex', gap: 10, padding: '2px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                         {recentlyViewed.slice(0, 6).map(p => (
@@ -128,91 +144,111 @@ export default function MobileLanding() {
             )}
 
             {/* ── Categories ────────────────────────────────────────── */}
-            {categories.length > 0 && (
-                <FadeSection delay={0.08}>
-                <section style={{ marginTop: 26 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
-                        <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
-                            הכל <ChevronLeft size={13} strokeWidth={2.5} />
-                        </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.03em' }}>קטגוריות</h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, padding: '2px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-                        {categories.map((cat, i) => (
-                            <motion.button key={cat} whileTap={{ scale: 0.93 }}
-                                onClick={() => navigate(`/catalog?category=${encodeURIComponent(cat)}`)}
-                                style={{
-                                    flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                                    background: '#fff', border: 'none', borderRadius: 16, padding: '14px 14px',
-                                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                                    boxShadow: '0 1px 4px rgba(0,0,0,0.07)', minWidth: 76,
-                                }}>
-                                <div style={{ width: 40, height: 40, borderRadius: 11, background: `${CAT_ACCENTS[i % CAT_ACCENTS.length]}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                                    {CAT_EMOJIS[i % CAT_EMOJIS.length]}
-                                </div>
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#1D1D1F', textAlign: 'center', lineHeight: 1.25, maxWidth: 68, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {cat}
-                                </span>
-                            </motion.button>
-                        ))}
-                    </div>
-                </section>
-                </FadeSection>
-            )}
+            <FadeSection delay={0.08}>
+            <section style={{ marginTop: 26 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
+                    <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
+                        הכל <ChevronLeft size={13} strokeWidth={2.5} />
+                    </button>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>קטגוריות</h2>
+                </div>
+                <div style={{ display: 'flex', gap: 10, padding: '2px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                    {isLoading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} style={{ flexShrink: 0, width: 76, height: 90, background: c.surface, borderRadius: 16, boxShadow: c.cardShadow, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: '100%', background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                            </div>
+                        ))
+                    ) : categories.map((cat, i) => (
+                        <motion.button key={cat} whileTap={{ scale: 0.93 }}
+                            onClick={() => { haptic('select'); navigate(`/catalog?category=${encodeURIComponent(cat)}`); }}
+                            style={{
+                                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                                background: c.surface, border: 'none', borderRadius: 16, padding: '14px 14px',
+                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                boxShadow: c.cardShadow, minWidth: 76,
+                            }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 11, background: `${CAT_ACCENTS[i % CAT_ACCENTS.length]}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                                {CAT_EMOJIS[i % CAT_EMOJIS.length]}
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text, textAlign: 'center', lineHeight: 1.25, maxWidth: 68, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {cat}
+                            </span>
+                        </motion.button>
+                    ))}
+                </div>
+            </section>
+            </FadeSection>
 
             {/* ── Best sellers ──────────────────────────────────────── */}
-            {bestSellers?.length > 0 && (
-                <FadeSection delay={0.1}>
-                <section style={{ marginTop: 26 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
-                        <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
-                            ראה הכל <ChevronLeft size={13} strokeWidth={2.5} />
-                        </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.03em' }}>המוצרים המובחרים</h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, padding: '4px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-                        {bestSellers.slice(0, 8).map(p => (
+            <FadeSection delay={0.1}>
+            <section style={{ marginTop: 26 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
+                    <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
+                        ראה הכל <ChevronLeft size={13} strokeWidth={2.5} />
+                    </button>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>המוצרים המובחרים</h2>
+                </div>
+                <div style={{ display: 'flex', gap: 12, padding: '4px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+                    {isLoading ? (
+                        Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} c={c} />)
+                    ) : (
+                        bestSellers?.slice(0, 8).map(p => (
                             <MobileProductCard key={p.id} product={p} size="sm" />
-                        ))}
-                    </div>
-                </section>
-                </FadeSection>
-            )}
+                        ))
+                    )}
+                </div>
+            </section>
+            </FadeSection>
 
             {/* ── New arrivals ──────────────────────────────────────── */}
-            {newArrivals?.length > 0 && (
+            {(isLoading || newArrivals?.length > 0) && (
                 <FadeSection delay={0.12}>
                 <section style={{ marginTop: 26 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 12 }}>
                         <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
                             ראה הכל <ChevronLeft size={13} strokeWidth={2.5} />
                         </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.03em' }}>מוצרים חדשים</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>מוצרים חדשים</h2>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
-                        {newArrivals.slice(0, 4).map(p => (
-                            <MobileProductCard key={p.id} product={p} size="md" />
-                        ))}
-                    </div>
+                    {isLoading ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} style={{ background: c.surface, borderRadius: 18, overflow: 'hidden', boxShadow: c.cardShadow }}>
+                                    <div style={{ width: '100%', aspectRatio: '1', background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                                    <div style={{ padding: '10px 12px' }}>
+                                        <div style={{ height: 10, borderRadius: 5, background: c.shimmerA, marginBottom: 6 }} />
+                                        <div style={{ height: 10, borderRadius: 5, background: c.shimmerA, width: '55%' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
+                            {newArrivals?.slice(0, 4).map(p => (
+                                <MobileProductCard key={p.id} product={p} size="md" />
+                            ))}
+                        </div>
+                    )}
                 </section>
                 </FadeSection>
             )}
 
             {/* ── Value props ───────────────────────────────────────── */}
             <FadeSection delay={0.14}>
-            <section style={{ margin: '26px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <section style={{ margin: '26px 16px 0', background: c.surface, borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
                 {VALUE_PROPS.map(({ Icon, title, desc }, i) => (
                     <div key={title} style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '16px 18px',
-                        borderBottom: i < VALUE_PROPS.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+                        borderBottom: i < VALUE_PROPS.length - 1 ? `0.5px solid ${c.divider}` : 'none',
                     }}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(0,122,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <Icon size={20} color="#007AFF" strokeWidth={1.8} />
                         </div>
                         <div>
-                            <p style={{ fontSize: 14, fontWeight: 700, color: '#1D1D1F', marginBottom: 2 }}>{title}</p>
-                            <p style={{ fontSize: 12, color: '#86868B', lineHeight: 1.4 }}>{desc}</p>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 2 }}>{title}</p>
+                            <p style={{ fontSize: 12, color: c.text3, lineHeight: 1.4 }}>{desc}</p>
                         </div>
                     </div>
                 ))}
@@ -224,7 +260,7 @@ export default function MobileLanding() {
             <div style={{ margin: '18px 16px 0' }}>
                 <motion.div
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate('/contact')}
+                    onClick={() => { haptic('light'); navigate('/contact'); }}
                     style={{
                         borderRadius: 20, padding: '22px 22px', cursor: 'pointer',
                         background: 'linear-gradient(135deg, #5856D6 0%, #007AFF 100%)',
@@ -244,7 +280,7 @@ export default function MobileLanding() {
 
             {/* ── Mini footer ───────────────────────────────────────── */}
             <div style={{ margin: '24px 16px 0', textAlign: 'center' }}>
-                <p style={{ fontSize: 11, color: '#C7C7CC', fontWeight: 500 }}>© 2026 NextClass · כל הזכויות שמורות</p>
+                <p style={{ fontSize: 11, color: c.text4, fontWeight: 500 }}>© 2026 NextClass · כל הזכויות שמורות</p>
             </div>
         </div>
     );

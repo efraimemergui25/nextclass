@@ -1,6 +1,8 @@
 import { useSettings } from '../../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
+import { haptic } from '../utils/haptic';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -12,6 +14,7 @@ const VALUES = [
 
 export default function MobileAbout() {
     const { getSetting } = useSettings();
+    const { colors: c }  = useTheme();
     const navigate = useNavigate();
 
     const founderName = getSetting('about_founder_name', 'מייסד NextClass');
@@ -20,7 +23,7 @@ export default function MobileAbout() {
     const founderImg  = getSetting('about_founder_image', '');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
 
             {/* ── Hero ─────────────────────────────────────────────── */}
             <div style={{
@@ -46,38 +49,37 @@ export default function MobileAbout() {
             </div>
 
             {/* ── Story text ────────────────────────────────────────── */}
-            <div style={{ background: '#fff', borderRadius: 20, padding: '20px 18px', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <p style={{ fontSize: 15, color: '#3C3C43', lineHeight: 1.7, fontWeight: 400 }}>
+            <div style={{ background: c.surface, borderRadius: 20, padding: '20px 18px', marginBottom: 16, boxShadow: c.cardShadow }}>
+                <p style={{ fontSize: 15, color: c.text2, lineHeight: 1.7 }}>
                     {storyBody}
                 </p>
             </div>
 
             {/* ── Values ────────────────────────────────────────────── */}
-            <div style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: c.surface, borderRadius: 20, overflow: 'hidden', marginBottom: 16, boxShadow: c.cardShadow }}>
                 <div style={{ padding: '16px 18px 8px' }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.03em' }}>הערכים שלנו</h2>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>הערכים שלנו</h2>
                 </div>
-                {VALUES.map(({ emoji, title, desc }, i) => (
+                {VALUES.map(({ emoji, title, desc }) => (
                     <div key={title} style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '14px 18px',
-                        borderTop: '0.5px solid rgba(0,0,0,0.07)',
+                        borderTop: `0.5px solid ${c.divider}`,
                     }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 13, background: '#F2F2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 13, background: c.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
                             {emoji}
                         </div>
                         <div>
-                            <p style={{ fontSize: 15, fontWeight: 700, color: '#1D1D1F', marginBottom: 2 }}>{title}</p>
-                            <p style={{ fontSize: 13, color: '#86868B' }}>{desc}</p>
+                            <p style={{ fontSize: 15, fontWeight: 700, color: c.text, marginBottom: 2 }}>{title}</p>
+                            <p style={{ fontSize: 13, color: c.text3 }}>{desc}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* ── CTA ────────────────────────────────────────────────── */}
             <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => navigate('/contact')}
+                onClick={() => { haptic('light'); navigate('/contact'); }}
                 style={{
                     width: '100%', height: 52, borderRadius: 16,
                     background: 'linear-gradient(135deg, #007AFF, #0063CC)',

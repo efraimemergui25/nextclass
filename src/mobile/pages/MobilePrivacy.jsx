@@ -3,25 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Shield } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
+import { useTheme } from '../context/ThemeContext';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
-function RichText({ text }) {
+function RichText({ text, c }) {
     return (
-        <p style={{ fontSize: 14, lineHeight: 1.75, color: '#3C3C43', margin: 0 }}
+        <p style={{ fontSize: 14, lineHeight: 1.75, color: c.text2, margin: 0 }}
             dangerouslySetInnerHTML={{
                 __html: text
-                    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#1D1D1F;font-weight:700">$1</strong>')
+                    .replace(/\*\*(.+?)\*\*/g, `<strong style="color:${c.text};font-weight:700">$1</strong>`)
                     .replace(/\n/g, '<br/>')
             }}
         />
     );
 }
 
-function Accordion({ title, accent = '#007AFF', defaultOpen = false, children }) {
+function Accordion({ title, accent = '#007AFF', defaultOpen = false, c, children }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: c.surface, borderRadius: 16, overflow: 'hidden', marginBottom: 10, boxShadow: c.cardShadow }}>
             <button
                 onClick={() => setOpen(v => !v)}
                 style={{
@@ -33,10 +34,10 @@ function Accordion({ title, accent = '#007AFF', defaultOpen = false, children })
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, flexShrink: 0 }} />
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1D1D1F' }}>{title}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: c.text }}>{title}</span>
                 </div>
                 <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronDown size={16} color="#AEAEB2" />
+                    <ChevronDown size={16} color={c.text4} />
                 </motion.div>
             </button>
             <AnimatePresence initial={false}>
@@ -48,7 +49,7 @@ function Accordion({ title, accent = '#007AFF', defaultOpen = false, children })
                         transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
                         style={{ overflow: 'hidden' }}
                     >
-                        <div style={{ padding: '0 16px 18px', borderTop: '0.5px solid rgba(0,0,0,0.07)' }}>
+                        <div style={{ padding: '0 16px 18px', borderTop: `0.5px solid ${c.divider}` }}>
                             <div style={{ paddingTop: 14 }}>{children}</div>
                         </div>
                     </motion.div>
@@ -61,13 +62,14 @@ function Accordion({ title, accent = '#007AFF', defaultOpen = false, children })
 export default function MobilePrivacy() {
     const navigate = useNavigate();
     const { getSetting } = useSettings();
+    const { colors: c } = useTheme();
     const email       = getSetting('contact_email', 'nextclass.en@gmail.com');
     const phone       = getSetting('contact_phone', '058-5856356');
     const dpoName     = getSetting('legal_dpo_name', 'אפרים אמרגי');
     const lastUpdated = getSetting('legal_privacy_updated', '14 במאי 2026');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
 
             {/* ── Hero ──────────────────────────────────────────────── */}
             <div style={{
@@ -89,11 +91,11 @@ export default function MobilePrivacy() {
             </div>
 
             {/* ── Sections ─────────────────────────────────────────── */}
-            <Accordion title="מי אנחנו" accent="#007AFF" defaultOpen>
-                <RichText text={`NextClass היא חברה ישראלית המתמחה באספקת ציוד טכנולוגי לבתי ספר ומוסדות חינוך.\n\nאחראי הגנת המידע: ${dpoName}\nדוא"ל: ${email}\nטלפון: ${phone}`} />
+            <Accordion title="מי אנחנו" accent="#007AFF" defaultOpen c={c}>
+                <RichText c={c} text={`NextClass היא חברה ישראלית המתמחה באספקת ציוד טכנולוגי לבתי ספר ומוסדות חינוך.\n\nאחראי הגנת המידע: ${dpoName}\nדוא"ל: ${email}\nטלפון: ${phone}`} />
             </Accordion>
 
-            <Accordion title="מה אנו אוספים" accent="#007AFF">
+            <Accordion title="מה אנו אוספים" accent="#007AFF" c={c}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
                         ['שם מלא', 'זיהוי ויצירת קשר'],
@@ -104,15 +106,15 @@ export default function MobilePrivacy() {
                         ['כתובת IP', 'אבטחה ומניעת הונאה'],
                         ['עוגיות אנליטיקס', 'שיפור חוויית המשתמש'],
                     ].map(([type, purpose]) => (
-                        <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: '#F9F9FB', borderRadius: 10 }}>
-                            <span style={{ fontSize: 13, color: '#86868B' }}>{purpose}</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F' }}>{type}</span>
+                        <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: c.subtleBg2, borderRadius: 10 }}>
+                            <span style={{ fontSize: 13, color: c.text3 }}>{purpose}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{type}</span>
                         </div>
                     ))}
                 </div>
             </Accordion>
 
-            <Accordion title="כמה זמן שומרים מידע" accent="#007AFF">
+            <Accordion title="כמה זמן שומרים מידע" accent="#007AFF" c={c}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
                         { cat: 'פניות ויצירת קשר', period: '3 שנים', color: '#007AFF' },
@@ -121,19 +123,19 @@ export default function MobilePrivacy() {
                         { cat: 'עוגיות אנליטיקס', period: '13 חודשים', color: '#FF9500' },
                         { cat: 'רשימת תפוצה', period: 'עד ביטול הסכמה', color: '#FF3B30' },
                     ].map(({ cat, period, color }) => (
-                        <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#F9F9FB', borderRadius: 10, borderRight: `3px solid ${color}` }}>
-                            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>{cat}</span>
+                        <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: c.subtleBg2, borderRadius: 10, borderRight: `3px solid ${color}` }}>
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.text }}>{cat}</span>
                             <span style={{ fontSize: 12, fontWeight: 700, color, background: `${color}18`, padding: '3px 10px', borderRadius: 99 }}>{period}</span>
                         </div>
                     ))}
                 </div>
             </Accordion>
 
-            <Accordion title="עם מי חולקים מידע" accent="#007AFF">
-                <RichText text={`אנו לא מוכרים מידע אישי לצדדים שלישיים. המידע עשוי להיות משותף עם:\n\n• **Google Firebase** — אחסון נתונים מוצפן, ממוקם ב-EU\n• **Google Analytics** — אנליטיקס (רק בהסכמה)\n• **Vercel** — אחסון האתר, ממוקם בארה"ב\n\nכל השותפים מחויבים לעמוד בתקני הגנת מידע בינלאומיים.`} />
+            <Accordion title="עם מי חולקים מידע" accent="#007AFF" c={c}>
+                <RichText c={c} text={`אנו לא מוכרים מידע אישי לצדדים שלישיים. המידע עשוי להיות משותף עם:\n\n• **Google Firebase** — אחסון נתונים מוצפן, ממוקם ב-EU\n• **Google Analytics** — אנליטיקס (רק בהסכמה)\n• **Vercel** — אחסון האתר, ממוקם בארה"ב\n\nכל השותפים מחויבים לעמוד בתקני הגנת מידע בינלאומיים.`} />
             </Accordion>
 
-            <Accordion title="הזכויות שלך" accent="#007AFF">
+            <Accordion title="הזכויות שלך" accent="#007AFF" c={c}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
                         { title: 'זכות עיון', desc: 'קבל עותק של המידע' },
@@ -143,24 +145,24 @@ export default function MobilePrivacy() {
                         { title: 'ניידות מידע', desc: 'קבל בפורמט קריא' },
                         { title: 'הגבלת עיבוד', desc: 'הגבל שימוש במידע' },
                     ].map(({ title, desc }) => (
-                        <div key={title} style={{ padding: '12px', background: '#F9F9FB', borderRadius: 10 }}>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', marginBottom: 3 }}>{title}</p>
-                            <p style={{ fontSize: 11, color: '#86868B', lineHeight: 1.4 }}>{desc}</p>
+                        <div key={title} style={{ padding: '12px', background: c.subtleBg2, borderRadius: 10 }}>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: c.text, marginBottom: 3 }}>{title}</p>
+                            <p style={{ fontSize: 11, color: c.text3, lineHeight: 1.4 }}>{desc}</p>
                         </div>
                     ))}
                 </div>
             </Accordion>
 
-            <Accordion title="כיצד מאובטח המידע" accent="#007AFF">
-                <RichText text={`• הצפנת תעבורה מלאה (TLS 1.3 / HTTPS)\n• הצפנת מידע במנוחה (Firebase Encryption at Rest)\n• בקרת גישה מבוססת הרשאות\n• הגבלת קצב גישה ל-API\n• ניטור אבטחה רציף ותיעוד אירועים`} />
+            <Accordion title="כיצד מאובטח המידע" accent="#007AFF" c={c}>
+                <RichText c={c} text={`• הצפנת תעבורה מלאה (TLS 1.3 / HTTPS)\n• הצפנת מידע במנוחה (Firebase Encryption at Rest)\n• בקרת גישה מבוססת הרשאות\n• הגבלת קצב גישה ל-API\n• ניטור אבטחה רציף ותיעוד אירועים`} />
             </Accordion>
 
-            <Accordion title="מדיניות עוגיות" accent="#007AFF">
-                <RichText text={`**עוגיות הכרחיות** — ללא צורך בהסכמה:\n• שמירת הסל ומצב הניווט\n• אבטחת המפגש\n\n**עוגיות אנליטיקס** — בהסכמה בלבד:\n• Google Analytics — ניתוח תנועה אנונימי\n• ניתן לבטל בכל עת דרך הגדרות הדפדפן`} />
+            <Accordion title="מדיניות עוגיות" accent="#007AFF" c={c}>
+                <RichText c={c} text={`**עוגיות הכרחיות** — ללא צורך בהסכמה:\n• שמירת הסל ומצב הניווט\n• אבטחת המפגש\n\n**עוגיות אנליטיקס** — בהסכמה בלבד:\n• Google Analytics — ניתוח תנועה אנונימי\n• ניתן לבטל בכל עת דרך הגדרות הדפדפן`} />
             </Accordion>
 
-            <Accordion title="פנייה בנושא פרטיות" accent="#007AFF">
-                <RichText text={`לכל פנייה בנושא מידע אישי:\n\nדוא"ל: ${email}\nטלפון: ${phone}\nזמן מענה: עד 30 יום עסקים`} />
+            <Accordion title="פנייה בנושא פרטיות" accent="#007AFF" c={c}>
+                <RichText c={c} text={`לכל פנייה בנושא מידע אישי:\n\nדוא"ל: ${email}\nטלפון: ${phone}\nזמן מענה: עד 30 יום עסקים`} />
             </Accordion>
 
             {/* ── CTA ────────────────────────────────────────────────── */}

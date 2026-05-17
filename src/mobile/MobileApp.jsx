@@ -1,6 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -9,6 +9,8 @@ import { useProducts } from '../context/ProductsContext';
 import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { haptic } from './utils/haptic';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -68,14 +70,13 @@ function MobileAnalytics() {
     return null;
 }
 
-// ─── Route effects: scroll-to-top + document.title (always rendered) ─────────
+// ─── Route effects: scroll-to-top + document.title ────────────────────────────
 function RouteEffects() {
     const { pathname } = useLocation();
     const { getActiveProductById } = useProducts();
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
-
         const productMatch = pathname.match(/^\/catalog\/(.+)$/);
         const pageTitle = productMatch
             ? (getActiveProductById(productMatch[1])?.title || 'מוצר')
@@ -86,7 +87,6 @@ function RouteEffects() {
     return null;
 }
 
-// ─── Dynamic product title resolver (header display only) ────────────────────
 function usePageTitle(pathname) {
     const { getActiveProductById } = useProducts();
     const productMatch = pathname.match(/^\/catalog\/(.+)$/);
@@ -101,14 +101,15 @@ function MobileBottomNav() {
     const navigate  = useNavigate();
     const { cartCount }     = useCart();
     const { wishlistCount } = useWishlist();
+    const { colors: c }     = useTheme();
 
     return (
         <nav dir="rtl" style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-            background: 'rgba(255,255,255,0.92)',
+            background: c.navBg,
             backdropFilter: 'blur(48px) saturate(200%)',
             WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-            borderTop: '0.5px solid rgba(0,0,0,0.10)',
+            borderTop: `0.5px solid ${c.navBorder}`,
             display: 'flex', alignItems: 'stretch', justifyContent: 'space-around',
             paddingBottom: 'env(safe-area-inset-bottom, 10px)',
             fontFamily: SF,
@@ -122,7 +123,10 @@ function MobileBottomNav() {
                 return (
                     <motion.button
                         key={id}
-                        onClick={() => navigate(path)}
+                        onClick={() => {
+                            haptic('select');
+                            navigate(path);
+                        }}
                         whileTap={{ scale: 0.80 }}
                         transition={{ type: 'spring', stiffness: 600, damping: 30 }}
                         style={{
@@ -151,15 +155,17 @@ function MobileBottomNav() {
                             <Icon
                                 size={22}
                                 style={{
-                                    color: isActive ? '#007AFF' : 'rgba(60,60,67,0.38)',
+                                    color: isActive ? '#007AFF' : c.text4,
                                     strokeWidth: isActive ? 2.2 : 1.8,
                                     transition: 'color 0.15s',
                                 }}
                             />
                             {badge > 0 && (
                                 <motion.span
-                                    initial={{ scale: 0 }}
+                                    key={badge}
+                                    initial={{ scale: 1.5 }}
                                     animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 600, damping: 22 }}
                                     style={{
                                         position: 'absolute', top: -5, right: -8,
                                         background: '#FF3B30', color: '#fff',
@@ -176,7 +182,7 @@ function MobileBottomNav() {
                         </div>
                         <span style={{
                             fontSize: 10, fontWeight: isActive ? 700 : 500,
-                            color: isActive ? '#007AFF' : 'rgba(60,60,67,0.38)',
+                            color: isActive ? '#007AFF' : c.text4,
                             transition: 'color 0.15s', zIndex: 1,
                         }}>
                             {label}
@@ -193,6 +199,7 @@ function MobileHeader() {
     const location  = useLocation();
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
+    const { colors: c }  = useTheme();
     const siteName  = getSetting('site_name', 'NextClass');
     const siteLogo  = getSetting('site_logo_url', '');
     const isHome    = location.pathname === '/';
@@ -205,17 +212,17 @@ function MobileHeader() {
             zIndex: 200,
             height: 56,
             paddingTop: 'env(safe-area-inset-top, 0px)',
-            background: 'rgba(255,255,255,0.92)',
+            background: c.navBg,
             backdropFilter: 'blur(48px) saturate(200%)',
             WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-            borderBottom: '0.5px solid rgba(0,0,0,0.10)',
+            borderBottom: `0.5px solid ${c.navBorder}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             direction: 'rtl', fontFamily: SF,
         }}>
             {!isHome && (
                 <motion.button
                     whileTap={{ scale: 0.88 }}
-                    onClick={() => navigate(-1)}
+                    onClick={() => { haptic('light'); navigate(-1); }}
                     aria-label="חזרה"
                     style={{
                         position: 'absolute', right: 4,
@@ -242,10 +249,10 @@ function MobileHeader() {
                     ) : (
                         <>
                             <svg width={22} height={22} viewBox="0 0 32 32" fill="none">
-                                <circle cx={12} cy={16} r={9} stroke="#1D1D1F" strokeWidth={2} />
+                                <circle cx={12} cy={16} r={9} stroke={c.text} strokeWidth={2} />
                                 <circle cx={20} cy={16} r={9} stroke="#007AFF" strokeWidth={2} fill="#007AFF" fillOpacity={0.15} />
                             </svg>
-                            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.04em', color: '#1D1D1F' }}>
+                            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.04em', color: c.text }}>
                                 {siteName}
                             </span>
                         </>
@@ -260,7 +267,7 @@ function MobileHeader() {
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.15 }}
                         style={{
-                            fontWeight: 700, fontSize: 16, color: '#1D1D1F',
+                            fontWeight: 700, fontSize: 16, color: c.text,
                             letterSpacing: '-0.02em',
                             maxWidth: '55%', overflow: 'hidden',
                             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -274,20 +281,22 @@ function MobileHeader() {
     );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
-export default function MobileApp() {
+// ─── Inner app (needs ThemeProvider in scope) ─────────────────────────────────
+function MobileAppInner() {
     const location = useLocation();
+    const { colors: c } = useTheme();
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
 
     return (
         <div dir="rtl" style={{
             minHeight: '100dvh',
-            background: '#F2F2F7',
+            background: c.bg,
             fontFamily: SF,
             overflowX: 'hidden',
             paddingTop: hideHeader ? 0 : 56,
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
+            colorScheme: 'auto',
         }}>
             <MobileAnalytics />
             <RouteEffects />
@@ -300,23 +309,23 @@ export default function MobileApp() {
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.20, ease: [0.22, 1, 0.36, 1] } }}
                     exit={{ opacity: 0, transition: { duration: 0.08 } }}
                 >
-                    <Suspense fallback={<div style={{ minHeight: '60vh', background: '#F2F2F7' }} />}>
+                    <Suspense fallback={<div style={{ minHeight: '60vh', background: c.bg }} />}>
                         <Routes location={location}>
-                            <Route path="/"           element={<MobileLanding />} />
-                            <Route path="/catalog"    element={<MobileCatalog />} />
+                            <Route path="/"            element={<MobileLanding />} />
+                            <Route path="/catalog"     element={<MobileCatalog />} />
                             <Route path="/catalog/:id" element={<MobileProduct />} />
-                            <Route path="/cart"       element={<MobileCart />} />
-                            <Route path="/checkout"   element={<MobileCheckout />} />
-                            <Route path="/favorites"  element={<MobileFavorites />} />
-                            <Route path="/contact"    element={<MobileContact />} />
-                            <Route path="/story"      element={<MobileAbout />} />
-                            <Route path="/vod"        element={<MobileVOD />} />
-                            <Route path="/magazine"   element={<MobileMagazine />} />
-                            <Route path="/menu"       element={<MobileMenu />} />
-                            <Route path="/compare"    element={<MobileCompare />} />
-                            <Route path="/privacy"    element={<MobilePrivacy />} />
-                            <Route path="/terms"      element={<MobileTerms />} />
-                            <Route path="*"           element={<MobileLanding />} />
+                            <Route path="/cart"        element={<MobileCart />} />
+                            <Route path="/checkout"    element={<MobileCheckout />} />
+                            <Route path="/favorites"   element={<MobileFavorites />} />
+                            <Route path="/contact"     element={<MobileContact />} />
+                            <Route path="/story"       element={<MobileAbout />} />
+                            <Route path="/vod"         element={<MobileVOD />} />
+                            <Route path="/magazine"    element={<MobileMagazine />} />
+                            <Route path="/menu"        element={<MobileMenu />} />
+                            <Route path="/compare"     element={<MobileCompare />} />
+                            <Route path="/privacy"     element={<MobilePrivacy />} />
+                            <Route path="/terms"       element={<MobileTerms />} />
+                            <Route path="*"            element={<MobileLanding />} />
                         </Routes>
                     </Suspense>
                 </motion.div>
@@ -325,5 +334,16 @@ export default function MobileApp() {
             {!hideBottomNav && <MobileBottomNav />}
             <CookieConsent />
         </div>
+    );
+}
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
+export default function MobileApp() {
+    return (
+        <ThemeProvider>
+            <MotionConfig reducedMotion="user">
+                <MobileAppInner />
+            </MotionConfig>
+        </ThemeProvider>
     );
 }

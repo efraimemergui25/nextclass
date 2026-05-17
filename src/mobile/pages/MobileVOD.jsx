@@ -4,11 +4,13 @@ import { Play, Clock, X } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { useSettings } from '../../context/SettingsContext';
+import { useTheme } from '../context/ThemeContext';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
 export default function MobileVOD() {
     const { getSetting } = useSettings();
+    const { colors: c }  = useTheme();
     const [videos,   setVideos]   = useState(null);
     const [selected, setSelected] = useState(null);
 
@@ -22,7 +24,8 @@ export default function MobileVOD() {
     }, []);
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+            <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
 
             {/* ── Header card ───────────────────────────────────────── */}
             <div style={{
@@ -43,21 +46,22 @@ export default function MobileVOD() {
             {selected && (
                 <div style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', flex: 1, lineHeight: 1.3,
-                            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                        }}>{selected.title}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: c.text, flex: 1, lineHeight: 1.3,
+                            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {selected.title}
+                        </p>
                         <motion.button
                             whileTap={{ scale: 0.82 }}
                             onClick={() => setSelected(null)}
                             aria-label="סגור וידאו"
                             style={{
                                 width: 30, height: 30, borderRadius: 99, flexShrink: 0, marginRight: 8,
-                                background: 'rgba(60,60,67,0.12)', border: 'none',
+                                background: c.subtleBg, border: 'none',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                             }}
                         >
-                            <X size={14} strokeWidth={2.5} color="#3C3C43" />
+                            <X size={14} strokeWidth={2.5} color={c.text2} />
                         </motion.button>
                     </div>
                     <div style={{ background: '#000', borderRadius: 18, overflow: 'hidden', aspectRatio: '16/9' }}>
@@ -76,21 +80,20 @@ export default function MobileVOD() {
             {videos === null ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} style={{ background: '#fff', borderRadius: 18, overflow: 'hidden', display: 'flex', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                            <div style={{ width: 110, height: 80, background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', flexShrink: 0 }} />
+                        <div key={i} style={{ background: c.surface, borderRadius: 18, overflow: 'hidden', display: 'flex', boxShadow: c.cardShadow }}>
+                            <div style={{ width: 110, height: 80, background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', flexShrink: 0 }} />
                             <div style={{ flex: 1, padding: '16px 14px' }}>
-                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', marginBottom: 8 }} />
-                                <div style={{ height: 12, borderRadius: 6, background: '#F2F2F7', width: '50%' }} />
+                                <div style={{ height: 12, borderRadius: 6, background: c.shimmerA, marginBottom: 8 }} />
+                                <div style={{ height: 12, borderRadius: 6, background: c.shimmerA, width: '50%' }} />
                             </div>
                         </div>
                     ))}
-                    <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
                 </div>
             ) : videos.length === 0 ? (
-                <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center' }}>
+                <div style={{ background: c.surface, borderRadius: 20, padding: '32px 20px', textAlign: 'center' }}>
                     <div style={{ fontSize: 44, marginBottom: 12 }}>🎬</div>
-                    <p style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F', marginBottom: 6 }}>תוכן בדרך</p>
-                    <p style={{ fontSize: 14, color: '#86868B' }}>הדרכות וידאו יתווספו בקרוב</p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: c.text, marginBottom: 6 }}>תוכן בדרך</p>
+                    <p style={{ fontSize: 14, color: c.text3 }}>הדרכות וידאו יתווספו בקרוב</p>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -100,14 +103,13 @@ export default function MobileVOD() {
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setSelected(video)}
                             style={{
-                                background: '#fff', borderRadius: 18,
+                                background: c.surface, borderRadius: 18,
                                 overflow: 'hidden', cursor: 'pointer',
                                 display: 'flex', gap: 0,
-                                boxShadow: selected?.id === video.id ? '0 0 0 2px #007AFF, 0 4px 20px rgba(0,122,255,0.15)' : '0 1px 4px rgba(0,0,0,0.07)',
+                                boxShadow: selected?.id === video.id ? '0 0 0 2px #007AFF, 0 4px 20px rgba(0,122,255,0.15)' : c.cardShadow,
                                 WebkitTapHighlightColor: 'transparent',
                             }}
                         >
-                            {/* Thumbnail */}
                             <div style={{ width: 110, height: 80, background: '#1C1C1E', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
                                 {video.thumbnail ? (
                                     <img src={video.thumbnail} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -122,16 +124,15 @@ export default function MobileVOD() {
                                     </div>
                                 </div>
                             </div>
-                            {/* Info */}
                             <div style={{ flex: 1, padding: '12px 14px', direction: 'rtl' }}>
-                                <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', lineHeight: 1.3, marginBottom: 5,
+                                <p style={{ fontSize: 13, fontWeight: 700, color: c.text, lineHeight: 1.3, marginBottom: 5,
                                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                     {video.title}
                                 </p>
                                 {video.duration && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Clock size={11} color="#86868B" />
-                                        <span style={{ fontSize: 11, color: '#86868B' }}>{video.duration}</span>
+                                        <Clock size={11} color={c.text3} />
+                                        <span style={{ fontSize: 11, color: c.text3 }}>{video.duration}</span>
                                     </div>
                                 )}
                             </div>
