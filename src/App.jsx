@@ -38,6 +38,7 @@ import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
 import AuthModal from './components/AuthModal';
 import CookieConsent from './components/CookieConsent';
+import PersonalizationLayer, { MemberBar } from './components/PersonalizationLayer';
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
 const LandingPage       = lazy(() => import('./pages/LandingPage'));
@@ -229,6 +230,7 @@ function AppContent() {
 
             <PageErrorBoundary>
                 <AnnouncementBar />
+                <MemberBar />
                 <Header />
             </PageErrorBoundary>
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
@@ -249,6 +251,7 @@ function AppContent() {
             <CompareTray />
             <CookieConsent />
             <AuthModal />
+            <PersonalizationLayer />
         </div>
     );
 }

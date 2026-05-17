@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { ArrowLeft, ChevronLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, CheckCircle, Sparkles } from 'lucide-react';
 import { useProducts } from '../../context/ProductsContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 import MobileProductCard from '../components/MobileProductCard';
@@ -51,6 +52,7 @@ function SkeletonCard({ c }) {
 export default function MobileLanding() {
     const navigate = useNavigate();
     const { getSetting }  = useSettings();
+    const { user, firstName, shortGreeting, timeGreeting, memberTier, tierColor, tierLabel } = useAuth();
     const { colors: c }   = useTheme();
     const { featuredProduct, bestSellers, newArrivals, activeProducts } = useProducts();
     const recentlyViewed = useRecentlyViewed(activeProducts);
@@ -102,6 +104,41 @@ export default function MobileLanding() {
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24, background: c.bg, minHeight: '100dvh' }}>
             <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+
+            {/* ── Personalized greeting (logged-in only) ─────────────── */}
+            {user && firstName && (
+                <motion.div
+                    initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ padding: '14px 16px 0', direction: 'rtl' }}
+                >
+                    <div style={{
+                        background: `linear-gradient(135deg, ${tierColor}12, ${tierColor}06)`,
+                        borderRadius: 18,
+                        border: `1px solid ${tierColor}22`,
+                        padding: '14px 16px',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                    }}>
+                        <div style={{
+                            width: 42, height: 42, borderRadius: 13, flexShrink: 0,
+                            background: `linear-gradient(135deg, ${tierColor}30, ${tierColor}55)`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 18, fontWeight: 900, color: tierColor,
+                        }}>
+                            {firstName[0].toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 15, fontWeight: 800, color: c.text, letterSpacing: '-0.03em', marginBottom: 2 }}>
+                                {shortGreeting} {timeGreeting.emoji}
+                            </p>
+                            <p style={{ fontSize: 12, color: c.text3, fontWeight: 500 }}>
+                                ברוך הבא · <span style={{ color: tierColor, fontWeight: 700 }}>{tierLabel}</span>
+                            </p>
+                        </div>
+                        <Sparkles size={18} color={tierColor} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                    </div>
+                </motion.div>
+            )}
 
             {/* ── Hero ──────────────────────────────────────────────── */}
             <div style={{ padding: '14px 16px 0' }}>
@@ -249,7 +286,9 @@ export default function MobileLanding() {
                         <button onClick={() => navigate('/catalog')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, WebkitTapHighlightColor: 'transparent' }}>
                             ראה הכל <ChevronLeft size={13} strokeWidth={2.5} />
                         </button>
-                        <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>צפית לאחרונה</h2>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>
+                            {firstName ? `המשך מאיפה שעצרת, ${firstName}` : 'צפית לאחרונה'}
+                        </h2>
                     </div>
                     <div style={{ display: 'flex', gap: 10, padding: '2px 16px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                         {recentlyViewed.slice(0, 6).map(p => <MobileProductCard key={p.id} product={p} size="sm" />)}

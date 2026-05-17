@@ -11,12 +11,14 @@ import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
 import AnnouncementBar from '../components/AnnouncementBar';
+import { MemberBar } from '../components/PersonalizationLayer';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { haptic } from './utils/haptic';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
 import MobileAuthSheet from './components/MobileAuthSheet';
+import PersonalizationLayer from '../components/PersonalizationLayer';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -750,6 +752,7 @@ function MobileMenuOverlay({ open, onClose }) {
 function MobileSmartConcierge() {
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
+    const { firstName, timeGreeting } = useAuth();
     const [open, setOpen]   = useState(false);
     const [tab, setTab]     = useState('ai'); // 'ai' | 'wa' | 'phone' | 'a11y'
     const [input, setInput] = useState('');
@@ -762,7 +765,10 @@ function MobileSmartConcierge() {
     const rawPhone  = getSetting('whatsapp_number', '972585856356');
     const phone     = rawPhone.replace(/\D/g, '');
     const callPhone = getSetting('contact_phone', '058-5856356');
-    const greeting  = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך.');
+    const baseGreeting = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך.');
+    const greeting  = firstName
+        ? `היי ${firstName}! ${timeGreeting.emoji} ${timeGreeting.word}. ${baseGreeting}`
+        : baseGreeting;
     const botName   = getSetting('ai_title', 'NextClass AI');
     const botRole   = getSetting('ai_role', 'Institutional Concierge');
     const thinkMsg  = getSetting('ai_thinking', 'מעבד את בקשתך...');
@@ -1176,6 +1182,7 @@ function MobileAppInner() {
             {!hideHeader && (
                 <div style={{ position: 'sticky', top: 56, zIndex: 199 }}>
                     <AnnouncementBar />
+                    <MemberBar />
                 </div>
             )}
             <OfflineBanner />
@@ -1220,6 +1227,7 @@ function MobileAppInner() {
             <MobileMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
             <MobileSmartConcierge />
             <MobileAuthSheet />
+            <PersonalizationLayer />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />

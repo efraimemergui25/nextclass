@@ -10,6 +10,7 @@ import Magnetic from './Magnetic';
 import { useProducts } from '../context/ProductsContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
@@ -252,6 +253,7 @@ function getQuickReplies(messages, settings) {
 // ── Main component ───────────────────────────────────────────────────────────
 const SmartConcierge = () => {
  const { getSetting } = useSettings();
+ const { firstName, timeGreeting } = useAuth();
  const whatsappNumber = getSetting('whatsapp_number', '972585856356');
  const location = useLocation();
  const navigate = useNavigate();
@@ -260,9 +262,10 @@ const SmartConcierge = () => {
  const { addToCart } = useCart();
 
  const getInitialMessage = useCallback(() => {
- if (isProductPage) return getSetting('ai_greeting_pd', 'שלום! האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?');
- return getSetting('ai_greeting_home', 'שלום! אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?');
- }, [isProductPage, getSetting]);
+ const namePrefix = firstName ? `היי ${firstName}! ` : 'שלום! ';
+ if (isProductPage) return namePrefix + getSetting('ai_greeting_pd', 'האם תרצו לקבל מפרט טכני מלא או הצעת מחיר למוסד שלכם?');
+ return namePrefix + getSetting('ai_greeting_home', 'אני הקונסיירז׳ של NextClass. איך אוכל לעזור לכם היום?');
+ }, [isProductPage, getSetting, firstName]);
 
  // Chat state
  const [isOpen, setIsOpen] = useState(false);

@@ -7,6 +7,7 @@ import {
     Compass, Zap, MessageCircle,
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
+import { useAuth, TIER_CONFIG } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 import { useCart } from '../../context/CartContext';
@@ -62,9 +63,17 @@ function buildNavGroups(phone) {
 export default function MobileMenu() {
     const navigate = useNavigate();
     const { getSetting } = useSettings();
+    const { user, firstName, memberTier, tierLabel, tierColor, institution, openAuthModal } = useAuth();
     const { colors: c, isDark, toggle } = useTheme();
     const { cartCount }     = useCart();
     const { wishlistCount } = useWishlist();
+
+    // Tier progress toward next level
+    const TIER_ORDER = ['free', 'member', 'premium'];
+    const tierIdx = TIER_ORDER.indexOf(memberTier);
+    const nextTier = TIER_ORDER[tierIdx + 1];
+    const nextTierLabel = nextTier ? TIER_CONFIG[nextTier]?.label : null;
+    const tierProgress = tierIdx === 0 ? 12 : tierIdx === 1 ? 55 : 100;
 
     const siteName = getSetting('site_name', 'NextClass');
     const siteLogo = getSetting('site_logo_url', '');
@@ -81,6 +90,79 @@ export default function MobileMenu() {
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 40px', background: c.bg, minHeight: '100dvh' }}>
+
+            {/* ── User profile tile ──────────────────────────────────── */}
+            {user ? (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    style={{
+                        background: c.surface, borderRadius: 20, padding: '16px 18px',
+                        marginBottom: 12, boxShadow: c.cardShadow,
+                        border: `1px solid ${tierColor}22`,
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: nextTierLabel ? 14 : 0 }}>
+                        {/* Avatar */}
+                        <div style={{
+                            width: 50, height: 50, borderRadius: 16, flexShrink: 0,
+                            background: `linear-gradient(135deg, ${tierColor}33, ${tierColor}66)`,
+                            border: `2px solid ${tierColor}55`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 20, fontWeight: 900, color: tierColor,
+                        }}>
+                            {(firstName || '?')[0].toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 16, fontWeight: 800, color: c.text, letterSpacing: '-0.03em', marginBottom: 2 }}>
+                                {firstName || user.email}
+                            </p>
+                            {institution ? (
+                                <p style={{ fontSize: 12, color: c.text3, fontWeight: 500, marginBottom: 2 }}>{institution}</p>
+                            ) : null}
+                            <span style={{
+                                display: 'inline-block', fontSize: 11, fontWeight: 700,
+                                color: tierColor, background: `${tierColor}18`,
+                                padding: '2px 8px', borderRadius: 99,
+                            }}>
+                                {tierLabel}
+                            </span>
+                        </div>
+                    </div>
+                    {/* Tier progress bar toward next level */}
+                    {nextTierLabel && (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                                <span style={{ fontSize: 11, color: c.text3, fontWeight: 600 }}>רמה נוכחית: {tierLabel}</span>
+                                <span style={{ fontSize: 11, color: tierColor, fontWeight: 700 }}>הבא: {nextTierLabel}</span>
+                            </div>
+                            <div style={{ height: 5, background: c.divider, borderRadius: 99, overflow: 'hidden' }}>
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${tierProgress}%` }}
+                                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+                                    style={{ height: '100%', background: `linear-gradient(90deg, ${tierColor}, ${tierColor}88)`, borderRadius: 99 }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
+            ) : (
+                <motion.button
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { haptic('light'); openAuthModal(); navigate('/'); }}
+                    style={{
+                        width: '100%', background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+                        borderRadius: 16, padding: '14px 18px', marginBottom: 12,
+                        border: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        fontFamily: SF,
+                    }}
+                >
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>התחברות / הרשמה</span>
+                    <span style={{ fontSize: 20 }}>👋</span>
+                </motion.button>
+            )}
 
             {/* ── Brand header ─────────────────────────────────────────── */}
             <div style={{

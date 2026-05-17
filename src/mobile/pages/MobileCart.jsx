@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ChevronLeft } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 
@@ -192,6 +193,7 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
 export default function MobileCart() {
     const navigate = useNavigate();
     const { cartItems, cartTotal, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
+    const { firstName } = useAuth();
     const { colors: c } = useTheme();
     const [showClearConfirm, setShowClearConfirm] = useState(false);
 
@@ -225,6 +227,19 @@ export default function MobileCart() {
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24, background: c.bg, minHeight: '100dvh' }}>
+
+            {/* ── Personalized greeting ───────────────────────────────── */}
+            {firstName && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ padding: '14px 20px 0', direction: 'rtl' }}
+                >
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', letterSpacing: '-0.01em' }}>
+                        שלום {firstName}, מה אנחנו קונים היום? 🛍️
+                    </p>
+                </motion.div>
+            )}
 
             {/* ── Header ─────────────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px 2px' }}>

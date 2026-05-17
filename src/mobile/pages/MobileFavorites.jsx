@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ChevronLeft, Trash2 } from 'lucide-react';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 import MobileProductCard from '../components/MobileProductCard';
@@ -11,6 +12,7 @@ const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica N
 export default function MobileFavorites() {
     const navigate = useNavigate();
     const { wishlistItems, clearWishlist } = useWishlist();
+    const { firstName } = useAuth();
     const { colors: c } = useTheme();
 
     if (!wishlistItems.length) return (
@@ -23,7 +25,7 @@ export default function MobileFavorites() {
             >
                 <Heart size={38} color="#FF2D55" strokeWidth={1.5} />
             </motion.div>
-            <p style={{ fontSize: 20, fontWeight: 800, color: c.text, marginBottom: 8, letterSpacing: '-0.03em' }}>אין פריטים שמורים</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: c.text, marginBottom: 8, letterSpacing: '-0.03em' }}>{firstName ? `${firstName}, אין פריטים שמורים` : 'אין פריטים שמורים'}</p>
             <p style={{ fontSize: 14, color: c.text3, marginBottom: 28, lineHeight: 1.5 }}>לחץ על הלב על מוצר כדי לשמור אותו</p>
             <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate('/catalog')} style={{
                 background: 'linear-gradient(135deg, #007AFF, #0063CC)', color: '#fff', border: 'none',
@@ -39,6 +41,20 @@ export default function MobileFavorites() {
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', padding: '12px 16px 24px', background: c.bg, minHeight: '100dvh' }}>
+
+            {/* Personalized title */}
+            <motion.div
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                style={{ marginBottom: 4 }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+                    <Heart size={20} color="#FF2D55" fill="#FF2D55" strokeWidth={1.5} />
+                    <h1 style={{ fontSize: 22, fontWeight: 900, color: c.text, letterSpacing: '-0.04em', margin: 0 }}>
+                        {firstName ? `המועדפים של ${firstName}` : 'המועדפים שלי'}
+                    </h1>
+                </div>
+            </motion.div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 {typeof clearWishlist === 'function' && (
