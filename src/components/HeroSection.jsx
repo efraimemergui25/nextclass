@@ -1,25 +1,39 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 // Removed DEFAULTS and readContent helper
 
+const DEFAULT_HERO_BG = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80';
+
 const HeroSection = () => {
  const navigate = useNavigate();
  const { getSetting } = useSettings();
- 
+
  const content = useMemo(() => ({
  hero_eyebrow: getSetting('hero_eyebrow', 'הדור הבא של טכנולוגיה לחינוך'),
  hero_headline: getSetting('hero_headline', 'חדשנות חסרת פשרות.'),
  hero_subline: getSetting('hero_subline', 'מקצוענות בכל מרחב למידה.'),
  hero_description: getSetting('hero_description', 'הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל.'),
  hero_cta: getSetting('hero_cta', 'גלו את הפתרונות שלנו'),
- hero_bg_image: getSetting('hero_bg_image', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'),
+ hero_bg_image: getSetting('hero_bg_image', DEFAULT_HERO_BG),
  trust_1: getSetting('hero_trust_pill_1', 'שירות ישיר ומהיר'),
  trust_2: getSetting('hero_trust_pill_2', 'ייעוץ ללא עלות'),
  trust_3: getSetting('hero_trust_pill_3', '+500 מוסדות חינוך'),
  }), [getSetting]);
+
+ // Preload the background URL — fall back to default if it fails or is empty
+ const [activeBgUrl, setActiveBgUrl] = useState(DEFAULT_HERO_BG);
+ useEffect(() => {
+ const url = content.hero_bg_image;
+ if (!url || !url.trim()) { setActiveBgUrl(DEFAULT_HERO_BG); return; }
+ if (url === DEFAULT_HERO_BG) { setActiveBgUrl(url); return; }
+ const img = new window.Image();
+ img.onload = () => setActiveBgUrl(url);
+ img.onerror = () => setActiveBgUrl(DEFAULT_HERO_BG);
+ img.src = url;
+ }, [content.hero_bg_image]);
 
  const sectionRef = useRef(null);
  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
@@ -42,7 +56,7 @@ const HeroSection = () => {
  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
  initial={{ scale: 1.08 }}
  animate={{ scale: 1.0 }}
- style={{ backgroundImage: `url('${content.hero_bg_image}')`, y: bgY, scale: 1.15, filter: bgBlur }}
+ style={{ backgroundImage: `url('${activeBgUrl}')`, y: bgY, scale: 1.15, filter: bgBlur }}
  transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
  />
 

@@ -295,7 +295,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     position: 'relative',
                 }}>
-                    {product.image ? (
+                    {(product.image || product._seedImage) ? (
                         <>
                             {!imgLoaded && (
                                 <div style={{
@@ -306,9 +306,19 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                 }} />
                             )}
                             <motion.img
-                                src={product.image}
+                                src={product.image || product._seedImage}
                                 alt={product.title}
                                 onLoad={() => setImgLoaded(true)}
+                                onError={e => {
+                                    const tried = Number(e.target.dataset.tried || 0);
+                                    if (tried === 0 && product._seedImage && product._seedImage !== e.target.src) {
+                                        e.target.dataset.tried = '1';
+                                        e.target.src = product._seedImage;
+                                    } else if (tried <= 1) {
+                                        e.target.dataset.tried = '2';
+                                        e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
+                                    }
+                                }}
                                 initial={{ scale: 1.08, filter: 'blur(8px)', opacity: 0 }}
                                 animate={imgLoaded ? { scale: 1, filter: 'blur(0px)', opacity: 1 } : {}}
                                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}

@@ -23,12 +23,24 @@ import defaultProducts, { productMeta } from '../data/products';
 
 const ProductsContext = createContext(null);
 
-// Merge productMeta defaults with Firebase data (Firebase wins on conflict)
+// Module-level map: id → seed image URL (always reliable Unsplash URLs)
+const seedImageById = Object.fromEntries(defaultProducts.map(p => [p.id, p.image || '']));
+
+// Merge productMeta defaults with Firebase data.
+// Firebase wins on all fields EXCEPT image: if Firebase returns an empty/missing
+// image, we restore the seed Unsplash URL so products never go imageless.
 function mergeWithMeta(rawProducts) {
-    return rawProducts.map(p => ({
-        ...(productMeta[p.id] || {}),  // seed defaults
-        ...p,                           // Firebase data overrides
-    }));
+    return rawProducts.map(p => {
+        const meta = productMeta[p.id] || {};
+        const seedImage = seedImageById[p.id] || '';
+        const resolvedImage = (p.image && p.image.trim()) ? p.image : seedImage;
+        return {
+            ...meta,
+            ...p,
+            image: resolvedImage,
+            _seedImage: seedImage,
+        };
+    });
 }
 
 export function ProductsProvider({ children }) {

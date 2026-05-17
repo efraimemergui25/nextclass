@@ -40,6 +40,7 @@ const ProductCard = ({ product }) => {
  price = 0,
  salePrice = null,
  image = '',
+ _seedImage = '',
  description = '',
  specs,
  stock,
@@ -124,13 +125,17 @@ const ProductCard = ({ product }) => {
 
  // ─── Stable handlers ──────────────────────────────────────────────────────
  const handleImgError = useCallback((e) => {
- if (!e.target.dataset.triedFallback) {
- e.target.dataset.triedFallback = 'true';
+ const tried = Number(e.target.dataset.tried || 0);
+ if (tried === 0 && _seedImage && _seedImage !== e.target.src) {
+ e.target.dataset.tried = '1';
+ e.target.src = _seedImage;
+ } else if (tried <= 1) {
+ e.target.dataset.tried = '2';
  e.target.src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=800&auto=format&fit=crop';
  } else {
  setImgError(true);
  }
- }, []);
+ }, [_seedImage]);
 
  const handleCompareClick = useCallback((e) => {
  e.preventDefault();
