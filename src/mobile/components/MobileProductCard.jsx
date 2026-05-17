@@ -380,6 +380,16 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         )}
                     </div>
 
+                    {/* ── Star rating (static, md only) ─────────────────── */}
+                    {!isSmall && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 8 }}>
+                            {[1, 2, 3, 4, 5].map(s => (
+                                <span key={s} style={{ color: s <= 4 ? '#FF9500' : '#E5E5EA', fontSize: 11, lineHeight: 1 }}>★</span>
+                            ))}
+                            <span style={{ fontSize: 10, color: c.text4, fontWeight: 500, marginRight: 2 }}>(4.8)</span>
+                        </div>
+                    )}
+
                     {/* ── Add to cart ────────────────────────────────────── */}
                     <motion.button
                         whileTap={{ scale: 0.90 }}

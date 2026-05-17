@@ -204,8 +204,236 @@ function MobileBottomNav() {
     );
 }
 
+// ─── Search Overlay ───────────────────────────────────────────────────────────
+function MobileSearchOverlay({ open, onClose }) {
+    const navigate = useNavigate();
+    const { colors: c } = useTheme();
+    const { activeProducts } = useProducts();
+    const [query, setQuery] = useState('');
+    const inputRef = useRef(null);
+
+    // Auto-focus when opened
+    useEffect(() => {
+        if (open) {
+            setQuery('');
+            setTimeout(() => inputRef.current?.focus(), 80);
+        }
+    }, [open]);
+
+    // ESC key closes overlay
+    useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    const filtered = query.trim()
+        ? activeProducts.filter(p => {
+            const q = query.trim().toLowerCase();
+            return (
+                p.title?.toLowerCase().includes(q) ||
+                p.category?.toLowerCase().includes(q) ||
+                p.description?.toLowerCase().includes(q)
+            );
+        }).slice(0, 20)
+        : [];
+
+    return (
+        <AnimatePresence>
+            {open && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                        onClick={onClose}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 298,
+                            background: 'rgba(0,0,0,0.40)',
+                            backdropFilter: 'blur(6px)',
+                            WebkitBackdropFilter: 'blur(6px)',
+                        }}
+                    />
+
+                    {/* Panel */}
+                    <motion.div
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -20, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                        style={{
+                            position: 'fixed', top: 0, left: 0, right: 0,
+                            zIndex: 300,
+                            background: c.surface,
+                            borderRadius: '0 0 24px 24px',
+                            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+                            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                            paddingBottom: 12,
+                            fontFamily: SF,
+                            direction: 'rtl',
+                            maxHeight: '80dvh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        {/* Search bar row */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '0 12px 12px',
+                            borderBottom: `0.5px solid ${c.divider}`,
+                        }}>
+                            <div style={{
+                                flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                                background: c.input, borderRadius: 12,
+                                padding: '10px 12px',
+                            }}>
+                                <Search size={16} color={c.text4} strokeWidth={2} />
+                                <input
+                                    ref={inputRef}
+                                    value={query}
+                                    onChange={e => setQuery(e.target.value)}
+                                    placeholder="חפש מוצרים..."
+                                    style={{
+                                        flex: 1, background: 'none', border: 'none',
+                                        outline: 'none', fontSize: 15, color: c.text,
+                                        fontFamily: SF, direction: 'rtl',
+                                    }}
+                                />
+                                {query.length > 0 && (
+                                    <motion.button
+                                        whileTap={{ scale: 0.85 }}
+                                        onClick={() => setQuery('')}
+                                        style={{
+                                            background: c.text4, border: 'none', borderRadius: 99,
+                                            width: 16, height: 16, padding: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', flexShrink: 0,
+                                            WebkitTapHighlightColor: 'transparent',
+                                        }}
+                                    >
+                                        <X size={10} color="#fff" strokeWidth={2.5} />
+                                    </motion.button>
+                                )}
+                            </div>
+                            <motion.button
+                                whileTap={{ scale: 0.88 }}
+                                onClick={onClose}
+                                style={{
+                                    background: 'none', border: 'none',
+                                    fontSize: 15, fontWeight: 600, color: '#007AFF',
+                                    cursor: 'pointer', padding: '4px 2px',
+                                    WebkitTapHighlightColor: 'transparent',
+                                    fontFamily: SF, flexShrink: 0,
+                                }}
+                            >
+                                ביטול
+                            </motion.button>
+                        </div>
+
+                        {/* Results */}
+                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                            {!query.trim() ? (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: '32px 16px',
+                                    color: c.text4, fontSize: 14, fontWeight: 500,
+                                }}>
+                                    הקלד לחיפוש...
+                                </div>
+                            ) : filtered.length === 0 ? (
+                                <div style={{
+                                    display: 'flex', flexDirection: 'column',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    padding: '32px 16px', gap: 8,
+                                }}>
+                                    <span style={{ fontSize: 30 }}>🔍</span>
+                                    <p style={{ fontSize: 14, fontWeight: 600, color: c.text3, margin: 0 }}>לא נמצאו מוצרים</p>
+                                    <p style={{ fontSize: 12, color: c.text4, margin: 0 }}>נסה מילת חיפוש אחרת</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {filtered.map((product, i) => {
+                                        const displayPrice = product.salePrice || product.price;
+                                        return (
+                                            <motion.button
+                                                key={product.id}
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.03, duration: 0.15 }}
+                                                whileTap={{ scale: 0.98, background: c.input }}
+                                                onClick={() => {
+                                                    haptic('select');
+                                                    navigate(`/catalog/${product.id}`);
+                                                    onClose();
+                                                }}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', gap: 12,
+                                                    padding: '10px 14px',
+                                                    background: 'none', border: 'none',
+                                                    borderBottom: `0.5px solid ${c.divider}`,
+                                                    cursor: 'pointer', direction: 'rtl',
+                                                    WebkitTapHighlightColor: 'transparent',
+                                                    fontFamily: SF, width: '100%',
+                                                    textAlign: 'right',
+                                                }}
+                                            >
+                                                {/* Thumbnail */}
+                                                <div style={{
+                                                    width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                                                    background: c.bg, overflow: 'hidden',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    border: `0.5px solid ${c.border}`,
+                                                }}>
+                                                    {product.image ? (
+                                                        <img
+                                                            src={product.image}
+                                                            alt={product.title}
+                                                            style={{ width: '88%', height: '88%', objectFit: 'contain' }}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ fontSize: 20, opacity: 0.4 }}>🖥️</span>
+                                                    )}
+                                                </div>
+
+                                                {/* Text */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    {product.category && (
+                                                        <p style={{ fontSize: 10, fontWeight: 600, color: '#007AFF', margin: '0 0 2px' }}>
+                                                            {product.category}
+                                                        </p>
+                                                    )}
+                                                    <p style={{
+                                                        fontSize: 13, fontWeight: 600, color: c.text,
+                                                        margin: '0 0 3px', lineHeight: 1.3,
+                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {product.title}
+                                                    </p>
+                                                    {displayPrice && (
+                                                        <p style={{ fontSize: 13, fontWeight: 800, color: product.salePrice ? '#FF3B30' : c.text, margin: 0 }}>
+                                                            ₪{displayPrice.toLocaleString()}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <ChevronRight size={16} color={c.text4} strokeWidth={2} style={{ flexShrink: 0, transform: 'rotate(180deg)' }} />
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
+
 // ─── Header ───────────────────────────────────────────────────────────────────
-function MobileHeader({ headerBlur, headerBg }) {
+function MobileHeader({ headerBlur, headerBg, onSearch }) {
     const location  = useLocation();
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
@@ -257,7 +485,7 @@ function MobileHeader({ headerBlur, headerBg }) {
             <div style={{ position: 'absolute', left: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <motion.button
                     whileTap={{ scale: 0.85 }}
-                    onClick={() => { haptic('select'); navigate('/catalog'); }}
+                    onClick={() => { haptic('select'); onSearch?.(); }}
                     aria-label="חיפוש"
                     style={{
                         width: 36, height: 36, borderRadius: 10,
@@ -604,6 +832,7 @@ function MobileAppInner() {
     const { colors: c } = useTheme();
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
+    const [searchOpen, setSearchOpen] = useState(false);
     const prevPathRef   = useRef(location.pathname);
     const currentIdx    = getRouteIndex(location.pathname);
     const prevIdx       = getRouteIndex(prevPathRef.current);
@@ -636,7 +865,7 @@ function MobileAppInner() {
             <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
-            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} />}
+            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} onSearch={() => setSearchOpen(true)} />}
             {!hideHeader && <PullToRefresh scrollRef={scrollRef} />}
             {!hideHeader && (
                 <div style={{ position: 'sticky', top: 56, zIndex: 199 }}>
@@ -680,6 +909,7 @@ function MobileAppInner() {
             </AnimatePresence>
 
             {!hideBottomNav && <MobileBottomNav />}
+            <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
             <MobileFloatingWhatsApp />
             <MobileFloatingAI />
             <CookieConsent />

@@ -7,6 +7,7 @@ import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCompare } from '../../context/CompareContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../../context/SettingsContext';
 import { haptic } from '../utils/haptic';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
@@ -406,11 +407,13 @@ export default function MobileProduct() {
     const { toggleWishlist, isInWishlist }         = useWishlist();
     const { addToCompare, isSelected }             = useCompare();
     const { colors: c }                            = useTheme();
+    const { getSetting, isVisible }                = useSettings();
 
     const product    = getActiveProductById(id);
     const wishlisted = isInWishlist(id);
     const inCompare  = isSelected(id);
     const [added, setAdded] = useState(false);
+    const [qty, setQty] = useState(1);
 
     useEffect(() => {
         if (id) trackRecentlyViewed(id);
@@ -436,7 +439,7 @@ export default function MobileProduct() {
 
     const handleAdd = () => {
         haptic('success');
-        addToCart(product);
+        for (let i = 0; i < qty; i++) addToCart(product);
         setAdded(true);
         setTimeout(() => setAdded(false), 2200);
     };
@@ -608,6 +611,77 @@ export default function MobileProduct() {
                 </div>
             )}
 
+            {/* ── Reviews ──────────────────────────────────────────────── */}
+            {isVisible('vis_reviews', true) && (() => {
+                const avg = getSetting('pd_reviews_avg', '4.8');
+                const count = getSetting('pd_reviews_count', '24');
+                const reviews = [
+                    {
+                        name:  getSetting('pd_review1_name',  'שרה כ.'),
+                        role:  getSetting('pd_review1_role',  'מורה, חט"ב גבעתיים'),
+                        text:  getSetting('pd_review1_text',  'ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים.'),
+                        stars: Number(getSetting('pd_review1_stars', 5)),
+                    },
+                    {
+                        name:  getSetting('pd_review2_name',  'דוד מ.'),
+                        role:  getSetting('pd_review2_role',  'רכז טכנולוגיה'),
+                        text:  getSetting('pd_review2_text',  'התמיכה של NextClass מעולה. התקנה מהירה.'),
+                        stars: Number(getSetting('pd_review2_stars', 5)),
+                    },
+                    {
+                        name:  getSetting('pd_review3_name',  'מיכל ל.'),
+                        role:  getSetting('pd_review3_role',  'מנהלת בית ספר'),
+                        text:  getSetting('pd_review3_text',  'השקענו בכמה מוצרים — כולם ממליצים.'),
+                        stars: Number(getSetting('pd_review3_stars', 4)),
+                    },
+                ];
+                return (
+                    <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
+                        <Accordion title="חוות דעת" c={c}>
+                            {/* Average rating header */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                <span style={{ fontSize: 40, fontWeight: 900, color: c.text, letterSpacing: '-0.03em', lineHeight: 1 }}>{avg}</span>
+                                <div>
+                                    <div style={{ display: 'flex', gap: 2, marginBottom: 3 }}>
+                                        {[1,2,3,4,5].map(s => (
+                                            <span key={s} style={{ color: s <= Math.round(Number(avg)) ? '#FF9500' : '#E5E5EA', fontSize: 16 }}>★</span>
+                                        ))}
+                                    </div>
+                                    <span style={{ fontSize: 12, color: c.text3 }}>{count} חוות דעת</span>
+                                </div>
+                            </div>
+                            {/* Review cards */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {reviews.map((r, idx) => (
+                                    <div key={idx} style={{ background: c.surface2, borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 99, flexShrink: 0,
+                                            background: 'rgba(0,122,255,0.12)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 13, fontWeight: 800, color: '#007AFF',
+                                        }}>
+                                            {r.name.charAt(0)}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                                                <span style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{r.name}</span>
+                                                <div style={{ display: 'flex', gap: 1 }}>
+                                                    {[1,2,3,4,5].map(s => (
+                                                        <span key={s} style={{ color: s <= r.stars ? '#FF9500' : '#E5E5EA', fontSize: 14 }}>★</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <p style={{ fontSize: 11, color: c.text3, marginBottom: 6 }}>{r.role}</p>
+                                            <p style={{ fontSize: 13, color: c.text2, lineHeight: 1.5 }}>{r.text}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Accordion>
+                    </div>
+                );
+            })()}
+
             {/* ── Q&A ──────────────────────────────────────────────────── */}
             <div style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
                 <Accordion title="שאלות ותשובות" c={c}>
@@ -650,6 +724,18 @@ export default function MobileProduct() {
                     <div style={{ fontSize: 19, fontWeight: 900, color: product.salePrice ? '#FF3B30' : c.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
                         ₪{displayPrice?.toLocaleString()}
                     </div>
+                </div>
+
+                <div style={{ display:'flex', alignItems:'center', gap:4, background: c.input, borderRadius:10, padding:'4px 6px' }}>
+                  <motion.button whileTap={{scale:0.8}} onClick={() => setQty(q => Math.max(1,q-1))}
+                    style={{width:28,height:28,borderRadius:8,background:'none',border:'none',color:c.text,fontSize:18,fontWeight:300,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    −
+                  </motion.button>
+                  <span style={{minWidth:22,textAlign:'center',fontSize:15,fontWeight:700,color:c.text}}>{qty}</span>
+                  <motion.button whileTap={{scale:0.8}} onClick={() => setQty(q => Math.min(99,q+1))}
+                    style={{width:28,height:28,borderRadius:8,background:'none',border:'none',color:'#007AFF',fontSize:18,fontWeight:300,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    +
+                  </motion.button>
                 </div>
 
                 <motion.button
