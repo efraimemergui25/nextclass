@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ChevronLeft } from 'lucide-react';
@@ -8,6 +8,59 @@ import { haptic } from '../utils/haptic';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 const VAT = 0.17;
+
+// ─── Clear cart confirmation sheet ────────────────────────────────────────────
+function ClearCartSheet({ onConfirm, onCancel, c }) {
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={onCancel}
+                style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}
+            >
+                <motion.div
+                    initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        width: '100%', background: c.surface, borderRadius: '24px 24px 0 0',
+                        padding: '24px 20px', paddingBottom: 'max(28px, env(safe-area-inset-bottom))',
+                        fontFamily: SF, direction: 'rtl',
+                    }}
+                >
+                    <div style={{ width: 36, height: 4, borderRadius: 99, background: c.divider, margin: '0 auto 20px' }} />
+                    <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(255,59,48,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                        <Trash2 size={26} color="#FF3B30" strokeWidth={1.8} />
+                    </div>
+                    <p style={{ fontSize: 18, fontWeight: 800, color: c.text, textAlign: 'center', letterSpacing: '-0.03em', marginBottom: 8 }}>לנקות את העגלה?</p>
+                    <p style={{ fontSize: 14, color: c.text3, textAlign: 'center', lineHeight: 1.5, marginBottom: 24 }}>כל הפריטים יוסרו מהעגלה</p>
+                    <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => { haptic('warning'); onConfirm(); }}
+                        style={{
+                            width: '100%', height: 52, borderRadius: 16, background: '#FF3B30', border: 'none',
+                            color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                            fontFamily: SF, marginBottom: 10, WebkitTapHighlightColor: 'transparent',
+                        }}
+                    >
+                        נקה עגלה
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={onCancel}
+                        style={{
+                            width: '100%', height: 52, borderRadius: 16, background: c.subtleBg, border: 'none',
+                            color: c.text, fontSize: 16, fontWeight: 600, cursor: 'pointer',
+                            fontFamily: SF, WebkitTapHighlightColor: 'transparent',
+                        }}
+                    >
+                        ביטול
+                    </motion.button>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    );
+}
 
 // ─── Swipeable cart item ───────────────────────────────────────────────────────
 function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, i, last }) {
@@ -97,7 +150,7 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
                                 onClick={() => { haptic('light'); onIncrease(item.id); }}
                                 aria-label={`הגדל כמות — ${item.title}`}
                                 style={{
-                                    width: 44, height: 38, background: 'none', border: 'none',
+                                    width: 44, height: 44, background: 'none', border: 'none',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: '#007AFF', WebkitTapHighlightColor: 'transparent',
                                 }}
@@ -116,7 +169,7 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
                                 }}
                                 aria-label={(item.qty || 1) <= 1 ? `הסר ${item.title} מהעגלה` : `הקטן כמות — ${item.title}`}
                                 style={{
-                                    width: 44, height: 38, background: 'none', border: 'none',
+                                    width: 44, height: 44, background: 'none', border: 'none',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: (item.qty || 1) <= 1 ? '#FF3B30' : '#007AFF',
                                     WebkitTapHighlightColor: 'transparent', transition: 'color 0.15s',
@@ -140,6 +193,7 @@ export default function MobileCart() {
     const navigate = useNavigate();
     const { cartItems, cartTotal, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
     const { colors: c } = useTheme();
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     if (cartItems.length === 0) return (
         <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
@@ -176,13 +230,18 @@ export default function MobileCart() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px 2px' }}>
                 <motion.button
                     whileTap={{ scale: 0.92 }}
-                    onClick={() => { haptic('warning'); clearCart(); }}
-                    style={{ background: 'none', border: 'none', color: '#FF3B30', fontSize: 13, fontWeight: 600, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                    onClick={() => { haptic('light'); setShowClearConfirm(true); }}
+                    style={{ background: 'none', border: 'none', color: '#FF3B30', fontSize: 13, fontWeight: 600, cursor: 'pointer', WebkitTapHighlightColor: 'transparent', padding: '8px 0', minHeight: 44, display: 'flex', alignItems: 'center' }}
                 >
                     נקה עגלה
                 </motion.button>
-                <p style={{ fontSize: 13, color: c.text3, fontWeight: 500 }}>
-                    {cartItems.length} {cartItems.length === 1 ? 'פריט' : 'פריטים'} · החלק שמאלה למחיקה
+                <p style={{ fontSize: 13, color: c.text3, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {cartItems.length} {cartItems.length === 1 ? 'פריט' : 'פריטים'}
+                    <span style={{ opacity: 0.5 }}>·</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        החלק למחיקה
+                    </span>
                 </p>
             </div>
 
@@ -266,6 +325,14 @@ export default function MobileCart() {
                     המשך קנייה
                 </button>
             </div>
+
+            {showClearConfirm && (
+                <ClearCartSheet
+                    c={c}
+                    onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
+                    onCancel={() => setShowClearConfirm(false)}
+                />
+            )}
         </div>
     );
 }

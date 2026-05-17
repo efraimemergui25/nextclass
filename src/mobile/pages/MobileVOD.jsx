@@ -55,13 +55,13 @@ export default function MobileVOD() {
                             onClick={() => setSelected(null)}
                             aria-label="סגור וידאו"
                             style={{
-                                width: 30, height: 30, borderRadius: 99, flexShrink: 0, marginRight: 8,
+                                width: 44, height: 44, borderRadius: 99, flexShrink: 0, marginRight: 4,
                                 background: c.subtleBg, border: 'none',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                             }}
                         >
-                            <X size={14} strokeWidth={2.5} color={c.text2} />
+                            <X size={18} strokeWidth={2.5} color={c.text2} />
                         </motion.button>
                     </div>
                     <div style={{ background: '#000', borderRadius: 18, overflow: 'hidden', aspectRatio: '16/9' }}>
@@ -110,11 +110,11 @@ export default function MobileVOD() {
                                 WebkitTapHighlightColor: 'transparent',
                             }}
                         >
-                            <div style={{ width: 110, height: 80, background: '#1C1C1E', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ width: 110, height: 80, background: c.surface2, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
                                 {video.thumbnail ? (
                                     <img src={video.thumbnail} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)' }}>
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${c.shimmerA}, ${c.shimmerB})` }}>
                                         <Play size={24} color="rgba(255,255,255,0.5)" fill="rgba(255,255,255,0.3)" />
                                     </div>
                                 )}

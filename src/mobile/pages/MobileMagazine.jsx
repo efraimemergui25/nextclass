@@ -46,13 +46,18 @@ export default function MobileMagazine() {
             <div style={{ fontSize: 15, color: c.text2, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
                 {selected.body}
             </div>
-            <button onClick={() => setSelected(null)} style={{
-                marginTop: 24, width: '100%', height: 48, borderRadius: 14,
-                background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: 'none',
-                fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            }}>
+            <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setSelected(null)}
+                style={{
+                    marginTop: 24, width: '100%', height: 50, borderRadius: 14,
+                    background: 'rgba(0,122,255,0.08)', color: '#007AFF', border: 'none',
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent', fontFamily: SF,
+                }}
+            >
                 ← חזרה למגזין
-            </button>
+            </motion.button>
         </div>
     );
 

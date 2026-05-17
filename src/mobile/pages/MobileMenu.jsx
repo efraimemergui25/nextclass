@@ -59,7 +59,7 @@ export default function MobileMenu() {
                     {siteLogo ? (
                         <img src={siteLogo} alt={siteName} style={{ height: 40, objectFit: 'contain' }} />
                     ) : (
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #007AFF, #5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>N</span>
                         </div>
                     )}
@@ -74,7 +74,7 @@ export default function MobileMenu() {
                     whileTap={{ scale: 0.88 }}
                     onClick={() => { haptic('select'); toggle(); }}
                     style={{
-                        width: 40, height: 40, borderRadius: 12,
+                        width: 44, height: 44, borderRadius: 12,
                         background: isDark ? 'rgba(255,204,0,0.12)' : 'rgba(0,0,0,0.06)',
                         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
@@ -83,7 +83,7 @@ export default function MobileMenu() {
                 >
                     {isDark
                         ? <Sun size={18} color="#FFCC00" strokeWidth={1.9} />
-                        : <Moon size={18} color="#1D1D1F" strokeWidth={1.9} />
+                        : <Moon size={18} color={c.text} strokeWidth={1.9} />
                     }
                 </motion.button>
             </div>

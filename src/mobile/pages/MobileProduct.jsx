@@ -24,7 +24,7 @@ function trackRecentlyViewed(id) {
 }
 
 // ─── Pinchable Image ──────────────────────────────────────────────────────────
-function PinchableImage({ src, alt, loaded, onLoad, onZoomChange }) {
+function PinchableImage({ src, alt, loaded, onLoad, onZoomChange, shimmerA, shimmerB }) {
     const ref      = useRef(null);
     const state    = useRef({ scale: 1, panX: 0, panY: 0, startDist: 0, startScale: 1, startPanX: 0, startPanY: 0, midX: 0, midY: 0, lastTap: 0 });
     const [zoomed, setZoomed] = useState(false);
@@ -135,7 +135,7 @@ function PinchableImage({ src, alt, loaded, onLoad, onZoomChange }) {
             {!loaded && (
                 <div style={{
                     position: 'absolute', inset: 0,
-                    background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)',
+                    background: `linear-gradient(90deg, ${shimmerA} 25%, ${shimmerB} 50%, ${shimmerA} 75%)`,
                     backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
                 }} />
             )}
@@ -182,6 +182,7 @@ function ImageCarousel({ images, alt }) {
     const [isZoomed, setIsZoomed] = useState(false);
     const dragX = useMotionValue(0);
     const count = images.length;
+    const { colors: c } = useTheme();
 
     const goTo = (i) => setCurrent(Math.max(0, Math.min(count - 1, i)));
 
@@ -193,7 +194,7 @@ function ImageCarousel({ images, alt }) {
     };
 
     return (
-        <div style={{ position: 'relative', width: '100%', overflow: 'hidden', background: 'linear-gradient(145deg, #F8F8FA, #EFEFEF)' }}>
+        <div style={{ position: 'relative', width: '100%', overflow: 'hidden', background: `linear-gradient(145deg, ${c.shimmerA}, ${c.shimmerB})` }}>
             <motion.div
                 drag={count > 1 && !isZoomed ? 'x' : false}
                 dragConstraints={{ left: 0, right: 0 }}
@@ -216,6 +217,8 @@ function ImageCarousel({ images, alt }) {
                             loaded={!!loaded[i]}
                             onLoad={() => setLoaded(l => ({ ...l, [i]: true }))}
                             onZoomChange={setIsZoomed}
+                            shimmerA={c.shimmerA}
+                            shimmerB={c.shimmerB}
                         />
                     </div>
                 ))}
@@ -246,12 +249,16 @@ function Accordion({ title, children, defaultOpen = false, c }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div style={{ borderBottom: `0.5px solid ${c.divider}` }}>
-            <button onClick={() => setOpen(v => !v)} style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 0', background: 'none', border: 'none',
-                cursor: 'pointer', direction: 'rtl', fontFamily: SF,
-                WebkitTapHighlightColor: 'transparent',
-            }}>
+            <button
+                onClick={() => setOpen(v => !v)}
+                aria-expanded={open}
+                style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '16px 0', background: 'none', border: 'none',
+                    cursor: 'pointer', direction: 'rtl', fontFamily: SF,
+                    WebkitTapHighlightColor: 'transparent', minHeight: 52,
+                }}
+            >
                 <span style={{ fontSize: 15, fontWeight: 700, color: c.text }}>{title}</span>
                 <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
                     <ChevronDown size={17} color={c.text4} />

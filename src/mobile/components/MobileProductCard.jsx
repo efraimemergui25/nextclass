@@ -385,7 +385,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                             onClick={handleCompare}
                             aria-label={inCompare ? `הסר ${product.title} מהשוואה` : `הוסף ${product.title} להשוואה`}
                             style={{
-                                width: '100%', height: 28, borderRadius: 8,
+                                width: '100%', height: 36, borderRadius: 10,
                                 background: inCompare ? 'rgba(88,86,214,0.10)' : c.subtleBg,
                                 color: inCompare ? '#5856D6' : c.text3,
                                 border: inCompare ? '1px solid rgba(88,86,214,0.2)' : '1px solid transparent',
