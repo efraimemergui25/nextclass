@@ -90,7 +90,7 @@ export default function MobileCatalog() {
 
     return (
         <PullToRefresh onRefresh={handleRefresh}>
-            <div style={{ fontFamily: SF, direction: 'rtl', minHeight: '100vh', background: c.bg }}>
+            <div style={{ fontFamily: SF, direction: 'rtl', minHeight: '100dvh', background: c.bg }}>
 
                 {/* ── Search bar ─────────────────────────────────────────── */}
                 <div style={{ position: 'sticky', top: 56, zIndex: 100, background: c.bg, backdropFilter: 'blur(20px)', padding: '10px 16px 0' }}>

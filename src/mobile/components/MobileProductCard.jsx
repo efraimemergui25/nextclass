@@ -261,11 +261,11 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     onClick={handleWishlist}
                     aria-label={wishlisted ? `הסר ${product.title} מהמועדפים` : `הוסף ${product.title} למועדפים`}
                     style={{
-                        position: 'absolute', top: 8, left: 8, zIndex: 2,
+                        position: 'absolute', top: 4, left: 4, zIndex: 2,
                         background: wishlisted ? 'rgba(255,45,85,0.12)' : c.wishlistBg,
                         backdropFilter: 'blur(12px)',
                         border: 'none', borderRadius: 99,
-                        width: 32, height: 32,
+                        width: 44, height: 44,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
@@ -273,7 +273,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     }}
                 >
                     <Heart
-                        size={14}
+                        size={18}
                         fill={wishlisted ? '#FF2D55' : 'none'}
                         color={wishlisted ? '#FF2D55' : c.text3}
                         strokeWidth={2}
@@ -348,7 +348,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         whileTap={{ scale: 0.90 }}
                         onClick={handleAdd}
                         style={{
-                            width: '100%', height: isSmall ? 32 : 36,
+                            width: '100%', height: isSmall ? 36 : 40,
                             borderRadius: 10,
                             background: addedToCart
                                 ? 'linear-gradient(135deg, #34C759, #28A745)'

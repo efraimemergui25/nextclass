@@ -14,7 +14,7 @@ export default function MobileFavorites() {
     const { colors: c } = useTheme();
 
     if (!wishlistItems.length) return (
-        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
             <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -38,7 +38,7 @@ export default function MobileFavorites() {
     );
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '12px 16px 24px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '12px 16px 24px', background: c.bg, minHeight: '100dvh' }}>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 {typeof clearWishlist === 'function' && (

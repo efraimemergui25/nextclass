@@ -1,5 +1,9 @@
-const CACHE_NAME = 'nextclass-v1';
-const PRECACHE_URLS = ['/', '/catalog', '/contact', '/manifest.json'];
+const CACHE_NAME = 'nextclass-v3';
+
+self.addEventListener('message', (e) => {
+    if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+const PRECACHE_URLS = ['/', '/catalog', '/contact', '/manifest.json', '/offline.html'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(
@@ -28,7 +32,17 @@ self.addEventListener('fetch', (e) => {
     const isExternal = url.origin !== self.location.origin;
 
     if (isFirebase) return;
-    if (isExternal && !request.destination === 'image') return;
+    if (isExternal && request.destination !== 'image') return;
+
+    // SPA navigation: serve index.html for all same-origin navigations
+    if (request.mode === 'navigate') {
+        e.respondWith(
+            fetch(request).catch(() =>
+                caches.match('/').then(r => r || caches.match('/offline.html'))
+            )
+        );
+        return;
+    }
 
     e.respondWith(
         caches.match(request).then(cached => {
@@ -38,7 +52,7 @@ self.addEventListener('fetch', (e) => {
                     caches.open(CACHE_NAME).then(c => c.put(request, clone));
                 }
                 return res;
-            }).catch(() => cached);
+            }).catch(() => cached || caches.match('/offline.html'));
             return cached || networkFetch;
         })
     );

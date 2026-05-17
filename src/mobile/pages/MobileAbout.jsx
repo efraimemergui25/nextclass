@@ -23,7 +23,7 @@ export default function MobileAbout() {
     const founderImg  = getSetting('about_founder_img', '');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
 
             {/* ── Hero ─────────────────────────────────────────────── */}
             <div style={{

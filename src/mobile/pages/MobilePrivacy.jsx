@@ -69,7 +69,7 @@ export default function MobilePrivacy() {
     const lastUpdated = getSetting('legal_privacy_updated', '14 במאי 2026');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
 
             {/* ── Hero ──────────────────────────────────────────────── */}
             <div style={{

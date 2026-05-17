@@ -51,7 +51,7 @@ export default function MobileMenu() {
     const phone     = getSetting('contact_phone', '058-5856356');
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
 
             {/* ── Brand header ─────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: c.surface, borderRadius: 20, padding: '18px 18px', marginBottom: 20, boxShadow: c.cardShadow }}>

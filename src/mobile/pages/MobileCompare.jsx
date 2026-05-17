@@ -13,7 +13,7 @@ export default function MobileCompare() {
     const { selectedForCompare, removeFromCompare, clearCompare } = useCompare();
 
     if (selectedForCompare.length === 0) return (
-        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
             <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -44,7 +44,7 @@ export default function MobileCompare() {
         product.specs?.find(s => s.label === label)?.value || '—';
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '12px 0 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '12px 0 32px', background: c.bg, minHeight: '100dvh' }}>
 
             {/* ── Header ───────────────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 16 }}>

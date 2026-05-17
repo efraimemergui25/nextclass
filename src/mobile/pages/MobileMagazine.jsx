@@ -28,7 +28,7 @@ export default function MobileMagazine() {
     }, []);
 
     if (selected) return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
             {selected.image && (
                 <div style={{ width: '100%', height: 200, borderRadius: 18, overflow: 'hidden', marginBottom: 18 }}>
                     <img src={selected.image} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -57,7 +57,7 @@ export default function MobileMagazine() {
     );
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
             <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
 
             <div style={{ marginBottom: 20 }}>

@@ -169,7 +169,7 @@ function QASection({ productId, c }) {
     const inputBase = {
         padding: '11px 14px', borderRadius: 10,
         border: `1.5px solid ${c.divider}`,
-        background: c.input, fontSize: 14,
+        background: c.input, fontSize: 16,
         direction: 'rtl', fontFamily: SF, outline: 'none', color: c.text,
         width: '100%', boxSizing: 'border-box', transition: 'border-color 0.15s',
     };
@@ -272,7 +272,7 @@ export default function MobileProduct() {
         .slice(0, 6);
 
     if (!product) return (
-        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>😕</div>
             <p style={{ fontSize: 18, fontWeight: 700, color: c.text, marginBottom: 8 }}>מוצר לא נמצא</p>
             <button onClick={() => navigate('/catalog')} style={{
@@ -324,7 +324,7 @@ export default function MobileProduct() {
     const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100vh', paddingBottom: 110 }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh', paddingBottom: 110 }}>
 
             {/* ── Hero Image / Carousel ──────────────────────────────── */}
             <div style={{ position: 'relative' }}>
@@ -350,7 +350,7 @@ export default function MobileProduct() {
                         onClick={handleShare}
                         aria-label="שתף מוצר"
                         style={{
-                            width: 40, height: 40, borderRadius: 99,
+                            width: 44, height: 44, borderRadius: 99,
                             background: c.wishlistBg,
                             backdropFilter: 'blur(16px)',
                             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -358,7 +358,7 @@ export default function MobileProduct() {
                             WebkitTapHighlightColor: 'transparent',
                         }}
                     >
-                        <Share2 size={16} color={c.text2} strokeWidth={2} />
+                        <Share2 size={18} color={c.text2} strokeWidth={2} />
                     </motion.button>
 
                     <motion.button
@@ -366,7 +366,7 @@ export default function MobileProduct() {
                         onClick={handleWishlist}
                         aria-label={wishlisted ? `הסר ${product.title} מהמועדפים` : `הוסף ${product.title} למועדפים`}
                         style={{
-                            width: 40, height: 40, borderRadius: 99,
+                            width: 44, height: 44, borderRadius: 99,
                             background: wishlisted ? 'rgba(255,45,85,0.12)' : c.wishlistBg,
                             backdropFilter: 'blur(16px)',
                             border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -374,7 +374,7 @@ export default function MobileProduct() {
                             WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s',
                         }}
                     >
-                        <Heart size={18} fill={wishlisted ? '#FF2D55' : 'none'} color={wishlisted ? '#FF2D55' : c.text2} strokeWidth={2} />
+                        <Heart size={20} fill={wishlisted ? '#FF2D55' : 'none'} color={wishlisted ? '#FF2D55' : c.text2} strokeWidth={2} />
                     </motion.button>
                 </div>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
@@ -11,6 +11,9 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { haptic } from './utils/haptic';
+import InstallPrompt from './components/InstallPrompt';
+import OfflineBanner from './components/OfflineBanner';
+import UpdateBanner from './components/UpdateBanner';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -129,6 +132,8 @@ function MobileBottomNav() {
                         }}
                         whileTap={{ scale: 0.80 }}
                         transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+                        aria-label={label}
+                        aria-current={isActive ? 'page' : undefined}
                         style={{
                             flex: 1,
                             display: 'flex', flexDirection: 'column',
@@ -281,12 +286,44 @@ function MobileHeader() {
     );
 }
 
+// Route order for direction-aware transitions (higher index = deeper in hierarchy)
+const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms'];
+
+function getRouteIndex(pathname) {
+    if (pathname.startsWith('/catalog/')) return 2;
+    const i = ROUTE_ORDER.indexOf(pathname);
+    return i === -1 ? 5 : i;
+}
+
+// ─── Theme color meta updater ─────────────────────────────────────────────────
+function ThemeColorSync() {
+    const { colors: c, isDark } = useTheme();
+    useEffect(() => {
+        const metas = document.querySelectorAll('meta[name="theme-color"]');
+        const color = isDark ? '#000000' : '#007AFF';
+        metas.forEach(m => m.setAttribute('content', color));
+    }, [isDark, c]);
+    return null;
+}
+
 // ─── Inner app (needs ThemeProvider in scope) ─────────────────────────────────
 function MobileAppInner() {
     const location = useLocation();
     const { colors: c } = useTheme();
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
+    const prevPathRef   = useRef(location.pathname);
+    const currentIdx    = getRouteIndex(location.pathname);
+    const prevIdx       = getRouteIndex(prevPathRef.current);
+    const direction     = currentIdx >= prevIdx ? 1 : -1;
+
+    useEffect(() => { prevPathRef.current = location.pathname; }, [location.pathname]);
+
+    const slideVariants = {
+        initial: (dir) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
+        animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 340, damping: 36, mass: 0.8 } },
+        exit: (dir) => ({ x: dir > 0 ? '-20%' : '20%', opacity: 0, transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }),
+    };
 
     return (
         <div dir="rtl" style={{
@@ -298,16 +335,21 @@ function MobileAppInner() {
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
             colorScheme: 'auto',
         }}>
+            <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
             {!hideHeader && <MobileHeader />}
+            <OfflineBanner />
 
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="popLayout" custom={direction}>
                 <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0, transition: { duration: 0.20, ease: [0.22, 1, 0.36, 1] } }}
-                    exit={{ opacity: 0, transition: { duration: 0.08 } }}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    style={{ willChange: 'transform, opacity' }}
                 >
                     <Suspense fallback={<div style={{ minHeight: '60vh', background: c.bg }} />}>
                         <Routes location={location}>
@@ -333,6 +375,8 @@ function MobileAppInner() {
 
             {!hideBottomNav && <MobileBottomNav />}
             <CookieConsent />
+            <InstallPrompt />
+            <UpdateBanner />
         </div>
     );
 }
