@@ -157,6 +157,7 @@ function QASection({ productId }) {
                             whileTap={{ scale: 0.86 }}
                             onClick={handleSubmit}
                             disabled={sending || !form.author || !form.question}
+                            aria-label="שלח שאלה"
                             style={{
                                 width: 46, borderRadius: 10, flexShrink: 0, alignSelf: 'stretch',
                                 background: (!form.author || !form.question) ? '#E5E5EA' : '#007AFF',
@@ -277,6 +278,7 @@ export default function MobileProduct() {
                 <motion.button
                     whileTap={{ scale: 0.78 }}
                     onClick={() => toggleWishlist(product)}
+                    aria-label={wishlisted ? `הסר ${product.title} מהמועדפים` : `הוסף ${product.title} למועדפים`}
                     style={{
                         position: 'absolute', top: 12, left: 14,
                         width: 40, height: 40, borderRadius: 99,
@@ -420,6 +422,7 @@ export default function MobileProduct() {
                 <motion.button
                     whileTap={{ scale: 0.88 }}
                     onClick={() => addToCompare(product)}
+                    aria-label={inCompare ? `הסר ${product.title} מהשוואה` : `הוסף ${product.title} להשוואה`}
                     style={{
                         width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                         background: inCompare ? 'rgba(88,86,214,0.10)' : 'rgba(0,0,0,0.05)',

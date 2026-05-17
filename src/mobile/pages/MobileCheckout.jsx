@@ -104,10 +104,19 @@ export default function MobileCheckout() {
     const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
     const total = Math.round(cartTotal * (1 + VAT));
 
+    const isValidPhone = (p) => /^0[2-9]\d{7,8}$/.test(p.replace(/[-\s]/g, ''));
+    const isValidEmail = (e) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
     const canNext = () => {
-        if (step === 0) return form.institution.trim() && form.city.trim();
-        if (step === 1) return form.contactName.trim() && form.phone.trim();
+        if (step === 0) return form.institution.trim().length >= 2 && form.city.trim().length >= 2;
+        if (step === 1) return form.contactName.trim().length >= 2 && isValidPhone(form.phone) && isValidEmail(form.email);
         return true;
+    };
+
+    const fieldError = () => {
+        if (step === 1 && form.phone && !isValidPhone(form.phone)) return 'מספר טלפון לא תקין (לדוגמה: 050-1234567)';
+        if (step === 1 && form.email && !isValidEmail(form.email)) return 'כתובת אימייל לא תקינה';
+        return '';
     };
 
     const handleSubmit = async () => {
@@ -257,13 +266,13 @@ export default function MobileCheckout() {
                             )}
                         </div>
 
-                        {error && (
+                        {(error || fieldError()) && (
                             <motion.div
                                 initial={{ opacity: 0, y: -8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                style={{ background: 'rgba(255,59,48,0.08)', borderRadius: 12, padding: '12px 16px', marginBottom: 12, color: '#FF3B30', fontSize: 14, fontWeight: 600, textAlign: 'center' }}
+                                style={{ background: 'rgba(255,59,48,0.08)', borderRadius: 12, padding: '12px 16px', marginBottom: 12, color: '#FF3B30', fontSize: 13, fontWeight: 600, textAlign: 'center' }}
                             >
-                                {error}
+                                {error || fieldError()}
                             </motion.div>
                         )}
 

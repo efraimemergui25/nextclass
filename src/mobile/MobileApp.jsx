@@ -21,6 +21,7 @@ import MobileVOD       from './pages/MobileVOD';
 import MobileMagazine  from './pages/MobileMagazine';
 import MobileMenu      from './pages/MobileMenu';
 import MobileCompare   from './pages/MobileCompare';
+import CookieConsent   from '../components/CookieConsent';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -296,6 +297,7 @@ export default function MobileApp() {
             </AnimatePresence>
 
             {!hideBottomNav && <MobileBottomNav />}
+            <CookieConsent />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Clock } from 'lucide-react';
+import { Play, Clock, X } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { useSettings } from '../../context/SettingsContext';
@@ -41,14 +41,34 @@ export default function MobileVOD() {
 
             {/* ── Selected video player ─────────────────────────────── */}
             {selected && (
-                <div style={{ background: '#000', borderRadius: 18, overflow: 'hidden', marginBottom: 16, aspectRatio: '16/9' }}>
-                    <iframe
-                        src={selected.embedUrl || selected.url}
-                        style={{ width: '100%', height: '100%', border: 'none' }}
-                        allow="autoplay; fullscreen"
-                        allowFullScreen
-                        title={selected.title}
-                    />
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', flex: 1, lineHeight: 1.3,
+                            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>{selected.title}</p>
+                        <motion.button
+                            whileTap={{ scale: 0.82 }}
+                            onClick={() => setSelected(null)}
+                            aria-label="סגור וידאו"
+                            style={{
+                                width: 30, height: 30, borderRadius: 99, flexShrink: 0, marginRight: 8,
+                                background: 'rgba(60,60,67,0.12)', border: 'none',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                            }}
+                        >
+                            <X size={14} strokeWidth={2.5} color="#3C3C43" />
+                        </motion.button>
+                    </div>
+                    <div style={{ background: '#000', borderRadius: 18, overflow: 'hidden', aspectRatio: '16/9' }}>
+                        <iframe
+                            src={selected.embedUrl || selected.url}
+                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            allow="autoplay; fullscreen"
+                            allowFullScreen
+                            title={selected.title}
+                        />
+                    </div>
                 </div>
             )}
 

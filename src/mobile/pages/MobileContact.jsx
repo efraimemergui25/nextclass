@@ -13,14 +13,27 @@ export default function MobileContact() {
     const email   = getSetting('contact_email', 'info@nextclass.co.il');
     const address = getSetting('contact_address', 'ישראל');
 
-    const [form, setForm] = useState({ name: '', phone: '', message: '' });
+    const [form,    setForm]    = useState({ name: '', phone: '', message: '' });
     const [loading, setLoading] = useState(false);
-    const [sent, setSent] = useState(false);
+    const [sent,    setSent]    = useState(false);
+    const [fieldErr, setFieldErr] = useState('');
 
-    const handleChange = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+    const isValidPhone = (p) => /^0[2-9]\d{7,8}$/.test(p.replace(/[-\s]/g, ''));
+
+    const handleChange = k => e => {
+        setForm(f => ({ ...f, [k]: e.target.value }));
+        setFieldErr('');
+    };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.phone) return;
+        if (!form.name.trim() || form.name.trim().length < 2) {
+            setFieldErr('נא להזין שם מלא');
+            return;
+        }
+        if (!isValidPhone(form.phone)) {
+            setFieldErr('מספר טלפון לא תקין (לדוגמה: 050-1234567)');
+            return;
+        }
         setLoading(true);
         try {
             await addDoc(collection(db, 'contacts'), {
@@ -140,17 +153,23 @@ export default function MobileContact() {
                             rows={4}
                             style={{ ...inputStyle, resize: 'none' }}
                         />
+                        {fieldErr && (
+                            <div style={{ background: 'rgba(255,59,48,0.08)', borderRadius: 10, padding: '10px 14px', color: '#FF3B30', fontSize: 13, fontWeight: 600 }}>
+                                {fieldErr}
+                            </div>
+                        )}
                         <motion.button
                             whileTap={{ scale: 0.97 }}
                             onClick={handleSubmit}
-                            disabled={loading || !form.name || !form.phone}
+                            disabled={loading}
                             style={{
                                 width: '100%', height: 52, borderRadius: 14,
-                                background: (!form.name || !form.phone) ? '#C7C7CC' : 'linear-gradient(135deg, #007AFF, #0063CC)',
+                                background: loading ? '#C7C7CC' : 'linear-gradient(135deg, #007AFF, #0063CC)',
                                 color: '#fff', border: 'none',
                                 fontSize: 16, fontWeight: 700,
-                                cursor: (!form.name || !form.phone) ? 'not-allowed' : 'pointer',
+                                cursor: loading ? 'not-allowed' : 'pointer',
                                 WebkitTapHighlightColor: 'transparent',
+                                boxShadow: loading ? 'none' : '0 4px 20px rgba(0,122,255,0.28)',
                             }}
                         >
                             {loading ? 'שולח...' : 'שלח הודעה'}

@@ -75,6 +75,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
             <motion.button
                 whileTap={{ scale: 0.72 }}
                 onClick={handleWishlist}
+                aria-label={wishlisted ? `הסר ${product.title} מהמועדפים` : `הוסף ${product.title} למועדפים`}
                 style={{
                     position: 'absolute', top: 8, left: 8, zIndex: 2,
                     background: wishlisted ? 'rgba(255,45,85,0.12)' : 'rgba(255,255,255,0.88)',
@@ -182,6 +183,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     <motion.button
                         whileTap={{ scale: 0.92 }}
                         onClick={handleCompare}
+                        aria-label={inCompare ? `הסר ${product.title} מהשוואה` : `הוסף ${product.title} להשוואה`}
                         style={{
                             width: '100%', height: 28, borderRadius: 8,
                             background: inCompare ? 'rgba(88,86,214,0.10)' : 'rgba(0,0,0,0.04)',

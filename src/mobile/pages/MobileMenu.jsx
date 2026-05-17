@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Home, Grid3X3, BookOpen, Video, Newspaper,
-    Phone, ChevronLeft, Info
+    Phone, ChevronLeft, Info, Shield, FileText
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 
@@ -29,6 +29,13 @@ const NAV_GROUPS = [
         title: 'שירות',
         items: [
             { Icon: Phone,     label: 'צור קשר',        path: '/contact',  color: '#30D158' },
+        ],
+    },
+    {
+        title: 'משפטי',
+        items: [
+            { Icon: Shield,    label: 'מדיניות פרטיות', path: '/privacy',  color: '#636366' },
+            { Icon: FileText,  label: 'תנאי שימוש',     path: '/terms',    color: '#636366' },
         ],
     },
 ];

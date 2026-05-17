@@ -114,6 +114,7 @@ export default function MobileCart() {
                                         <motion.button
                                             whileTap={{ scale: 0.78 }}
                                             onClick={() => increaseQuantity(item.id)}
+                                            aria-label={`הגדל כמות — ${item.title}`}
                                             style={{
                                                 width: 44, height: 38,
                                                 background: 'none', border: 'none',
@@ -132,6 +133,7 @@ export default function MobileCart() {
                                                 if ((item.qty || 1) <= 1) removeFromCart(item.id);
                                                 else decreaseQuantity(item.id);
                                             }}
+                                            aria-label={(item.qty || 1) <= 1 ? `הסר ${item.title} מהעגלה` : `הקטן כמות — ${item.title}`}
                                             style={{
                                                 width: 44, height: 38,
                                                 background: 'none', border: 'none',
