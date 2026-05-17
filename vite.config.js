@@ -21,8 +21,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
-          'icons': ['lucide-react'],
+          'vendor':   ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
+          'icons':    ['lucide-react'],
+          'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
         }
       }
     },

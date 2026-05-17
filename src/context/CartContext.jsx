@@ -43,7 +43,7 @@ export const CartProvider = ({ children }) => {
     );
 
     const cartTotal = useMemo(
-        () => (cartItems ?? []).reduce((acc, item) => acc + (item?.price ?? 0) * (item?.qty ?? 1), 0),
+        () => (cartItems ?? []).reduce((acc, item) => acc + (item?.salePrice ?? item?.price ?? 0) * (item?.qty ?? 1), 0),
         [cartItems]
     );
 

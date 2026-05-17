@@ -43,7 +43,9 @@ export default function MobileContact() {
                 ts: serverTimestamp(),
             });
             setSent(true);
-        } catch {}
+        } catch {
+            setFieldErr('שליחת ההודעה נכשלה. אנא נסה שנית.');
+        }
         setLoading(false);
     };
 

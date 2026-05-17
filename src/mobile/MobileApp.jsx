@@ -22,6 +22,8 @@ import MobileMagazine  from './pages/MobileMagazine';
 import MobileMenu      from './pages/MobileMenu';
 import MobileCompare   from './pages/MobileCompare';
 import CookieConsent   from '../components/CookieConsent';
+import PrivacyPage     from '../pages/PrivacyPage';
+import TermsPage       from '../pages/TermsPage';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -36,6 +38,8 @@ const PAGE_TITLES = {
     '/menu':      'תפריט',
     '/compare':   'השוואת מוצרים',
     '/checkout':  'תשלום',
+    '/privacy':   'מדיניות פרטיות',
+    '/terms':     'תנאי שימוש',
 };
 
 const BOTTOM_TABS = [
@@ -64,15 +68,28 @@ function MobileAnalytics() {
     return null;
 }
 
-// ─── Dynamic product title resolver ───────────────────────────────────────────
+// ─── Scroll to top on every route change ─────────────────────────────────────
+function ScrollToTop() {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }, [pathname]);
+    return null;
+}
+
+// ─── Dynamic product title resolver + document.title updater ─────────────────
 function usePageTitle(pathname) {
     const { getActiveProductById } = useProducts();
     const productMatch = pathname.match(/^\/catalog\/(.+)$/);
-    if (productMatch) {
-        const product = getActiveProductById(productMatch[1]);
-        return product?.title || 'מוצר';
-    }
-    return PAGE_TITLES[pathname] || '';
+    const title = productMatch
+        ? (getActiveProductById(productMatch[1])?.title || 'מוצר')
+        : (PAGE_TITLES[pathname] || '');
+
+    useEffect(() => {
+        document.title = title ? `${title} | NextClass` : 'NextClass';
+    }, [title]);
+
+    return title;
 }
 
 // ─── Bottom Navigation ────────────────────────────────────────────────────────
@@ -196,6 +213,7 @@ function MobileHeader() {
                 <motion.button
                     whileTap={{ scale: 0.88 }}
                     onClick={() => navigate(-1)}
+                    aria-label="חזרה"
                     style={{
                         position: 'absolute', right: 4,
                         display: 'flex', alignItems: 'center', gap: 2,
@@ -269,6 +287,7 @@ export default function MobileApp() {
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
         }}>
             <MobileAnalytics />
+            <ScrollToTop />
             {!hideHeader && <MobileHeader />}
 
             <AnimatePresence mode="popLayout">
@@ -291,6 +310,8 @@ export default function MobileApp() {
                         <Route path="/magazine"   element={<MobileMagazine />} />
                         <Route path="/menu"       element={<MobileMenu />} />
                         <Route path="/compare"    element={<MobileCompare />} />
+                        <Route path="/privacy"    element={<PrivacyPage />} />
+                        <Route path="/terms"      element={<TermsPage />} />
                         <Route path="*"           element={<MobileLanding />} />
                     </Routes>
                 </motion.div>

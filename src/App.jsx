@@ -84,6 +84,7 @@ function AnalyticsTracker() {
             date: today,
             sessionId: sid,
             path: location.pathname,
+            platform: 'desktop',
             ts: serverTimestamp(),
         }, { merge: true }).catch(() => {});
 
