@@ -16,6 +16,7 @@ import {
     Ruler, Shield, Headphones, HelpCircle, Info, Clock, Phone, Compass,
     Heart, BookOpen, Bot, MessageSquare, Video, Wrench, Settings, Home,
     FileText, Star, List, Play, Newspaper, Link2, PanelBottom,
+    Monitor, Smartphone, ArrowLeft,
 } from 'lucide-react';
 import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
@@ -780,6 +781,123 @@ const SECTION_GROUPS = [
     },
 ];
 
+// ─── Desktop Groups (chronological — follows user journey through site) ──────
+const DESKTOP_GROUPS = [
+    {
+        id: 'dg_home', label: 'דף הבית', accent: '#007AFF',
+        subGroups: [
+            { label: 'מסך ראשי (מעל הקפל)', sections: ['hero'] },
+            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp'] },
+            { label: 'ויטרינת מוצרים', sections: ['feature_tiles', 'shoppable_image', 'home_discover_products'] },
+            { label: 'המרה וייעוץ', sections: ['quote_wizard', 'expert_consultation'] },
+        ],
+    },
+    {
+        id: 'dg_catalog', label: 'קטלוג', accent: '#5856D6',
+        subGroups: [
+            { label: null, sections: ['catalog_full', 'search_section'] },
+        ],
+    },
+    {
+        id: 'dg_product', label: 'דף מוצר', accent: '#FF9500',
+        subGroups: [
+            { label: 'פעולות וטקסטים', sections: ['product_detail', 'trust_badges'] },
+            { label: 'תכני המוצר', sections: ['sidebar_sections', 'pd_dims_section', 'pd_warranty_section', 'pd_support_section', 'pd_faq_section', 'pd_reviews_section', 'accessories_section', 'qa_section'] },
+        ],
+    },
+    {
+        id: 'dg_cart', label: 'עגלה וקופה', accent: '#FF3B30',
+        subGroups: [
+            { label: null, sections: ['cart_checkout'] },
+        ],
+    },
+    {
+        id: 'dg_pages', label: 'עמודים', accent: '#34C759',
+        subGroups: [
+            { label: 'אודות וסיפורנו', sections: ['about_page', 'about_timeline'] },
+            { label: 'צור קשר', sections: ['contact_page'] },
+            { label: 'עמודים נוספים', sections: ['discover_section', 'wishlist_section', 'magazine', 'videos'] },
+        ],
+    },
+    {
+        id: 'dg_nav', label: 'ניווט ועיצוב', accent: '#FF9F0A',
+        subGroups: [
+            { label: 'זהות האתר', sections: ['branding'] },
+            { label: 'ניווט', sections: ['header', 'menu_reorder', 'footer_config'] },
+        ],
+    },
+    {
+        id: 'dg_tools', label: 'כלים וווידג׳טים', accent: '#30D158',
+        subGroups: [
+            { label: null, sections: ['ai_assistant', 'floating_concierge', 'accessibility_section'] },
+        ],
+    },
+    {
+        id: 'dg_system', label: 'מערכת', accent: '#FF2D55',
+        subGroups: [
+            { label: null, sections: ['visibility', 'legal'] },
+        ],
+    },
+];
+
+// ─── Mobile Groups (chronological — follows mobile app user journey) ──────────
+const MOBILE_GROUPS = [
+    {
+        id: 'mg_home', label: 'מסך ראשי', accent: '#007AFF',
+        subGroups: [
+            { label: null, sections: ['mobile_app'] },
+        ],
+    },
+    {
+        id: 'mg_nav', label: 'ניווט מובייל', accent: '#5856D6',
+        subGroups: [
+            { label: null, sections: ['mobile_menu_reorder'] },
+        ],
+    },
+    {
+        id: 'mg_catalog', label: 'קטלוג ומוצרים', accent: '#FF9500',
+        subGroups: [
+            { label: null, sections: ['catalog_full', 'search_section'] },
+        ],
+    },
+    {
+        id: 'mg_product', label: 'דף מוצר', accent: '#FF9500',
+        subGroups: [
+            { label: null, sections: ['product_detail', 'trust_badges', 'pd_faq_section', 'pd_reviews_section', 'accessories_section', 'qa_section'] },
+        ],
+    },
+    {
+        id: 'mg_cart', label: 'עגלה וקופה', accent: '#FF3B30',
+        subGroups: [
+            { label: null, sections: ['cart_checkout'] },
+        ],
+    },
+    {
+        id: 'mg_pages', label: 'עמודים', accent: '#34C759',
+        subGroups: [
+            { label: null, sections: ['contact_page', 'about_page', 'about_timeline', 'discover_section', 'wishlist_section'] },
+        ],
+    },
+    {
+        id: 'mg_brand', label: 'מיתוג', accent: '#AF52DE',
+        subGroups: [
+            { label: null, sections: ['branding'] },
+        ],
+    },
+    {
+        id: 'mg_tools', label: 'כלים', accent: '#30D158',
+        subGroups: [
+            { label: null, sections: ['ai_assistant', 'floating_concierge'] },
+        ],
+    },
+    {
+        id: 'mg_system', label: 'מערכת', accent: '#FF2D55',
+        subGroups: [
+            { label: null, sections: ['visibility', 'legal'] },
+        ],
+    },
+];
+
 // ─── All Sections flat list ───────────────────────────────────────────────────
 const ALL_SECTIONS = [
     { id: 'visibility',        label: 'נראות רכיבים',              icon: '👁️', accent: '#FF2D55', type: 'visibility' },
@@ -802,11 +920,32 @@ const DEFAULT_NAV_ITEMS = [
 ];
 // SVG icon components — replace all emoji icons in the admin UI
 const GROUP_ICON_COMPONENTS = {
+    // legacy groups
     homepage: <Home size={16} />,
     pages:    <FileText size={16} />,
     brand:    <Palette size={16} />,
     tools:    <Wrench size={16} />,
     system:   <Settings size={16} />,
+    mobile:   <Smartphone size={16} />,
+    // desktop platform groups
+    dg_home:    <Home size={16} />,
+    dg_catalog: <ShoppingBag size={16} />,
+    dg_product: <Package size={16} />,
+    dg_cart:    <ShoppingCart size={16} />,
+    dg_pages:   <FileText size={16} />,
+    dg_nav:     <Navigation size={16} />,
+    dg_tools:   <Wrench size={16} />,
+    dg_system:  <Settings size={16} />,
+    // mobile platform groups
+    mg_home:    <Home size={16} />,
+    mg_nav:     <Menu size={16} />,
+    mg_catalog: <ShoppingBag size={16} />,
+    mg_product: <Package size={16} />,
+    mg_cart:    <ShoppingCart size={16} />,
+    mg_pages:   <FileText size={16} />,
+    mg_brand:   <Palette size={16} />,
+    mg_tools:   <Wrench size={16} />,
+    mg_system:  <Settings size={16} />,
 };
 
 const SECTION_ICON_COMPONENTS = {
@@ -1483,10 +1622,11 @@ const MagazineSection = ({ showToast }) => {
 };
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ activeGroup, setActiveGroup }) {
+function Sidebar({ activeGroup, setActiveGroup, groups }) {
+    const resolvedGroups = groups || SECTION_GROUPS;
     const groupStats = React.useMemo(() => {
         const stats = {};
-        SECTION_GROUPS.forEach(group => {
+        resolvedGroups.forEach(group => {
             const allSectionIds = group.subGroups.flatMap(sg => sg.sections);
             let fieldCount = 0;
             allSectionIds.forEach(id => {
@@ -1496,16 +1636,11 @@ function Sidebar({ activeGroup, setActiveGroup }) {
             stats[group.id] = { sections: allSectionIds.length, fields: fieldCount };
         });
         return stats;
-    }, []);
+    }, [resolvedGroups]);
 
     return (
         <div className="w-52 shrink-0 flex flex-col gap-2" style={{ minWidth: 200 }}>
-            {/* Logo row */}
-            <div className="px-4 py-3 mb-1">
-                <p className="text-[10px] font-black text-[#AEAEB2] tracking-tight">תוכן האתר</p>
-            </div>
-
-            {SECTION_GROUPS.map(group => {
+            {resolvedGroups.map((group, gi) => {
                 const isActive = activeGroup === group.id;
                 return (
                     <motion.button
@@ -1530,9 +1665,15 @@ function Sidebar({ activeGroup, setActiveGroup }) {
                                 <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -mr-8 -mt-8" />
                             </div>
                         )}
-                        <span className={`shrink-0 relative z-10 ${isActive ? 'text-white' : 'text-[#6E6E73]'}`}>{GROUP_ICON_COMPONENTS[group.id] || <Settings size={16} />}</span>
+                        <span className="shrink-0 relative z-10 w-5 h-5 flex items-center justify-center rounded-md text-[10px] font-black"
+                            style={{
+                                background: isActive ? 'rgba(255,255,255,0.2)' : `${group.accent}15`,
+                                color: isActive ? 'white' : group.accent,
+                            }}>
+                            {gi + 1}
+                        </span>
                         <div className="flex-1 text-right relative z-10 min-w-0">
-                            <span className={`text-[13px] font-bold block ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
+                            <span className={`text-[12.5px] font-bold block ${isActive ? 'text-white' : 'text-[#1D1D1F]'}`}>
                                 {group.label}
                             </span>
                             {groupStats[group.id] && (
@@ -1682,7 +1823,8 @@ const ALL_FIELD_DEFAULTS = (() => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminContent({ showToast }) {
-    const [activeGroup, setActiveGroup] = useState('homepage');
+    const [platform, setPlatform] = useState(null); // null | 'desktop' | 'mobile'
+    const [activeGroup, setActiveGroup] = useState('dg_home');
     const [openSections, setOpenSections] = useState(new Set(['hero']));
     const [globalSearch, setGlobalSearch] = useState('');
     const [content, setContent] = useState({});
@@ -1757,7 +1899,8 @@ export default function AdminContent({ showToast }) {
         });
     }, [globalSearch]);
 
-    const currentGroupDef = SECTION_GROUPS.find(g => g.id === activeGroup);
+    const currentGroups = platform === 'desktop' ? DESKTOP_GROUPS : platform === 'mobile' ? MOBILE_GROUPS : DESKTOP_GROUPS;
+    const currentGroupDef = currentGroups.find(g => g.id === activeGroup);
 
     const renderAccordion = (id) => {
         const sec = ALL_SECTIONS.find(s => s.id === id);
@@ -1776,39 +1919,16 @@ export default function AdminContent({ showToast }) {
         );
     };
 
-    return (
-        <div dir="rtl" className="space-y-5">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-[22px] font-black text-[#1D1D1F] tracking-tight">ניהול תוכן האתר</h1>
-                    <p className="text-[13px] text-[#AEAEB2] mt-0.5">ערוך טקסטים, תמונות והגדרות — מסונכרן לענן בזמן אמת</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <AnimatePresence>
-                        {hasChanges && (
-                            <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
-                                className="text-[#FF9500] text-[12px] font-bold">
-                                שינויים לא נשמרו
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
-                    <motion.button
-                        onClick={handleSave}
-                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                        className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
-                        style={{
-                            background: saved ? '#34C759' : '#007AFF',
-                            color: 'white',
-                            boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : '0 4px 14px rgba(0,122,255,0.35)',
-                        }}
-                    >
-                        <Save size={14} />
-                        {saved ? '✓ נשמר!' : 'שמור הכל'}
-                    </motion.button>
-                </div>
-            </div>
+    // ── Platform Selector ──────────────────────────────────────────────────────
+    const handleSelectPlatform = (p) => {
+        setPlatform(p);
+        setActiveGroup(p === 'desktop' ? 'dg_home' : 'mg_home');
+        setOpenSections(new Set());
+    };
 
+    // ── Shared content panel ───────────────────────────────────────────────────
+    const renderContentPanel = () => (
+        <>
             {/* Global Search */}
             <div className="relative">
                 <Search size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#C7C7CC]" />
@@ -1858,10 +1978,14 @@ export default function AdminContent({ showToast }) {
             ) : (
                 <div className="flex gap-5 items-start">
                     {/* Sidebar */}
-                    <Sidebar activeGroup={activeGroup} setActiveGroup={(id) => {
-                        setActiveGroup(id);
-                        setOpenSections(new Set()); // collapse all when switching group
-                    }} />
+                    <Sidebar
+                        activeGroup={activeGroup}
+                        setActiveGroup={(id) => {
+                            setActiveGroup(id);
+                            setOpenSections(new Set());
+                        }}
+                        groups={currentGroups}
+                    />
 
                     {/* Content — accordion per section */}
                     <div className="flex-1 flex flex-col gap-2.5 min-w-0">
@@ -1918,6 +2042,198 @@ export default function AdminContent({ showToast }) {
                         </AnimatePresence>
                     </div>
                 </div>
+            )}
+        </>
+    );
+
+    return (
+        <div dir="rtl" className="space-y-5">
+
+            {/* ── Platform Selector Screen ─────────────────────────────────── */}
+            {platform === null ? (
+                <div className="flex flex-col items-center gap-10 py-10">
+                    {/* Hero heading */}
+                    <div className="text-center space-y-2">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black tracking-widest mb-3"
+                            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                            ניהול תוכן האתר
+                        </div>
+                        <h1 className="text-[32px] font-black text-[#1D1D1F] tracking-tight leading-none">
+                            איזו גרסה תרצה לערוך?
+                        </h1>
+                        <p className="text-[15px] text-[#6E6E73] font-medium">
+                            בחר את הפלטפורמה — כל אחת מציגה את הסקציות בסדר כרונולוגי
+                        </p>
+                    </div>
+
+                    {/* Platform cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-[680px]">
+                        {/* Desktop Card */}
+                        <motion.button
+                            onClick={() => handleSelectPlatform('desktop')}
+                            whileHover={{ y: -6, scale: 1.015 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
+                            style={{
+                                background: 'linear-gradient(145deg, #007AFF 0%, #5856D6 100%)',
+                                boxShadow: '0 24px 60px rgba(0,122,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
+                                minHeight: 300,
+                            }}
+                        >
+                            <div className="absolute top-0 right-0 w-56 h-56 rounded-full bg-white/[0.07] -mr-20 -mt-20 pointer-events-none" />
+                            <div className="absolute bottom-0 left-0 w-36 h-36 rounded-full bg-white/[0.05] -ml-14 -mb-14 pointer-events-none" />
+
+                            {/* Icon badge */}
+                            <div className="relative z-10 w-20 h-20 rounded-[20px] flex items-center justify-center"
+                                style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)' }}>
+                                <Monitor size={38} className="text-white" />
+                            </div>
+
+                            <div className="relative z-10 text-center">
+                                <h2 className="text-[24px] font-black mb-1.5 tracking-tight">גרסת מחשב</h2>
+                                <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                                    עריכת כל תכני האתר לדסקטופ
+                                </p>
+                                <div className="flex items-center justify-center gap-2.5 mt-5">
+                                    {['דף הבית', 'קטלוג', 'מוצרים', '+ 5'].map(tag => (
+                                        <span key={tag} className="text-[10px] font-black px-2.5 py-1 rounded-full"
+                                            style={{ background: 'rgba(255,255,255,0.15)' }}>
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-[13px]"
+                                style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)' }}>
+                                <span>בחר גרסת מחשב</span>
+                                <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.7)' }} />
+                            </div>
+                        </motion.button>
+
+                        {/* Mobile Card */}
+                        <motion.button
+                            onClick={() => handleSelectPlatform('mobile')}
+                            whileHover={{ y: -6, scale: 1.015 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
+                            style={{
+                                background: 'linear-gradient(145deg, #FF9500 0%, #FF375F 100%)',
+                                boxShadow: '0 24px 60px rgba(255,149,0,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
+                                minHeight: 300,
+                            }}
+                        >
+                            <div className="absolute top-0 right-0 w-56 h-56 rounded-full bg-white/[0.07] -mr-20 -mt-20 pointer-events-none" />
+                            <div className="absolute bottom-0 left-0 w-36 h-36 rounded-full bg-white/[0.05] -ml-14 -mb-14 pointer-events-none" />
+
+                            {/* Icon badge */}
+                            <div className="relative z-10 w-20 h-20 rounded-[20px] flex items-center justify-center"
+                                style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)' }}>
+                                <Smartphone size={38} className="text-white" />
+                            </div>
+
+                            <div className="relative z-10 text-center">
+                                <h2 className="text-[24px] font-black mb-1.5 tracking-tight">גרסת מובייל</h2>
+                                <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                                    עריכת תכני אפליקציית המובייל
+                                </p>
+                                <div className="flex items-center justify-center gap-2.5 mt-5">
+                                    {['מסך ראשי', 'ניווט', 'קטלוג', '+ 6'].map(tag => (
+                                        <span key={tag} className="text-[10px] font-black px-2.5 py-1 rounded-full"
+                                            style={{ background: 'rgba(255,255,255,0.15)' }}>
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-[13px]"
+                                style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)' }}>
+                                <span>בחר גרסת מובייל</span>
+                                <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.7)' }} />
+                            </div>
+                        </motion.button>
+                    </div>
+
+                    {/* Hint */}
+                    <p className="text-[12px] text-[#AEAEB2] font-medium">
+                        ניתן לחזור ולהחליף גרסה בכל עת
+                    </p>
+                </div>
+            ) : (
+                <>
+                    {/* ── Header ──────────────────────────────────────────────────────── */}
+                    <div className="flex items-center justify-between gap-4">
+                        {/* Right side: back + platform switcher */}
+                        <div className="flex items-center gap-3">
+                            {/* Back to selector */}
+                            <motion.button
+                                onClick={() => setPlatform(null)}
+                                whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
+                                className="flex items-center gap-1.5 text-[12px] font-bold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+                            >
+                                <ArrowLeft size={14} />
+                                <span className="hidden sm:inline">חזרה</span>
+                            </motion.button>
+
+                            {/* Platform toggle pills */}
+                            <div className="flex items-center rounded-2xl p-1 gap-1"
+                                style={{ background: 'rgba(0,0,0,0.05)' }}>
+                                <button
+                                    onClick={() => handleSelectPlatform('desktop')}
+                                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
+                                    style={{
+                                        background: platform === 'desktop' ? 'linear-gradient(135deg, #007AFF, #5856D6)' : 'transparent',
+                                        color: platform === 'desktop' ? 'white' : '#6E6E73',
+                                        boxShadow: platform === 'desktop' ? '0 2px 8px rgba(0,122,255,0.3)' : 'none',
+                                    }}
+                                >
+                                    <Monitor size={13} />
+                                    <span>מחשב</span>
+                                </button>
+                                <button
+                                    onClick={() => handleSelectPlatform('mobile')}
+                                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
+                                    style={{
+                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #FF9500, #FF375F)' : 'transparent',
+                                        color: platform === 'mobile' ? 'white' : '#6E6E73',
+                                        boxShadow: platform === 'mobile' ? '0 2px 8px rgba(255,149,0,0.3)' : 'none',
+                                    }}
+                                >
+                                    <Smartphone size={13} />
+                                    <span>מובייל</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Left side: save button */}
+                        <div className="flex items-center gap-3">
+                            <AnimatePresence>
+                                {hasChanges && (
+                                    <motion.span initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
+                                        className="text-[#FF9500] text-[12px] font-bold hidden sm:block">
+                                        שינויים לא נשמרו
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                            <motion.button
+                                onClick={handleSave}
+                                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
+                                style={{
+                                    background: saved ? '#34C759' : '#007AFF',
+                                    color: 'white',
+                                    boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : '0 4px 14px rgba(0,122,255,0.35)',
+                                }}
+                            >
+                                <Save size={14} />
+                                {saved ? '✓ נשמר!' : 'שמור הכל'}
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    {renderContentPanel()}
+                </>
             )}
 
             {/* Floating unsaved-changes banner */}
