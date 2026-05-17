@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
-import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility } from 'lucide-react';
+import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
+import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
@@ -15,6 +16,7 @@ import { haptic } from './utils/haptic';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
+import MobileAuthSheet from './components/MobileAuthSheet';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -32,6 +34,7 @@ const MobilePrivacy      = lazy(() => import('./pages/MobilePrivacy'));
 const MobileTerms        = lazy(() => import('./pages/MobileTerms'));
 const MobileDiscover     = lazy(() => import('./pages/MobileDiscover'));
 const MobileInnovation   = lazy(() => import('./pages/MobileInnovation'));
+const MobileMembership   = lazy(() => import('./pages/MobileMembership'));
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -115,8 +118,8 @@ function MobileBottomNav() {
         <nav dir="rtl" style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
             background: c.navBg,
-            backdropFilter: 'blur(48px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             borderTop: `0.5px solid ${c.navBorder}`,
             display: 'flex', alignItems: 'stretch', justifyContent: 'space-around',
             paddingBottom: 'env(safe-area-inset-bottom, 10px)',
@@ -433,12 +436,13 @@ function MobileSearchOverlay({ open, onClose }) {
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function MobileHeader({ headerBlur, headerBg, onSearch }) {
+function MobileHeader({ headerBlur, headerBg, onSearch, onMenu }) {
     const location  = useLocation();
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
     const { cartCount }  = useCart();
+    const { user, tierColor, openAuthModal } = useAuth();
     const siteName  = getSetting('site_name', 'NextClass');
     const siteLogo  = getSetting('site_logo_url', '');
     const isHome    = location.pathname === '/';
@@ -447,7 +451,7 @@ function MobileHeader({ headerBlur, headerBg, onSearch }) {
 
     const backdropFilterValue = headerBlur
         ? useTransform(headerBlur, v => `blur(${48 + v}px) saturate(200%)`)
-        : 'blur(48px) saturate(200%)';
+        : 'blur(24px) saturate(180%)';
 
     return (
         <motion.header style={{
@@ -462,37 +466,51 @@ function MobileHeader({ headerBlur, headerBg, onSearch }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             direction: 'rtl', fontFamily: SF,
         }}>
-            {!isHome && (
-                <motion.button
-                    whileTap={{ scale: 0.88 }}
-                    onClick={() => { haptic('light'); navigate(-1); }}
-                    aria-label="חזרה"
-                    style={{
-                        position: 'absolute', right: 4,
-                        display: 'flex', alignItems: 'center', gap: 2,
-                        background: 'none', border: 'none',
-                        color: '#007AFF', fontSize: 16, fontWeight: 500,
-                        cursor: 'pointer', padding: '8px 10px',
-                        WebkitTapHighlightColor: 'transparent',
-                    }}
-                >
-                    <ChevronRight size={22} strokeWidth={2.2} />
-                    {!isProduct && <span style={{ fontSize: 15 }}>חזרה</span>}
-                </motion.button>
-            )}
+            {/* Right actions: back (on sub-pages) + hamburger (always on home) */}
+            <div style={{ position: 'absolute', right: 4, display: 'flex', alignItems: 'center', gap: 0 }}>
+                {!isHome ? (
+                    <motion.button
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => { haptic('light'); navigate(-1); }}
+                        aria-label="חזרה"
+                        style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none', color: '#007AFF', fontSize: 16, fontWeight: 500, cursor: 'pointer', padding: '8px 10px', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                        <ChevronRight size={22} strokeWidth={2.2} />
+                        {!isProduct && <span style={{ fontSize: 15 }}>חזרה</span>}
+                    </motion.button>
+                ) : (
+                    <motion.button
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => { haptic('select'); onMenu?.(); }}
+                        aria-label="תפריט"
+                        style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                        <Menu size={22} color={c.text3} strokeWidth={2} />
+                    </motion.button>
+                )}
+            </div>
 
-            {/* Left actions: search + cart */}
-            <div style={{ position: 'absolute', left: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Left actions: user + search + cart */}
+            <div style={{ position: 'absolute', left: 4, display: 'flex', alignItems: 'center', gap: 0 }}>
+                <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => { haptic('select'); openAuthModal(); }}
+                    aria-label={user ? 'פרופיל' : 'כניסה'}
+                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                >
+                    {user ? (
+                        <div style={{ width: 26, height: 26, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{(user.displayName || user.email || 'U')[0].toUpperCase()}</span>
+                        </div>
+                    ) : (
+                        <UserCircle size={20} color={c.text3} strokeWidth={1.8} />
+                    )}
+                </motion.button>
                 <motion.button
                     whileTap={{ scale: 0.85 }}
                     onClick={() => { haptic('select'); onSearch?.(); }}
                     aria-label="חיפוש"
-                    style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        background: 'none', border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                    }}
+                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
                 >
                     <Search size={19} color={c.text3} strokeWidth={2} />
                 </motion.button>
@@ -500,24 +518,13 @@ function MobileHeader({ headerBlur, headerBg, onSearch }) {
                     whileTap={{ scale: 0.85 }}
                     onClick={() => { haptic('select'); navigate('/cart'); }}
                     aria-label="עגלה"
-                    style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        background: 'none', border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                        position: 'relative',
-                    }}
+                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', position: 'relative' }}
                 >
                     <ShoppingBag size={19} color={c.text3} strokeWidth={2} />
                     {cartCount > 0 && (
-                        <span style={{
-                            position: 'absolute', top: 4, right: 4,
-                            background: '#FF3B30', color: '#fff',
-                            borderRadius: 99, minWidth: 14, height: 14,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 9, fontWeight: 800, border: '1.5px solid white',
-                            padding: '0 2px',
-                        }}>{cartCount > 9 ? '9+' : cartCount}</span>
+                        <span style={{ position: 'absolute', top: 4, right: 4, background: '#FF3B30', color: '#fff', borderRadius: 99, minWidth: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, border: '1.5px solid white', padding: '0 2px' }}>
+                            {cartCount > 9 ? '9+' : cartCount}
+                        </span>
                     )}
                 </motion.button>
             </div>
@@ -572,6 +579,171 @@ function getRouteIndex(pathname) {
     if (pathname.startsWith('/catalog/')) return 2;
     const i = ROUTE_ORDER.indexOf(pathname);
     return i === -1 ? 5 : i;
+}
+
+// ─── Mobile Menu Overlay (3-bar hamburger) ───────────────────────────────────
+const MENU_LINKS = [
+    { path: '/',          label: 'דף הבית',        emoji: '🏠' },
+    { path: '/catalog',   label: 'קטלוג מוצרים',   emoji: '🖥️' },
+    { path: '/discover',  label: 'גלה פתרונות',    emoji: '✨' },
+    { path: '/story',     label: 'הסיפור שלנו',    emoji: '📖' },
+    { path: '/innovation',label: 'סיפורי הצלחה',   emoji: '🏆' },
+    { path: '/vod',       label: 'מרכז הדרכה',     emoji: '🎓' },
+    { path: '/magazine',  label: 'מגזין',           emoji: '📰' },
+    { path: '/contact',   label: 'צור קשר',         emoji: '💬' },
+    { path: '/membership',label: 'מועדון NextClass', emoji: '⭐' },
+    { path: '/compare',   label: 'השוואת מוצרים',  emoji: '⚖️' },
+];
+
+function MobileMenuOverlay({ open, onClose }) {
+    const navigate  = useNavigate();
+    const location  = useLocation();
+    const { colors: c } = useTheme();
+    const { getSetting } = useSettings();
+    const { user, tierLabel, tierColor, openAuthModal } = useAuth();
+    const siteName = getSetting('site_name', 'NextClass');
+    const phone    = getSetting('contact_phone', '058-5856356');
+
+    const go = (path) => {
+        haptic('select');
+        navigate(path);
+        onClose();
+    };
+
+    return (
+        <AnimatePresence>
+            {open && (
+                <>
+                    <motion.div
+                        key="overlay-bg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        style={{ position: 'fixed', inset: 0, zIndex: 490, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+                    />
+                    <motion.div
+                        key="overlay-panel"
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', stiffness: 340, damping: 38, mass: 0.9 }}
+                        style={{
+                            position: 'fixed', top: 0, right: 0, bottom: 0,
+                            width: '82vw', maxWidth: 340, zIndex: 491,
+                            background: c.surface,
+                            boxShadow: '-20px 0 80px rgba(0,0,0,0.22)',
+                            display: 'flex', flexDirection: 'column',
+                            direction: 'rtl', fontFamily: SF,
+                            paddingTop: 'env(safe-area-inset-top, 16px)',
+                            paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+                            overflowY: 'auto',
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
+                            <motion.button
+                                whileTap={{ scale: 0.88 }}
+                                onClick={() => { haptic('light'); onClose(); }}
+                                style={{ width: 36, height: 36, borderRadius: 99, background: c.input, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                            >
+                                <X size={16} color={c.text3} strokeWidth={2.5} />
+                            </motion.button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 13 }}>N</span>
+                                </div>
+                                <span style={{ fontWeight: 800, fontSize: 17, color: c.text, letterSpacing: '-0.03em' }}>{siteName}</span>
+                            </div>
+                        </div>
+
+                        {/* User tile */}
+                        <motion.button
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => { openAuthModal(); onClose(); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                margin: '0 12px 8px', padding: '14px',
+                                background: user ? `${tierColor}14` : c.input,
+                                borderRadius: 18, border: 'none', cursor: 'pointer',
+                                direction: 'rtl', WebkitTapHighlightColor: 'transparent',
+                                textAlign: 'right',
+                            }}
+                        >
+                            {user ? (
+                                <div style={{ width: 44, height: 44, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{(user.displayName || user.email || 'U')[0].toUpperCase()}</span>
+                                </div>
+                            ) : (
+                                <div style={{ width: 44, height: 44, borderRadius: 99, background: c.shimmerA, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <UserCircle size={24} color={c.text4} />
+                                </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: 15, fontWeight: 700, color: c.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {user ? (user.displayName || user.email) : 'כניסה / הרשמה'}
+                                </p>
+                                <p style={{ fontSize: 12, color: user ? tierColor : c.text3, margin: '2px 0 0', fontWeight: user ? 700 : 400 }}>
+                                    {user ? `דרג ${tierLabel}` : 'לחברי מועדון — הנחות בלעדיות'}
+                                </p>
+                            </div>
+                            <ChevronRight size={16} color={c.text4} style={{ transform: 'rotate(180deg)', flexShrink: 0 }} />
+                        </motion.button>
+
+                        {/* Nav links */}
+                        <div style={{ flex: 1, padding: '4px 12px' }}>
+                            {MENU_LINKS.map(({ path, label, emoji }, i) => {
+                                const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+                                return (
+                                    <motion.button
+                                        key={path}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => go(path)}
+                                        initial={{ opacity: 0, x: 16 }}
+                                        animate={{ opacity: 1, x: 0, transition: { delay: i * 0.03 } }}
+                                        style={{
+                                            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                                            padding: '12px 14px', borderRadius: 14, border: 'none',
+                                            background: isActive ? 'rgba(0,122,255,0.08)' : 'transparent',
+                                            cursor: 'pointer', textAlign: 'right', direction: 'rtl',
+                                            WebkitTapHighlightColor: 'transparent', fontFamily: SF,
+                                            marginBottom: 2,
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 20, flexShrink: 0 }}>{emoji}</span>
+                                        <span style={{ fontSize: 16, fontWeight: isActive ? 700 : 500, color: isActive ? '#007AFF' : c.text, flex: 1 }}>{label}</span>
+                                        {isActive && <span style={{ width: 6, height: 6, borderRadius: 99, background: '#007AFF', flexShrink: 0 }} />}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Footer quick actions */}
+                        <div style={{ padding: '12px 12px 8px', borderTop: `0.5px solid ${c.divider}` }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <motion.a
+                                    whileTap={{ scale: 0.93 }}
+                                    href={`tel:${phone}`}
+                                    style={{ flex: 1, height: 48, borderRadius: 14, background: 'rgba(52,199,89,0.10)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', textDecoration: 'none', color: '#34C759', fontWeight: 700, fontSize: 14, fontFamily: SF }}
+                                >
+                                    <Phone size={17} color="#34C759" />
+                                    חייג
+                                </motion.a>
+                                <motion.button
+                                    whileTap={{ scale: 0.93 }}
+                                    onClick={() => go('/favorites')}
+                                    style={{ flex: 1, height: 48, borderRadius: 14, background: 'rgba(255,45,85,0.08)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', color: '#FF2D55', fontWeight: 700, fontSize: 14, fontFamily: SF, WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                    <Heart size={17} color="#FF2D55" />
+                                    שמורים
+                                </motion.button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
 }
 
 // ─── Unified Smart Concierge (AI + WhatsApp + Phone + Accessibility) ─────────
@@ -966,6 +1138,7 @@ function MobileAppInner() {
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
     const [searchOpen, setSearchOpen] = useState(false);
+    const [menuOpen,   setMenuOpen]   = useState(false);
     const prevPathRef   = useRef(location.pathname);
     const currentIdx    = getRouteIndex(location.pathname);
     const prevIdx       = getRouteIndex(prevPathRef.current);
@@ -980,8 +1153,8 @@ function MobileAppInner() {
 
     const slideVariants = {
         initial: (dir) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
-        animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 340, damping: 36, mass: 0.8 } },
-        exit: (dir) => ({ x: dir > 0 ? '-20%' : '20%', opacity: 0, filter: 'blur(4px)', transition: { duration: 0.16, ease: [0.32, 0, 0.67, 0] } }),
+        animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 32, mass: 0.9 } },
+        exit: (dir) => ({ x: dir > 0 ? '-12%' : '12%', opacity: 0, transition: { duration: 0.14, ease: [0.32, 0, 0.67, 0] } }),
     };
 
     return (
@@ -998,7 +1171,7 @@ function MobileAppInner() {
             <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
-            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} onSearch={() => setSearchOpen(true)} />}
+            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} onSearch={() => setSearchOpen(true)} onMenu={() => setMenuOpen(true)} />}
             {!hideHeader && <PullToRefresh scrollRef={scrollRef} />}
             {!hideHeader && (
                 <div style={{ position: 'sticky', top: 56, zIndex: 199 }}>
@@ -1015,7 +1188,7 @@ function MobileAppInner() {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    style={{ willChange: 'transform, opacity' }}
+                    style={{ willChange: 'transform' }}
                 >
                     <Suspense fallback={<div style={{ minHeight: '60vh', background: c.bg }} />}>
                         <Routes location={location}>
@@ -1035,6 +1208,7 @@ function MobileAppInner() {
                             <Route path="/terms"       element={<MobileTerms />} />
                             <Route path="/discover"    element={<MobileDiscover />} />
                             <Route path="/innovation"  element={<MobileInnovation />} />
+                            <Route path="/membership"  element={<MobileMembership />} />
                             <Route path="*"            element={<MobileLanding />} />
                         </Routes>
                     </Suspense>
@@ -1043,7 +1217,9 @@ function MobileAppInner() {
 
             {!hideBottomNav && <MobileBottomNav />}
             <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <MobileMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
             <MobileSmartConcierge />
+            <MobileAuthSheet />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />

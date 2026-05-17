@@ -35,6 +35,8 @@ import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { AuthProvider } from './context/AuthContext';
+import AuthModal from './components/AuthModal';
 import CookieConsent from './components/CookieConsent';
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
@@ -53,6 +55,7 @@ const DiscoverPage      = lazy(() => import('./pages/DiscoverPage'));
 const WishlistPage      = lazy(() => import('./pages/WishlistPage'));
 const PrivacyPage       = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage         = lazy(() => import('./pages/TermsPage'));
+const MembershipPage    = lazy(() => import('./pages/MembershipPage'));
 const MobileApp         = lazy(() => import('./mobile/MobileApp'));
 import { db } from './firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -129,6 +132,7 @@ function AnimatedRoutes() {
                 <Route path="/favorites"  element={<WishlistPage />} />
                 <Route path="/privacy"    element={<PrivacyPage />} />
                 <Route path="/terms"      element={<TermsPage />} />
+                <Route path="/membership" element={<MembershipPage />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -139,17 +143,19 @@ function App() {
     return (
         <AppErrorBoundary>
             <SettingsProvider>
-                <CartProvider>
-                    <ProductsProvider>
-                        <WishlistProvider>
-                            <CompareProvider>
-                                <Router>
-                                    <AppContent />
-                                </Router>
-                            </CompareProvider>
-                        </WishlistProvider>
-                    </ProductsProvider>
-                </CartProvider>
+                <AuthProvider>
+                    <CartProvider>
+                        <ProductsProvider>
+                            <WishlistProvider>
+                                <CompareProvider>
+                                    <Router>
+                                        <AppContent />
+                                    </Router>
+                                </CompareProvider>
+                            </WishlistProvider>
+                        </ProductsProvider>
+                    </CartProvider>
+                </AuthProvider>
             </SettingsProvider>
         </AppErrorBoundary>
     );
@@ -242,6 +248,7 @@ function AppContent() {
             <SmartConcierge />
             <CompareTray />
             <CookieConsent />
+            <AuthModal />
         </div>
     );
 }

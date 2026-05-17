@@ -7,6 +7,7 @@ import { useWishlist } from '../context/WishlistContext';
 import useCartPop from '../hooks/useCartPop';
 import { Sparkles, Heart } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 // ─── Cart pop animation variants ─────────────────────────────────────────────
 const cartBtnVariants = {
@@ -135,6 +136,9 @@ const ProductCard = ({ product }) => {
  const { isVisible } = useSettings();
  const showPrices = isVisible('show_prices', true);
  const allowOrders = isVisible('allow_orders', true);
+ const { getMemberPrice, isMember, tierColor } = useAuth();
+ const memberPricingOn = isVisible('vis_member_pricing', false);
+ const memberPrice = memberPricingOn ? getMemberPrice(effectivePrice) : null;
 
  // ─── Stable handlers ──────────────────────────────────────────────────────
  const handleImgError = useCallback(() => {
@@ -330,6 +334,12 @@ const ProductCard = ({ product }) => {
  ) : (
  <span className="text-2xl font-apple-display tracking-tighter text-[#1D1D1F]">{formattedPrice}</span>
  ))}
+ {showPrices && memberPrice && (
+ <div className="flex items-center justify-end gap-1.5 mt-0.5">
+ <span style={{ fontSize: 10, fontWeight: 800, color: tierColor, background: `${tierColor}18`, padding: '2px 7px', borderRadius: 99 }}>מועדון</span>
+ <span style={{ fontSize: 14, fontWeight: 800, color: tierColor }}>₪{memberPrice.toLocaleString()}</span>
+ </div>
+ )}
  </div>
 
  {/* In RTL flex: second child = LEFT — compare (secondary) */}

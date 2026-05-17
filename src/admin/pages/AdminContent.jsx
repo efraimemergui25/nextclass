@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useSettings } from '../../context/SettingsContext';
+import { useAuth, TIER_CONFIG } from '../../context/AuthContext';
 import {
     AdminSectionHeader,
     AdminInput,
@@ -46,6 +47,8 @@ const VISIBILITY_ITEMS = [
     { key: 'sidebar_visible',       label: 'תפריט צד (Product Page)', desc: 'הניווט הצף בדפי המוצר', icon: '📌' },
     { key: 'allow_payments',        label: 'תשלום מקוון (Checkout)', desc: 'הפעלת שלב תשלום מקוון בצ׳ק-אאוט', icon: '💳' },
     { key: 'show_prices',           label: 'הצגת מחירים',           desc: 'הסתרת/הצגת מחירים בכל האתר', icon: '💰' },
+    { key: 'vis_member_pricing',    label: 'מחירי מועדון (הנחות)',   desc: 'הצגת מחיר מועדון על גבי כרטיסי מוצר לחברים מחוברים', icon: '⭐' },
+    { key: 'vis_membership_page',   label: 'עמוד מועדון NextClass',  desc: 'הצגת לינק לעמוד ה-/membership', icon: '🏆' },
 ];
 
 // ─── Field Sections ───────────────────────────────────────────────────────────
@@ -838,6 +841,12 @@ const DESKTOP_GROUPS = [
             { label: null, sections: ['visibility', 'legal'] },
         ],
     },
+    {
+        id: 'dg_users', label: 'משתמשים ומועדון', accent: '#007AFF',
+        subGroups: [
+            { label: null, sections: ['users_panel'] },
+        ],
+    },
 ];
 
 // ─── Mobile Groups (chronological — follows mobile app user journey) ──────────
@@ -896,6 +905,12 @@ const MOBILE_GROUPS = [
             { label: null, sections: ['visibility', 'legal'] },
         ],
     },
+    {
+        id: 'mg_users', label: 'משתמשים ומועדון', accent: '#007AFF',
+        subGroups: [
+            { label: null, sections: ['users_panel'] },
+        ],
+    },
 ];
 
 // ─── All Sections flat list ───────────────────────────────────────────────────
@@ -904,8 +919,9 @@ const ALL_SECTIONS = [
     { id: 'menu_reorder',      label: 'תפריט צף (דסקטופ)',          icon: '☰',  accent: '#007AFF', type: 'menu_reorder' },
     { id: 'mobile_menu_reorder', label: 'תפריט נייד (המבורגר)',     icon: '📱', accent: '#34C759', type: 'mobile_menu_reorder' },
     ...FIELD_SECTIONS,
-    { id: 'videos',    label: 'ספריית VOD',   icon: '🎬', accent: '#FF3B30', type: 'videos' },
-    { id: 'magazine',  label: 'כתבות מגזין',  icon: '📰', accent: '#007AFF', type: 'magazine' },
+    { id: 'videos',       label: 'ספריית VOD',         icon: '🎬', accent: '#FF3B30', type: 'videos' },
+    { id: 'magazine',     label: 'כתבות מגזין',        icon: '📰', accent: '#007AFF', type: 'magazine' },
+    { id: 'users_panel',  label: 'משתמשים ומועדון',    icon: '👥', accent: '#007AFF', type: 'users' },
 ];
 
 // ─── Nav Items ────────────────────────────────────────────────────────────────
@@ -946,6 +962,8 @@ const GROUP_ICON_COMPONENTS = {
     mg_brand:   <Palette size={16} />,
     mg_tools:   <Wrench size={16} />,
     mg_system:  <Settings size={16} />,
+    dg_users:   <UserCircle size={16} />,
+    mg_users:   <UserCircle size={16} />,
 };
 
 const SECTION_ICON_COMPONENTS = {
@@ -1694,7 +1712,7 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
 
 // ─── Section Accordion ────────────────────────────────────────────────────────
 function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, showToast }) {
-    const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.type === 'mobile_menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine';
+    const isSpecial = sec.type === 'visibility' || sec.type === 'menu_reorder' || sec.type === 'mobile_menu_reorder' || sec.id === 'sidebar_sections' || sec.type === 'videos' || sec.type === 'magazine' || sec.type === 'users';
     const fieldCount = sec.fields ? sec.fields.length : null;
     const location = SECTION_LOCATIONS[sec.id];
     const firstTextField = sec.fields ? sec.fields.find(f => f.type === 'text' || f.type === 'textarea') : null;
@@ -1779,6 +1797,7 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                             {sec.id === 'sidebar_sections' && <SidebarSectionManager showToast={showToast} />}
                             {sec.type === 'videos' && <VideosSection showToast={showToast} />}
                             {sec.type === 'magazine' && <MagazineSection showToast={showToast} />}
+                            {sec.type === 'users' && <UsersSection />}
 
                             {/* Regular field sections */}
                             {sec.fields && sec.id !== 'sidebar_sections' && (
@@ -1808,6 +1827,123 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                     </motion.div>
                 )}
             </AnimatePresence>
+        </div>
+    );
+}
+
+// ─── Users / Members Panel ────────────────────────────────────────────────────
+function UsersSection() {
+    const { fetchAllUsers, updateUserTier } = useAuth();
+    const [users, setUsers]         = useState([]);
+    const [loading, setLoading]     = useState(true);
+    const [search, setSearch]       = useState('');
+    const [updating, setUpdating]   = useState(null);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        const data = await fetchAllUsers().catch(() => []);
+        setUsers(data);
+        setLoading(false);
+    }, [fetchAllUsers]);
+
+    useEffect(() => { load(); }, [load]);
+
+    const filtered = users.filter(u => {
+        const q = search.toLowerCase();
+        return !q || u.displayName?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.institution?.toLowerCase().includes(q);
+    });
+
+    const handleTier = async (uid, tier) => {
+        setUpdating(uid);
+        await updateUserTier(uid, tier).catch(() => {});
+        setUsers(prev => prev.map(u => u.uid === uid ? { ...u, memberTier: tier } : u));
+        setUpdating(null);
+    };
+
+    const totalMembers  = users.filter(u => u.memberTier !== 'free').length;
+    const totalFree     = users.filter(u => u.memberTier === 'free').length;
+    const totalPremium  = users.filter(u => u.memberTier === 'premium').length;
+
+    return (
+        <div className="p-5">
+            {/* Stats row */}
+            <div className="grid grid-cols-4 gap-3 mb-5">
+                {[
+                    { label: 'סה"כ משתמשים', value: users.length, color: '#007AFF' },
+                    { label: 'פרטיים (Free)',  value: totalFree,    color: '#8E8E93' },
+                    { label: 'מוסדיים',        value: totalMembers - totalPremium, color: '#007AFF' },
+                    { label: 'פרימיום',        value: totalPremium, color: '#FF9F0A' },
+                ].map(({ label, value, color }) => (
+                    <div key={label} className="rounded-2xl p-3 text-center" style={{ background: `${color}10`, border: `1px solid ${color}20` }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+                        <div style={{ fontSize: 11, color: '#86868B', marginTop: 4, fontWeight: 500 }}>{label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-4">
+                <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
+                <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="חיפוש לפי שם, אימייל או מוסד..."
+                    className="w-full bg-[#F2F2F7] rounded-xl pr-9 pl-4 py-2.5 text-sm text-[#1D1D1F] outline-none focus:ring-2 ring-[#007AFF]/20"
+                    dir="rtl"
+                />
+            </div>
+
+            {/* Refresh */}
+            <div className="flex justify-between items-center mb-3">
+                <button onClick={load} className="text-[11px] text-[#007AFF] font-semibold hover:opacity-70 flex items-center gap-1">
+                    <RotateCcw size={11} /> רענן
+                </button>
+                <span className="text-[11px] text-[#AEAEB2]">{filtered.length} תוצאות</span>
+            </div>
+
+            {/* Table */}
+            {loading ? (
+                <div className="text-center py-12 text-[#AEAEB2] text-sm">טוען משתמשים...</div>
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-12 text-[#AEAEB2] text-sm">לא נמצאו משתמשים</div>
+            ) : (
+                <div className="space-y-2">
+                    {filtered.map(u => {
+                        const tier   = u.memberTier || 'free';
+                        const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
+                        return (
+                            <div key={u.uid} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#F2F2F7] transition-colors" style={{ border: '1px solid #F2F2F7' }}>
+                                {/* Avatar */}
+                                <div style={{ width: 38, height: 38, borderRadius: 99, background: `linear-gradient(135deg, ${config.color}, ${config.color}88)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{(u.displayName || u.email || '?')[0].toUpperCase()}</span>
+                                </div>
+                                {/* Info */}
+                                <div style={{ flex: 1, minWidth: 0 }} dir="rtl">
+                                    <p className="text-sm font-semibold text-[#1D1D1F] truncate">{u.displayName || '—'}</p>
+                                    <p className="text-xs text-[#86868B] truncate">{u.email}</p>
+                                    {u.institution && <p className="text-[10px] text-[#AEAEB2] truncate">{u.institution}</p>}
+                                </div>
+                                {/* Role tag */}
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:block" style={{ background: '#F2F2F7', color: '#86868B', flexShrink: 0 }}>
+                                    {u.role === 'teacher' ? 'מורה' : u.role === 'admin' ? 'מנהל' : u.role === 'procurement' ? 'רכש' : 'אחר'}
+                                </span>
+                                {/* Tier select */}
+                                <select
+                                    value={tier}
+                                    disabled={updating === u.uid}
+                                    onChange={e => handleTier(u.uid, e.target.value)}
+                                    className="text-xs font-bold rounded-lg px-2 py-1.5 border-none outline-none cursor-pointer"
+                                    style={{ background: `${config.color}18`, color: config.color, flexShrink: 0 }}
+                                >
+                                    {Object.entries(TIER_CONFIG).map(([k, v]) => (
+                                        <option key={k} value={k}>{v.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

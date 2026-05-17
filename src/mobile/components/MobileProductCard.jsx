@@ -7,6 +7,8 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useCompare } from '../../context/CompareContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
+import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import useLongPress from '../hooks/useLongPress';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
@@ -236,6 +238,10 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const discount = product.salePrice && product.price
         ? Math.round((1 - product.salePrice / product.price) * 100)
         : 0;
+    const { getMemberPrice, isMember, tierColor } = useAuth();
+    const { isVisible } = useSettings();
+    const memberPricingOn = isVisible('vis_member_pricing', false);
+    const memberPrice = memberPricingOn ? getMemberPrice(displayPrice) : null;
 
     return (
         <>
@@ -369,14 +375,22 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         {product.title}
                     </p>
 
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: isSmall ? 8 : 10 }}>
-                        <span style={{ fontSize: isSmall ? 14 : 16, fontWeight: 800, color: product.salePrice ? '#FF3B30' : c.text, letterSpacing: '-0.02em' }}>
-                            ₪{displayPrice?.toLocaleString()}
-                        </span>
-                        {product.salePrice && (
-                            <span style={{ fontSize: 10, color: c.text4, textDecoration: 'line-through' }}>
-                                ₪{product.price?.toLocaleString()}
+                    <div style={{ marginBottom: isSmall ? 8 : 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                            <span style={{ fontSize: isSmall ? 14 : 16, fontWeight: 800, color: product.salePrice ? '#FF3B30' : c.text, letterSpacing: '-0.02em' }}>
+                                ₪{displayPrice?.toLocaleString()}
                             </span>
+                            {product.salePrice && (
+                                <span style={{ fontSize: 10, color: c.text4, textDecoration: 'line-through' }}>
+                                    ₪{product.price?.toLocaleString()}
+                                </span>
+                            )}
+                        </div>
+                        {memberPrice && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: tierColor, background: `${tierColor}18`, padding: '1px 6px', borderRadius: 99, flexShrink: 0 }}>מועדון</span>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: tierColor }}>₪{memberPrice.toLocaleString()}</span>
+                            </div>
                         )}
                     </div>
 

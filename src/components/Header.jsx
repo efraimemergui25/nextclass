@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from '
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Search, Monitor, Laptop2, FlaskConical, Volume2, Zap, Globe } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Search, Monitor, Laptop2, FlaskConical, Volume2, Zap, Globe, Heart, UserCircle } from 'lucide-react';
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
@@ -10,7 +10,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
-import { Heart } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // Cycling per-category visual identity — matches HomeDiscoverSection palette
 const CAT_ACCENTS = ['#007AFF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF375F', '#64D2FF'];
@@ -93,6 +93,7 @@ const Header = () => {
 
  const { cartItems } = useCart();
  const { wishlistCount } = useWishlist();
+ const { user, isMember, tierColor, openAuthModal } = useAuth();
  const navigate = useNavigate();
 
  const cartCount = useMemo(
@@ -281,6 +282,26 @@ const Header = () => {
  >
   {wishlistCount}
  </motion.span>
+ )}
+ </motion.button>
+
+ {/* ── User / Auth ── */}
+ <motion.button
+ onClick={openAuthModal}
+ whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+ className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 transition-all flex items-center justify-center shrink-0 z-[120]"
+ aria-label={user ? 'פרופיל' : 'כניסה / הרשמה'}
+ style={{ color: user ? tierColor : undefined }}
+ >
+ {user ? (
+  <div style={{ width: 26, height: 26, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+  <span style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>{(user.displayName || user.email || 'U')[0].toUpperCase()}</span>
+  </div>
+ ) : (
+  <UserCircle className="w-6 h-6 md:w-7 md:h-7 pointer-events-none" />
+ )}
+ {isMember && (
+  <span style={{ position: 'absolute', bottom: 6, right: 6, width: 8, height: 8, borderRadius: 99, background: tierColor, border: '1.5px solid white' }} />
  )}
  </motion.button>
 
