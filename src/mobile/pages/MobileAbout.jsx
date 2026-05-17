@@ -20,7 +20,7 @@ export default function MobileAbout() {
     const founderName = getSetting('about_founder_name', 'מייסד NextClass');
     const storyTitle  = getSetting('about_story_title', 'הסיפור שלנו');
     const storyBody   = getSetting('about_story_body', 'NextClass נולד מתוך הבנה עמוקה של צרכי מוסדות החינוך בישראל.');
-    const founderImg  = getSetting('about_founder_image', '');
+    const founderImg  = getSetting('about_founder_img', '');
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100vh' }}>

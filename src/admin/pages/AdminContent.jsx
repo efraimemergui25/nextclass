@@ -686,6 +686,31 @@ const FIELD_SECTIONS = [
             { key: 'cookie_consent_body',   label: 'בנר עוגיות — טקסט',            type: 'text',     default: 'כדי לשפר את חוויית השימוש ולנתח תנועה באתר.' },
         ],
     },
+    {
+        id: 'mobile_app',
+        label: 'אפליקציית מובייל — תוכן',
+        icon: '📱',
+        accent: '#007AFF',
+        fields: [
+            // ── Hero (shared with desktop, mobile uses same keys) ─────────────
+            { key: 'hero_headline',      label: 'מובייל — כותרת Hero',          type: 'text',     default: 'חינוך מתקדם, ממש עכשיו.' },
+            { key: 'hero_subline',       label: 'מובייל — תיאור Hero',          type: 'textarea', default: 'הפתרונות הטכנולוגיים המתקדמים ביותר למוסדות חינוך.' },
+            { key: 'hero_trust_pill_1',  label: 'מובייל — תג אמון 1',          type: 'text',     default: 'שירות ישיר ומהיר' },
+            { key: 'hero_trust_pill_2',  label: 'מובייל — תג אמון 2',          type: 'text',     default: 'ייעוץ ללא עלות' },
+            { key: 'hero_trust_pill_3',  label: 'מובייל — תג אמון 3',          type: 'text',     default: '+500 מוסדות חינוך' },
+            // ── Magazine page ─────────────────────────────────────────────────
+            { key: 'magazine_title',     label: 'מגזין — כותרת עמוד',          type: 'text',     default: 'הרעיונות שמשנים חינוך.' },
+            { key: 'magazine_subtitle',  label: 'מגזין — תיאור עמוד',          type: 'textarea', default: 'מאמרים, מדריכים ותובנות על עתיד הלמידה' },
+            // ── VOD page ──────────────────────────────────────────────────────
+            { key: 'vod_title',          label: 'מרכז הדרכה — כותרת עמוד',     type: 'text',     default: 'עתיד הלמידה, עכשיו.' },
+            { key: 'vod_subtitle',       label: 'מרכז הדרכה — תיאור עמוד',    type: 'textarea', default: 'הדרכות וידאו מקצועיות לשימוש מיטבי בציוד' },
+            // ── About / Story page ────────────────────────────────────────────
+            { key: 'about_story_title',  label: 'הסיפור שלנו — כותרת',        type: 'text',     default: 'הסיפור שלנו' },
+            { key: 'about_story_body',   label: 'הסיפור שלנו — טקסט',         type: 'textarea', default: 'NextClass נולד מתוך הבנה עמוקה של צרכי מוסדות החינוך בישראל.' },
+            { key: 'about_founder_name', label: 'שם המייסד (מובייל)',          type: 'text',     default: 'אפרים אמרגי' },
+            { key: 'about_founder_img',  label: 'תמונת המייסד (מובייל)',       type: 'image',    default: '' },
+        ],
+    },
 ];
 
 // ─── Top-Level Nav Groups (5 clean sections) ──────────────────────────────────
@@ -738,6 +763,15 @@ const SECTION_GROUPS = [
             { label: 'ווידג׳טים צפים', sections: ['floating_concierge'] },
             { label: 'עגלת קניות וצ׳ק-אאוט', sections: ['cart_checkout'] },
             { label: 'מדיה ונגישות', sections: ['videos', 'accessibility_section'] },
+        ],
+    },
+    {
+        id: 'mobile',
+        label: 'אפליקציית מובייל',
+        icon: '📱',
+        accent: '#007AFF',
+        subGroups: [
+            { label: 'תוכן עמודים — מובייל', sections: ['mobile_app'] },
         ],
     },
     {

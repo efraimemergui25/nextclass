@@ -238,7 +238,7 @@ function NavItem({ item, collapsed, badgeValue }) {
     return link;
 }
 
-export default function AdminSidebar({ collapsed, onToggle }) {
+export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
     const { logout } = useAdminAuth();
     const { kpis } = useAdminData();
     const navigate = useNavigate();
@@ -286,10 +286,12 @@ export default function AdminSidebar({ collapsed, onToggle }) {
     };
 
     return (
+        <>
+        {/* Desktop sidebar */}
         <motion.aside
             animate={{ width: collapsed ? 64 : 232 }}
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-            className="h-full flex flex-col shrink-0 relative overflow-visible"
+            className="h-full flex flex-col shrink-0 relative overflow-visible hidden lg:flex"
             style={{
                 background: 'rgba(248,248,252,0.88)',
                 backdropFilter: 'blur(64px) saturate(240%)',
@@ -549,5 +551,113 @@ export default function AdminSidebar({ collapsed, onToggle }) {
                 </CollapsedTooltip>
             </div>
         </motion.aside>
+
+        {/* Mobile drawer — slides in from right (RTL) */}
+        <AnimatePresence>
+            {mobileOpen && (
+                <motion.aside
+                    key="mobile-sidebar"
+                    initial={{ x: '100%' }}
+                    animate={{ x: 0 }}
+                    exit={{ x: '100%' }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+                    className="fixed top-0 right-0 h-full w-72 flex flex-col z-[35] lg:hidden"
+                    style={{
+                        background: 'rgba(248,248,252,0.96)',
+                        backdropFilter: 'blur(64px) saturate(240%)',
+                        WebkitBackdropFilter: 'blur(64px) saturate(240%)',
+                        borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.07)'}`,
+                        boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
+                    }}
+                >
+                    {/* Mobile header */}
+                    <div className="flex items-center gap-3 px-4 py-4 border-b border-black/06">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg"
+                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.30)' }}>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <text x="1" y="12" fontSize="9" fontWeight="900" fontFamily="system-ui,-apple-system" fill="white" letterSpacing="-0.5">N</text>
+                                <text x="10" y="19" fontSize="8" fontWeight="700" fontFamily="system-ui,-apple-system" fill="rgba(255,255,255,0.72)" letterSpacing="-0.3">C</text>
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[#1D1D1F] font-black text-sm tracking-tighter">NextClass</p>
+                            <p className="text-[#86868B] text-[10px] font-bold tracking-widest">Admin</p>
+                        </div>
+                        <motion.button
+                            whileTap={{ scale: 0.88 }}
+                            onClick={onMobileClose}
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/06 transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </motion.button>
+                    </div>
+
+                    {/* Revenue stat */}
+                    <div className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
+                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.06))', border: '1px solid rgba(0,122,255,0.12)' }}>
+                        <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
+                        <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
+                        <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות</p>
+                    </div>
+
+                    {/* Navigation */}
+                    <nav className="flex-1 p-2 overflow-y-auto custom-scrollbar">
+                        <div className="space-y-0.5">
+                            {NAV_GROUPS.map((group, gi) => {
+                                const isOpen = openGroups.has(group.id);
+                                const isGroupActive = group.items.some(i => location.pathname.startsWith(i.path));
+                                if (group.standalone) {
+                                    return (
+                                        <div key={group.id} className={gi > 0 ? 'border-t border-black/[0.06] pt-1 mt-1' : ''}>
+                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} />
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div key={group.id} className="border-t border-black/[0.06] pt-1 mt-1">
+                                        <button onClick={() => toggleGroup(group.id)}
+                                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all"
+                                            style={{ background: isGroupActive && !isOpen ? `linear-gradient(135deg, ${group.accent}18, ${group.accent}08)` : 'transparent' }}>
+                                            <svg className="w-[14px] h-[14px] shrink-0" fill="none" viewBox="0 0 24 24" stroke={isGroupActive ? group.accent : '#AEAEB2'} strokeWidth={2}>{ICONS[group.icon]}</svg>
+                                            <span className="flex-1 text-right text-[11.5px] font-bold tracking-tight" style={{ color: isGroupActive ? group.accent : '#6E6E73' }}>{group.label}</span>
+                                            <motion.svg animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.18 }} className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke={isGroupActive ? group.accent : '#AEAEB2'} strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                            </motion.svg>
+                                        </button>
+                                        <AnimatePresence initial={false}>
+                                            {isOpen && (
+                                                <motion.div key="open" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                                                    <div className="mt-0.5 space-y-0.5 pr-1 border-r-2" style={{ borderColor: group.accent + '28' }}>
+                                                        {group.items.map(item => (
+                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} />
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </nav>
+
+                    {/* Footer */}
+                    <div className="p-2 border-t border-black/06 space-y-1">
+                        <a href="/" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#007AFF] hover:bg-[#007AFF]/06 transition-all">
+                            <NavIcon d={ICONS.dashboard} />
+                            <span className="text-[13px] font-bold">לאתר הראשי</span>
+                        </a>
+                        <motion.button whileTap={{ scale: 0.94 }} onClick={() => { logout(); navigate('/admin'); }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/06 transition-all">
+                            <NavIcon d={ICONS.logout} />
+                            <span className="text-[13px] font-semibold">יציאה</span>
+                        </motion.button>
+                    </div>
+                </motion.aside>
+            )}
+        </AnimatePresence>
+        </>
     );
 }

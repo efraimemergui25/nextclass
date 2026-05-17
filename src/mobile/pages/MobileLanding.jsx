@@ -67,8 +67,8 @@ export default function MobileLanding() {
 
     const categories = [...new Set(activeProducts.map(p => p.category))].filter(Boolean).slice(0, 6);
 
-    const heroTitle = getSetting('hero_title', 'חינוך מתקדם, ממש עכשיו.');
-    const heroSub   = getSetting('hero_subtitle', 'הפתרונות הטכנולוגיים המתקדמים ביותר למוסדות חינוך.');
+    const heroTitle = getSetting('hero_headline', 'חינוך מתקדם, ממש עכשיו.');
+    const heroSub   = getSetting('hero_subline', 'הפתרונות הטכנולוגיים המתקדמים ביותר למוסדות חינוך.');
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24, background: c.bg, minHeight: '100vh' }}>

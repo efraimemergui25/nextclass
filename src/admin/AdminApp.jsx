@@ -38,7 +38,11 @@ import AdminMagazine from './pages/AdminMagazine';
 function AdminShell() {
     const { isAuthenticated, isLoading } = useAdminAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const location = useLocation();
+
+    // Close mobile sidebar on route change
+    React.useEffect(() => { setMobileSidebarOpen(false); }, [location.pathname]);
 
     if (isLoading) return <div className="min-h-screen bg-[#F5F5F7]" />;
     if (!isAuthenticated) return <AdminLogin />;
@@ -49,26 +53,46 @@ function AdminShell() {
             <AdminNotificationWatcher />
             <div className="flex h-screen overflow-hidden" dir="rtl"
             style={{ background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 35%, #F2EEFF 65%, #F5F0FF 100%)' }}>
-                {/* Ambient orbs — subtle brand atmosphere */}
+                {/* Ambient orbs */}
                 <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
                     <div style={{ position: 'absolute', top: '-6%', right: '-3%', width: 560, height: 560, borderRadius: '50%', background: '#007AFF', filter: 'blur(140px)', opacity: 0.055 }} />
                     <div style={{ position: 'absolute', bottom: '-8%', left: '-4%', width: 480, height: 480, borderRadius: '50%', background: '#5856D6', filter: 'blur(150px)', opacity: 0.045 }} />
-                    {/* Noise grain */}
                     <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.018, mixBlendMode: 'overlay' }}>
                         <filter id="admin-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /></filter>
                         <rect width="100%" height="100%" filter="url(#admin-noise)" />
                     </svg>
                 </div>
 
-                {/* Sidebar */}
-                <div className="relative z-20">
-                    <AdminSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(p => !p)} />
+                {/* Mobile overlay backdrop */}
+                <AnimatePresence>
+                    {mobileSidebarOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[25] lg:hidden"
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Sidebar — hidden on mobile unless open */}
+                <div className="relative z-30">
+                    <AdminSidebar
+                        collapsed={sidebarCollapsed}
+                        onToggle={() => setSidebarCollapsed(p => !p)}
+                        mobileOpen={mobileSidebarOpen}
+                        onMobileClose={() => setMobileSidebarOpen(false)}
+                    />
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 relative z-10 flex flex-col h-full overflow-hidden">
-                    <AdminTopBar collapsed={sidebarCollapsed} />
-                    <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div className="flex-1 relative z-10 flex flex-col h-full overflow-hidden min-w-0">
+                    <AdminTopBar
+                        collapsed={sidebarCollapsed}
+                        onMobileMenuToggle={() => setMobileSidebarOpen(p => !p)}
+                    />
+                    <main className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={location.pathname}

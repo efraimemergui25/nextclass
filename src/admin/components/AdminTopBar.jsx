@@ -106,7 +106,7 @@ function SearchModal({ onClose }) {
     );
 }
 
-export default function AdminTopBar({ collapsed }) {
+export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
     const navigate = useNavigate();
     const { kpis, orders } = useAdminData();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -146,6 +146,18 @@ export default function AdminTopBar({ collapsed }) {
                 }}
                 dir="rtl"
             >
+                {/* Hamburger — mobile only */}
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onMobileMenuToggle}
+                    className="flex lg:hidden w-9 h-9 rounded-xl items-center justify-center text-[#6E6E73] hover:bg-[#F5F5F7] transition-colors shrink-0"
+                    aria-label="פתח תפריט"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </motion.button>
+
                 {/* Date + Clock */}
                 <div className="text-right hidden sm:block">
                     <p className="text-[#1D1D1F] text-xs font-bold leading-none">{today}</p>
