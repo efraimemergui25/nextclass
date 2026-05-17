@@ -30,14 +30,21 @@ function Avatar({ name, size = 9 }) {
 }
 
 // ─── Summary stat ──────────────────────────────────────────────────────────────
-function StatPill({ label, value, color }) {
+function StatPill({ label, value, color, index = 0 }) {
     return (
-        <div className="rounded-2xl p-4 text-right relative overflow-hidden" style={glass}>
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 28 }}
+            whileHover={{ y: -2, boxShadow: `0 12px 32px ${color}18` }}
+            className="rounded-2xl p-4 text-right relative overflow-hidden"
+            style={glass}
+        >
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
                 style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
             <p className="text-2xl font-black tracking-tighter pt-1" style={{ color }}>{value}</p>
             <p className="text-[#86868B] text-[11px] font-bold mt-0.5">{label}</p>
-        </div>
+        </motion.div>
     );
 }
 
@@ -121,9 +128,9 @@ export default function AdminCustomers() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-                <StatPill label="לקוחות" value={customers.length} color="#007AFF" />
-                <StatPill label="פניות חדשות" value={newContacts} color="#FF3B30" />
-                <StatPill label="הכנסה כוללת" value={`₪${totalRevenue.toLocaleString()}`} color="#34C759" />
+                <StatPill label="לקוחות" value={customers.length} color="#007AFF" index={0} />
+                <StatPill label="פניות חדשות" value={newContacts} color="#FF3B30" index={1} />
+                <StatPill label="הכנסה כוללת" value={`₪${totalRevenue.toLocaleString()}`} color="#34C759" index={2} />
             </div>
 
             {/* Tabs + Search */}

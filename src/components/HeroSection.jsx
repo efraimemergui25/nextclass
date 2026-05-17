@@ -115,10 +115,20 @@ const HeroSection = () => {
  className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6"
  >
  {[content.trust_1, content.trust_2, content.trust_3].map((t, i) => (
- <span key={i} className="flex items-center gap-1.5 text-[11px] font-bold text-white/50 ">
- <span className="text-[#007AFF]">✓</span>
- {t}
- </span>
+ <motion.span
+  key={i}
+  initial={{ opacity: 0, y: 8 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 1.1 + i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+  className="flex items-center gap-1.5 text-[11px] font-bold text-white/50"
+ >
+  <motion.span
+   className="text-[#007AFF]"
+   animate={{ scale: [1, 1.3, 1] }}
+   transition={{ delay: 1.5 + i * 0.2, duration: 0.35, type: 'spring', stiffness: 500 }}
+  >✓</motion.span>
+  {t}
+ </motion.span>
  ))}
  </motion.div>
 
@@ -144,6 +154,14 @@ const HeroSection = () => {
  }}
  >
  <span className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+ {/* Shimmer sweep on hover */}
+ <motion.span
+  className="absolute inset-0 pointer-events-none rounded-full"
+  initial={{ x: '-100%', opacity: 0 }}
+  animate={{ x: ['−100%', '200%'], opacity: [0, 0.15, 0] }}
+  transition={{ delay: 1.8, duration: 1.2, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }}
+  style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)' }}
+ />
  {content.hero_cta}
  </motion.button>
  </motion.div>
