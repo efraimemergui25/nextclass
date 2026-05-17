@@ -1,12 +1,14 @@
 /* eslint-disable */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Box } from 'lucide-react';
+import { ShoppingBag, Box, Upload, Loader2 } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminFilterPills, AdminToggle, StatusBadge } from '../components/AdminComponents';
+import { storage } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנה', 'מחשוב וטאבלטים', 'תשתיות רשת ואודיו-ויזואל', 'מעבדות STEM וחינוך STEAM', 'ריהוט חינוכי ואחסון', 'בטיחות ומעקב'];
 
@@ -202,6 +204,24 @@ export default function AdminProducts() {
     const [editForm, setEditForm] = useState(EMPTY_FORM);
     const [saved, setSaved] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [imgUploading, setImgUploading] = useState(false);
+    const imgInputRef = useRef(null);
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setImgUploading(true);
+        try {
+            const path = `products/${editingProduct?.id || Date.now()}_${file.name}`;
+            const snap = await uploadBytes(ref(storage, path), file);
+            const url = await getDownloadURL(snap.ref);
+            setField('image', url);
+        } catch {
+            showToast?.('שגיאה בהעלאת התמונה', 'error');
+        }
+        setImgUploading(false);
+        e.target.value = '';
+    };
 
     const handleEditClick = (product) => {
         setIsNew(false);
@@ -434,25 +454,50 @@ export default function AdminProducts() {
                         <AdminInput label="סף מלאי נמוך" type="number" value={String(editForm.threshold ?? 5)} onChange={v => setField('threshold', v)} placeholder="5" />
                     </div>
 
-                    <AdminInput label="כתובת תמונה (URL)" value={editForm.image} onChange={v => setField('image', v)} placeholder="https://..." dir="ltr" />
-                    {editForm.image && (
-                        <div className="w-full h-40 rounded-xl overflow-hidden bg-[#F5F5F7]">
-                            <img
-                                src={editForm.image}
-                                alt="תצוגה מקדימה"
-                                onError={(e) => {
-                                    if (!e.target.dataset.tried1) {
-                                        e.target.dataset.tried1 = 'true';
-                                        const orig = initialProducts.find(ip => String(ip.id) === String(editingProduct?.id));
-                                        if (orig?.image) { e.target.src = orig.image; return; }
-                                    }
-                                    e.target.onerror = null;
-                                    e.target.src = IMG_FALLBACK;
-                                }}
-                                className="w-full h-full object-cover"
+                    {/* Image upload + URL field */}
+                    <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-[#86868B] mb-1">תמונת מוצר</label>
+                        <div className="flex gap-2">
+                            <input
+                                value={editForm.image}
+                                onChange={e => setField('image', e.target.value)}
+                                placeholder="https://... או העלה קובץ"
+                                dir="ltr"
+                                className="flex-1 px-3 py-2 rounded-xl bg-[#F5F5F7] border border-transparent text-sm text-[#1D1D1F] outline-none focus:border-[#007AFF]/40 focus:ring-2 focus:ring-[#007AFF]/10 transition"
                             />
+                            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                            <button
+                                type="button"
+                                onClick={() => imgInputRef.current?.click()}
+                                disabled={imgUploading}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#007AFF]/10 text-[#007AFF] text-xs font-bold hover:bg-[#007AFF]/20 transition shrink-0 disabled:opacity-50"
+                            >
+                                {imgUploading
+                                    ? <Loader2 size={14} className="animate-spin" />
+                                    : <Upload size={14} />
+                                }
+                                {imgUploading ? 'מעלה...' : 'העלה'}
+                            </button>
                         </div>
-                    )}
+                        {editForm.image && (
+                            <div className="w-full h-40 rounded-xl overflow-hidden bg-[#F5F5F7]">
+                                <img
+                                    src={editForm.image}
+                                    alt="תצוגה מקדימה"
+                                    onError={(e) => {
+                                        if (!e.target.dataset.tried1) {
+                                            e.target.dataset.tried1 = 'true';
+                                            const orig = initialProducts.find(ip => String(ip.id) === String(editingProduct?.id));
+                                            if (orig?.image) { e.target.src = orig.image; return; }
+                                        }
+                                        e.target.onerror = null;
+                                        e.target.src = IMG_FALLBACK;
+                                    }}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                    </div>
                     <AdminInput label="תיאור מוצר" value={editForm.description} onChange={v => setField('description', v)} rows={3} placeholder="תאר את המוצר..." />
 
                     {/* Storefront badges */}
