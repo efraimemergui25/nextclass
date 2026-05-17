@@ -52,6 +52,7 @@ const ProductCard = ({ product }) => {
  const stockStatus = stock === undefined ? null : stock > 10 ? 'ok' : stock > 0 ? 'low' : 'out';
 
  const [imgError, setImgError] = useState(false);
+ const [imgLoaded, setImgLoaded] = useState(false);
 
  const { addToCompare, removeFromCompare, isSelected } = useCompare();
  const { cartItems, addToCart, removeFromCart } = useCart();
@@ -181,9 +182,15 @@ const ProductCard = ({ product }) => {
  <img
  src={image}
  alt={title}
- className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] cubic-bezier(0.22, 1, 0.36, 1)"
+ className="absolute inset-0 w-full h-full object-cover group-hover:scale-105"
  onError={handleImgError}
+ onLoad={() => setImgLoaded(true)}
  loading="lazy"
+ style={{
+  filter: imgLoaded ? 'blur(0px)' : 'blur(12px)',
+  transform: imgLoaded ? 'scale(1)' : 'scale(1.04)',
+  transition: 'filter 0.55s ease, transform 0.55s ease, scale 1.2s cubic-bezier(0.22,1,0.36,1)',
+ }}
  />
  )}
  

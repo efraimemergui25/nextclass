@@ -13,20 +13,20 @@ import { motion } from 'framer-motion';
  */
 export default function GlassCanvas({ mood }) {
  const glowRef = useRef(null);
+ const spotRef = useRef(null);
  const rafRef = useRef(null);
  const targetRef = useRef({ x: 50, y: 50 });
  const currentRef = useRef({ x: 50, y: 50 });
+ const spotRef2 = useRef({ x: 50, y: 50 });
 
  useEffect(() => {
  const handleMove = (e) => {
- // Store target — actual DOM update happens in rAF loop
  targetRef.current = {
  x: (e.clientX / window.innerWidth) * 100,
  y: (e.clientY / window.innerHeight) * 100,
  };
  };
 
- // Lerp loop — smooth follow without Framer Motion overhead
  const lerp = (a, b, t) => a + (b - a) * t;
  const tick = () => {
  const cur = currentRef.current;
@@ -34,9 +34,16 @@ export default function GlassCanvas({ mood }) {
  cur.x = lerp(cur.x, tgt.x, 0.055);
  cur.y = lerp(cur.y, tgt.y, 0.055);
 
+ // Spotlight tracks faster for a tighter feel
+ const sp = spotRef2.current;
+ sp.x = lerp(sp.x, tgt.x, 0.18);
+ sp.y = lerp(sp.y, tgt.y, 0.18);
+
  if (glowRef.current) {
- // transform: translate is GPU-composited — zero layout, zero reflow
  glowRef.current.style.transform = `translate(calc(${cur.x}vw - 50%), calc(${cur.y}vh - 50%))`;
+ }
+ if (spotRef.current) {
+ spotRef.current.style.transform = `translate(calc(${sp.x}vw - 50%), calc(${sp.y}vh - 50%))`;
  }
  rafRef.current = requestAnimationFrame(tick);
  };
@@ -126,6 +133,23 @@ export default function GlassCanvas({ mood }) {
  willChange: 'transform',
  pointerEvents: 'none',
  zIndex: -5,
+ }}
+ />
+ {/* Tight spotlight — follows cursor precisely */}
+ <div
+ ref={spotRef}
+ style={{
+ position: 'fixed',
+ width: '280px',
+ height: '280px',
+ borderRadius: '50%',
+ background: `radial-gradient(circle, ${primaryColor}0E 0%, ${primaryColor}05 50%, transparent 70%)`,
+ filter: 'blur(12px)',
+ top: 0,
+ left: 0,
+ willChange: 'transform',
+ pointerEvents: 'none',
+ zIndex: -4,
  }}
  />
 

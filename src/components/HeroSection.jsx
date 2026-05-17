@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 // Removed DEFAULTS and readContent helper
@@ -21,6 +21,10 @@ const HeroSection = () => {
  trust_3: getSetting('hero_trust_pill_3', '+500 מוסדות חינוך'),
  }), [getSetting]);
 
+ const sectionRef = useRef(null);
+ const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
+ const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
+
  const handleScrollDown = () => {
  window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
  };
@@ -30,15 +34,15 @@ const HeroSection = () => {
  const subWords = content.hero_subline.split(' ');
 
  return (
- <section className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased pb-20">
+ <section ref={sectionRef} className="h-screen w-full relative flex items-center justify-center text-center overflow-hidden font-sans antialiased pb-20">
 
- {/* Background — parallax-ready, subtle scale-in */}
+ {/* Background — parallax while scrolling + scale-in on mount */}
  <motion.div
  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
  initial={{ scale: 1.08 }}
  animate={{ scale: 1.0 }}
+ style={{ backgroundImage: `url('${content.hero_bg_image}')`, y: bgY, scale: 1.15 }}
  transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
- style={{ backgroundImage: `url('${content.hero_bg_image}')` }}
  />
 
  {/* Multi-layer gradient overlay — deep cinema feel */}

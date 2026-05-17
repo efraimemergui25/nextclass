@@ -1,10 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import PageTransition from '../components/PageTransition';
 import { Sparkles, Clock, ArrowLeft } from 'lucide-react';
 import { STATIC_ARTICLES, IMAGES, CATEGORY_COLORS, FALLBACK } from '../utils/magazineArticles';
+
+// ─── Scroll progress indicator ────────────────────────────────────────────────
+function ScrollProgress() {
+ const { scrollYProgress } = useScroll();
+ const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
+ return (
+  <motion.div
+   style={{
+    scaleX,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    background: 'linear-gradient(90deg, #007AFF, #5856D6)',
+    transformOrigin: '0%',
+    zIndex: 9998,
+    pointerEvents: 'none',
+    boxShadow: '0 0 8px rgba(0,122,255,0.5)',
+   }}
+  />
+ );
+}
 
 function getColor(cat) { return CATEGORY_COLORS[cat] ?? { bg: 'bg-blue-50', text: 'text-[#007AFF]', dot: 'bg-[#007AFF]' }; }
 
@@ -133,6 +156,7 @@ const MagazinePage = () => {
 
  return (
  <PageTransition>
+ <ScrollProgress />
  <div className="min-h-screen bg-[#F5F5F7] pt-24 pb-28 overflow-x-hidden" dir="rtl">
  <div className="max-w-[1400px] mx-auto px-6 md:px-10">
 

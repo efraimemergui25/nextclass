@@ -25,6 +25,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import AnnouncementBar from './components/AnnouncementBar';
 import DynamicIsland from './components/DynamicIsland';
+import RouteProgressBar from './components/RouteProgressBar';
 import SmartConcierge from './components/SmartConcierge';
 import CompareTray from './components/CompareTray';
 import GlassCanvas from './components/GlassCanvas';
@@ -235,6 +236,7 @@ function AppContent() {
                 <Footer />
             </PageErrorBoundary>
 
+            <RouteProgressBar />
             {/* ── Global Floating UI Layer ── */}
             <DynamicIsland />
             <SmartConcierge />

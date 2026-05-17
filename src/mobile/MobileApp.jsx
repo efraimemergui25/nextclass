@@ -1,4 +1,4 @@
-import { useEffect, useRef, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
@@ -310,6 +310,81 @@ function ThemeColorSync() {
     return null;
 }
 
+// ─── Pull-to-refresh ──────────────────────────────────────────────────────────
+function PullToRefresh({ scrollRef }) {
+    const [pullY, setPullY] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const startY = useRef(null);
+    const THRESHOLD = 64;
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        const onStart = (e) => {
+            if (el.scrollTop === 0) startY.current = e.touches[0].clientY;
+        };
+        const onMove = (e) => {
+            if (startY.current === null) return;
+            const delta = e.touches[0].clientY - startY.current;
+            if (delta > 0 && el.scrollTop === 0) {
+                e.preventDefault();
+                setPullY(Math.min(delta * 0.45, THRESHOLD + 16));
+            }
+        };
+        const onEnd = () => {
+            if (pullY >= THRESHOLD && !refreshing) {
+                setRefreshing(true);
+                haptic('medium');
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                setPullY(0);
+            }
+            startY.current = null;
+        };
+
+        el.addEventListener('touchstart', onStart, { passive: true });
+        el.addEventListener('touchmove', onMove, { passive: false });
+        el.addEventListener('touchend', onEnd);
+        return () => {
+            el.removeEventListener('touchstart', onStart);
+            el.removeEventListener('touchmove', onMove);
+            el.removeEventListener('touchend', onEnd);
+        };
+    }, [pullY, refreshing, scrollRef]);
+
+    if (pullY <= 0 && !refreshing) return null;
+
+    const progress = Math.min(pullY / THRESHOLD, 1);
+
+    return (
+        <motion.div
+            animate={{ y: refreshing ? THRESHOLD : pullY, opacity: refreshing ? 1 : progress }}
+            transition={refreshing ? { type: 'spring', stiffness: 300, damping: 28 } : { duration: 0 }}
+            style={{
+                position: 'absolute', top: 56, left: 0, right: 0, zIndex: 190,
+                display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+            }}
+        >
+            <motion.div
+                animate={refreshing ? { rotate: 360 } : { rotate: progress * 270 }}
+                transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0 }}
+                style={{
+                    width: 32, height: 32, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.92)',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+            >
+                <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                    <circle cx={8} cy={8} r={6} stroke="#007AFF" strokeWidth={2} strokeDasharray="37.7" strokeDashoffset={37.7 * (1 - (refreshing ? 0.75 : progress))} strokeLinecap="round" style={{ transformOrigin: '8px 8px', transform: 'rotate(-90deg)' }} />
+                </svg>
+            </motion.div>
+        </motion.div>
+    );
+}
+
 // ─── Inner app (needs ThemeProvider in scope) ─────────────────────────────────
 function MobileAppInner() {
     const location = useLocation();
@@ -343,11 +418,13 @@ function MobileAppInner() {
             paddingTop: hideHeader ? 0 : 56,
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
             colorScheme: 'auto',
+            position: 'relative',
         }}>
             <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
             {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} />}
+            {!hideHeader && <PullToRefresh scrollRef={scrollRef} />}
             <OfflineBanner />
 
             <AnimatePresence mode="popLayout" custom={direction}>

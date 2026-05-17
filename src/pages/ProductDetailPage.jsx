@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent, useSpring } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
 import { useCompare } from '../context/CompareContext';
@@ -15,6 +15,20 @@ import Magnetic from '../components/Magnetic';
 import { useSettings } from '../context/SettingsContext';
 import defaultProducts from '../data/products';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
+
+// ─── Scroll progress bar ──────────────────────────────────────────────────────
+function ScrollProgress() {
+ const { scrollYProgress } = useScroll();
+ const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
+ return (
+  <motion.div style={{
+   scaleX, position: 'fixed', top: 0, left: 0, right: 0,
+   height: 3, background: 'linear-gradient(90deg, #FF9500, #FF2D55)',
+   transformOrigin: '0%', zIndex: 9998, pointerEvents: 'none',
+   boxShadow: '0 0 8px rgba(255,149,0,0.5)',
+  }} />
+ );
+}
 
 // ─── Module-level constants (never re-created on render) ─────────────────────
 // Moved constants into component useMemo for dynamic control
@@ -538,6 +552,7 @@ const ProductDetailPage = () => {
  )}
 
  <PageTransition>
+ <ScrollProgress />
  {/* ─── Product Page Sidebar Navigation ─────────────────────────── */}
  <ProductPageSidebar visible={true} />
 
