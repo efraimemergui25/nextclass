@@ -381,11 +381,22 @@ function MobileAppInner() {
     );
 }
 
+// ─── Global focus rings (keyboard navigation) ─────────────────────────────────
+const FOCUS_STYLES = `
+*:focus { outline: none; }
+*:focus-visible {
+    outline: 2px solid #007AFF;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+`;
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function MobileApp() {
     return (
         <ThemeProvider>
             <MotionConfig reducedMotion="user">
+                <style>{FOCUS_STYLES}</style>
                 <MobileAppInner />
             </MotionConfig>
         </ThemeProvider>

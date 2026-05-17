@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Heart, ShoppingBag, ChevronDown, Check, Send, Scale, Share2 } from 'lucide-react';
@@ -23,16 +23,170 @@ function trackRecentlyViewed(id) {
     } catch {}
 }
 
+// ─── Pinchable Image ──────────────────────────────────────────────────────────
+function PinchableImage({ src, alt, loaded, onLoad, onZoomChange }) {
+    const ref      = useRef(null);
+    const state    = useRef({ scale: 1, panX: 0, panY: 0, startDist: 0, startScale: 1, startPanX: 0, startPanY: 0, midX: 0, midY: 0, lastTap: 0 });
+    const [zoomed, setZoomed] = useState(false);
+
+    const applyTransform = (scale, px, py) => {
+        if (ref.current) {
+            ref.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
+        }
+    };
+
+    const setZoom = useCallback((val) => {
+        setZoomed(val);
+        onZoomChange?.(val);
+    }, [onZoomChange]);
+
+    const resetZoom = useCallback(() => {
+        const s = state.current;
+        s.scale = 1; s.panX = 0; s.panY = 0;
+        applyTransform(1, 0, 0);
+        setZoom(false);
+    }, [setZoom]);
+
+    const clampPan = (scale, px, py, rect) => {
+        const maxPanX = Math.max(0, (rect.width * scale - rect.width) / 2);
+        const maxPanY = Math.max(0, (rect.height * scale - rect.height) / 2);
+        return [
+            Math.min(maxPanX, Math.max(-maxPanX, px)),
+            Math.min(maxPanY, Math.max(-maxPanY, py)),
+        ];
+    };
+
+    useEffect(() => {
+        const el = ref.current?.parentElement;
+        if (!el) return;
+
+        const onTouchStart = (e) => {
+            const s = state.current;
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const [t1, t2] = e.touches;
+                s.startDist  = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                s.startScale = s.scale;
+                s.midX = (t1.clientX + t2.clientX) / 2;
+                s.midY = (t1.clientY + t2.clientY) / 2;
+                s.startPanX = s.panX;
+                s.startPanY = s.panY;
+            } else if (e.touches.length === 1) {
+                const now = Date.now();
+                if (now - s.lastTap < 300) {
+                    // double-tap: toggle zoom
+                    if (s.scale > 1) { resetZoom(); }
+                    else {
+                        s.scale = 2.5; s.panX = 0; s.panY = 0;
+                        applyTransform(2.5, 0, 0);
+                        setZoom(true);
+                    }
+                }
+                s.lastTap = now;
+                if (s.scale > 1) {
+                    s.startPanX = s.panX;
+                    s.startPanY = s.panY;
+                    s.midX = e.touches[0].clientX;
+                    s.midY = e.touches[0].clientY;
+                }
+            }
+        };
+
+        const onTouchMove = (e) => {
+            const s = state.current;
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const [t1, t2] = e.touches;
+                const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                s.scale = Math.min(4, Math.max(1, s.startScale * (dist / s.startDist)));
+                const rect = ref.current?.getBoundingClientRect() || { width: 300, height: 300 };
+                const [cx, cy] = clampPan(s.scale, s.startPanX, s.startPanY, rect);
+                s.panX = cx; s.panY = cy;
+                applyTransform(s.scale, s.panX, s.panY);
+                setZoom(s.scale > 1.05);
+            } else if (e.touches.length === 1 && s.scale > 1) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - s.midX;
+                const dy = e.touches[0].clientY - s.midY;
+                const rect = ref.current?.getBoundingClientRect() || { width: 300, height: 300 };
+                const [cx, cy] = clampPan(s.scale, s.startPanX + dx, s.startPanY + dy, rect);
+                s.panX = cx; s.panY = cy;
+                applyTransform(s.scale, s.panX, s.panY);
+            }
+        };
+
+        const onTouchEnd = (e) => {
+            const s = state.current;
+            if (s.scale < 1.05) resetZoom();
+        };
+
+        el.addEventListener('touchstart', onTouchStart, { passive: false });
+        el.addEventListener('touchmove',  onTouchMove,  { passive: false });
+        el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+        return () => {
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchmove',  onTouchMove);
+            el.removeEventListener('touchend',   onTouchEnd);
+        };
+    }, [resetZoom, setZoom]);
+
+    return (
+        <>
+            {!loaded && (
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)',
+                    backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
+                }} />
+            )}
+            <img
+                ref={ref}
+                src={src}
+                alt={alt}
+                onLoad={onLoad}
+                style={{
+                    width: '85%', height: '85%', objectFit: 'contain',
+                    opacity: loaded ? 1 : 0, transition: 'opacity 0.3s',
+                    userSelect: 'none', WebkitUserSelect: 'none',
+                    transformOrigin: 'center center',
+                    willChange: 'transform',
+                    cursor: zoomed ? 'grab' : 'zoom-in',
+                }}
+                draggable={false}
+            />
+            {zoomed && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={resetZoom}
+                    style={{
+                        position: 'absolute', top: 10, left: 10, zIndex: 5,
+                        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+                        color: '#fff', fontSize: 11, fontWeight: 700,
+                        padding: '4px 10px', borderRadius: 99,
+                        cursor: 'pointer', fontFamily: SF,
+                    }}
+                >
+                    לחץ לאיפוס
+                </motion.div>
+            )}
+        </>
+    );
+}
+
 // ─── Image Carousel ───────────────────────────────────────────────────────────
 function ImageCarousel({ images, alt }) {
     const [current, setCurrent] = useState(0);
     const [loaded, setLoaded]   = useState({});
+    const [isZoomed, setIsZoomed] = useState(false);
     const dragX = useMotionValue(0);
     const count = images.length;
 
     const goTo = (i) => setCurrent(Math.max(0, Math.min(count - 1, i)));
 
     const handleDragEnd = (_, { offset, velocity }) => {
+        if (isZoomed) return;
         if (offset.x < -40 || velocity.x < -200) goTo(current + 1);
         else if (offset.x > 40 || velocity.x > 200) goTo(current - 1);
         dragX.set(0);
@@ -41,7 +195,7 @@ function ImageCarousel({ images, alt }) {
     return (
         <div style={{ position: 'relative', width: '100%', overflow: 'hidden', background: 'linear-gradient(145deg, #F8F8FA, #EFEFEF)' }}>
             <motion.div
-                drag={count > 1 ? 'x' : false}
+                drag={count > 1 && !isZoomed ? 'x' : false}
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.15}
                 onDragEnd={handleDragEnd}
@@ -54,25 +208,14 @@ function ImageCarousel({ images, alt }) {
                         width: `${100 / count}%`, flexShrink: 0,
                         aspectRatio: '4/3', position: 'relative',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden',
                     }}>
-                        {!loaded[i] && (
-                            <div style={{
-                                position: 'absolute', inset: 0,
-                                background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)',
-                                backgroundSize: '200% 100%',
-                                animation: 'shimmer 1.4s infinite',
-                            }} />
-                        )}
-                        <img
+                        <PinchableImage
                             src={src}
                             alt={`${alt} ${i + 1}`}
+                            loaded={!!loaded[i]}
                             onLoad={() => setLoaded(l => ({ ...l, [i]: true }))}
-                            style={{
-                                width: '85%', height: '85%', objectFit: 'contain',
-                                opacity: loaded[i] ? 1 : 0, transition: 'opacity 0.3s',
-                                userSelect: 'none', WebkitUserSelect: 'none',
-                            }}
-                            draggable={false}
+                            onZoomChange={setIsZoomed}
                         />
                     </div>
                 ))}
