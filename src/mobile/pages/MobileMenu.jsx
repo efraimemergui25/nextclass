@@ -2,64 +2,101 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Home, Grid3X3, BookOpen, Video, Newspaper,
-    Phone, ChevronLeft, Info, Shield, FileText, Moon, Sun
+    Phone, ChevronLeft, Info, Shield, FileText,
+    Moon, Sun, ShoppingCart, Heart, Lock,
+    Compass, Zap, MessageCircle,
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
+import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
-const NAV_GROUPS = [
-    {
-        title: 'ניווט ראשי',
-        items: [
-            { Icon: Home,      label: 'דף הבית',       path: '/',         color: '#007AFF' },
-            { Icon: Grid3X3,   label: 'קטלוג מוצרים',  path: '/catalog',  color: '#34C759' },
-            { Icon: BookOpen,  label: 'השוואת דגמים',  path: '/compare',  color: '#FF9500' },
-        ],
-    },
-    {
-        title: 'תוכן ומידע',
-        items: [
-            { Icon: Video,     label: 'מרכז הדרכה',    path: '/vod',      color: '#BF5AF2' },
-            { Icon: Newspaper, label: 'מגזין',          path: '/magazine', color: '#FF375F' },
-            { Icon: Info,      label: 'הסיפור שלנו',   path: '/story',    color: '#5856D6' },
-        ],
-    },
-    {
-        title: 'שירות',
-        items: [
-            { Icon: Phone,     label: 'צור קשר',        path: '/contact',  color: '#30D158' },
-        ],
-    },
-    {
-        title: 'משפטי',
-        items: [
-            { Icon: Shield,    label: 'מדיניות פרטיות', path: '/privacy',  color: '#636366' },
-            { Icon: FileText,  label: 'תנאי שימוש',     path: '/terms',    color: '#636366' },
-        ],
-    },
-];
+// Nav groups — built dynamically so WhatsApp can get the phone number
+function buildNavGroups(phone) {
+    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}`;
+    return [
+        {
+            title: 'ניווט ראשי',
+            items: [
+                { Icon: Home,        label: 'דף הבית',        path: '/',          color: '#007AFF' },
+                { Icon: Grid3X3,     label: 'קטלוג מוצרים',   path: '/catalog',   color: '#34C759' },
+                { Icon: Compass,     label: 'גלה מוצרים',     path: '/discover',  color: '#FF9500' },
+                { Icon: BookOpen,    label: 'השוואת דגמים',   path: '/compare',   color: '#5856D6' },
+            ],
+        },
+        {
+            title: 'תוכן ומידע',
+            items: [
+                { Icon: Video,       label: 'מרכז הדרכה',     path: '/vod',       color: '#BF5AF2' },
+                { Icon: Newspaper,   label: 'מגזין',           path: '/magazine',  color: '#FF375F' },
+                { Icon: Info,        label: 'הסיפור שלנו',    path: '/story',     color: '#5856D6' },
+                { Icon: Zap,         label: 'חדשנות',          path: '/innovation',color: '#FF9500' },
+            ],
+        },
+        {
+            title: 'שירות לקוחות',
+            items: [
+                { Icon: Phone,       label: 'צור קשר',         path: '/contact',   color: '#30D158' },
+                {
+                    Icon: MessageCircle,
+                    label: 'WhatsApp',
+                    path: null,
+                    external: whatsappUrl,
+                    color: '#25D366',
+                },
+            ],
+        },
+        {
+            title: 'משפטי',
+            items: [
+                { Icon: Shield,      label: 'מדיניות פרטיות', path: '/privacy',   color: '#636366' },
+                { Icon: FileText,    label: 'תנאי שימוש',      path: '/terms',     color: '#636366' },
+            ],
+        },
+    ];
+}
 
 export default function MobileMenu() {
     const navigate = useNavigate();
     const { getSetting } = useSettings();
     const { colors: c, isDark, toggle } = useTheme();
-    const siteName  = getSetting('site_name', 'NextClass');
-    const siteLogo  = getSetting('site_logo_url', '');
-    const phone     = getSetting('contact_phone', '058-5856356');
+    const { cartCount }     = useCart();
+    const { wishlistCount } = useWishlist();
+
+    const siteName = getSetting('site_name', 'NextClass');
+    const siteLogo = getSetting('site_logo_url', '');
+    const phone    = getSetting('contact_phone', '058-5856356');
+
+    const NAV_GROUPS = buildNavGroups(phone);
+
+    const quickActions = [
+        { Icon: Home,          label: 'בית',    dest: '/',          badge: null },
+        { Icon: ShoppingCart,  label: 'עגלה',   dest: '/cart',      badge: cartCount    || null },
+        { Icon: Heart,         label: 'מועדפים', dest: '/favorites', badge: wishlistCount || null },
+        { Icon: Lock,          label: 'אדמין',   dest: '/admin',     badge: null },
+    ];
 
     return (
-        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 32px', background: c.bg, minHeight: '100dvh' }}>
+        <div style={{ fontFamily: SF, direction: 'rtl', padding: '16px 16px 40px', background: c.bg, minHeight: '100dvh' }}>
 
-            {/* ── Brand header ─────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: c.surface, borderRadius: 20, padding: '18px 18px', marginBottom: 20, boxShadow: c.cardShadow }}>
+            {/* ── Brand header ─────────────────────────────────────────── */}
+            <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: c.surface, borderRadius: 20, padding: '18px 18px',
+                marginBottom: 14, boxShadow: c.cardShadow,
+            }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     {siteLogo ? (
                         <img src={siteLogo} alt={siteName} style={{ height: 40, objectFit: 'contain' }} />
                     ) : (
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #007AFF, #5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{
+                            width: 44, height: 44, borderRadius: 14,
+                            background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
                             <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>N</span>
                         </div>
                     )}
@@ -88,18 +125,64 @@ export default function MobileMenu() {
                 </motion.button>
             </div>
 
-            {/* ── Nav groups ───────────────────────────────────────── */}
+            {/* ── Quick-action icon row ─────────────────────────────────── */}
+            <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
+                marginBottom: 20,
+            }}>
+                {quickActions.map(({ Icon, label, dest, badge }) => (
+                    <motion.button
+                        key={dest}
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => { haptic('select'); navigate(dest); }}
+                        style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            gap: 6, padding: '14px 8px',
+                            background: c.surface, borderRadius: 18,
+                            border: 'none', cursor: 'pointer',
+                            boxShadow: c.cardShadow,
+                            WebkitTapHighlightColor: 'transparent',
+                            position: 'relative',
+                        }}
+                        aria-label={label}
+                    >
+                        <Icon size={26} color={c.text} strokeWidth={1.7} />
+                        {badge != null && badge > 0 && (
+                            <span style={{
+                                position: 'absolute', top: 10, right: 10,
+                                minWidth: 18, height: 18, borderRadius: 99,
+                                background: '#FF3B30', color: '#fff',
+                                fontSize: 10, fontWeight: 800,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '0 4px',
+                                lineHeight: 1,
+                            }}>
+                                {badge > 99 ? '99+' : badge}
+                            </span>
+                        )}
+                    </motion.button>
+                ))}
+            </div>
+
+            {/* ── Nav groups ───────────────────────────────────────────── */}
             {NAV_GROUPS.map(group => (
                 <div key={group.title} style={{ marginBottom: 16 }}>
                     <p style={{ fontSize: 12, fontWeight: 700, color: c.text3, letterSpacing: '0.04em', marginBottom: 8, padding: '0 4px' }}>
                         {group.title}
                     </p>
                     <div style={{ background: c.surface, borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
-                        {group.items.map(({ Icon, label, path, color }, i) => (
+                        {group.items.map(({ Icon, label, path, external, color }, i) => (
                             <motion.button
-                                key={path}
+                                key={path ?? external}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => { haptic('select'); navigate(path); }}
+                                onClick={() => {
+                                    haptic('select');
+                                    if (external) {
+                                        window.open(external, '_blank');
+                                    } else {
+                                        navigate(path);
+                                    }
+                                }}
                                 style={{
                                     width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                                     padding: '14px 18px',
@@ -110,10 +193,17 @@ export default function MobileMenu() {
                                     fontFamily: SF,
                                 }}
                             >
-                                <div style={{ width: 36, height: 36, borderRadius: 11, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: 11,
+                                    background: `${color}15`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
                                     <Icon size={18} color={color} strokeWidth={1.9} />
                                 </div>
-                                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: c.text, textAlign: 'right' }}>{label}</span>
+                                <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: c.text, textAlign: 'right' }}>
+                                    {label}
+                                </span>
                                 <ChevronLeft size={16} color={c.text4} />
                             </motion.button>
                         ))}
@@ -121,8 +211,9 @@ export default function MobileMenu() {
                 </div>
             ))}
 
+            {/* ── Footer ───────────────────────────────────────────────── */}
             <p style={{ textAlign: 'center', fontSize: 11, color: c.text4, fontWeight: 500, marginTop: 8 }}>
-                © 2026 NextClass · כל הזכויות שמורות
+                {siteName} · © 2026 · כל הזכויות שמורות
             </p>
         </div>
     );

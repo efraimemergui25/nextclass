@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown, Filter } from 'lucide-react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useProducts } from '../../context/ProductsContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -21,6 +21,15 @@ const SORT_OPTIONS = [
     { id: 'name',       label: 'שם (א-ת)' },
 ];
 
+// Preset price ranges — null means "no limit"
+const PRICE_PRESETS = [
+    { id: 'all',   label: 'הכל',            min: null, max: null },
+    { id: 'u5',    label: 'עד ₪5,000',       min: null, max: 5000 },
+    { id: '5-15',  label: '₪5,000–₪15,000',  min: 5000, max: 15000 },
+    { id: '15-30', label: '₪15,000–₪30,000', min: 15000, max: 30000 },
+    { id: 'o30',   label: 'מעל ₪30,000',     min: 30000, max: null },
+];
+
 export default function MobileCatalog() {
     const [searchParams] = useSearchParams();
     const { activeProducts, refetch } = useProducts();
@@ -31,10 +40,20 @@ export default function MobileCatalog() {
     const categories = useMemo(() => [allLabel, ...new Set(activeProducts.map(p => p.category).filter(Boolean))], [activeProducts, allLabel]);
     const initCat = searchParams.get('category') ?? allLabel;
 
-    const [search,   setSearch]   = useState('');
-    const [category, setCategory] = useState(categories.includes(initCat) ? initCat : allLabel);
-    const [sortBy,   setSortBy]   = useState('default');
-    const [showSort, setShowSort] = useState(false);
+    const [search,      setSearch]      = useState('');
+    const [category,    setCategory]    = useState(categories.includes(initCat) ? initCat : allLabel);
+    const [sortBy,      setSortBy]      = useState('default');
+    const [showSort,    setShowSort]    = useState(false);
+
+    // Filter drawer state
+    const [showFilter,      setShowFilter]      = useState(false);
+    const [pricePreset,     setPricePreset]      = useState('all');
+    // Applied state (only committed when user taps Apply)
+    const [appliedPreset,   setAppliedPreset]    = useState('all');
+
+    const activePreset = PRICE_PRESETS.find(p => p.id === appliedPreset) ?? PRICE_PRESETS[0];
+    const filterActive = appliedPreset !== 'all';
+    const filterCount  = filterActive ? 1 : 0;
 
     const filtered = useMemo(() => {
         let list = activeProducts;
@@ -47,11 +66,15 @@ export default function MobileCatalog() {
                 p.category?.toLowerCase().includes(q)
             );
         }
+        // Price range filter
+        if (activePreset.min != null) list = list.filter(p => (p.price || 0) >= activePreset.min);
+        if (activePreset.max != null) list = list.filter(p => (p.price || 0) <= activePreset.max);
+
         if (sortBy === 'price-asc')  list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0));
         if (sortBy === 'price-desc') list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0));
         if (sortBy === 'name')       list = [...list].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'he'));
         return list;
-    }, [activeProducts, category, search, sortBy, allLabel]);
+    }, [activeProducts, category, search, sortBy, allLabel, activePreset]);
 
     // Group into rows of 2 for virtual scrolling
     const rows = useMemo(() => {
@@ -101,6 +124,24 @@ export default function MobileCatalog() {
     }, [categories, category]);
 
     const isLoading = activeProducts.length === 0;
+
+    // Filter drawer handlers
+    const openFilter = () => {
+        haptic('select');
+        setPricePreset(appliedPreset); // sync local draft to applied
+        setShowFilter(true);
+    };
+    const applyFilter = () => {
+        haptic('select');
+        setAppliedPreset(pricePreset);
+        setShowFilter(false);
+    };
+    const resetFilter = () => {
+        haptic('select');
+        setPricePreset('all');
+        setAppliedPreset('all');
+        setShowFilter(false);
+    };
 
     return (
         <PullToRefresh onRefresh={handleRefresh}>
@@ -156,65 +197,102 @@ export default function MobileCatalog() {
                     </div>
                 </div>
 
-                {/* ── Sort + count bar ───────────────────────────────────── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 4px', position: 'relative' }}>
-                    <div style={{ position: 'relative' }}>
+                {/* ── Sort + Filter + count bar ──────────────────────────── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 4px', position: 'relative', gap: 8 }}>
+
+                    {/* Left side: Sort + Filter buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+                        {/* Sort button */}
+                        <div style={{ position: 'relative' }}>
+                            <motion.button
+                                whileTap={{ scale: 0.94 }}
+                                onClick={() => setShowSort(v => !v)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    background: c.surface, border: `0.5px solid ${c.border}`,
+                                    borderRadius: 10, padding: '7px 12px',
+                                    fontSize: 13, fontWeight: 600, color: c.text,
+                                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                    boxShadow: c.cardShadow,
+                                }}
+                            >
+                                <SlidersHorizontal size={13} color="#007AFF" />
+                                {currentSort}
+                                <ChevronDown size={12} color={c.text3} style={{ transform: showSort ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {showSort && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                                        transition={{ duration: 0.16 }}
+                                        style={{
+                                            position: 'absolute', top: '110%', left: 0,
+                                            background: c.surface, borderRadius: 14,
+                                            boxShadow: '0 8px 40px rgba(0,0,0,0.16)',
+                                            zIndex: 200, minWidth: 180, overflow: 'hidden',
+                                            border: `0.5px solid ${c.border}`,
+                                        }}
+                                    >
+                                        {SORT_OPTIONS.map((opt, i) => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => { haptic('select'); setSortBy(opt.id); setShowSort(false); }}
+                                                style={{
+                                                    width: '100%', padding: '13px 16px',
+                                                    background: opt.id === sortBy ? 'rgba(0,122,255,0.06)' : 'none',
+                                                    border: 'none',
+                                                    borderBottom: i < SORT_OPTIONS.length - 1 ? `0.5px solid ${c.divider}` : 'none',
+                                                    fontSize: 14, fontWeight: opt.id === sortBy ? 700 : 400,
+                                                    color: opt.id === sortBy ? '#007AFF' : c.text,
+                                                    cursor: 'pointer', textAlign: 'right',
+                                                    direction: 'rtl', fontFamily: SF,
+                                                    WebkitTapHighlightColor: 'transparent',
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Filter button */}
                         <motion.button
                             whileTap={{ scale: 0.94 }}
-                            onClick={() => setShowSort(v => !v)}
+                            onClick={openFilter}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 5,
-                                background: c.surface, border: `0.5px solid ${c.border}`,
+                                background: filterActive ? 'rgba(0,122,255,0.08)' : c.surface,
+                                border: filterActive ? `0.5px solid #007AFF` : `0.5px solid ${c.border}`,
                                 borderRadius: 10, padding: '7px 12px',
-                                fontSize: 13, fontWeight: 600, color: c.text,
+                                fontSize: 13, fontWeight: 600,
+                                color: filterActive ? '#007AFF' : c.text,
                                 cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                                boxShadow: c.cardShadow,
+                                boxShadow: c.cardShadow, position: 'relative',
                             }}
                         >
-                            <SlidersHorizontal size={13} color="#007AFF" />
-                            {currentSort}
-                            <ChevronDown size={12} color={c.text3} style={{ transform: showSort ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
-                        </motion.button>
-
-                        <AnimatePresence>
-                            {showSort && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                                    transition={{ duration: 0.16 }}
-                                    style={{
-                                        position: 'absolute', top: '110%', left: 0,
-                                        background: c.surface, borderRadius: 14,
-                                        boxShadow: '0 8px 40px rgba(0,0,0,0.16)',
-                                        zIndex: 200, minWidth: 180, overflow: 'hidden',
-                                        border: `0.5px solid ${c.border}`,
-                                    }}
-                                >
-                                    {SORT_OPTIONS.map((opt, i) => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => { haptic('select'); setSortBy(opt.id); setShowSort(false); }}
-                                            style={{
-                                                width: '100%', padding: '13px 16px',
-                                                background: opt.id === sortBy ? 'rgba(0,122,255,0.06)' : 'none',
-                                                border: 'none',
-                                                borderBottom: i < SORT_OPTIONS.length - 1 ? `0.5px solid ${c.divider}` : 'none',
-                                                fontSize: 14, fontWeight: opt.id === sortBy ? 700 : 400,
-                                                color: opt.id === sortBy ? '#007AFF' : c.text,
-                                                cursor: 'pointer', textAlign: 'right',
-                                                direction: 'rtl', fontFamily: SF,
-                                                WebkitTapHighlightColor: 'transparent',
-                                            }}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </motion.div>
+                            <Filter size={13} color={filterActive ? '#007AFF' : c.text3} />
+                            פילטר מתקדם
+                            {filterCount > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -5, right: -5,
+                                    width: 16, height: 16, borderRadius: 99,
+                                    background: '#FF3B30', color: '#fff',
+                                    fontSize: 10, fontWeight: 800,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    {filterCount}
+                                </span>
                             )}
-                        </AnimatePresence>
+                        </motion.button>
                     </div>
-                    <span style={{ fontSize: 13, color: c.text3, fontWeight: 500 }}>
+
+                    <span style={{ fontSize: 13, color: c.text3, fontWeight: 500, flexShrink: 0 }}>
                         {filtered.length} מוצרים
                     </span>
                 </div>
@@ -279,6 +357,131 @@ export default function MobileCatalog() {
                     </div>
                     </motion.div>
                 )}
+
+                {/* ── Filter drawer — backdrop + bottom sheet ─────────────── */}
+                <AnimatePresence>
+                    {showFilter && (
+                        <>
+                            {/* Backdrop */}
+                            <motion.div
+                                key="filter-backdrop"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.22 }}
+                                onClick={() => setShowFilter(false)}
+                                style={{
+                                    position: 'fixed', inset: 0,
+                                    background: 'rgba(0,0,0,0.45)',
+                                    zIndex: 300,
+                                }}
+                            />
+
+                            {/* Drawer */}
+                            <motion.div
+                                key="filter-drawer"
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+                                style={{
+                                    position: 'fixed', bottom: 0, left: 0, right: 0,
+                                    background: c.surface,
+                                    borderRadius: '24px 24px 0 0',
+                                    zIndex: 400,
+                                    padding: '0 20px 40px',
+                                    boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+                                    fontFamily: SF,
+                                    direction: 'rtl',
+                                }}
+                            >
+                                {/* Drag handle */}
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+                                    <div style={{ width: 36, height: 4, borderRadius: 99, background: c.divider }} />
+                                </div>
+
+                                {/* Header row */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 20px' }}>
+                                    <p style={{ fontSize: 17, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>פילטר מתקדם</p>
+                                    <motion.button
+                                        whileTap={{ scale: 0.88 }}
+                                        onClick={() => setShowFilter(false)}
+                                        style={{ background: c.input, border: 'none', borderRadius: 99, padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        <X size={16} color={c.text3} />
+                                    </motion.button>
+                                </div>
+
+                                {/* Price range section */}
+                                <p style={{ fontSize: 13, fontWeight: 700, color: c.text3, letterSpacing: '0.03em', marginBottom: 12 }}>טווח מחיר</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
+                                    {PRICE_PRESETS.map(preset => {
+                                        const active = pricePreset === preset.id;
+                                        return (
+                                            <motion.button
+                                                key={preset.id}
+                                                whileTap={{ scale: 0.97 }}
+                                                onClick={() => { haptic('select'); setPricePreset(preset.id); }}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '13px 16px',
+                                                    background: active ? 'rgba(0,122,255,0.08)' : c.bg,
+                                                    border: active ? `1.5px solid #007AFF` : `1px solid ${c.border}`,
+                                                    borderRadius: 14,
+                                                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                                    fontFamily: SF,
+                                                }}
+                                            >
+                                                <span style={{ fontSize: 15, fontWeight: active ? 700 : 500, color: active ? '#007AFF' : c.text }}>
+                                                    {preset.label}
+                                                </span>
+                                                {active && (
+                                                    <div style={{ width: 20, height: 20, borderRadius: 99, background: '#007AFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                                            <path d="M1 4L3.5 6.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Action buttons */}
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <motion.button
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={resetFilter}
+                                        style={{
+                                            flex: 1, padding: '14px 0',
+                                            background: c.input, border: 'none',
+                                            borderRadius: 14, fontSize: 15, fontWeight: 700,
+                                            color: c.text3, cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent',
+                                            fontFamily: SF,
+                                        }}
+                                    >
+                                        איפוס
+                                    </motion.button>
+                                    <motion.button
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={applyFilter}
+                                        style={{
+                                            flex: 2, padding: '14px 0',
+                                            background: '#007AFF', border: 'none',
+                                            borderRadius: 14, fontSize: 15, fontWeight: 700,
+                                            color: '#fff', cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent',
+                                            fontFamily: SF,
+                                        }}
+                                    >
+                                        החל פילטר
+                                    </motion.button>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
             </div>
         </PullToRefresh>
     );

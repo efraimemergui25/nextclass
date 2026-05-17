@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform } from 'framer-motion';
-import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight } from 'lucide-react';
+import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -9,6 +9,7 @@ import { useProducts } from '../context/ProductsContext';
 import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
+import AnnouncementBar from '../components/AnnouncementBar';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { haptic } from './utils/haptic';
 import InstallPrompt from './components/InstallPrompt';
@@ -26,9 +27,11 @@ const MobileAbout     = lazy(() => import('./pages/MobileAbout'));
 const MobileVOD       = lazy(() => import('./pages/MobileVOD'));
 const MobileMagazine  = lazy(() => import('./pages/MobileMagazine'));
 const MobileMenu      = lazy(() => import('./pages/MobileMenu'));
-const MobileCompare   = lazy(() => import('./pages/MobileCompare'));
-const MobilePrivacy   = lazy(() => import('./pages/MobilePrivacy'));
-const MobileTerms     = lazy(() => import('./pages/MobileTerms'));
+const MobileCompare      = lazy(() => import('./pages/MobileCompare'));
+const MobilePrivacy      = lazy(() => import('./pages/MobilePrivacy'));
+const MobileTerms        = lazy(() => import('./pages/MobileTerms'));
+const MobileDiscover     = lazy(() => import('./pages/MobileDiscover'));
+const MobileInnovation   = lazy(() => import('./pages/MobileInnovation'));
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -43,8 +46,10 @@ const PAGE_TITLES = {
     '/menu':      'תפריט',
     '/compare':   'השוואת מוצרים',
     '/checkout':  'תשלום',
-    '/privacy':   'מדיניות פרטיות',
-    '/terms':     'תנאי שימוש',
+    '/privacy':    'מדיניות פרטיות',
+    '/terms':      'תנאי שימוש',
+    '/discover':   'גלו את הפתרונות',
+    '/innovation': 'סיפורי הצלחה',
 };
 
 const BOTTOM_TABS = [
@@ -205,6 +210,7 @@ function MobileHeader({ headerBlur, headerBg }) {
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
+    const { cartCount }  = useCart();
     const siteName  = getSetting('site_name', 'NextClass');
     const siteLogo  = getSetting('site_logo_url', '');
     const isHome    = location.pathname === '/';
@@ -246,6 +252,47 @@ function MobileHeader({ headerBlur, headerBg }) {
                     {!isProduct && <span style={{ fontSize: 15 }}>חזרה</span>}
                 </motion.button>
             )}
+
+            {/* Left actions: search + cart */}
+            <div style={{ position: 'absolute', left: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => { haptic('select'); navigate('/catalog'); }}
+                    aria-label="חיפוש"
+                    style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: 'none', border: 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                    }}
+                >
+                    <Search size={19} color={c.text3} strokeWidth={2} />
+                </motion.button>
+                <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={() => { haptic('select'); navigate('/cart'); }}
+                    aria-label="עגלה"
+                    style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: 'none', border: 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                        position: 'relative',
+                    }}
+                >
+                    <ShoppingBag size={19} color={c.text3} strokeWidth={2} />
+                    {cartCount > 0 && (
+                        <span style={{
+                            position: 'absolute', top: 4, right: 4,
+                            background: '#FF3B30', color: '#fff',
+                            borderRadius: 99, minWidth: 14, height: 14,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 9, fontWeight: 800, border: '1.5px solid white',
+                            padding: '0 2px',
+                        }}>{cartCount > 9 ? '9+' : cartCount}</span>
+                    )}
+                </motion.button>
+            </div>
 
             {isHome ? (
                 <motion.div
@@ -291,12 +338,178 @@ function MobileHeader({ headerBlur, headerBg }) {
 }
 
 // Route order for direction-aware transitions (higher index = deeper in hierarchy)
-const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms'];
+const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/discover', '/innovation', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms'];
 
 function getRouteIndex(pathname) {
     if (pathname.startsWith('/catalog/')) return 2;
     const i = ROUTE_ORDER.indexOf(pathname);
     return i === -1 ? 5 : i;
+}
+
+// ─── Floating WhatsApp ────────────────────────────────────────────────────────
+function MobileFloatingWhatsApp() {
+    const { getSetting } = useSettings();
+    const { colors: c }  = useTheme();
+    const rawPhone = getSetting('whatsapp_number', '972585856356');
+    const phone    = rawPhone.replace(/\D/g, '');
+    const url      = `https://wa.me/${phone}`;
+
+    return (
+        <motion.a
+            href={url} target="_blank" rel="noopener noreferrer"
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 1.2 }}
+            whileTap={{ scale: 0.88 }}
+            aria-label="WhatsApp"
+            style={{
+                position: 'fixed', bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+                left: 16, zIndex: 150,
+                width: 50, height: 50, borderRadius: 25,
+                background: '#25D366', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(37,211,102,0.45)',
+                textDecoration: 'none',
+                WebkitTapHighlightColor: 'transparent',
+            }}
+        >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+        </motion.a>
+    );
+}
+
+// ─── Floating AI Assistant ────────────────────────────────────────────────────
+function MobileFloatingAI() {
+    const { getSetting } = useSettings();
+    const { colors: c }  = useTheme();
+    const [open, setOpen]   = useState(false);
+    const [input, setInput] = useState('');
+    const [msgs, setMsgs]   = useState([]);
+    const bottomRef = useRef(null);
+
+    const greeting  = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך. מה תרצה לדעת?');
+    const botName   = getSetting('ai_title', 'NextClass AI');
+    const thinkMsg  = getSetting('ai_thinking', 'מעבד את בקשתך...');
+
+    useEffect(() => { setMsgs([{ role: 'ai', text: greeting }]); }, [greeting]);
+    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
+
+    const send = () => {
+        if (!input.trim()) return;
+        const text = input.trim();
+        setInput('');
+        setMsgs(p => [...p, { role: 'user', text }]);
+        haptic('medium');
+        setTimeout(() => setMsgs(p => [...p, { role: 'ai', text: thinkMsg }]), 900);
+    };
+
+    return (
+        <>
+            {/* FAB */}
+            <motion.button
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 1.4 }}
+                whileTap={{ scale: 0.88 }}
+                onClick={() => { haptic('select'); setOpen(o => !o); }}
+                aria-label="עוזר AI"
+                style={{
+                    position: 'fixed', bottom: 'calc(128px + env(safe-area-inset-bottom, 0px))',
+                    left: 16, zIndex: 150,
+                    width: 50, height: 50, borderRadius: 25,
+                    background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                    color: '#fff', border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 20px rgba(0,122,255,0.45)',
+                    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                    fontFamily: SF,
+                }}
+            >
+                {open ? <X size={20} /> : <MessageCircle size={20} />}
+            </motion.button>
+
+            {/* Chat bottom sheet */}
+            <AnimatePresence>
+                {open && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setOpen(false)}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 160, backdropFilter: 'blur(4px)' }}
+                        />
+                        <motion.div
+                            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                            transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+                            style={{
+                                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 161,
+                                background: c.surface, borderRadius: '20px 20px 0 0',
+                                height: '65dvh', display: 'flex', flexDirection: 'column',
+                                boxShadow: '0 -8px 48px rgba(0,0,0,0.18)',
+                                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                                fontFamily: SF, direction: 'rtl',
+                            }}
+                        >
+                            {/* Handle bar */}
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+                                <div style={{ width: 36, height: 4, borderRadius: 2, background: c.divider }} />
+                            </div>
+                            {/* Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px 12px', borderBottom: `0.5px solid ${c.divider}` }}>
+                                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MessageCircle size={16} color="#fff" />
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 14, fontWeight: 800, color: c.text, lineHeight: 1.2 }}>{botName}</p>
+                                    <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600 }}>● מחובר</p>
+                                </div>
+                                <motion.button whileTap={{ scale: 0.88 }} onClick={() => setOpen(false)}
+                                    style={{ marginRight: 'auto', background: 'none', border: 'none', cursor: 'pointer', padding: 6, WebkitTapHighlightColor: 'transparent' }}>
+                                    <X size={18} color={c.text4} />
+                                </motion.button>
+                            </div>
+                            {/* Messages */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {msgs.map((m, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-start' : 'flex-end' }}>
+                                        <div style={{
+                                            maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 18px 4px' : '18px 18px 4px 18px',
+                                            background: m.role === 'user' ? '#007AFF' : c.bg,
+                                            color: m.role === 'user' ? '#fff' : c.text,
+                                            fontSize: 14, lineHeight: 1.5,
+                                            border: m.role !== 'user' ? `0.5px solid ${c.border}` : 'none',
+                                        }}>{m.text}</div>
+                                    </div>
+                                ))}
+                                <div ref={bottomRef} />
+                            </div>
+                            {/* Input */}
+                            <div style={{ padding: '10px 12px 14px', display: 'flex', gap: 8, borderTop: `0.5px solid ${c.divider}` }}>
+                                <input
+                                    value={input} onChange={e => setInput(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && send()}
+                                    placeholder={getSetting('ai_placeholder', 'שאל אותי על מוצרים...')}
+                                    style={{
+                                        flex: 1, background: c.input, border: 'none', borderRadius: 12,
+                                        padding: '11px 14px', fontSize: 14, color: c.text,
+                                        outline: 'none', direction: 'rtl', fontFamily: SF,
+                                    }}
+                                />
+                                <motion.button whileTap={{ scale: 0.88 }} onClick={send}
+                                    style={{
+                                        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                                        background: input.trim() ? '#007AFF' : c.input,
+                                        border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s',
+                                    }}>
+                                    <Send size={16} color={input.trim() ? '#fff' : c.text4} />
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </>
+    );
 }
 
 // ─── Theme color meta updater ─────────────────────────────────────────────────
@@ -425,6 +638,11 @@ function MobileAppInner() {
             <RouteEffects />
             {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} />}
             {!hideHeader && <PullToRefresh scrollRef={scrollRef} />}
+            {!hideHeader && (
+                <div style={{ position: 'sticky', top: 56, zIndex: 199 }}>
+                    <AnnouncementBar />
+                </div>
+            )}
             <OfflineBanner />
 
             <AnimatePresence mode="popLayout" custom={direction}>
@@ -453,6 +671,8 @@ function MobileAppInner() {
                             <Route path="/compare"     element={<MobileCompare />} />
                             <Route path="/privacy"     element={<MobilePrivacy />} />
                             <Route path="/terms"       element={<MobileTerms />} />
+                            <Route path="/discover"    element={<MobileDiscover />} />
+                            <Route path="/innovation"  element={<MobileInnovation />} />
                             <Route path="*"            element={<MobileLanding />} />
                         </Routes>
                     </Suspense>
@@ -460,6 +680,8 @@ function MobileAppInner() {
             </AnimatePresence>
 
             {!hideBottomNav && <MobileBottomNav />}
+            <MobileFloatingWhatsApp />
+            <MobileFloatingAI />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />
