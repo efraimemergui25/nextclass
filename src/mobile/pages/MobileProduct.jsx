@@ -572,44 +572,49 @@ function ProductNavFAB() {
                 )}
             </AnimatePresence>
 
-            {/* Container — flush to right wall */}
+            {/* FAB anchor — fixed to right wall, sized to button only */}
             <div style={{
                 position: 'fixed',
-                right: 0,
-                bottom: 'calc(138px + env(safe-area-inset-bottom, 0px))',
+                right: 10,
+                bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
                 zIndex: 149,
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
+                width: 52,
+                height: 52,
                 pointerEvents: 'none',
             }}>
-                {/* Floating section menu — slides in from right */}
+                {/* Menu card — absolutely positioned above FAB, right edge aligned */}
                 <AnimatePresence>
                     {menuOpen && (
                         <motion.div
                             key="nav-fab-menu"
-                            initial={{ opacity: 0, x: 20, scale: 0.94 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 12, scale: 0.97 }}
-                            transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
                             dir="rtl"
                             style={{
-                                marginRight: 8,
+                                position: 'absolute',
+                                bottom: 60,
+                                right: 0,
+                                minWidth: 182,
                                 background: c.surface,
-                                backdropFilter: 'blur(16px) saturate(1.8)',
-                                WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
+                                backdropFilter: 'blur(20px) saturate(1.8)',
+                                WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
                                 borderRadius: 18,
                                 border: `1px solid ${c.border}`,
                                 boxShadow: '0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
                                 overflow: 'hidden',
-                                minWidth: 176,
                                 pointerEvents: 'all',
                             }}
                         >
-                            {/* Header: X on right (RTL), title on left */}
+                            {/* Header: title right, X button left (RTL layout) */}
                             <div style={{
-                                padding: '9px 10px 9px 14px',
+                                padding: '9px 12px',
                                 borderBottom: `0.5px solid ${c.divider}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                direction: 'rtl',
                             }}>
+                                <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.06em', margin: 0 }}>ניווט מהיר</p>
                                 <motion.button
                                     whileTap={{ scale: 0.84 }}
                                     onClick={() => setMenuOpen(false)}
@@ -622,7 +627,6 @@ function ProductNavFAB() {
                                 >
                                     <X size={12} color={c.text3} strokeWidth={2.5} />
                                 </motion.button>
-                                <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.06em', margin: 0 }}>ניווט מהיר</p>
                             </div>
 
                             {/* Section rows with active highlight */}
@@ -636,24 +640,21 @@ function ProductNavFAB() {
                                         style={{
                                             position: 'relative',
                                             width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                                            padding: '11px 14px',
+                                            padding: '10px 12px',
                                             background: isActive ? 'rgba(0,122,255,0.07)' : 'transparent',
                                             border: 'none',
                                             borderBottom: i < sections.length - 1 ? `0.5px solid ${c.divider}` : 'none',
                                             cursor: 'pointer', fontFamily: SF,
                                             WebkitTapHighlightColor: 'transparent',
-                                            overflow: 'hidden',
+                                            direction: 'rtl',
                                         }}
                                     >
                                         {isActive && (
-                                            <motion.div
-                                                layoutId="active-nav-bar"
-                                                style={{
-                                                    position: 'absolute', right: 0, top: 5, bottom: 5,
-                                                    width: 3, borderRadius: '2px 0 0 2px',
-                                                    background: '#007AFF',
-                                                }}
-                                            />
+                                            <div style={{
+                                                position: 'absolute', right: 0, top: 5, bottom: 5,
+                                                width: 3, borderRadius: '2px 0 0 2px',
+                                                background: '#007AFF',
+                                            }} />
                                         )}
                                         <SidebarIcon name={s.icon} active={isActive} />
                                         <span style={{
@@ -665,10 +666,7 @@ function ProductNavFAB() {
                                             {s.label}
                                         </span>
                                         {isActive && (
-                                            <motion.div
-                                                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                                style={{ width: 7, height: 7, borderRadius: 3.5, background: '#007AFF', flexShrink: 0 }}
-                                            />
+                                            <div style={{ width: 7, height: 7, borderRadius: 3.5, background: '#007AFF', flexShrink: 0 }} />
                                         )}
                                     </motion.button>
                                 );
@@ -677,18 +675,15 @@ function ProductNavFAB() {
                     )}
                 </AnimatePresence>
 
-                {/* Circle FAB — compass / X toggle, flush to right wall */}
+                {/* FAB button — always at right: 10, same position regardless of menu state */}
                 <motion.button
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 28 }}
                     whileTap={{ scale: 0.88 }}
                     onClick={() => { haptic('select'); setMenuOpen(o => !o); }}
                     style={{
                         pointerEvents: 'all',
-                        position: 'relative',
+                        position: 'absolute',
+                        bottom: 0, right: 0,
                         width: 52, height: 52, borderRadius: 26,
-                        marginRight: 6,
                         background: menuOpen
                             ? 'linear-gradient(135deg, #1D1D1F, #2C2C2E)'
                             : c.surface,
@@ -727,7 +722,7 @@ function ProductNavFAB() {
                         )}
                     </AnimatePresence>
 
-                    {/* Progress pills — show position in document */}
+                    {/* Progress pills */}
                     {!menuOpen && (
                         <div style={{ display: 'flex', gap: 2.5, alignItems: 'center' }}>
                             {sections.map(s => (
