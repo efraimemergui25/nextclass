@@ -575,8 +575,8 @@ function ProductNavFAB() {
             {/* FAB anchor — fixed to right wall, sized to button only */}
             <div style={{
                 position: 'fixed',
-                right: 10,
-                bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
+                right: 16,
+                bottom: 'calc(138px + env(safe-area-inset-bottom, 0px))',
                 zIndex: 149,
                 width: 52,
                 height: 52,
