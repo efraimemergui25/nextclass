@@ -1,10 +1,11 @@
-import { useState, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, ChevronDown, Filter } from 'lucide-react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useProducts } from '../../context/ProductsContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 import MobileProductCard from '../components/MobileProductCard';
@@ -14,13 +15,6 @@ const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica N
 const COLS = 2;
 const ITEM_HEIGHT = 290;
 
-const SORT_OPTIONS = [
-    { id: 'default',    label: 'רלוונטיות' },
-    { id: 'price-asc',  label: 'מחיר: נמוך לגבוה' },
-    { id: 'price-desc', label: 'מחיר: גבוה לנמוך' },
-    { id: 'name',       label: 'שם (א-ת)' },
-];
-
 const PRICE_MIN_GLOBAL = 0;
 const PRICE_MAX_GLOBAL = 100000;
 
@@ -29,7 +23,15 @@ export default function MobileCatalog() {
     const { activeProducts, refetch } = useProducts();
     const { getSetting }  = useSettings();
     const { colors: c }   = useTheme();
+    const { user, firstName, timeGreeting } = useAuth();
     const allLabel = getSetting('catalog_all_cat', 'הכל');
+
+    const SORT_OPTIONS = [
+        { id: 'default',    label: getSetting('catalog_sort_rel',   'רלוונטיות') },
+        { id: 'price-asc',  label: getSetting('catalog_sort_pasc',  'מחיר: נמוך לגבוה') },
+        { id: 'price-desc', label: getSetting('catalog_sort_pdesc', 'מחיר: גבוה לנמוך') },
+        { id: 'name',       label: getSetting('catalog_sort_name',  'שם (א-ת)') },
+    ];
 
     const categories = useMemo(() => [allLabel, ...new Set(activeProducts.map(p => p.category).filter(Boolean))], [activeProducts, allLabel]);
     const initCat = searchParams.get('category') ?? allLabel;
@@ -83,11 +85,11 @@ export default function MobileCatalog() {
     const listRef   = useRef(null);
     const [listTop, setListTop] = useState(210);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (listRef.current) {
             setListTop(listRef.current.getBoundingClientRect().top + window.scrollY);
         }
-    }, [filtered.length]);
+    }, [rows.length]);
 
     const virtualizer = useWindowVirtualizer({
         count:         rows.length,
@@ -145,8 +147,36 @@ export default function MobileCatalog() {
         <PullToRefresh onRefresh={handleRefresh}>
             <div style={{ fontFamily: SF, direction: 'rtl', minHeight: '100dvh', background: c.bg }}>
 
+                {/* ── Page header ────────────────────────────────────────── */}
+                <div style={{ padding: '20px 16px 0' }}>
+                    {user && firstName && (
+                        <motion.p
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                            style={{
+                                fontFamily: SF, fontSize: 15, fontWeight: 800,
+                                letterSpacing: '-0.02em', marginBottom: 6,
+                                background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
+                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                            }}
+                        >
+                            {timeGreeting.emoji} {timeGreeting.word}, {firstName} 👋
+                        </motion.p>
+                    )}
+                    <p style={{ fontFamily: SF, fontSize: 11, fontWeight: 800, color: '#007AFF', letterSpacing: '0.06em', marginBottom: 4 }}>
+                        {getSetting('catalog_hero_eyebrow', 'הקטלוג שלנו')}
+                    </p>
+                    <p style={{ fontFamily: SF, fontSize: 22, fontWeight: 900, color: c.text, letterSpacing: '-0.03em', marginBottom: 4, lineHeight: 1.15 }}>
+                        {getSetting('catalog_title', 'מוצרים לסביבת הלמידה')}
+                    </p>
+                    <p style={{ fontFamily: SF, fontSize: 13, color: c.text3, lineHeight: 1.5, marginBottom: 16 }}>
+                        {getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.')}
+                    </p>
+                </div>
+
                 {/* ── Search bar ─────────────────────────────────────────── */}
-                <div style={{ position: 'sticky', top: 56, zIndex: 100, background: c.bg, backdropFilter: 'blur(20px)', padding: '10px 16px 0' }}>
+                <div style={{ position: 'sticky', top: 56, zIndex: 100, background: c.bg, padding: '0 16px 0' }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         background: c.input, borderRadius: 12,
@@ -300,7 +330,7 @@ export default function MobileCatalog() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '12px 16px 24px' }}>
                         {Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} style={{ background: c.surface, borderRadius: 18, overflow: 'hidden', boxShadow: c.cardShadow }}>
-                                <div style={{ width: '100%', aspectRatio: '1', background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                                <div style={{ width: '100%', aspectRatio: '1', background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', willChange: 'background-position' }} />
                                 <div style={{ padding: '12px' }}>
                                     <div style={{ height: 12, borderRadius: 6, background: c.shimmerA, marginBottom: 8 }} />
                                     <div style={{ height: 12, borderRadius: 6, background: c.shimmerA, width: '60%' }} />
@@ -311,9 +341,11 @@ export default function MobileCatalog() {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 24px', color: c.text3 }}>
-                        <div style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
-                        <p style={{ fontSize: 16, fontWeight: 700, color: c.text, marginBottom: 6 }}>לא נמצאו מוצרים</p>
-                        <p style={{ fontSize: 14 }}>נסה לשנות את הקטגוריה או מונח החיפוש</p>
+                        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(142,142,147,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <Search size={28} color="#8E8E93" strokeWidth={1.5} />
+                        </div>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: c.text, marginBottom: 6 }}>{getSetting('catalog_empty_msg', 'לא נמצאו מוצרים')}</p>
+                        <p style={{ fontSize: 14 }}>{getSetting('catalog_empty_hint', 'נסה לשנות את הקטגוריה או מונח החיפוש')}</p>
                     </div>
                 ) : (
                     // Virtual scrolling grid — wrapped in gesture velocity detector
@@ -339,15 +371,8 @@ export default function MobileCatalog() {
                                 }}
                             >
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                    {rows[vItem.index].map((p, i) => (
-                                        <motion.div
-                                            key={p.id}
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: Math.min(vItem.index, 3) * 0.04 + i * 0.02, duration: 0.22 }}
-                                        >
-                                            <MobileProductCard product={p} size="md" />
-                                        </motion.div>
+                                    {rows[vItem.index].map((p) => (
+                                        <MobileProductCard key={p.id} product={p} size="md" />
                                     ))}
                                 </div>
                             </div>
@@ -418,11 +443,11 @@ export default function MobileCatalog() {
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     gap: 8, marginBottom: 20, direction: 'rtl',
                                 }}>
-                                    <span style={{ fontSize: 17, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>
+                                    <span style={{ fontSize: 17, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>
                                         ₪{draftMin.toLocaleString()}
                                     </span>
                                     <span style={{ fontSize: 14, color: c.text4, fontWeight: 500 }}>—</span>
-                                    <span style={{ fontSize: 17, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>
+                                    <span style={{ fontSize: 17, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>
                                         {draftMax >= PRICE_MAX_GLOBAL ? 'ללא הגבלה' : `₪${draftMax.toLocaleString()}`}
                                     </span>
                                 </div>

@@ -8,6 +8,7 @@ const AdminAuthContext = createContext(null);
 
 const LOCAL_SESSION_KEY = 'nextclass_admin_local_session';
 const LOCAL_PIN_KEY     = 'nextclass_admin_pin';
+const DEFAULT_PIN       = '0000';
 const EXPIRY_KEY        = 'nextclass_admin_expiry';
 const SESSION_TTL_MS    = 12 * 60 * 60 * 1000; // 12 hours
 

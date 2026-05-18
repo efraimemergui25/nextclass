@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, useAnimate } from 'framer-motion';
-import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu } from 'lucide-react';
+import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, useAnimate, useMotionValueEvent } from 'framer-motion';
+import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu, Monitor, Compass, BookOpen, Award, GraduationCap, Newspaper, Star, Scale, Type, Sun, PauseCircle, Square, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -11,6 +11,7 @@ import { db } from '../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
 import AnnouncementBar from '../components/AnnouncementBar';
+import MenuOverlay from '../components/MenuOverlay';
 import { MemberBar } from '../components/PersonalizationLayer';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { haptic } from './utils/haptic';
@@ -19,7 +20,6 @@ import OfflineBanner from './components/OfflineBanner';
 import UpdateBanner from './components/UpdateBanner';
 import MobileAuthSheet from './components/MobileAuthSheet';
 import PersonalizationLayer from '../components/PersonalizationLayer';
-import ExitIntentSheet from '../components/ExitIntentSheet';
 
 const MobileLanding   = lazy(() => import('./pages/MobileLanding'));
 const MobileCatalog   = lazy(() => import('./pages/MobileCatalog'));
@@ -41,6 +41,19 @@ const MobileMembership   = lazy(() => import('./pages/MobileMembership'));
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
+// ─── Header height constants ──────────────────────────────────────────────────
+const HEADER_H     = 56;
+const HEADER_TOTAL = 64; // 56px pill + 8px top offset
+
+// ─── Pill nav links — identical to desktop pill (5 items) ────────────────────
+const MOBILE_NAV_DEFS = [
+    { id: 'home',    path: '/',        labelKey: 'nav_home',    defaultLabel: 'דף הבית',      settingKey: 'vis_nav_home' },
+    { id: 'catalog', path: '/catalog', labelKey: 'nav_catalog', defaultLabel: 'המוצרים שלנו', settingKey: 'vis_nav_catalog' },
+    { id: 'compare', path: '/compare', labelKey: 'nav_compare', defaultLabel: 'השוואת דגמים', settingKey: 'vis_nav_compare' },
+    { id: 'story',   path: '/story',   labelKey: 'nav_about',   defaultLabel: 'הסיפור שלנו',  settingKey: 'vis_nav_story' },
+    { id: 'contact', path: '/contact', labelKey: 'nav_contact', defaultLabel: 'צור קשר',      settingKey: 'vis_nav_contact' },
+];
+
 const PAGE_TITLES = {
     '/catalog':   'קטלוג מוצרים',
     '/cart':      'העגלה שלי',
@@ -54,15 +67,16 @@ const PAGE_TITLES = {
     '/checkout':  'תשלום',
     '/privacy':    'מדיניות פרטיות',
     '/terms':      'תנאי שימוש',
-    '/discover':   'גלו את הפתרונות',
-    '/innovation': 'סיפורי הצלחה',
+    '/discover':    'גלו את הפתרונות',
+    '/innovation':  'חדשנות',
+    '/membership':  'חבר מועדון NextClass',
 };
 
 const BOTTOM_TABS = [
     { id: 'home',      path: '/',          label: 'בית',    Icon: Home },
     { id: 'catalog',   path: '/catalog',   label: 'קטלוג',  Icon: Grid3X3 },
     { id: 'cart',      path: '/cart',      label: 'עגלה',   Icon: ShoppingBag },
-    { id: 'favorites', path: '/favorites', label: 'שמורים', Icon: Heart },
+    { id: 'favorites', path: '/favorites', label: 'מועדפים', Icon: Heart },
     { id: 'more',      path: '/menu',      label: 'עוד',    Icon: MoreHorizontal },
 ];
 
@@ -167,17 +181,21 @@ function MobileBottomNav() {
     return (
         <nav dir="rtl" style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-            background: c.navBg,
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            background: c.surface,
             borderTop: `0.5px solid ${c.navBorder}`,
             display: 'flex', alignItems: 'stretch', justifyContent: 'space-around',
             paddingBottom: 'env(safe-area-inset-bottom, 10px)',
             fontFamily: SF,
         }}>
             {BOTTOM_TABS.map(({ id, path, label, Icon }) => {
+                const primaryPaths = ['/', '/catalog', '/cart', '/favorites'];
+                const onPrimaryPath = primaryPaths.some(p =>
+                    p === '/' ? location.pathname === '/' : location.pathname.startsWith(p)
+                );
                 const isActive = id === 'home'
                     ? location.pathname === '/'
+                    : id === 'more'
+                    ? location.pathname.startsWith('/menu') || !onPrimaryPath
                     : location.pathname.startsWith(path);
                 const badge = id === 'cart' ? cartCount : id === 'favorites' ? wishlistCount : 0;
                 const usesAnimatedIcon = id === 'cart' || id === 'favorites';
@@ -260,7 +278,8 @@ function MobileSearchOverlay({ open, onClose }) {
     useEffect(() => {
         if (open) {
             setQuery('');
-            setTimeout(() => inputRef.current?.focus(), 80);
+            const t = setTimeout(() => inputRef.current?.focus(), 80);
+            return () => clearTimeout(t);
         }
     }, [open]);
 
@@ -295,9 +314,7 @@ function MobileSearchOverlay({ open, onClose }) {
                         onClick={onClose}
                         style={{
                             position: 'fixed', inset: 0, zIndex: 298,
-                            background: 'rgba(0,0,0,0.40)',
-                            backdropFilter: 'blur(6px)',
-                            WebkitBackdropFilter: 'blur(6px)',
+                            background: 'rgba(0,0,0,0.50)',
                         }}
                     />
 
@@ -392,7 +409,9 @@ function MobileSearchOverlay({ open, onClose }) {
                                     alignItems: 'center', justifyContent: 'center',
                                     padding: '32px 16px', gap: 8,
                                 }}>
-                                    <span style={{ fontSize: 30 }}>🔍</span>
+                                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(142,142,147,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Search size={24} color="#8E8E93" strokeWidth={1.8} />
+                                    </div>
                                     <p style={{ fontSize: 14, fontWeight: 600, color: c.text3, margin: 0 }}>לא נמצאו מוצרים</p>
                                     <p style={{ fontSize: 12, color: c.text4, margin: 0 }}>נסה מילת חיפוש אחרת</p>
                                 </div>
@@ -437,7 +456,7 @@ function MobileSearchOverlay({ open, onClose }) {
                                                             style={{ width: '88%', height: '88%', objectFit: 'contain' }}
                                                         />
                                                     ) : (
-                                                        <span style={{ fontSize: 20, opacity: 0.4 }}>🖥️</span>
+                                                        <Monitor size={18} color="#8E8E93" strokeWidth={1.5} style={{ opacity: 0.5 }} />
                                                     )}
                                                 </div>
 
@@ -477,144 +496,225 @@ function MobileSearchOverlay({ open, onClose }) {
 }
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-function MobileHeader({ headerBlur, headerBg, onSearch, onMenu }) {
+function MobileHeader({ onSearch, onMenu }) {
     const location  = useLocation();
     const navigate  = useNavigate();
     const { getSetting } = useSettings();
-    const { colors: c }  = useTheme();
+    const { colors: c, isDark } = useTheme();
     const { cartCount }  = useCart();
     const { user, tierColor, openAuthModal } = useAuth();
     const siteName  = getSetting('site_name', 'NextClass');
     const siteLogo  = getSetting('site_logo_url', '');
-    const isHome    = location.pathname === '/';
-    const isProduct = location.pathname.startsWith('/catalog/');
-    const title     = usePageTitle(location.pathname);
 
-    const backdropFilterValue = headerBlur
-        ? useTransform(headerBlur, v => `blur(${48 + v}px) saturate(200%)`)
-        : 'blur(24px) saturate(180%)';
+    const [hidden,  setHidden]  = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const [navOpen, setNavOpen] = useState(false);
+    const { scrollY } = useScroll();
+    useMotionValueEvent(scrollY, 'change', (latest) => {
+        const previous = scrollY.getPrevious() ?? 0;
+        if (latest > previous && latest > 80) setHidden(true);
+        else setHidden(false);
+        setScrolled(latest > 40);
+    });
+
+    const navLinks = MOBILE_NAV_DEFS
+        .filter(n => getSetting(n.settingKey, true) !== false)
+        .map(n => ({ ...n, label: getSetting(n.labelKey, n.defaultLabel) }));
+
+    const activeNav = navLinks.find(({ id, path }) =>
+        id === 'home' ? location.pathname === '/' : location.pathname.startsWith(path)
+    );
+
+    const pillStyle = {
+        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+        left: 12, right: 12, zIndex: 200,
+        background: scrolled
+            ? (isDark ? 'rgba(28,28,30,0.92)' : 'rgba(255,255,255,0.88)')
+            : (isDark ? 'rgba(28,28,30,0.55)' : 'rgba(255,255,255,0.55)'),
+        backdropFilter: scrolled ? 'blur(20px) saturate(1.8)' : 'blur(10px) saturate(1.5)',
+        WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(1.8)' : 'blur(10px) saturate(1.5)',
+        borderRadius: 28,
+        border: scrolled
+            ? `1px solid ${isDark ? 'rgba(70,70,80,0.55)' : 'rgba(200,200,210,0.55)'}`
+            : `1px solid ${isDark ? 'rgba(70,70,80,0.30)' : 'rgba(210,210,220,0.35)'}`,
+        boxShadow: scrolled
+            ? '0 20px 60px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.14)'
+            : '0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.10)',
+        direction: 'rtl', fontFamily: SF,
+        display: 'flex', alignItems: 'center',
+        height: HEADER_H, padding: '0 6px',
+        willChange: 'transform',
+        transition: 'background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
+    };
 
     return (
-        <motion.header style={{
-            position: 'fixed', top: 0, left: 0, right: 0,
-            zIndex: 200,
-            height: 56,
-            paddingTop: 'env(safe-area-inset-top, 0px)',
-            background: c.navBg,
-            backdropFilter: backdropFilterValue,
-            WebkitBackdropFilter: backdropFilterValue,
-            borderBottom: `0.5px solid ${c.navBorder}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            direction: 'rtl', fontFamily: SF,
-        }}>
-            {/* Right actions: back (on sub-pages) + hamburger (always on home) */}
-            <div style={{ position: 'absolute', right: 4, display: 'flex', alignItems: 'center', gap: 0 }}>
-                {!isHome ? (
-                    <motion.button
-                        whileTap={{ scale: 0.88 }}
-                        onClick={() => { haptic('light'); navigate(-1); }}
-                        aria-label="חזרה"
-                        style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none', color: '#007AFF', fontSize: 16, fontWeight: 500, cursor: 'pointer', padding: '8px 10px', WebkitTapHighlightColor: 'transparent' }}
-                    >
-                        <ChevronRight size={22} strokeWidth={2.2} />
-                        {!isProduct && <span style={{ fontSize: 15 }}>חזרה</span>}
-                    </motion.button>
-                ) : (
-                    <motion.button
-                        whileTap={{ scale: 0.88 }}
-                        onClick={() => { haptic('select'); onMenu?.(); }}
-                        aria-label="תפריט"
-                        style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
-                    >
-                        <Menu size={22} color={c.text3} strokeWidth={2} />
-                    </motion.button>
-                )}
-            </div>
-
-            {/* Left actions: user + search + cart */}
-            <div style={{ position: 'absolute', left: 4, display: 'flex', alignItems: 'center', gap: 0 }}>
-                <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={() => { haptic('select'); openAuthModal(); }}
-                    aria-label={user ? 'פרופיל' : 'כניסה'}
-                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
-                >
-                    {user ? (
-                        <div style={{ width: 26, height: 26, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 11, fontWeight: 900, color: '#fff' }}>{(user.displayName || user.email || 'U')[0].toUpperCase()}</span>
-                        </div>
-                    ) : (
-                        <UserCircle size={20} color={c.text3} strokeWidth={1.8} />
-                    )}
-                </motion.button>
-                <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={() => { haptic('select'); onSearch?.(); }}
-                    aria-label="חיפוש"
-                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
-                >
-                    <Search size={19} color={c.text3} strokeWidth={2} />
-                </motion.button>
-                <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={() => { haptic('select'); navigate('/cart'); }}
-                    aria-label="עגלה"
-                    style={{ width: 36, height: 36, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', position: 'relative' }}
-                >
-                    <ShoppingBag size={19} color={c.text3} strokeWidth={2} />
-                    {cartCount > 0 && (
-                        <span style={{ position: 'absolute', top: 4, right: 4, background: '#FF3B30', color: '#fff', borderRadius: 99, minWidth: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, border: '1.5px solid white', padding: '0 2px' }}>
-                            {cartCount > 9 ? '9+' : cartCount}
-                        </span>
-                    )}
-                </motion.button>
-            </div>
-
-            {isHome ? (
-                <motion.div
-                    onClick={() => navigate('/')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                    whileTap={{ scale: 0.95 }}
-                >
+        <>
+            <motion.header
+                variants={{ visible: { y: 0, opacity: 1 }, hidden: { y: '-150%', opacity: 0 } }}
+                animate={hidden ? 'hidden' : 'visible'}
+                transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+                style={pillStyle}
+            >
+                {/* RIGHT: Logo */}
+                <motion.div whileTap={{ scale: 0.95 }} onClick={() => { haptic('select'); navigate('/'); setNavOpen(false); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, padding: '0 4px' }}>
                     {siteLogo ? (
-                        <img src={siteLogo} alt={siteName} style={{ height: 26, objectFit: 'contain' }} />
+                        <img src={siteLogo} alt={siteName} style={{ height: 24, objectFit: 'contain' }} />
                     ) : (
                         <>
-                            <svg width={22} height={22} viewBox="0 0 32 32" fill="none">
+                            <svg width={20} height={20} viewBox="0 0 32 32" fill="none">
                                 <circle cx={12} cy={16} r={9} stroke={c.text} strokeWidth={2} />
                                 <circle cx={20} cy={16} r={9} stroke="#007AFF" strokeWidth={2} fill="#007AFF" fillOpacity={0.15} />
                             </svg>
-                            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.04em', color: c.text }}>
+                            <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.04em', color: c.text, whiteSpace: 'nowrap' }}>
                                 {siteName}
                             </span>
                         </>
                     )}
                 </motion.div>
-            ) : (
-                <AnimatePresence mode="popLayout">
-                    <motion.span
-                        key={location.pathname}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.15 }}
+
+                {/* CENTER: "אפשרויות" dropdown trigger */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <motion.button
+                        whileTap={{ scale: 0.91 }}
+                        onClick={() => { haptic('select'); setNavOpen(o => !o); }}
                         style={{
-                            fontWeight: 700, fontSize: 16, color: c.text,
-                            letterSpacing: '-0.02em',
-                            maxWidth: '55%', overflow: 'hidden',
-                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '5px 13px', borderRadius: 99,
+                            background: navOpen ? 'rgba(0,122,255,0.12)' : 'rgba(0,0,0,0.04)',
+                            border: navOpen ? '1px solid rgba(0,122,255,0.28)' : '1px solid transparent',
+                            color: navOpen ? '#007AFF' : c.text,
+                            fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: SF,
+                            WebkitTapHighlightColor: 'transparent',
+                            transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                            whiteSpace: 'nowrap',
                         }}
                     >
-                        {title}
-                    </motion.span>
-                </AnimatePresence>
-            )}
-        </motion.header>
+                        {activeNav ? activeNav.label : 'אפשרויות'}
+                        <motion.svg
+                            width={10} height={10} viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth={2.5}
+                            animate={{ rotate: navOpen ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <path d="M19 9l-7 7-7-7" />
+                        </motion.svg>
+                    </motion.button>
+                </div>
+
+                {/* LEFT: Action icons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => { haptic('select'); navigate('/cart'); setNavOpen(false); }}
+                        aria-label="עגלה"
+                        style={{ width: 34, height: 34, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', position: 'relative' }}>
+                        <ShoppingBag size={18} color={c.text3} strokeWidth={1.8} />
+                        {cartCount > 0 && (
+                            <motion.span key={cartCount} initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+                                style={{ position: 'absolute', top: 3, right: 3, background: '#007AFF', color: '#fff', borderRadius: 99, minWidth: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, border: '1.5px solid white', padding: '0 2px' }}>
+                                {cartCount > 9 ? '9+' : cartCount}
+                            </motion.span>
+                        )}
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => { haptic('select'); onSearch?.(); setNavOpen(false); }}
+                        aria-label="חיפוש"
+                        style={{ width: 34, height: 34, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                        <Search size={18} color={c.text3} strokeWidth={2} />
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => { haptic('select'); navigate('/favorites'); setNavOpen(false); }}
+                        aria-label="מועדפים"
+                        style={{ width: 34, height: 34, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                        <Heart size={18} color={c.text3} strokeWidth={1.8} />
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => { haptic('select'); openAuthModal(); setNavOpen(false); }}
+                        aria-label={user ? 'פרופיל' : 'כניסה'}
+                        style={{ width: 34, height: 34, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                        {user ? (
+                            <div style={{ width: 22, height: 22, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{(user.displayName || user.email || 'U')[0].toUpperCase()}</span>
+                            </div>
+                        ) : (
+                            <UserCircle size={18} color={c.text3} strokeWidth={1.8} />
+                        )}
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.88 }} onClick={() => { haptic('select'); onMenu?.(); setNavOpen(false); }}
+                        aria-label="תפריט"
+                        style={{ width: 34, height: 34, borderRadius: 10, background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                        <Menu size={18} color={c.text3} strokeWidth={2} />
+                    </motion.button>
+                </div>
+            </motion.header>
+
+            {/* Nav dropdown — appears just below the pill */}
+            <AnimatePresence>
+                {navOpen && (
+                    <>
+                        <motion.div
+                            key="nav-backdrop"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            onClick={() => setNavOpen(false)}
+                            style={{ position: 'fixed', inset: 0, zIndex: 198 }}
+                        />
+                        <motion.div
+                            key="nav-dropdown"
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            style={{
+                                position: 'fixed',
+                                top: 'calc(env(safe-area-inset-top, 0px) + 72px)',
+                                left: 12, right: 12,
+                                zIndex: 199,
+                                background: isDark ? 'rgba(28,28,30,0.97)' : 'rgba(255,255,255,0.97)',
+                                backdropFilter: 'blur(20px) saturate(1.8)',
+                                WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
+                                borderRadius: 22,
+                                border: isDark ? '1px solid rgba(70,70,80,0.55)' : '1px solid rgba(200,200,210,0.55)',
+                                boxShadow: '0 12px 48px rgba(0,0,0,0.16)',
+                                padding: '6px',
+                                direction: 'rtl', fontFamily: SF,
+                            }}
+                        >
+                            {navLinks.map(({ id, path, label }) => {
+                                const isActive = id === 'home'
+                                    ? location.pathname === '/'
+                                    : location.pathname === path || location.pathname.startsWith(path + '/');
+                                return (
+                                    <motion.button
+                                        key={path}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => { haptic('select'); navigate(path); setNavOpen(false); }}
+                                        style={{
+                                            width: '100%', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '13px 16px', borderRadius: 16,
+                                            background: isActive ? 'rgba(0,122,255,0.10)' : 'transparent',
+                                            border: 'none', cursor: 'pointer',
+                                            color: isActive ? '#007AFF' : c.text,
+                                            fontSize: 15, fontWeight: isActive ? 700 : 500,
+                                            WebkitTapHighlightColor: 'transparent', fontFamily: SF,
+                                            textAlign: 'right',
+                                        }}
+                                    >
+                                        <span>{label}</span>
+                                        {isActive && (
+                                            <span style={{ width: 7, height: 7, borderRadius: 99, background: '#007AFF', flexShrink: 0 }} />
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
 
 // Route order for direction-aware transitions (higher index = deeper in hierarchy)
-const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/discover', '/innovation', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms'];
+const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/discover', '/innovation', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms', '/membership'];
 
 function getRouteIndex(pathname) {
     if (pathname.startsWith('/catalog/')) return 2;
@@ -624,16 +724,16 @@ function getRouteIndex(pathname) {
 
 // ─── Mobile Menu Overlay (3-bar hamburger) ───────────────────────────────────
 const MENU_LINKS = [
-    { path: '/',          label: 'דף הבית',        emoji: '🏠' },
-    { path: '/catalog',   label: 'קטלוג מוצרים',   emoji: '🖥️' },
-    { path: '/discover',  label: 'גלה פתרונות',    emoji: '✨' },
-    { path: '/story',     label: 'הסיפור שלנו',    emoji: '📖' },
-    { path: '/innovation',label: 'סיפורי הצלחה',   emoji: '🏆' },
-    { path: '/vod',       label: 'מרכז הדרכה',     emoji: '🎓' },
-    { path: '/magazine',  label: 'מגזין',           emoji: '📰' },
-    { path: '/contact',   label: 'צור קשר',         emoji: '💬' },
-    { path: '/membership',label: 'מועדון NextClass', emoji: '⭐' },
-    { path: '/compare',   label: 'השוואת מוצרים',  emoji: '⚖️' },
+    { path: '/',          label: 'דף הבית',        Icon: Home },
+    { path: '/catalog',   label: 'קטלוג מוצרים',   Icon: Monitor },
+    { path: '/discover',  label: 'גלה פתרונות',    Icon: Compass },
+    { path: '/story',     label: 'הסיפור שלנו',    Icon: BookOpen },
+    { path: '/innovation',label: 'חדשנות',          Icon: Zap },
+    { path: '/vod',       label: 'מרכז הדרכה',     Icon: GraduationCap },
+    { path: '/magazine',  label: 'מגזין',           Icon: Newspaper },
+    { path: '/contact',   label: 'צור קשר',         Icon: MessageCircle },
+    { path: '/membership',label: 'מועדון NextClass', Icon: Star },
+    { path: '/compare',   label: 'השוואת מוצרים',  Icon: Scale },
 ];
 
 function MobileMenuOverlay({ open, onClose }) {
@@ -658,17 +758,16 @@ function MobileMenuOverlay({ open, onClose }) {
                     <motion.div
                         key="overlay-bg"
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.22 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.18 } }}
                         onClick={onClose}
-                        style={{ position: 'fixed', inset: 0, zIndex: 490, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 490, background: 'rgba(0,0,0,0.55)' }}
                     />
                     <motion.div
                         key="overlay-panel"
                         initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', stiffness: 340, damping: 38, mass: 0.9 }}
+                        animate={{ x: 0, transition: { duration: 0.26, ease: [0.32, 0.72, 0, 1] } }}
+                        exit={{ x: '100%', transition: { duration: 0.2, ease: [0.4, 0, 0.8, 1] } }}
                         style={{
                             position: 'fixed', top: 0, right: 0, bottom: 0,
                             width: '82vw', maxWidth: 340, zIndex: 491,
@@ -733,15 +832,15 @@ function MobileMenuOverlay({ open, onClose }) {
 
                         {/* Nav links */}
                         <div style={{ flex: 1, padding: '4px 12px' }}>
-                            {MENU_LINKS.map(({ path, label, emoji }, i) => {
+                            {MENU_LINKS.map(({ path, label, Icon }, i) => {
                                 const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
                                 return (
                                     <motion.button
                                         key={path}
                                         whileTap={{ scale: 0.97 }}
                                         onClick={() => go(path)}
-                                        initial={{ opacity: 0, x: 16 }}
-                                        animate={{ opacity: 1, x: 0, transition: { delay: i * 0.03 } }}
+                                        initial={{ opacity: 0, x: 12 }}
+                                        animate={{ opacity: 1, x: 0, transition: { delay: i * 0.02, duration: 0.16 } }}
                                         style={{
                                             width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                                             padding: '12px 14px', borderRadius: 14, border: 'none',
@@ -751,7 +850,9 @@ function MobileMenuOverlay({ open, onClose }) {
                                             marginBottom: 2,
                                         }}
                                     >
-                                        <span style={{ fontSize: 20, flexShrink: 0 }}>{emoji}</span>
+                                        <div style={{ width: 32, height: 32, borderRadius: 9, background: isActive ? 'rgba(0,122,255,0.12)' : c.input, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <Icon size={16} color={isActive ? '#007AFF' : c.text3} strokeWidth={1.8} />
+                                        </div>
                                         <span style={{ fontSize: 16, fontWeight: isActive ? 700 : 500, color: isActive ? '#007AFF' : c.text, flex: 1 }}>{label}</span>
                                         {isActive && <span style={{ width: 6, height: 6, borderRadius: 99, background: '#007AFF', flexShrink: 0 }} />}
                                     </motion.button>
@@ -776,7 +877,7 @@ function MobileMenuOverlay({ open, onClose }) {
                                     style={{ flex: 1, height: 48, borderRadius: 14, background: 'rgba(255,45,85,0.08)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', color: '#FF2D55', fontWeight: 700, fontSize: 14, fontFamily: SF, WebkitTapHighlightColor: 'transparent' }}
                                 >
                                     <Heart size={17} color="#FF2D55" />
-                                    שמורים
+                                    מועדפים
                                 </motion.button>
                             </div>
                         </div>
@@ -792,21 +893,24 @@ function MobileSmartConcierge() {
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
     const { firstName, timeGreeting } = useAuth();
-    const [open, setOpen]   = useState(false);
-    const [tab, setTab]     = useState('ai'); // 'ai' | 'wa' | 'phone' | 'a11y'
-    const [input, setInput] = useState('');
-    const [msgs, setMsgs]   = useState([]);
+    const { activeProducts } = useProducts();
+    const [open, setOpen]     = useState(false);
+    const [tab, setTab]       = useState('ai'); // 'ai' | 'wa' | 'phone' | 'a11y'
+    const [input, setInput]   = useState('');
+    const [msgs, setMsgs]     = useState([]);
+    const [isTyping, setIsTyping] = useState(false);
     const [a11y, setA11y]   = useState(() => {
         try { return JSON.parse(localStorage.getItem('nc_a11y') || '{}'); } catch { return {}; }
     });
     const bottomRef = useRef(null);
+    const inputRef  = useRef(null);
 
     const rawPhone  = getSetting('whatsapp_number', '972585856356');
     const phone     = rawPhone.replace(/\D/g, '');
     const callPhone = getSetting('contact_phone', '058-5856356');
     const baseGreeting = getSetting('ai_greeting', 'שלום! אני כאן לעזור לך לבחור את הפתרון הטכנולוגי המושלם לכיתה שלך.');
     const greeting  = firstName
-        ? `היי ${firstName}! ${timeGreeting.emoji} ${timeGreeting.word}. ${baseGreeting}`
+        ? `היי ${firstName}! ${timeGreeting.word}. ${baseGreeting}`
         : baseGreeting;
     const botName   = getSetting('ai_title', 'NextClass AI');
     const botRole   = getSetting('ai_role', 'Institutional Concierge');
@@ -819,7 +923,15 @@ function MobileSmartConcierge() {
     const conciergeLabel = getSetting('concierge_label', 'צריכים התייעצות?');
 
     useEffect(() => { setMsgs([{ role: 'ai', text: greeting }]); }, [greeting]);
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, open]);
+    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, isTyping, open]);
+
+    // Focus input when AI tab is open
+    useEffect(() => {
+        if (open && tab === 'ai') {
+            const t = setTimeout(() => inputRef.current?.focus(), 300);
+            return () => clearTimeout(t);
+        }
+    }, [open, tab]);
 
     const applyA11y = (updates) => {
         const next = { ...a11y, ...updates };
@@ -832,12 +944,35 @@ function MobileSmartConcierge() {
         else root.style.removeProperty('--motion-duration');
     };
 
-    const send = (text) => {
-        if (!text.trim()) return;
+    const send = async (text) => {
+        const t = (text ?? input).trim();
+        if (!t || isTyping) return;
+        const newMsgs = [...msgs, { role: 'user', text: t }];
+        setMsgs(newMsgs);
         setInput('');
-        setMsgs(p => [...p, { role: 'user', text }]);
+        setIsTyping(true);
         haptic('medium');
-        setTimeout(() => setMsgs(p => [...p, { role: 'ai', text: thinkMsg }]), 900);
+        try {
+            const catalogInfo = activeProducts.slice(0, 25).map(p =>
+                `${p.id}|${p.title}|${p.category}|₪${p.salePrice ?? p.price ?? 0}|${p.stock > 0 ? 'במלאי' : 'אזל'}`
+            ).join('\n');
+            const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.\n\n## אופן עבודה\nשאל שאלה אחת ממוקדת לפני המלצה. לאחר 2-3 תשובות המלץ על מוצרים ספציפיים מהקטלוג.\n\n## כללים\n- ענה בעברית בלבד, 2-3 משפטים\n- אל תציין מספרי ID בתוך הטקסט\n- לאחר הבנת הצורך הוסף בשורה נפרדת: [PRODUCTS: id1,id2]\n\n## קטלוג:\n${catalogInfo}`;
+            const history = newMsgs.slice(-6).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+            const res = await fetch('/api/concierge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: history, systemPrompt }),
+            });
+            const data = await res.json();
+            const rawText = data.text || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
+            const match = rawText.match(/\[PRODUCTS:\s*([^\]]+)\]/);
+            const cleanText = rawText.replace(/\[PRODUCTS:[^\]]+\]/g, '').trim();
+            setIsTyping(false);
+            setMsgs(p => [...p, { role: 'ai', text: cleanText }]);
+        } catch {
+            setIsTyping(false);
+            setMsgs(p => [...p, { role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.' }]);
+        }
     };
 
     const TABS = [
@@ -860,7 +995,7 @@ function MobileSmartConcierge() {
                 aria-label={conciergeLabel}
                 style={{
                     position: 'fixed', bottom: 'calc(78px + env(safe-area-inset-bottom, 0px))',
-                    left: 16, zIndex: 150,
+                    right: 16, zIndex: 150,
                     width: 52, height: 52, borderRadius: 26,
                     background: open ? '#1D1D1F' : 'linear-gradient(135deg, #007AFF, #5856D6)',
                     color: '#fff', border: 'none',
@@ -889,17 +1024,18 @@ function MobileSmartConcierge() {
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setOpen(false)}
-                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.42)', zIndex: 160, backdropFilter: 'blur(5px)' }}
+                            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.50)', zIndex: 160 }}
                         />
                         <motion.div
                             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                            transition={{ type: 'spring', stiffness: 340, damping: 36 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
                             style={{
-                                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 161,
+                                position: 'fixed',
+                                bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+                                left: 0, right: 0, zIndex: 161,
                                 background: c.surface, borderRadius: '24px 24px 0 0',
                                 height: '72dvh', display: 'flex', flexDirection: 'column',
                                 boxShadow: '0 -8px 48px rgba(0,0,0,0.2)',
-                                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                                 fontFamily: SF, direction: 'rtl',
                             }}
                         >
@@ -978,15 +1114,35 @@ function MobileSmartConcierge() {
                                                             </div>
                                                         </div>
                                                     ))}
+                                                    {isTyping && (
+                                                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                            <div style={{ padding: '10px 14px', borderRadius: '18px 18px 4px 18px', background: c.bg, border: `0.5px solid ${c.border}`, display: 'flex', gap: 4, alignItems: 'center' }}>
+                                                                {[0,1,2].map(i => (
+                                                                    <motion.div key={i} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.15 }}
+                                                                        style={{ width: 6, height: 6, borderRadius: 3, background: c.text4 }} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div ref={bottomRef} />
                                                 </div>
                                                 <div style={{ padding: '10px 12px 12px', display: 'flex', gap: 8, borderTop: `0.5px solid ${c.divider}` }}>
-                                                    <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(input)}
+                                                    <input
+                                                        ref={inputRef}
+                                                        value={input}
+                                                        onChange={e => setInput(e.target.value)}
+                                                        onKeyDown={e => e.key === 'Enter' && !isTyping && send(input)}
                                                         placeholder={getSetting('ai_placeholder', 'שאל אותי על מוצרים...')}
-                                                        style={{ flex: 1, background: c.input, border: 'none', borderRadius: 12, padding: '11px 14px', fontSize: 14, color: c.text, outline: 'none', direction: 'rtl', fontFamily: SF }} />
+                                                        inputMode="text"
+                                                        autoComplete="off"
+                                                        autoCorrect="off"
+                                                        disabled={isTyping}
+                                                        style={{ flex: 1, background: c.input, border: 'none', borderRadius: 12, padding: '11px 14px', fontSize: 16, color: c.text, outline: 'none', direction: 'rtl', fontFamily: SF, WebkitUserSelect: 'text', userSelect: 'text' }}
+                                                    />
                                                     <motion.button whileTap={{ scale: 0.88 }} onClick={() => send(input)}
-                                                        style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: input.trim() ? '#007AFF' : c.input, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s' }}>
-                                                        <Send size={16} color={input.trim() ? '#fff' : c.text4} />
+                                                        disabled={isTyping || !input.trim()}
+                                                        style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: input.trim() && !isTyping ? '#007AFF' : c.input, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', transition: 'background 0.18s' }}>
+                                                        <Send size={16} color={input.trim() && !isTyping ? '#fff' : c.text4} />
                                                     </motion.button>
                                                 </div>
                                             </>
@@ -1043,11 +1199,11 @@ function MobileSmartConcierge() {
                                                         <p style={{ fontSize: 12, color: c.text3 }}>{getSetting('a11y_widget_subtitle', 'התאם את חוויית הגלישה שלך')}</p>
                                                     </div>
                                                     {[
-                                                        { key: 'fontSize',  label: getSetting('a11y_font_label', 'גודל גופן גדול'), emoji: '🔤' },
-                                                        { key: 'contrast',  label: getSetting('a11y_contrast_label', 'ניגוד גבוה'),      emoji: '☀️' },
-                                                        { key: 'motion',    label: getSetting('a11y_motion_label', 'ביטול אנימציות'),   emoji: '⏸️' },
-                                                        { key: 'grayscale', label: getSetting('a11y_grayscale_label', 'גווני אפור'),     emoji: '🔲' },
-                                                    ].map(({ key, label, emoji }) => (
+                                                        { key: 'fontSize',  label: getSetting('a11y_font_label', 'גודל גופן גדול'), Icon: Type },
+                                                        { key: 'contrast',  label: getSetting('a11y_contrast_label', 'ניגוד גבוה'),      Icon: Sun },
+                                                        { key: 'motion',    label: getSetting('a11y_motion_label', 'ביטול אנימציות'),   Icon: PauseCircle },
+                                                        { key: 'grayscale', label: getSetting('a11y_grayscale_label', 'גווני אפור'),     Icon: Square },
+                                                    ].map(({ key, label, Icon }) => (
                                                         <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `0.5px solid ${c.divider}` }}>
                                                             <motion.button whileTap={{ scale: 0.92 }}
                                                                 onClick={() => applyA11y({ [key]: !a11y[key] })}
@@ -1067,7 +1223,9 @@ function MobileSmartConcierge() {
                                                             </motion.button>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                                 <span style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{label}</span>
-                                                                <span style={{ fontSize: 20 }}>{emoji}</span>
+                                                                <div style={{ width: 28, height: 28, borderRadius: 8, background: a11y[key] ? 'rgba(88,86,214,0.12)' : c.input, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <Icon size={14} color={a11y[key] ? '#5856D6' : c.text3} strokeWidth={1.8} />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -1095,7 +1253,7 @@ function ThemeColorSync() {
     const { colors: c, isDark } = useTheme();
     useEffect(() => {
         const metas = document.querySelectorAll('meta[name="theme-color"]');
-        const color = isDark ? '#000000' : '#007AFF';
+        const color = isDark ? '#000000' : '#ffffff';
         metas.forEach(m => m.setAttribute('content', color));
     }, [isDark, c]);
     return null;
@@ -1103,73 +1261,95 @@ function ThemeColorSync() {
 
 // ─── Pull-to-refresh ──────────────────────────────────────────────────────────
 function PullToRefresh({ scrollRef }) {
-    const [pullY, setPullY] = useState(0);
-    const [refreshing, setRefreshing] = useState(false);
-    const startY = useRef(null);
-    const THRESHOLD = 64;
+    // Keep visual state separate from gesture tracking refs
+    const [visual, setVisual] = useState({ pullY: 0, refreshing: false });
+    const startY      = useRef(null);
+    const pullYRef    = useRef(0);
+    const refreshing  = useRef(false);
+    const rafRef      = useRef(null);
+    const THRESHOLD   = 72;
 
     useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
 
         const onStart = (e) => {
-            if (el.scrollTop === 0) startY.current = e.touches[0].clientY;
+            // Use window.scrollY — the div itself doesn't scroll, the window does
+            if (window.scrollY <= 0) startY.current = e.touches[0].clientY;
         };
         const onMove = (e) => {
-            if (startY.current === null) return;
+            if (startY.current === null || refreshing.current) return;
+            // Cancel pull if user has scrolled away from top
+            if (window.scrollY > 2) { startY.current = null; pullYRef.current = 0; return; }
             const delta = e.touches[0].clientY - startY.current;
-            if (delta > 0 && el.scrollTop === 0) {
+            if (delta > 0) {
                 e.preventDefault();
-                setPullY(Math.min(delta * 0.45, THRESHOLD + 16));
+                const next = Math.min(delta * 0.4, THRESHOLD + 20);
+                pullYRef.current = next;
+                // Throttle setState to animation frames — never on every pixel
+                if (rafRef.current) cancelAnimationFrame(rafRef.current);
+                rafRef.current = requestAnimationFrame(() => {
+                    setVisual({ pullY: next, refreshing: false });
+                });
             }
         };
         const onEnd = () => {
-            if (pullY >= THRESHOLD && !refreshing) {
-                setRefreshing(true);
+            if (pullYRef.current >= THRESHOLD && !refreshing.current) {
+                refreshing.current = true;
+                setVisual({ pullY: THRESHOLD, refreshing: true });
                 haptic('medium');
-                setTimeout(() => window.location.reload(), 600);
+                setTimeout(() => window.location.reload(), 800);
             } else {
-                setPullY(0);
+                pullYRef.current = 0;
+                setVisual({ pullY: 0, refreshing: false });
             }
             startY.current = null;
         };
-
-        el.addEventListener('touchstart', onStart, { passive: true });
-        el.addEventListener('touchmove', onMove, { passive: false });
-        el.addEventListener('touchend', onEnd);
-        return () => {
-            el.removeEventListener('touchstart', onStart);
-            el.removeEventListener('touchmove', onMove);
-            el.removeEventListener('touchend', onEnd);
+        const onCancel = () => {
+            startY.current = null;
+            pullYRef.current = 0;
+            if (!refreshing.current) setVisual({ pullY: 0, refreshing: false });
         };
-    }, [pullY, refreshing, scrollRef]);
 
-    if (pullY <= 0 && !refreshing) return null;
+        el.addEventListener('touchstart',  onStart,  { passive: true });
+        el.addEventListener('touchmove',   onMove,   { passive: false });
+        el.addEventListener('touchend',    onEnd,    { passive: true });
+        el.addEventListener('touchcancel', onCancel, { passive: true });
+        return () => {
+            el.removeEventListener('touchstart',  onStart);
+            el.removeEventListener('touchmove',   onMove);
+            el.removeEventListener('touchend',    onEnd);
+            el.removeEventListener('touchcancel', onCancel);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, [scrollRef]); // ← attached once, never re-attached on state changes
+
+    const { pullY, refreshing: isRefreshing } = visual;
+    if (pullY <= 0 && !isRefreshing) return null;
 
     const progress = Math.min(pullY / THRESHOLD, 1);
 
     return (
         <motion.div
-            animate={{ y: refreshing ? THRESHOLD : pullY, opacity: refreshing ? 1 : progress }}
-            transition={refreshing ? { type: 'spring', stiffness: 300, damping: 28 } : { duration: 0 }}
+            animate={{ y: isRefreshing ? THRESHOLD : pullY, opacity: isRefreshing ? 1 : progress }}
+            transition={isRefreshing ? { type: 'spring', stiffness: 300, damping: 28 } : { duration: 0 }}
             style={{
-                position: 'absolute', top: 56, left: 0, right: 0, zIndex: 190,
+                position: 'absolute', top: HEADER_TOTAL, left: 0, right: 0, zIndex: 190,
                 display: 'flex', justifyContent: 'center', pointerEvents: 'none',
             }}
         >
             <motion.div
-                animate={refreshing ? { rotate: 360 } : { rotate: progress * 270 }}
-                transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0 }}
+                animate={isRefreshing ? { rotate: 360 } : { rotate: progress * 270 }}
+                transition={isRefreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0 }}
                 style={{
                     width: 32, height: 32, borderRadius: 99,
-                    background: 'rgba(255,255,255,0.92)',
-                    backdropFilter: 'blur(12px)',
+                    background: '#fff',
                     boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
             >
                 <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-                    <circle cx={8} cy={8} r={6} stroke="#007AFF" strokeWidth={2} strokeDasharray="37.7" strokeDashoffset={37.7 * (1 - (refreshing ? 0.75 : progress))} strokeLinecap="round" style={{ transformOrigin: '8px 8px', transform: 'rotate(-90deg)' }} />
+                    <circle cx={8} cy={8} r={6} stroke="#007AFF" strokeWidth={2} strokeDasharray="37.7" strokeDashoffset={37.7 * (1 - (isRefreshing ? 0.75 : progress))} strokeLinecap="round" style={{ transformOrigin: '8px 8px', transform: 'rotate(-90deg)' }} />
                 </svg>
             </motion.div>
         </motion.div>
@@ -1194,14 +1374,15 @@ function MobileAppInner() {
     const direction     = currentIdx >= prevIdx ? 1 : -1;
 
     const scrollRef = useRef(null);
-    const { scrollY } = useScroll({ container: scrollRef });
-    const headerBlur = useTransform(scrollY, [0, 80], [0, 8]);
-    const headerBg   = useTransform(scrollY, [0, 80], ['rgba(255,255,255,0.0)', 'rgba(255,255,255,0.12)']);
 
     useEffect(() => { prevPathRef.current = location.pathname; }, [location.pathname]);
 
     // ─── Swipe between tabs ───────────────────────────────────────────────────
+    // Use a ref for pathname so the listener is attached only once (navigate is stable)
+    const pathnameRef   = useRef(location.pathname);
     const touchStartRef = useRef(null);
+    useEffect(() => { pathnameRef.current = location.pathname; }, [location.pathname]);
+
     useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
@@ -1216,7 +1397,7 @@ function MobileAppInner() {
             touchStartRef.current = null;
 
             if (Math.abs(dx) > 60 && Math.abs(dy) < 40) {
-                const currentTabIdx = SWIPE_TAB_PATHS.indexOf(location.pathname);
+                const currentTabIdx = SWIPE_TAB_PATHS.indexOf(pathnameRef.current);
                 if (currentTabIdx === -1) return;
                 // RTL: swipe right (dx > 0) = go to previous tab, swipe left (dx < 0) = next tab
                 if (dx > 0 && currentTabIdx > 0) {
@@ -1230,12 +1411,12 @@ function MobileAppInner() {
         };
 
         el.addEventListener('touchstart', onTouchStart, { passive: true });
-        el.addEventListener('touchend', onTouchEnd, { passive: true });
+        el.addEventListener('touchend',   onTouchEnd,   { passive: true });
         return () => {
             el.removeEventListener('touchstart', onTouchStart);
-            el.removeEventListener('touchend', onTouchEnd);
+            el.removeEventListener('touchend',   onTouchEnd);
         };
-    }, [location.pathname, navigate]);
+    }, [navigate]); // ← navigate is stable, listener attached once
 
     const slideVariants = {
         initial: (dir) => ({ x: dir > 0 ? '30%' : '-30%', opacity: 0 }),
@@ -1249,7 +1430,7 @@ function MobileAppInner() {
             background: c.bg,
             fontFamily: SF,
             overflowX: 'hidden',
-            paddingTop: hideHeader ? 0 : 56,
+            paddingTop: hideHeader ? 0 : `calc(${HEADER_TOTAL}px + 16px)`,
             paddingBottom: hideBottomNav ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))',
             colorScheme: 'auto',
             position: 'relative',
@@ -1257,10 +1438,10 @@ function MobileAppInner() {
             <ThemeColorSync />
             <MobileAnalytics />
             <RouteEffects />
-            {!hideHeader && <MobileHeader headerBlur={headerBlur} headerBg={headerBg} onSearch={() => setSearchOpen(true)} onMenu={() => setMenuOpen(true)} />}
+            {!hideHeader && <MobileHeader onSearch={() => setSearchOpen(true)} onMenu={() => setMenuOpen(true)} />}
             {!hideHeader && <PullToRefresh scrollRef={scrollRef} />}
             {!hideHeader && (
-                <div style={{ position: 'sticky', top: 56, zIndex: 199 }}>
+                <div style={{ position: 'sticky', top: HEADER_TOTAL, zIndex: 199 }}>
                     <AnnouncementBar />
                     <MemberBar />
                 </div>
@@ -1277,7 +1458,15 @@ function MobileAppInner() {
                     exit="exit"
                     style={{ willChange: 'transform' }}
                 >
-                    <Suspense fallback={<div style={{ minHeight: '60vh', background: c.bg }} />}>
+                    <Suspense fallback={
+                        <div style={{ minHeight: '60vh', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }}
+                                style={{ width: 28, height: 28, borderRadius: 99, border: `3px solid ${c.divider}`, borderTopColor: '#007AFF' }}
+                            />
+                        </div>
+                    }>
                         <Routes location={location}>
                             <Route path="/"            element={<MobileLanding />} />
                             <Route path="/catalog"     element={<MobileCatalog />} />
@@ -1304,11 +1493,10 @@ function MobileAppInner() {
 
             {!hideBottomNav && <MobileBottomNav />}
             <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-            <MobileMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
+            <MenuOverlay isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
             <MobileSmartConcierge />
             <MobileAuthSheet />
             <PersonalizationLayer />
-            <ExitIntentSheet />
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />

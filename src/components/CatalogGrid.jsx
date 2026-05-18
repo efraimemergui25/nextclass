@@ -109,7 +109,7 @@ const CatalogGrid = () => {
  }
  if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price);
  else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price);
- else if (sortBy === 'name') result.sort((a, b) => a.title.localeCompare(b.title));
+ else if (sortBy === 'name') result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
 
  return result;
  }, [selectedCategory, sortBy, priceRange, selectedTags, products]);

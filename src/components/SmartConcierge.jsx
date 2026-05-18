@@ -61,12 +61,15 @@ const ProductChip = memo(({ product, onAddToCart, onNavigate }) => {
  const original = product.price ?? 0;
  const hasDiscount = product.salePrice && product.salePrice < original;
 
+ const addTimerRef = useRef(null);
  const handleAdd = (e) => {
  e.stopPropagation();
  onAddToCart(product);
  setAdded(true);
- setTimeout(() => setAdded(false), 2000);
+ clearTimeout(addTimerRef.current);
+ addTimerRef.current = setTimeout(() => setAdded(false), 2000);
  };
+ useEffect(() => () => clearTimeout(addTimerRef.current), []);
 
  return (
  <motion.div

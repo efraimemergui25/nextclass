@@ -5,14 +5,16 @@ import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 
 function RichText({ text }) {
+ const parts = (text || '').split(/(\*\*[^*]+\*\*|\n)/g);
  return (
- <p style={{ fontSize: 15, lineHeight: 1.8, color: '#3C3C43', margin: 0 }}
- dangerouslySetInnerHTML={{
- __html: text
- .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#1D1D1F;font-weight:700">$1</strong>')
- .replace(/\n/g, '<br/>')
- }}
- />
+     <p style={{ fontSize: 15, lineHeight: 1.8, color: '#3C3C43', margin: 0 }}>
+         {parts.map((part, i) => {
+             if (part === '\n') return <br key={i} />;
+             if (part.startsWith('**') && part.endsWith('**'))
+                 return <strong key={i} style={{ color: '#1D1D1F', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+             return part;
+         })}
+     </p>
  );
 }
 

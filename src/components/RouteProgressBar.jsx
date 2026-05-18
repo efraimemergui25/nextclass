@@ -29,7 +29,7 @@ export default function RouteProgressBar() {
    timerRef.current = setTimeout(() => setVisible(false), 250);
   }, 800);
 
-  return () => [t1, t2, t3, t4, t5].forEach(clearTimeout);
+  return () => { [t1, t2, t3, t4, t5].forEach(clearTimeout); clearTimeout(timerRef.current); };
  }, [location.pathname]);
 
  return (
