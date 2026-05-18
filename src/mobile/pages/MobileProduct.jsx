@@ -428,12 +428,12 @@ function QASection({ productId, c }) {
     );
 }
 
-// ─── Product Nav FAB — compact circle above AI concierge ─────────────────────
+// ─── Product Nav FAB — always-visible circle, flush to right wall ─────────────
 function ProductNavFAB() {
     const { getSetting, isVisible } = useSettings();
     const { colors: c } = useTheme();
-    const [show, setShow] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [activeId, setActiveId] = useState(null);
 
     const sidebarEnabled = isVisible('sidebar_visible', true);
     const savedOrder = getSetting('sidebar_sections_order', null);
@@ -444,17 +444,24 @@ function ProductNavFAB() {
         .filter(s => isVisible(s.visKey, true))
         .map(s => ({ ...s, label: getSetting(s.labelKey, s.defaultLabel) }));
 
+    // Track which section is most visible in viewport
     useEffect(() => {
-        const handle = () => {
-            const nearBottom = (window.scrollY + window.innerHeight) > document.documentElement.scrollHeight - 520;
-            const visible = window.scrollY > 380 && !nearBottom;
-            setShow(visible);
-            if (!visible) setMenuOpen(false);
-        };
-        window.addEventListener('scroll', handle, { passive: true });
-        handle();
-        return () => window.removeEventListener('scroll', handle);
-    }, []);
+        if (!sections.length) return;
+        const ratioMap = {};
+        const obs = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(e => { ratioMap[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0; });
+                let bestId = null, bestRatio = 0;
+                sections.forEach(s => {
+                    if ((ratioMap[s.id] || 0) > bestRatio) { bestRatio = ratioMap[s.id]; bestId = s.id; }
+                });
+                setActiveId(bestRatio > 0 ? bestId : null);
+            },
+            { threshold: [0, 0.15, 0.4], rootMargin: '-60px 0px -20% 0px' }
+        );
+        sections.forEach(s => { const el = document.getElementById(s.id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+    }, [sections.map(s => s.id).join()]);
 
     const scrollTo = (id) => {
         haptic('light');
@@ -467,152 +474,193 @@ function ProductNavFAB() {
     if (!sidebarEnabled || !sections.length) return null;
 
     return createPortal(
-        <AnimatePresence>
-            {show && (
-                <>
-                    {/* Transparent backdrop to close menu on outside tap */}
-                    <AnimatePresence>
-                        {menuOpen && (
-                            <motion.div
-                                key="nav-fab-bd"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                onClick={() => setMenuOpen(false)}
-                                style={{ position: 'fixed', inset: 0, zIndex: 148 }}
-                            />
+        <>
+            {/* Backdrop */}
+            <AnimatePresence>
+                {menuOpen && (
+                    <motion.div
+                        key="nav-fab-bd"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setMenuOpen(false)}
+                        style={{ position: 'fixed', inset: 0, zIndex: 148 }}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Container — flush to right wall */}
+            <div style={{
+                position: 'fixed',
+                right: 0,
+                bottom: 'calc(138px + env(safe-area-inset-bottom, 0px))',
+                zIndex: 149,
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
+                pointerEvents: 'none',
+            }}>
+                {/* Floating section menu — slides in from right */}
+                <AnimatePresence>
+                    {menuOpen && (
+                        <motion.div
+                            key="nav-fab-menu"
+                            initial={{ opacity: 0, x: 20, scale: 0.94 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 12, scale: 0.97 }}
+                            transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            dir="rtl"
+                            style={{
+                                marginRight: 8,
+                                background: c.surface,
+                                backdropFilter: 'blur(16px) saturate(1.8)',
+                                WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
+                                borderRadius: 18,
+                                border: `1px solid ${c.border}`,
+                                boxShadow: '0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
+                                overflow: 'hidden',
+                                minWidth: 176,
+                                pointerEvents: 'all',
+                            }}
+                        >
+                            {/* Header: X on right (RTL), title on left */}
+                            <div style={{
+                                padding: '9px 10px 9px 14px',
+                                borderBottom: `0.5px solid ${c.divider}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            }}>
+                                <motion.button
+                                    whileTap={{ scale: 0.84 }}
+                                    onClick={() => setMenuOpen(false)}
+                                    style={{
+                                        width: 24, height: 24, borderRadius: 12, flexShrink: 0,
+                                        background: c.input, border: 'none',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                    }}
+                                >
+                                    <X size={12} color={c.text3} strokeWidth={2.5} />
+                                </motion.button>
+                                <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.06em', margin: 0 }}>ניווט מהיר</p>
+                            </div>
+
+                            {/* Section rows with active highlight */}
+                            {sections.map((s, i) => {
+                                const isActive = s.id === activeId;
+                                return (
+                                    <motion.button
+                                        key={s.id}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={() => scrollTo(s.id)}
+                                        style={{
+                                            position: 'relative',
+                                            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                                            padding: '11px 14px',
+                                            background: isActive ? 'rgba(0,122,255,0.07)' : 'transparent',
+                                            border: 'none',
+                                            borderBottom: i < sections.length - 1 ? `0.5px solid ${c.divider}` : 'none',
+                                            cursor: 'pointer', fontFamily: SF,
+                                            WebkitTapHighlightColor: 'transparent',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="active-nav-bar"
+                                                style={{
+                                                    position: 'absolute', right: 0, top: 5, bottom: 5,
+                                                    width: 3, borderRadius: '2px 0 0 2px',
+                                                    background: '#007AFF',
+                                                }}
+                                            />
+                                        )}
+                                        <SidebarIcon name={s.icon} active={isActive} />
+                                        <span style={{
+                                            fontSize: 13,
+                                            fontWeight: isActive ? 700 : 600,
+                                            color: isActive ? '#007AFF' : c.text,
+                                            flex: 1, textAlign: 'right',
+                                        }}>
+                                            {s.label}
+                                        </span>
+                                        {isActive && (
+                                            <motion.div
+                                                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                                style={{ width: 7, height: 7, borderRadius: 3.5, background: '#007AFF', flexShrink: 0 }}
+                                            />
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Circle FAB — compass / X toggle, flush to right wall */}
+                <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => { haptic('select'); setMenuOpen(o => !o); }}
+                    style={{
+                        pointerEvents: 'all',
+                        position: 'relative',
+                        width: 52, height: 52, borderRadius: 26,
+                        marginRight: 6,
+                        background: menuOpen
+                            ? 'linear-gradient(135deg, #1D1D1F, #2C2C2E)'
+                            : c.surface,
+                        border: `1px solid ${menuOpen ? 'rgba(255,255,255,0.10)' : c.border}`,
+                        boxShadow: menuOpen
+                            ? '0 4px 20px rgba(0,0,0,0.32)'
+                            : '0 4px 20px rgba(0,0,0,0.12)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: 3, cursor: 'pointer', fontFamily: SF,
+                        WebkitTapHighlightColor: 'transparent',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        transition: 'background 0.2s, box-shadow 0.2s, border-color 0.2s',
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        {menuOpen ? (
+                            <motion.div key="close"
+                                initial={{ scale: 0.5, rotate: -90, opacity: 0 }}
+                                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                exit={{ scale: 0.5, rotate: 90, opacity: 0 }}
+                                transition={{ duration: 0.15 }}>
+                                <X size={18} color="#fff" strokeWidth={2.5} />
+                            </motion.div>
+                        ) : (
+                            <motion.div key="compass"
+                                initial={{ scale: 0.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.5, opacity: 0 }}
+                                transition={{ duration: 0.15 }}>
+                                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                                </svg>
+                            </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <div style={{
-                        position: 'fixed',
-                        right: 14,
-                        bottom: 'calc(138px + env(safe-area-inset-bottom, 0px))',
-                        zIndex: 149,
-                        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
-                        pointerEvents: 'none',
-                    }}>
-                        {/* Floating section menu */}
-                        <AnimatePresence>
-                            {menuOpen && (
+                    {/* Progress pills — show position in document */}
+                    {!menuOpen && (
+                        <div style={{ display: 'flex', gap: 2.5, alignItems: 'center' }}>
+                            {sections.map(s => (
                                 <motion.div
-                                    key="nav-fab-menu"
-                                    initial={{ opacity: 0, y: 10, scale: 0.94 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                                    transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                                    dir="rtl"
-                                    style={{
-                                        background: c.surface,
-                                        backdropFilter: 'blur(16px) saturate(1.8)',
-                                        WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
-                                        borderRadius: 18,
-                                        border: `1px solid ${c.border}`,
-                                        boxShadow: '0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',
-                                        overflow: 'hidden',
-                                        minWidth: 172,
-                                        pointerEvents: 'all',
+                                    key={s.id}
+                                    animate={{
+                                        width: s.id === activeId ? 7 : 4,
+                                        background: s.id === activeId ? '#007AFF' : 'rgba(0,122,255,0.28)',
                                     }}
-                                >
-                                    {/* Header: X on right (RTL start), title on left */}
-                                    <div style={{
-                                        padding: '9px 10px 9px 14px',
-                                        borderBottom: `0.5px solid ${c.divider}`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    }}>
-                                        <motion.button
-                                            whileTap={{ scale: 0.84 }}
-                                            onClick={() => setMenuOpen(false)}
-                                            style={{
-                                                width: 24, height: 24, borderRadius: 12, flexShrink: 0,
-                                                background: c.input, border: 'none',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                                            }}
-                                        >
-                                            <X size={12} color={c.text3} strokeWidth={2.5} />
-                                        </motion.button>
-                                        <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.06em', margin: 0 }}>ניווט מהיר</p>
-                                    </div>
-                                    {sections.map((s, i) => (
-                                        <motion.button
-                                            key={s.id}
-                                            whileTap={{ scale: 0.96 }}
-                                            onClick={() => scrollTo(s.id)}
-                                            style={{
-                                                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                                                padding: '11px 14px', background: 'transparent', border: 'none',
-                                                borderBottom: i < sections.length - 1 ? `0.5px solid ${c.divider}` : 'none',
-                                                cursor: 'pointer', fontFamily: SF,
-                                                WebkitTapHighlightColor: 'transparent',
-                                                color: c.text,
-                                            }}
-                                        >
-                                            <SidebarIcon name={s.icon} active={false} />
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: c.text, flex: 1, textAlign: 'right' }}>
-                                                {s.label}
-                                            </span>
-                                        </motion.button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Circle FAB — compass / X toggle */}
-                        <motion.button
-                            key="nav-fab-btn"
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                            whileTap={{ scale: 0.88 }}
-                            onClick={() => { haptic('select'); setMenuOpen(o => !o); }}
-                            style={{
-                                pointerEvents: 'all',
-                                width: 52, height: 52, borderRadius: 26,
-                                background: menuOpen
-                                    ? 'linear-gradient(135deg, #1D1D1F, #2C2C2E)'
-                                    : c.surface,
-                                border: `1px solid ${menuOpen ? 'rgba(255,255,255,0.10)' : c.border}`,
-                                boxShadow: menuOpen
-                                    ? '0 4px 20px rgba(0,0,0,0.32)'
-                                    : '0 4px 20px rgba(0,0,0,0.12)',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                gap: 2, cursor: 'pointer', fontFamily: SF,
-                                WebkitTapHighlightColor: 'transparent',
-                                backdropFilter: 'blur(10px)',
-                                WebkitBackdropFilter: 'blur(10px)',
-                                transition: 'background 0.2s, box-shadow 0.2s, border-color 0.2s',
-                            }}
-                        >
-                            <AnimatePresence mode="wait">
-                                {menuOpen ? (
-                                    <motion.div key="close"
-                                        initial={{ scale: 0.5, rotate: -90, opacity: 0 }}
-                                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                        exit={{ scale: 0.5, rotate: 90, opacity: 0 }}
-                                        transition={{ duration: 0.15 }}>
-                                        <X size={18} color="#fff" strokeWidth={2.5} />
-                                    </motion.div>
-                                ) : (
-                                    <motion.div key="compass"
-                                        initial={{ scale: 0.5, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0.5, opacity: 0 }}
-                                        transition={{ duration: 0.15 }}>
-                                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-                                        </svg>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                            {!menuOpen && (
-                                <span style={{ fontSize: 8, fontWeight: 800, color: '#007AFF', letterSpacing: '0.04em', lineHeight: 1 }}>ניווט</span>
-                            )}
-                        </motion.button>
-                    </div>
-                </>
-            )}
-        </AnimatePresence>,
+                                    transition={{ duration: 0.25 }}
+                                    style={{ height: 4, borderRadius: 2 }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </motion.button>
+            </div>
+        </>,
         document.body
     );
 }
