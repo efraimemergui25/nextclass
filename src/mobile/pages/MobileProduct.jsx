@@ -1077,6 +1077,110 @@ export default function MobileProduct() {
                 {product.colors?.length > 0 && <ColorSelector colors={product.colors} c={c} />}
             </div>
 
+            {/* ── Accessories ("השלם את המערכת") ────────────────────────── */}
+            <AccessoriesSection getSetting={getSetting} navigate={navigate} product={product} c={c} />
+
+            {/* ── Purchase CTAs (mirrors desktop right-column order) ─────── */}
+            {(() => {
+                const allowOrders = getSetting('allow_orders', 'true') === 'true';
+                return (
+                    <div style={{ background: c.surface, marginBottom: 10, padding: '16px 18px' }}>
+                        {/* Qty row */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: c.input, borderRadius: 12, padding: '4px 6px' }}>
+                                <motion.button whileTap={{ scale: 0.8 }} onClick={() => setQty(q => Math.max(1, q - 1))}
+                                    style={{ width: 34, height: 34, borderRadius: 9, background: 'none', border: 'none', color: c.text, fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}>
+                                    −
+                                </motion.button>
+                                <span style={{ minWidth: 28, textAlign: 'center', fontSize: 16, fontWeight: 700, color: c.text }}>{qty}</span>
+                                <motion.button whileTap={{ scale: 0.8 }} onClick={() => setQty(q => Math.min(99, q + 1))}
+                                    style={{ width: 34, height: 34, borderRadius: 9, background: 'none', border: 'none', color: '#007AFF', fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}>
+                                    +
+                                </motion.button>
+                            </div>
+                            <span style={{ fontSize: 13, color: c.text3, fontWeight: 500 }}>
+                                {qty > 1 ? `${qty} יחידות` : 'יחידה אחת'}
+                            </span>
+                        </div>
+
+                        {/* Add to Cart */}
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={handleAdd}
+                            style={{
+                                width: '100%', height: 54, borderRadius: 16, border: 'none', marginBottom: 10,
+                                background: added
+                                    ? 'linear-gradient(135deg, #34C759, #28A745)'
+                                    : 'linear-gradient(135deg, #007AFF, #0063CC)',
+                                color: '#fff', fontSize: 17, fontWeight: 800,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                boxShadow: added ? '0 4px 20px rgba(52,199,89,0.35)' : '0 4px 18px rgba(0,122,255,0.30)',
+                                transition: 'background 0.22s, box-shadow 0.22s',
+                                letterSpacing: '-0.02em',
+                            }}>
+                            <AnimatePresence mode="wait">
+                                {added ? (
+                                    <motion.span key="done" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <Check size={19} strokeWidth={3} /> נוסף לעגלה!
+                                    </motion.span>
+                                ) : (
+                                    <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <ShoppingBag size={19} strokeWidth={2} />
+                                        {getSetting('catalog_add_to_cart', 'הוסף לעגלה')}
+                                        {` — ₪${(displayPrice * qty).toLocaleString()}`}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
+
+                        {/* Buy Now / Quick Inquiry */}
+                        <motion.button whileTap={{ scale: 0.97 }}
+                            onClick={() => {
+                                haptic('medium');
+                                if (allowOrders) {
+                                    handleAdd();
+                                    navigate('/cart');
+                                } else {
+                                    navigate(`/contact?subject=${encodeURIComponent(`פנייה מהירה: ${product.title}`)}`);
+                                }
+                            }}
+                            style={{
+                                width: '100%', height: 54, borderRadius: 16,
+                                background: 'transparent',
+                                border: `1.5px solid ${c.border}`,
+                                color: c.text, fontSize: 16, fontWeight: 700,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                letterSpacing: '-0.02em',
+                            }}>
+                            {allowOrders
+                                ? getSetting('pd_buy_now', 'קנה עכשיו')
+                                : getSetting('pd_quick_inquiry', 'לפנייה מהירה')}
+                        </motion.button>
+                    </div>
+                );
+            })()}
+
+            {/* ── Trust badges strip ─────────────────────────────────────── */}
+            <div style={{ background: c.surface, marginBottom: 10, padding: '14px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', gap: 8 }}>
+                    {[
+                        { Icon: Truck,         color: '#007AFF', label: getSetting('trust_delivery', 'משלוח מהיר') },
+                        { Icon: Lock,          color: '#30D158', label: getSetting('trust_secure', 'תשלום מאובטח') },
+                        { Icon: Star,          color: '#FF9500', label: getSetting('trust_warranty', 'אחריות מלאה') },
+                        { Icon: MessageCircle, color: '#5856D6', label: getSetting('trust_support', 'תמיכה ישירה') },
+                    ].map(({ Icon, color, label }) => (
+                        <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icon size={18} color={color} strokeWidth={1.8} />
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* ── Key Features Showcase (cinematic, matches desktop scrollytelling) ── */}
             {(() => {
                 // Priority: CMS per-feature image → product images → product main image → null (icon fallback)
@@ -1118,25 +1222,6 @@ export default function MobileProduct() {
                     </div>
                 );
             })()}
-
-            {/* ── Trust badges strip — matches desktop TrustBadges component ── */}
-            <div style={{ background: c.surface, marginBottom: 10, padding: '14px 18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-around', gap: 8 }}>
-                    {[
-                        { Icon: Truck,         color: '#007AFF', label: getSetting('trust_delivery', 'משלוח מהיר') },
-                        { Icon: Lock,          color: '#30D158', label: getSetting('trust_secure', 'תשלום מאובטח') },
-                        { Icon: Star,          color: '#FF9500', label: getSetting('trust_warranty', 'אחריות מלאה') },
-                        { Icon: MessageCircle, color: '#5856D6', label: getSetting('trust_support', 'תמיכה ישירה') },
-                    ].map(({ Icon, color, label }) => (
-                        <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Icon size={18} color={color} strokeWidth={1.8} />
-                            </div>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text3, textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
 
             {/* ── Accordion Sections ────────────────────────────────────── */}
             {product.features?.length > 0 && (
@@ -1206,9 +1291,6 @@ export default function MobileProduct() {
                     </Accordion>
                 </div>
             )}
-
-            {/* ── Accessories ("השלם את המערכת") — matches desktop ─────── */}
-            <AccessoriesSection getSetting={getSetting} navigate={navigate} product={product} c={c} />
 
             {/* ── Support ──────────────────────────────────────────────── */}
             <div id="pd-support" style={{ background: c.surface, marginBottom: 10, padding: '0 18px' }}>
