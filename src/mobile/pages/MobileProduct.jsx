@@ -271,7 +271,7 @@ function ImageCarousel({ images, alt }) {
                 {images.map((src, i) => (
                     <div key={i} style={{
                         width: `${100 / count}%`, flexShrink: 0,
-                        aspectRatio: '4/3', position: 'relative',
+                        aspectRatio: '1/1', position: 'relative',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         overflow: 'hidden',
                     }}>
@@ -965,7 +965,11 @@ export default function MobileProduct() {
         ? Math.round((1 - product.salePrice / product.price) * 100)
         : 0;
 
-    const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
+    // Always lead with product.image (matches desktop source of truth), with _seedImage fallback.
+    // Any additional images[] from Firestore gallery are appended, deduped.
+    const mainImage = product.image || product._seedImage || null;
+    const extraImages = (product.images || []).filter(src => src && src !== mainImage);
+    const images = mainImage ? [mainImage, ...extraImages] : extraImages;
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh', paddingBottom: 110 }}>
@@ -1183,9 +1187,8 @@ export default function MobileProduct() {
 
             {/* ── Key Features Showcase (cinematic, matches desktop scrollytelling) ── */}
             {(() => {
-                // Priority: CMS per-feature image → product images → product main image → null (icon fallback)
-                const prodImgs = product.images?.length ? product.images : (product.image ? [product.image] : []);
-                const fi = (key, idx) => getSetting(key, '') || prodImgs[idx] || prodImgs[0] || null;
+                // Priority: CMS per-feature image → gallery images → main image → null
+                const fi = (key, idx) => getSetting(key, '') || images[idx] || mainImage || null;
                 const features = [
                     { title: getSetting('feat1_title', 'חוויית 4K קולנועית'),       desc: getSetting('feat1_desc', 'פאנל ה-OLED מעניק חדות בלתי מתפשרת וצבעים מדויקים.'),               img: fi('feat1_img', 0) },
                     { title: getSetting('feat2_title', 'חיבור מיידי, ללא כבלים'),   desc: getSetting('feat2_desc', 'שתף מהסמארטפון ישירות למסך הגדול עם AirPlay ו-Miracast.'),           img: fi('feat2_img', 1) },
