@@ -203,7 +203,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                                         {/* Connector line */}
                                         {i < STATUSES.length - 1 && (
                                             <div className="absolute top-3 right-1/2 left-0 h-0.5 -translate-y-1/2"
-                                                style={{ background: lineColor, left: 'calc(50% + 12px)', right: 'calc(50% - 12px)', left: 'calc(50% + 10px)' }}
+                                                style={{ background: lineColor, left: 'calc(50% + 10px)', right: 'calc(50% - 12px)' }}
                                             />
                                         )}
                                         {/* Dot */}
