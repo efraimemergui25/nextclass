@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ChevronLeft } from 'lucide-react';
@@ -10,6 +11,49 @@ import { haptic } from '../utils/haptic';
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 const VAT = 0.17;
 
+// ─── Undo toast — appears after swipe-to-delete ───────────────────────────────
+function UndoToast({ item, onUndo }) {
+    const title = item?.title || '';
+    const label = title.length > 24 ? title.slice(0, 24) + '…' : title;
+    return createPortal(
+        <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            dir="rtl"
+            style={{
+                position: 'fixed',
+                bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+                left: 16, right: 16, zIndex: 500,
+                background: '#1D1D1F',
+                borderRadius: 16,
+                padding: '13px 16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                boxShadow: '0 6px 28px rgba(0,0,0,0.32)',
+                fontFamily: SF,
+            }}
+        >
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.88)', flex: 1, marginLeft: 10 }}>
+                "{label}" הוסר
+            </span>
+            <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={onUndo}
+                style={{
+                    background: 'none', border: 'none',
+                    color: '#007AFF', fontSize: 14, fontWeight: 700,
+                    cursor: 'pointer', padding: '4px 0',
+                    WebkitTapHighlightColor: 'transparent', flexShrink: 0,
+                }}
+            >
+                בטל
+            </motion.button>
+        </motion.div>,
+        document.body
+    );
+}
+
 // ─── Clear cart confirmation sheet ────────────────────────────────────────────
 function ClearCartSheet({ onConfirm, onCancel, c }) {
     return (
@@ -17,7 +61,7 @@ function ClearCartSheet({ onConfirm, onCancel, c }) {
             <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={onCancel}
-                style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end' }}
+                style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end' }}
             >
                 <motion.div
                     initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }}
@@ -74,7 +118,6 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
     const handleDragEnd = (_, { offset }) => {
         if (offset.x < -72 && !fired.current) {
             fired.current = true;
-            haptic('medium');
             onDelete();
         } else {
             x.set(0);
@@ -165,7 +208,7 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
                                 whileTap={{ scale: 0.78 }}
                                 onClick={() => {
                                     haptic('light');
-                                    if ((item.qty || 1) <= 1) onDelete();
+                                    if ((item.qty || 1) <= 1) { haptic('medium'); onDelete(); }
                                     else onDecrease(item.id);
                                 }}
                                 aria-label={(item.qty || 1) <= 1 ? `הסר ${item.title} מהעגלה` : `הקטן כמות — ${item.title}`}
@@ -192,38 +235,64 @@ function SwipeableItem({ item, onDelete, onNavigate, onIncrease, onDecrease, c, 
 // ─── Main page ─────────────────────────────────────────────────────────────────
 export default function MobileCart() {
     const navigate = useNavigate();
-    const { cartItems, cartTotal, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
+    const { cartItems, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
     const { firstName } = useAuth();
     const { colors: c } = useTheme();
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [pendingDelete, setPendingDelete] = useState(null); // { id, item, timer }
 
-    if (cartItems.length === 0) return (
-        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
-            <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-                style={{ width: 84, height: 84, borderRadius: 26, background: 'rgba(0,122,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}
-            >
-                <ShoppingBag size={38} color="#007AFF" strokeWidth={1.5} />
-            </motion.div>
-            <p style={{ fontSize: 20, fontWeight: 800, color: c.text, marginBottom: 8, letterSpacing: '-0.03em' }}>העגלה ריקה</p>
-            <p style={{ fontSize: 14, color: c.text3, marginBottom: 28, lineHeight: 1.5 }}>הוסף מוצרים מהקטלוג כדי להתחיל</p>
-            <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate('/catalog')} style={{
-                background: 'linear-gradient(135deg, #007AFF, #0063CC)', color: '#fff', border: 'none',
-                borderRadius: 14, padding: '14px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,122,255,0.3)',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                WebkitTapHighlightColor: 'transparent',
-            }}>
-                לקטלוג המוצרים <ChevronLeft size={16} />
-            </motion.button>
-        </div>
-    );
+    useEffect(() => () => { if (pendingDelete?.timer) clearTimeout(pendingDelete.timer); }, [pendingDelete]);
 
-    const subtotal  = cartTotal;
+    const stageDelete = useCallback((item) => {
+        haptic('medium');
+        if (pendingDelete) {
+            clearTimeout(pendingDelete.timer);
+            removeFromCart(pendingDelete.id);
+        }
+        const timer = setTimeout(() => {
+            removeFromCart(item.id);
+            setPendingDelete(null);
+        }, 4000);
+        setPendingDelete({ id: item.id, item, timer });
+    }, [pendingDelete, removeFromCart]);
+
+    const handleUndo = useCallback(() => {
+        if (!pendingDelete) return;
+        clearTimeout(pendingDelete.timer);
+        haptic('success');
+        setPendingDelete(null);
+    }, [pendingDelete]);
+
+    const visibleItems = cartItems.filter(item => item.id !== pendingDelete?.id);
+    const subtotal  = visibleItems.reduce((sum, item) => sum + (item.salePrice || item.price) * (item.qty || 1), 0);
     const vatAmount = subtotal * VAT;
     const total     = subtotal + vatAmount;
+
+    if (visibleItems.length === 0 && !pendingDelete) return (
+        <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: SF, direction: 'rtl', background: c.bg, minHeight: '100dvh' }}>
+            <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                style={{ width: 88, height: 88, borderRadius: 28, background: 'rgba(0,122,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}
+            >
+                <ShoppingBag size={40} color="#007AFF" strokeWidth={1.4} />
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.28 }}>
+                <p style={{ fontSize: 20, fontWeight: 800, color: c.text, marginBottom: 8, letterSpacing: '-0.03em' }}>העגלה ריקה</p>
+                <p style={{ fontSize: 15, color: c.text3, marginBottom: 32, lineHeight: 1.55 }}>הוסף מוצרים מהקטלוג כדי להתחיל</p>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/catalog')} style={{
+                    background: 'linear-gradient(135deg, #007AFF, #0063CC)', color: '#fff', border: 'none',
+                    borderRadius: 16, padding: '15px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 6px 24px rgba(0,122,255,0.30)',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    WebkitTapHighlightColor: 'transparent',
+                }}>
+                    לקטלוג המוצרים <ChevronLeft size={16} />
+                </motion.button>
+            </motion.div>
+        </div>
+    );
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', paddingBottom: 24, background: c.bg, minHeight: '100dvh' }}>
@@ -263,21 +332,21 @@ export default function MobileCart() {
             {/* ── Items list ─────────────────────────────────────────── */}
             <div style={{ background: c.surface, margin: '10px 16px', borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
                 <AnimatePresence>
-                    {cartItems.map((item, i) => (
+                    {visibleItems.map((item, i) => (
                         <motion.div
                             key={item.id}
                             layout
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                            transition={{ duration: 0.22 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 36 }}
                         >
                             <SwipeableItem
                                 item={item}
                                 i={i}
-                                last={i === cartItems.length - 1}
+                                last={i === visibleItems.length - 1}
                                 c={c}
-                                onDelete={() => removeFromCart(item.id)}
+                                onDelete={() => stageDelete(item)}
                                 onNavigate={navigate}
                                 onIncrease={increaseQuantity}
                                 onDecrease={decreaseQuantity}
@@ -344,10 +413,21 @@ export default function MobileCart() {
             {showClearConfirm && (
                 <ClearCartSheet
                     c={c}
-                    onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
+                    onConfirm={() => {
+                        if (pendingDelete) { clearTimeout(pendingDelete.timer); setPendingDelete(null); }
+                        clearCart();
+                        setShowClearConfirm(false);
+                    }}
                     onCancel={() => setShowClearConfirm(false)}
                 />
             )}
+
+            {/* Undo toast — shown for 4s after swipe-to-delete */}
+            <AnimatePresence>
+                {pendingDelete && (
+                    <UndoToast key="undo" item={pendingDelete.item} onUndo={handleUndo} />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

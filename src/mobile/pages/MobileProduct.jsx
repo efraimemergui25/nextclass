@@ -45,6 +45,34 @@ const DEFAULT_SIDEBAR_SECTIONS = [
     { id: 'pd-reviews',  labelKey: 'sidebar_label_reviews',  defaultLabel: 'חוות דעת',       icon: 'star',      visKey: 'sidebar_vis_reviews'   },
 ];
 
+// ─── Fade-in image with shimmer skeleton ──────────────────────────────────────
+function FadeImage({ src, alt, imgStyle, containerStyle }) {
+    const [loaded, setLoaded] = useState(false);
+    const { colors: c } = useTheme();
+    return (
+        <div style={{ position: 'relative', overflow: 'hidden', ...containerStyle }}>
+            {!loaded && (
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`,
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 1.4s infinite',
+                }} />
+            )}
+            <motion.img
+                src={src}
+                alt={alt}
+                onLoad={() => setLoaded(true)}
+                initial={{ opacity: 0 }}
+                animate={loaded ? { opacity: 1 } : {}}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                style={imgStyle}
+                loading="lazy"
+            />
+        </div>
+    );
+}
+
 function trackRecentlyViewed(id) {
     try {
         const key  = 'nc_recently_viewed';
@@ -211,6 +239,11 @@ function ImageCarousel({ images, alt }) {
     const [current, setCurrent] = useState(0);
     const [loaded, setLoaded]   = useState({});
     const [isZoomed, setIsZoomed] = useState(false);
+    const [showZoomHint, setShowZoomHint] = useState(true);
+    useEffect(() => {
+        const t = setTimeout(() => setShowZoomHint(false), 2600);
+        return () => clearTimeout(t);
+    }, []);
     const dragX = useMotionValue(0);
     const count = images.length;
     const { colors: c } = useTheme();
@@ -270,6 +303,41 @@ function ImageCarousel({ images, alt }) {
                     ))}
                 </div>
             )}
+            {/* Pinch-to-zoom hint — fades after 2.6s */}
+            <AnimatePresence>
+                {showZoomHint && !isZoomed && (
+                    <motion.div
+                        key="zoom-hint"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        style={{
+                            position: 'absolute',
+                            bottom: count > 1 ? 36 : 12,
+                            left: 0, right: 0,
+                            display: 'flex', justifyContent: 'center',
+                            pointerEvents: 'none', zIndex: 5,
+                        }}
+                    >
+                        <div style={{
+                            background: 'rgba(0,0,0,0.42)',
+                            backdropFilter: 'blur(6px)',
+                            WebkitBackdropFilter: 'blur(6px)',
+                            borderRadius: 99,
+                            padding: '4px 11px',
+                            display: 'flex', alignItems: 'center', gap: 5,
+                        }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                            </svg>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.01em' }}>
+                                {count > 1 ? 'החלק לתמונות · צבטו להגדלה' : 'צבטו להגדלה'}
+                            </span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
         </div>
     );
@@ -291,7 +359,7 @@ function Accordion({ title, children, defaultOpen = false, c }) {
                 }}
             >
                 <span style={{ fontSize: 15, fontWeight: 700, color: c.text }}>{title}</span>
-                <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 28 }}>
                     <ChevronDown size={17} color={c.text4} />
                 </motion.div>
             </button>
@@ -301,7 +369,7 @@ function Accordion({ title, children, defaultOpen = false, c }) {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.85 }}
                         style={{ overflow: 'hidden' }}
                     >
                         <div style={{ paddingBottom: 16 }}>{children}</div>
@@ -318,7 +386,8 @@ function QASection({ productId, c }) {
     const [loading,   setLoading]   = useState(true);
     const [form,      setForm]      = useState({ author: '', question: '' });
     const [sending,   setSending]   = useState(false);
-    const [sent,      setSent]      = useState(false);
+    const [sent,        setSent]        = useState(false);
+    const [submitError, setSubmitError] = useState(false);
 
     useEffect(() => {
         getDocs(query(
@@ -343,7 +412,11 @@ function QASection({ productId, c }) {
             setSent(true);
             setForm({ author: '', question: '' });
             setTimeout(() => setSent(false), 3500);
-        } catch {}
+        } catch {
+            haptic('warning');
+            setSubmitError(true);
+            setTimeout(() => setSubmitError(false), 4000);
+        }
         setSending(false);
     }, [form, productId]);
 
@@ -422,6 +495,18 @@ function QASection({ productId, c }) {
                             <Send size={16} />
                         </motion.button>
                     </div>
+                    <AnimatePresence>
+                        {submitError && (
+                            <motion.p
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                style={{ fontSize: 12, color: '#FF3B30', fontWeight: 600, marginTop: 6, textAlign: 'right' }}
+                            >
+                                שגיאה בשליחה — נסה שוב
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
                 </div>
             )}
         </div>
@@ -1019,7 +1104,12 @@ export default function MobileProduct() {
                                 <div key={i} style={{ flexShrink: 0, width: 200, borderRadius: 16, overflow: 'hidden', background: c.bg, border: `0.5px solid ${c.border}` }}>
                                     <div style={{ width: '100%', height: 120, overflow: 'hidden', background: c.shimmerA, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {f.img
-                                            ? <img src={f.img} alt={f.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                            ? <FadeImage
+                                                src={f.img}
+                                                alt={f.title}
+                                                containerStyle={{ width: '100%', height: '100%' }}
+                                                imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                              />
                                             : <Monitor size={32} color={c.text4} strokeWidth={1} style={{ opacity: 0.3 }} />
                                         }
                                     </div>

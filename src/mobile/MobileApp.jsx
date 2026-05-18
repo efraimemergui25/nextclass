@@ -320,10 +320,9 @@ function MobileSearchOverlay({ open, onClose }) {
 
                     {/* Panel */}
                     <motion.div
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -20, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                        initial={{ y: -16, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1, transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] } }}
+                        exit={{ y: -10, opacity: 0, transition: { duration: 0.16, ease: [0.4, 0, 0.8, 1] } }}
                         style={{
                             position: 'fixed', top: 0, left: 0, right: 0,
                             zIndex: 300,
