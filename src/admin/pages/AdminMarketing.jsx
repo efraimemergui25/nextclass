@@ -11,8 +11,6 @@ import { useSettings } from '../../context/SettingsContext';
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
     background: 'rgba(255,255,255,0.88)',
-    backdropFilter: 'blur(28px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.75)',
     boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
 };
@@ -213,8 +211,6 @@ export default function AdminMarketing() {
                     <div key={label} className="rounded-[20px] p-4 text-right relative overflow-hidden"
                         style={{
                             background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
-                            backdropFilter: 'blur(40px) saturate(200%)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
                             border: `1px solid ${color}22`,
                             boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
                         }}>

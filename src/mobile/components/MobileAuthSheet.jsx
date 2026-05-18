@@ -86,7 +86,7 @@ const MInput = forwardRef(function MInput({ label, type = 'text', value, onChang
 });
 
 export default function MobileAuthSheet() {
-    const { authOpen, closeAuthModal, signIn, signUp, signInGoogle, resetPassword, user } = useAuth();
+    const { authOpen, closeAuthModal, signIn, signUp, signInGoogleRedirect, resetPassword, user } = useAuth();
     const [tab,      setTab]      = useState('signin');
     const [step,     setStep]     = useState('form');
     const [showPass, setShowPass] = useState(false);
@@ -145,13 +145,12 @@ export default function MobileAuthSheet() {
         haptic('medium');
         setLoading(true);
         try {
-            await signInGoogle();
-            haptic('success');
-            closeAuthModal();
+            // Use redirect (not popup) — mobile browsers block popups for async auth flows
+            await signInGoogleRedirect();
+            // If redirect happens, code below won't execute until the user returns
         } catch (err) {
             haptic('error');
             setError(errMsg(err.code));
-        } finally {
             setLoading(false);
         }
     };
@@ -180,7 +179,7 @@ export default function MobileAuthSheet() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => { haptic('light'); closeAuthModal(); }}
-                        style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.55)' }}
                     />
 
                     <motion.div
@@ -327,7 +326,7 @@ export default function MobileAuthSheet() {
                                     {tab === 'signup' && (
                                         <div style={{ marginTop: 16, padding: '14px', background: 'rgba(0,122,255,0.07)', borderRadius: 14, border: '1px solid rgba(0,122,255,0.14)' }}>
                                             <p style={{ fontSize: 12, fontWeight: 700, color: '#007AFF', marginBottom: 8 }}>היתרונות שמחכים לך</p>
-                                            {[['5%', 'הנחה מיידית'], ['12%', 'הנחה מוסדית מאומתת'], ['גישה מוקדמת', 'למבצעים ודגמים חדשים']].map(([t, d]) => (
+                                            {[['חינמי', 'גישה לקטלוג המלא'], ['מוסדי', 'מחירים מיוחדים לאחר אימות'], ['גישה מוקדמת', 'למבצעים ודגמים חדשים']].map(([t, d]) => (
                                                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
                                                     <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#007AFF', borderRadius: 6, padding: '2px 7px', flexShrink: 0 }}>{t}</span>
                                                     <span style={{ fontSize: 13, color: '#3C3C43' }}>{d}</span>
@@ -368,10 +367,10 @@ function MobileProfileView() {
             )}
             <div style={{ padding: '14px', background: memberTier === 'free' ? 'rgba(0,122,255,0.07)' : 'rgba(52,199,89,0.07)', borderRadius: 14, border: `1px solid ${memberTier === 'free' ? 'rgba(0,122,255,0.15)' : 'rgba(52,199,89,0.2)'}`, marginBottom: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: memberTier === 'free' ? '#007AFF' : '#34C759' }}>
-                    {memberTier === 'free' ? 'חשבון פרטי — הנחה 5%' : `✓ דרג ${tierLabel} — הנחה ${discountPct}%`}
+                    {memberTier === 'free' ? 'חשבון פרטי' : `✓ דרג ${tierLabel} — חבר מועדון`}
                 </p>
                 <p style={{ fontSize: 12, color: '#86868B', marginTop: 4 }}>
-                    {memberTier === 'free' ? 'אמת מספר מוסד לקבלת הנחת 12% מוסדית' : 'הנחה מופעלת אוטומטית על כל הרכישות'}
+                    {memberTier === 'free' ? 'אמת מספר מוסד לקבלת מחירים מוסדיים' : 'הטבות החברות מופעלות אוטומטית על כל הרכישות'}
                 </p>
             </div>
             <button onClick={handleOut} style={{ ...mBtn('transparent'), color: '#FF3B30', background: 'rgba(255,59,48,0.07)', marginTop: 0 }}>

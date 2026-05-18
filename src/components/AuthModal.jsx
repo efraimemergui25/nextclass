@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Building2, ChevronDown, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth, TIER_CONFIG } from '../context/AuthContext';
+import { X, Mail, Lock, User, Building2, ChevronDown, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 const ROLES = [
     { value: 'teacher',     label: 'מורה' },
@@ -10,21 +11,11 @@ const ROLES = [
     { value: 'other',       label: 'אחר' },
 ];
 
-// ─── Auto-detect institution from email domain ────────────────────────────────
 const KNOWN_DOMAINS = {
-    'tau.ac.il':       'אוניברסיטת תל אביב',
-    'huji.ac.il':      'האוניברסיטה העברית',
-    'technion.ac.il':  'הטכניון',
-    'bgu.ac.il':       'אוניברסיטת בן גוריון',
-    'biu.ac.il':       'אוניברסיטת בר אילן',
-    'haifa.ac.il':     'אוניברסיטת חיפה',
-    'weizmann.ac.il':  'מכון ויצמן',
-    'openu.ac.il':     'האוניברסיטה הפתוחה',
-    'hit.ac.il':       'מכון טכנולוגי חולון',
-    'jct.ac.il':       'מכללת לב',
-    'afeka.ac.il':     'אפקה - מכללה אקדמית להנדסה',
-    'colman.ac.il':    'המכללה האקדמית נתניה',
-    'sce.ac.il':       'המכללה האקדמית סמי שמעון',
+    'tau.ac.il': 'אוניברסיטת תל אביב', 'huji.ac.il': 'האוניברסיטה העברית',
+    'technion.ac.il': 'הטכניון', 'bgu.ac.il': 'אוניברסיטת בן גוריון',
+    'biu.ac.il': 'אוניברסיטת בר אילן', 'haifa.ac.il': 'אוניברסיטת חיפה',
+    'weizmann.ac.il': 'מכון ויצמן', 'openu.ac.il': 'האוניברסיטה הפתוחה',
 };
 
 function detectInstitution(email) {
@@ -51,9 +42,10 @@ function GoogleIcon() {
 }
 
 export default function AuthModal() {
-    const { authOpen, closeAuthModal, signIn, signUp, signInGoogle, resetPassword, isMember, tierLabel, tierColor, user } = useAuth();
+    const { getSetting } = useSettings();
+    const { authOpen, closeAuthModal, signIn, signUp, signInGoogle, resetPassword, user } = useAuth();
     const [tab,  setTab]  = useState('signin');
-    const [step, setStep] = useState('form'); // form | forgot | success
+    const [step, setStep] = useState('form');
     const [showPass, setShowPass] = useState(false);
     const [loading,  setLoading]  = useState(false);
     const [error,    setError]    = useState('');
@@ -73,12 +65,13 @@ export default function AuthModal() {
     };
 
     useEffect(() => {
-        if (authOpen) {
-            setError('');
-            setStep('form');
-            setTimeout(() => firstRef.current?.focus(), 80);
-        }
+        if (authOpen) { setError(''); setStep('form'); setTimeout(() => firstRef.current?.focus(), 80); }
     }, [authOpen, tab]);
+
+    // Close modal when user signs in via redirect (page reloads and user is set)
+    useEffect(() => {
+        if (user && authOpen) closeAuthModal();
+    }, [user, authOpen, closeAuthModal]);
 
     useEffect(() => {
         const onKey = (e) => { if (e.key === 'Escape') closeAuthModal(); };
@@ -87,13 +80,19 @@ export default function AuthModal() {
     }, [authOpen, closeAuthModal]);
 
     const errMsg = (code) => ({
-        'auth/user-not-found':      'משתמש לא נמצא — בדוק את האימייל',
-        'auth/wrong-password':      'סיסמה שגויה',
+        'auth/user-not-found':       'משתמש לא נמצא — בדוק את האימייל',
+        'auth/wrong-password':       'סיסמה שגויה',
+        'auth/invalid-credential':   'אימייל או סיסמה שגויים',
         'auth/email-already-in-use': 'כתובת זו כבר רשומה — נסה להתחבר',
-        'auth/weak-password':       'הסיסמה חייבת להכיל לפחות 6 תווים',
-        'auth/invalid-email':       'כתובת אימייל לא תקינה',
-        'auth/popup-closed-by-user':'החלון נסגר — נסה שנית',
-    })[code] || 'אירעה שגיאה — נסה שנית';
+        'auth/weak-password':        'הסיסמה חייבת להכיל לפחות 6 תווים',
+        'auth/invalid-email':        'כתובת אימייל לא תקינה',
+        'auth/popup-closed-by-user': 'החלון נסגר — נסה שנית',
+        'auth/too-many-requests':    'יותר מדי ניסיונות — נסה שוב מאוחר יותר',
+        'auth/network-request-failed': 'שגיאת רשת — בדוק חיבור לאינטרנט',
+        'auth/operation-not-allowed':  'שיטת הרישום אינה פעילה',
+        'auth/unauthorized-domain':    'הדומיין לא מורשה — בדוק הגדרות Firebase',
+        'auth/internal-error':         'שגיאת שרת — ייתכן שאפליקציית OAuth לא פורסמה ב-Google Cloud Console',
+    })[code] || `שגיאה: ${code || 'לא ידועה'}`;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -120,9 +119,15 @@ export default function AuthModal() {
         setLoading(true);
         try {
             await signInGoogle();
+            // Popup resolved — close modal (redirect path navigates away so this line never runs)
             closeAuthModal();
         } catch (err) {
-            setError(errMsg(err.code));
+            console.error('[Google Auth]', err.code, err.message, err.customData);
+            // Don't show an error if user simply closed the popup
+            if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+                const detail = err.customData?.message || err.message || '';
+                setError(errMsg(err.code) + (detail ? ` (${detail})` : ''));
+            }
         } finally {
             setLoading(false);
         }
@@ -132,191 +137,224 @@ export default function AuthModal() {
         e.preventDefault();
         if (!form.email) { setError('הזן אימייל לאיפוס'); return; }
         setLoading(true);
-        try {
-            await resetPassword(form.email);
-            setStep('success');
-        } catch (err) {
-            setError(errMsg(err.code));
-        } finally {
-            setLoading(false);
-        }
+        try { await resetPassword(form.email); setStep('success'); }
+        catch (err) { setError(errMsg(err.code)); }
+        finally { setLoading(false); }
     };
+
+    // CMS-driven hero & benefits
+    const heroTitle    = getSetting('auth_hero_title',    'בואו לבנות איתנו את עתיד החינוך');
+    const heroSub      = getSetting('auth_hero_subtitle', 'הצטרפו לקהילה של 800+ מוסדות חינוך שכבר שינו את הכיתה שלהם');
+    const heroStat     = getSetting('auth_hero_stat',     '+800 מוסדות כבר כאן');
+    const benefitsOn   = getSetting('auth_benefits_enabled', false);
+    const benefitsTitle= getSetting('auth_benefits_title', 'ההצטרפות חינם — היתרונות שמחכים לך');
+    const benefits = [
+        [getSetting('auth_benefit_1_tag', 'חינמי'), getSetting('auth_benefit_1_desc', 'גישה לקטלוג המוצרים המלא')],
+        [getSetting('auth_benefit_2_tag', 'מוסדי'), getSetting('auth_benefit_2_desc', 'מחירים מיוחדים לאחר אימות מוסד')],
+        [getSetting('auth_benefit_3_tag', 'גישה מוקדמת'), getSetting('auth_benefit_3_desc', 'למבצעים ומוצרים חדשים')],
+    ];
 
     return (
         <AnimatePresence>
             {authOpen && (
                 <>
-                    {/* Backdrop */}
-                    <motion.div
-                        key="backdrop"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={closeAuthModal}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 999,
-                            background: 'rgba(0,0,0,0.38)',
-                            backdropFilter: 'blur(6px)',
-                            WebkitBackdropFilter: 'blur(6px)',
-                        }}
+                    <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeAuthModal}
+                        style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
                     />
 
-                    {/* Panel */}
-                    <motion.div
-                        key="panel"
+                    <motion.div key="panel"
                         initial={{ x: '100%', opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: '100%', opacity: 0 }}
                         transition={{ type: 'spring', stiffness: 340, damping: 38, mass: 0.9 }}
                         style={{
-                            position: 'fixed', top: 0, right: 0, bottom: 0,
-                            width: 420, zIndex: 1000,
-                            background: 'rgba(255,255,255,0.95)',
-                            backdropFilter: 'blur(40px) saturate(2)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(2)',
-                            boxShadow: '-24px 0 80px rgba(0,0,0,0.16)',
+                            position: 'fixed', top: 0, right: 0, bottom: 0, width: 440, zIndex: 1000,
+                            background: '#fff',
+                            boxShadow: '-24px 0 80px rgba(0,0,0,0.18)',
                             display: 'flex', flexDirection: 'column',
                             direction: 'rtl',
                             fontFamily: `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`,
                             overflow: 'hidden',
                         }}
                     >
-                        {/* Header */}
-                        <div style={{ padding: '24px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>N</span>
-                                </div>
-                                <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                                    {user ? 'הפרופיל שלי' : step === 'forgot' ? 'שכחתי סיסמה' : tab === 'signin' ? 'ברוך הבא' : 'הצטרף למועדון'}
-                                </h2>
-                                {!user && step === 'form' && (
-                                    <p style={{ fontSize: 13, color: '#86868B', marginTop: 4, fontWeight: 500 }}>
-                                        {tab === 'signin' ? 'התחבר לחשבון NextClass שלך' : 'הרשם ותקבל מחירי מוסד מיוחדים'}
-                                    </p>
-                                )}
-                            </div>
-                            <button onClick={closeAuthModal} style={{ width: 36, height: 36, borderRadius: 99, background: '#F2F2F7', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                                <X size={16} color="#1D1D1F" strokeWidth={2.5} />
-                            </button>
-                        </div>
+                        {/* ── Close button ─────────────────────────────── */}
+                        <button onClick={closeAuthModal}
+                            style={{ position: 'absolute', top: 16, left: 16, zIndex: 10, width: 32, height: 32, borderRadius: 99, background: 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <X size={15} color="#1D1D1F" strokeWidth={2.5} />
+                        </button>
 
-                        {/* Content */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px 32px' }}>
+                        {/* ── Scrollable content ───────────────────────── */}
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
 
                             {/* Logged in — profile view */}
                             {user && (
-                                <ProfileView />
+                                <div style={{ padding: '60px 24px 32px' }}>
+                                    <p style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.03em', marginBottom: 20 }}>הפרופיל שלי</p>
+                                    <ProfileView />
+                                </div>
                             )}
 
                             {/* Forgot password success */}
                             {!user && step === 'success' && (
-                                <div style={{ textAlign: 'center', paddingTop: 40 }}>
-                                    <div style={{ fontSize: 52, marginBottom: 16 }}>📬</div>
-                                    <p style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F', marginBottom: 8 }}>נשלח מייל לאיפוס</p>
-                                    <p style={{ fontSize: 14, color: '#86868B' }}>בדוק את תיבת הדואר שלך ולחץ על הקישור</p>
-                                    <button onClick={() => { setStep('form'); setTab('signin'); }} style={btnStyle('#007AFF', true)}>חזור להתחברות</button>
+                                <div style={{ padding: '80px 32px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
+                                    <p style={{ fontSize: 20, fontWeight: 800, color: '#1D1D1F', marginBottom: 8, letterSpacing: '-0.03em' }}>נשלח מייל לאיפוס</p>
+                                    <p style={{ fontSize: 14, color: '#86868B', marginBottom: 28, lineHeight: 1.6 }}>בדוק את תיבת הדואר שלך ולחץ על הקישור לאיפוס הסיסמה.</p>
+                                    <button onClick={() => { setStep('form'); setTab('signin'); }} style={btnStyle('#000')}>חזור להתחברות</button>
                                 </div>
                             )}
 
                             {/* Forgot password form */}
                             {!user && step === 'forgot' && (
-                                <form onSubmit={handleForgot} style={{ paddingTop: 16 }}>
-                                    <p style={{ fontSize: 14, color: '#86868B', marginBottom: 20 }}>הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה</p>
-                                    <FloatingInput ref={firstRef} label="אימייל" type="email" value={form.email} onChange={set('email')} />
-                                    {error && <ErrorMsg msg={error} />}
-                                    <button type="submit" disabled={loading} style={btnStyle('#007AFF', true)}>{loading ? 'שולח...' : 'שלח קישור לאיפוס'}</button>
-                                    <button type="button" onClick={() => { setStep('form'); setError(''); }} style={btnStyle('transparent', false)}>חזור</button>
-                                </form>
+                                <div style={{ padding: '60px 28px 32px' }}>
+                                    <p style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.03em', marginBottom: 6 }}>שכחתי סיסמה</p>
+                                    <p style={{ fontSize: 14, color: '#86868B', marginBottom: 24, lineHeight: 1.6 }}>הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה</p>
+                                    <form onSubmit={handleForgot}>
+                                        <FloatingInput ref={firstRef} label="אימייל" type="email" value={form.email} onChange={set('email')} icon={<Mail size={15} color="#AEAEB2" />} />
+                                        {error && <ErrorMsg msg={error} />}
+                                        <button type="submit" disabled={loading} style={btnStyle('#000')}>{loading ? 'שולח...' : 'שלח קישור לאיפוס'}</button>
+                                        <button type="button" onClick={() => { setStep('form'); setError(''); }} style={{ ...btnStyle('transparent'), color: '#007AFF', marginTop: 8 }}>חזור</button>
+                                    </form>
+                                </div>
                             )}
 
                             {/* Main auth form */}
                             {!user && step === 'form' && (
                                 <>
-                                    {/* Tabs */}
-                                    <div style={{ display: 'flex', background: '#F2F2F7', borderRadius: 12, padding: 3, marginBottom: 24 }}>
-                                        {['signin', 'signup'].map(t => (
-                                            <button key={t} onClick={() => { setTab(t); setError(''); }} style={{
-                                                flex: 1, padding: '9px 0', borderRadius: 10, border: 'none',
-                                                background: tab === t ? '#fff' : 'transparent',
-                                                boxShadow: tab === t ? '0 1px 6px rgba(0,0,0,0.10)' : 'none',
-                                                color: tab === t ? '#1D1D1F' : '#86868B',
-                                                fontSize: 14, fontWeight: tab === t ? 700 : 500,
-                                                cursor: 'pointer', transition: 'all 0.18s',
-                                                fontFamily: 'inherit',
-                                            }}>
-                                                {t === 'signin' ? 'התחברות' : 'הרשמה'}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Google button */}
-                                    <button onClick={handleGoogle} disabled={loading} style={{
-                                        width: '100%', height: 48, borderRadius: 14,
-                                        background: '#fff', border: '1.5px solid #E5E5EA',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                                        fontSize: 15, fontWeight: 600, color: '#1D1D1F',
-                                        cursor: loading ? 'not-allowed' : 'pointer',
-                                        marginBottom: 16, fontFamily: 'inherit',
-                                        transition: 'background 0.15s',
-                                    }}>
-                                        <GoogleIcon />
-                                        המשך עם Google
-                                    </button>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                                        <div style={{ flex: 1, height: 1, background: '#E5E5EA' }} />
-                                        <span style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500 }}>או</span>
-                                        <div style={{ flex: 1, height: 1, background: '#E5E5EA' }} />
-                                    </div>
-
-                                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                                        {tab === 'signup' && (
-                                            <>
-                                                <FloatingInput ref={firstRef} label="שם מלא" icon={<User size={15} color="#AEAEB2" />} value={form.name} onChange={set('name')} />
-                                                <div>
-                                                    <FloatingInput label="שם מוסד (בית ספר / עמותה)" icon={<Building2 size={15} color="#AEAEB2" />} value={form.institution} onChange={v => { set('institution')(v); if (v !== institutionSuggestion) setInstitutionSuggestion(''); }} />
-                                                    {institutionSuggestion && form.institution === institutionSuggestion && (
-                                                        <p style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginTop: -8, marginBottom: 10, paddingRight: 4 }}>
-                                                            זוהה אוטומטית: {institutionSuggestion} ✓
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <RoleSelect value={form.role} onChange={set('role')} />
-                                            </>
-                                        )}
-                                        <FloatingInput ref={tab === 'signin' ? firstRef : undefined} label="אימייל" type="email" icon={<Mail size={15} color="#AEAEB2" />} value={form.email} onChange={set('email')} onBlur={handleEmailBlur} />
-                                        <FloatingInput label="סיסמה" type={showPass ? 'text' : 'password'} icon={<Lock size={15} color="#AEAEB2" />} value={form.password} onChange={set('password')}
-                                            suffix={<button type="button" onClick={() => setShowPass(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 2 }}>
-                                                {showPass ? <EyeOff size={15} color="#AEAEB2" /> : <Eye size={15} color="#AEAEB2" />}
-                                            </button>}
-                                        />
-
-                                        {tab === 'signin' && (
-                                            <button type="button" onClick={() => { setStep('forgot'); setError(''); }} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'right', marginBottom: 12, padding: 0, fontFamily: 'inherit' }}>
-                                                שכחתי סיסמה
-                                            </button>
-                                        )}
-
-                                        {error && <ErrorMsg msg={error} />}
-
-                                        <button type="submit" disabled={loading} style={btnStyle('#007AFF', true)}>
-                                            {loading ? 'אנא המתן...' : tab === 'signin' ? 'כניסה' : 'יצירת חשבון חינם'}
-                                        </button>
-                                    </form>
-
-                                    {/* Benefits teaser for signup */}
+                                    {/* ── Signup hero section (light) ──────── */}
                                     {tab === 'signup' && (
-                                        <div style={{ marginTop: 20, padding: '14px 16px', background: 'rgba(0,122,255,0.06)', borderRadius: 14, border: '1px solid rgba(0,122,255,0.12)' }}>
-                                            <p style={{ fontSize: 12, fontWeight: 700, color: '#007AFF', marginBottom: 8 }}>הצטרפות חינם — היתרונות שמחכים לך</p>
-                                            {[['5%', 'הנחה מיידית על כל רכישה'], ['12%', 'הנחה מוסדית לאחר אימות'], ['גישה מוקדמת', 'למבצעים ומוצרים חדשים']].map(([tag, desc]) => (
-                                                <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#007AFF', borderRadius: 6, padding: '2px 7px', flexShrink: 0 }}>{tag}</span>
-                                                    <span style={{ fontSize: 12, color: '#3C3C43' }}>{desc}</span>
-                                                </div>
-                                            ))}
+                                        <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(145deg, #F0F6FF 0%, #F5F0FF 50%, #EDF7FF 100%)', padding: '44px 28px 28px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                            {/* Subtle orbs */}
+                                            <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,122,255,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                                            <div style={{ position: 'absolute', bottom: -30, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(88,86,214,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                                            {/* N logo */}
+                                            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                                                <span style={{ color: '#fff', fontWeight: 900, fontSize: 18, letterSpacing: '-0.04em' }}>N</span>
+                                            </div>
+
+                                            {/* Tag */}
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,122,255,0.1)', border: '1px solid rgba(0,122,255,0.2)', color: '#007AFF', fontSize: 10, fontWeight: 800, padding: '4px 12px', borderRadius: 99, marginBottom: 12, letterSpacing: '0.07em' }}>
+                                                <Sparkles size={10} strokeWidth={2.5} />
+                                                NEXTCLASS · הצטרפות
+                                            </div>
+
+                                            <h2 style={{ fontSize: 25, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.04em', lineHeight: 1.18, marginBottom: 10 }}>
+                                                {heroTitle}
+                                            </h2>
+                                            <p style={{ fontSize: 13, color: '#86868B', lineHeight: 1.6, marginBottom: 16 }}>{heroSub}</p>
+
+                                            {/* Stat chip */}
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(52,199,89,0.1)', border: '1px solid rgba(52,199,89,0.25)', color: '#25A244', fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 99 }}>
+                                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34C759', flexShrink: 0 }} />
+                                                {heroStat}
+                                            </div>
                                         </div>
                                     )}
+
+                                    {/* ── Sign-in minimal header ───────────── */}
+                                    {tab === 'signin' && (
+                                        <div style={{ padding: '48px 28px 24px' }}>
+                                            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                                <span style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>N</span>
+                                            </div>
+                                            <h2 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 6 }}>ברוך הבא</h2>
+                                            <p style={{ fontSize: 14, color: '#86868B', fontWeight: 500 }}>התחבר לחשבון NextClass שלך</p>
+                                        </div>
+                                    )}
+
+                                    {/* ── Form body ────────────────────────── */}
+                                    <div style={{ padding: tab === 'signup' ? '20px 28px 32px' : '0 28px 32px' }}>
+                                        {/* Tab switcher */}
+                                        <div style={{ display: 'flex', background: '#F2F2F7', borderRadius: 12, padding: 3, marginBottom: 20 }}>
+                                            {['signin', 'signup'].map(t => (
+                                                <button key={t} onClick={() => { setTab(t); setError(''); }} style={{
+                                                    flex: 1, padding: '9px 0', borderRadius: 10, border: 'none',
+                                                    background: tab === t ? '#fff' : 'transparent',
+                                                    boxShadow: tab === t ? '0 1px 6px rgba(0,0,0,0.10)' : 'none',
+                                                    color: tab === t ? '#1D1D1F' : '#86868B',
+                                                    fontSize: 14, fontWeight: tab === t ? 700 : 500,
+                                                    cursor: 'pointer', transition: 'all 0.18s', fontFamily: 'inherit',
+                                                }}>
+                                                    {t === 'signin' ? 'התחברות' : 'הרשמה'}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Google button */}
+                                        <button onClick={handleGoogle} disabled={loading} style={{
+                                            width: '100%', height: 50, borderRadius: 14,
+                                            background: '#fff', border: '1.5px solid #E5E5EA',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                                            fontSize: 15, fontWeight: 600, color: '#1D1D1F',
+                                            cursor: loading ? 'not-allowed' : 'pointer', marginBottom: 16,
+                                            fontFamily: 'inherit', transition: 'background 0.15s, box-shadow 0.15s',
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                                        }}>
+                                            <GoogleIcon />
+                                            המשך עם Google
+                                        </button>
+
+                                        <Divider />
+
+                                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                            {tab === 'signup' && (
+                                                <>
+                                                    <FloatingInput ref={firstRef} label="שם מלא" icon={<User size={15} color="#AEAEB2" />} value={form.name} onChange={set('name')} />
+                                                    <div>
+                                                        <FloatingInput label="שם מוסד (בית ספר / עמותה)" icon={<Building2 size={15} color="#AEAEB2" />} value={form.institution}
+                                                            onChange={v => { set('institution')(v); if (v !== institutionSuggestion) setInstitutionSuggestion(''); }} />
+                                                        {institutionSuggestion && form.institution === institutionSuggestion && (
+                                                            <p style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginTop: -8, marginBottom: 10, paddingRight: 4 }}>
+                                                                זוהה אוטומטית: {institutionSuggestion} ✓
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <RoleSelect value={form.role} onChange={set('role')} />
+                                                </>
+                                            )}
+                                            <FloatingInput ref={tab === 'signin' ? firstRef : undefined} label="אימייל" type="email"
+                                                icon={<Mail size={15} color="#AEAEB2" />} value={form.email} onChange={set('email')} onBlur={handleEmailBlur} />
+                                            <FloatingInput label="סיסמה" type={showPass ? 'text' : 'password'}
+                                                icon={<Lock size={15} color="#AEAEB2" />} value={form.password} onChange={set('password')}
+                                                suffix={
+                                                    <button type="button" onClick={() => setShowPass(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                                                        {showPass ? <EyeOff size={15} color="#AEAEB2" /> : <Eye size={15} color="#AEAEB2" />}
+                                                    </button>
+                                                }
+                                            />
+
+                                            {tab === 'signin' && (
+                                                <button type="button" onClick={() => { setStep('forgot'); setError(''); }}
+                                                    style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'right', marginBottom: 14, padding: 0, fontFamily: 'inherit' }}>
+                                                    שכחתי סיסמה
+                                                </button>
+                                            )}
+
+                                            {error && <ErrorMsg msg={error} />}
+
+                                            <button type="submit" disabled={loading} style={btnStyle('#000')}>
+                                                {loading
+                                                    ? <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                                                    : tab === 'signin' ? 'כניסה' : 'יצירת חשבון חינם'}
+                                            </button>
+                                            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                                        </form>
+
+                                        {/* CMS-driven benefits card */}
+                                        {tab === 'signup' && benefitsOn && (
+                                            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                                                style={{ marginTop: 18, padding: '14px 16px', background: 'rgba(0,122,255,0.05)', borderRadius: 14, border: '1px solid rgba(0,122,255,0.12)' }}>
+                                                <p style={{ fontSize: 12, fontWeight: 700, color: '#007AFF', marginBottom: 10 }}>{benefitsTitle}</p>
+                                                {benefits.map(([tag, desc]) => (
+                                                    <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                                        <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#007AFF', borderRadius: 6, padding: '2px 7px', flexShrink: 0 }}>{tag}</span>
+                                                        <span style={{ fontSize: 12, color: '#3C3C43' }}>{desc}</span>
+                                                    </div>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -327,13 +365,13 @@ export default function AuthModal() {
     );
 }
 
-// ─── Profile View (when logged in) ───────────────────────────────────────────
+// ─── Profile View ─────────────────────────────────────────────────────────────
 function ProfileView() {
     const { user, userDoc, signOut, memberTier, discountPct, tierLabel, tierColor, closeAuthModal } = useAuth();
     const handleSignOut = async () => { await signOut(); closeAuthModal(); };
     return (
-        <div style={{ paddingTop: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', background: '#F2F2F7', borderRadius: 18, marginBottom: 20 }}>
+        <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px', background: '#F2F2F7', borderRadius: 18, marginBottom: 16 }}>
                 <div style={{ width: 54, height: 54, borderRadius: 99, background: `linear-gradient(135deg, ${tierColor}, ${tierColor}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{(user?.displayName || user?.email || 'U')[0].toUpperCase()}</span>
                 </div>
@@ -353,10 +391,10 @@ function ProfileView() {
 
             <div style={{ padding: '14px 16px', background: memberTier === 'free' ? 'rgba(0,122,255,0.06)' : 'rgba(52,199,89,0.06)', borderRadius: 14, border: `1px solid ${memberTier === 'free' ? 'rgba(0,122,255,0.15)' : 'rgba(52,199,89,0.2)'}`, marginBottom: 20 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: memberTier === 'free' ? '#007AFF' : '#34C759', marginBottom: 4 }}>
-                    {memberTier === 'free' ? 'חשבון פרטי — הנחה 5%' : `✓ דרג ${tierLabel} — הנחה ${discountPct}%`}
+                    {memberTier === 'free' ? 'חשבון פרטי' : `✓ דרג ${tierLabel} — חבר מועדון`}
                 </p>
                 <p style={{ fontSize: 12, color: '#86868B' }}>
-                    {memberTier === 'free' ? 'אמת מספר מוסד לקבלת הנחת 12% מוסדית' : 'הנחה מופעלת אוטומטית על כל הרכישות שלך'}
+                    {memberTier === 'free' ? 'אמת מספר מוסד לקבלת מחירים מוסדיים' : 'הטבות החברות מופעלות אוטומטית על כל הרכישות'}
                 </p>
             </div>
 
@@ -368,31 +406,26 @@ function ProfileView() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-import { forwardRef } from 'react';
 const FloatingInput = forwardRef(function FloatingInput({ label, type = 'text', icon, suffix, value, onChange, onBlur: onBlurProp }, ref) {
     const [focused, setFocused] = useState(false);
     return (
-        <div style={{ position: 'relative', marginBottom: 12 }}>
+        <div style={{ position: 'relative', marginBottom: 10 }}>
             {icon && <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}>{icon}</span>}
             <input
-                ref={ref}
-                type={type}
-                placeholder={label}
-                value={value}
+                ref={ref} type={type} placeholder={label} value={value}
                 onChange={e => onChange(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => { setFocused(false); onBlurProp?.(); }}
                 style={{
                     width: '100%', height: 52, borderRadius: 14,
-                    background: focused ? '#fff' : '#F2F2F7',
+                    background: focused ? '#fff' : '#F5F5F7',
                     border: `1.5px solid ${focused ? '#007AFF' : 'transparent'}`,
-                    padding: icon ? '0 42px 0 suffix ? 42 : 16px' : `0 16px`,
-                    paddingRight: icon ? 42 : 16,
-                    paddingLeft: suffix ? 42 : 16,
+                    paddingRight: icon ? 44 : 16, paddingLeft: suffix ? 44 : 16,
                     fontSize: 15, color: '#1D1D1F', fontWeight: 500,
                     outline: 'none', textAlign: 'right', direction: 'rtl',
                     fontFamily: 'inherit', boxSizing: 'border-box',
                     transition: 'background 0.15s, border-color 0.15s',
+                    boxShadow: focused ? '0 0 0 4px rgba(0,122,255,0.08)' : 'none',
                 }}
             />
             {suffix && <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 1 }}>{suffix}</span>}
@@ -404,24 +437,26 @@ function RoleSelect({ value, onChange }) {
     const [open, setOpen] = useState(false);
     const selected = ROLES.find(r => r.value === value) || ROLES[0];
     return (
-        <div style={{ position: 'relative', marginBottom: 12 }}>
+        <div style={{ position: 'relative', marginBottom: 10 }}>
             <button type="button" onClick={() => setOpen(v => !v)} style={{
-                width: '100%', height: 52, borderRadius: 14, background: '#F2F2F7',
+                width: '100%', height: 52, borderRadius: 14, background: open ? '#fff' : '#F5F5F7',
                 border: open ? '1.5px solid #007AFF' : '1.5px solid transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '0 16px', fontSize: 15, color: '#1D1D1F', fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right',
+                boxShadow: open ? '0 0 0 4px rgba(0,122,255,0.08)' : 'none',
+                transition: 'all 0.15s',
             }}>
-                <ChevronDown size={16} color="#AEAEB2" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }} />
+                <ChevronDown size={16} color="#AEAEB2" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s', flexShrink: 0 }} />
                 <span>{selected.label}</span>
             </button>
             <AnimatePresence>
                 {open && (
-                    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                    <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
                         style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', overflow: 'hidden', zIndex: 10 }}>
                         {ROLES.map(r => (
                             <button key={r.value} type="button" onClick={() => { onChange(r.value); setOpen(false); }} style={{
-                                width: '100%', padding: '13px 16px', background: value === r.value ? '#F2F2F7' : 'none', border: 'none',
+                                width: '100%', padding: '13px 16px', background: value === r.value ? '#F5F5F7' : 'none', border: 'none',
                                 textAlign: 'right', fontSize: 15, color: value === r.value ? '#007AFF' : '#1D1D1F',
                                 fontWeight: value === r.value ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit',
                             }}>
@@ -435,23 +470,36 @@ function RoleSelect({ value, onChange }) {
     );
 }
 
+function Divider() {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1, height: 1, background: '#E5E5EA' }} />
+            <span style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500 }}>או</span>
+            <div style={{ flex: 1, height: 1, background: '#E5E5EA' }} />
+        </div>
+    );
+}
+
 function ErrorMsg({ msg }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(255,59,48,0.08)', borderRadius: 10, marginBottom: 12, border: '1px solid rgba(255,59,48,0.16)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(255,59,48,0.07)', borderRadius: 10, marginBottom: 12, border: '1px solid rgba(255,59,48,0.14)' }}>
             <AlertCircle size={15} color="#FF3B30" strokeWidth={2} />
             <span style={{ fontSize: 13, color: '#FF3B30', fontWeight: 600 }}>{msg}</span>
         </div>
     );
 }
 
-function btnStyle(bg, filled) {
+function btnStyle(bg) {
+    const isClear = bg === 'transparent';
     return {
         width: '100%', height: 52, borderRadius: 16, border: 'none',
-        background: filled ? bg : 'transparent',
-        color: filled ? '#fff' : '#007AFF',
+        background: isClear ? 'transparent' : bg,
+        color: isClear ? '#007AFF' : '#fff',
         fontSize: 16, fontWeight: 700, cursor: 'pointer',
-        marginTop: 8, fontFamily: 'inherit',
-        boxShadow: filled && bg !== 'transparent' ? `0 4px 18px ${bg}44` : 'none',
-        transition: 'opacity 0.15s',
+        marginTop: isClear ? 4 : 10, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: !isClear && bg !== 'transparent' ? '0 4px 16px rgba(0,0,0,0.18)' : 'none',
+        transition: 'opacity 0.15s, transform 0.15s',
+        letterSpacing: '-0.01em',
     };
 }

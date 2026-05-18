@@ -9,6 +9,7 @@ import Magnetic from '../components/Magnetic';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import useCartPop from '../hooks/useCartPop';
 import useRecentlyViewed from '../hooks/useRecentlyViewed';
 import RecentlyViewedTray from '../components/RecentlyViewedTray';
@@ -34,6 +35,25 @@ const CatalogPage = () => {
 
  const { getSetting } = useSettings();
  const { activeProducts: products } = useProducts();
+ const { user, firstName, userDoc } = useAuth();
+
+ const timeGreeting = () => {
+   const h = new Date().getHours();
+   if (h >= 6  && h < 12) return 'בוקר טוב';
+   if (h >= 12 && h < 15) return 'צהריים טובים';
+   if (h >= 15 && h < 18) return 'אחר הצהריים טוב';
+   if (h >= 18 && h < 22) return 'ערב טוב';
+   return 'לילה טוב';
+ };
+
+ const roleSubtext = () => {
+   const role = userDoc?.role;
+   if (role === 'teacher')   return 'מה מחפשת הכיתה שלך היום?';
+   if (role === 'principal') return 'מה המוסד צריך?';
+   if (role === 'it')        return 'כל הפתרונות הטכנולוגיים במקום אחד';
+   if (role === 'admin')     return 'נהל את הרכש שלך בקלות';
+   return null;
+ };
  const allLabel = getSetting('catalog_all_cat', 'הכל');
 
  const SORT_OPTIONS = useMemo(() => [
@@ -126,6 +146,29 @@ const CatalogPage = () => {
  {/* Ambient glow */}
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] pointer-events-none"
  style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(0,122,255,0.10) 0%, rgba(88,86,214,0.06) 45%, transparent 72%)', filter: 'blur(32px)' }} />
+
+ {user && firstName && (
+   <motion.div
+     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+     transition={{ duration: 0.5 }}
+     className="mb-3"
+   >
+     <p
+       className="font-bold"
+       style={{ fontSize: 'clamp(15px, 2vw, 19px)', letterSpacing: '-0.02em',
+         background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
+         backgroundSize: '200% auto',
+         WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+     >
+       {timeGreeting()}, {firstName} 👋
+     </p>
+     {roleSubtext() && (
+       <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, marginTop: 3, fontFamily: 'Heebo, sans-serif' }}>
+         {roleSubtext()}
+       </p>
+     )}
+   </motion.div>
+ )}
 
  <motion.div
  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

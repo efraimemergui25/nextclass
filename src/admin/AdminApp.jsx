@@ -33,6 +33,7 @@ import AdminIntegrations from './pages/AdminIntegrations';
 import AdminCommunications from './pages/AdminCommunications';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminMagazine from './pages/AdminMagazine';
+import AdminUsers from './pages/AdminUsers';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -71,7 +72,7 @@ function AdminShell() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setMobileSidebarOpen(false)}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[25] lg:hidden"
+                            className="fixed inset-0 bg-black/50 z-[25] lg:hidden"
                         />
                     )}
                 </AnimatePresence>
@@ -96,9 +97,9 @@ function AdminShell() {
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={location.pathname}
-                                initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
-                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
                                 transition={{ type: 'spring', stiffness: 340, damping: 30 }}
                                 className="max-w-7xl mx-auto"
                             >
@@ -109,6 +110,7 @@ function AdminShell() {
                                     <Route path="/admin/products" element={<AdminProducts />} />
                                     <Route path="/admin/inventory" element={<AdminInventory />} />
                                     <Route path="/admin/customers" element={<AdminCustomers />} />
+                                    <Route path="/admin/users" element={<AdminUsers />} />
                                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
                                     <Route path="/admin/marketing" element={<AdminMarketing />} />
                                     <Route path="/admin/integrations" element={<AdminIntegrations />} />

@@ -22,8 +22,6 @@ const CARD = {
 
 const GLASS = {
     background: 'rgba(255,255,255,0.75)',
-    backdropFilter: 'blur(40px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.72)',
     boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
 };
@@ -75,7 +73,6 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                                 whileTap={{ scale: 0.88 }}
                                 onClick={() => onCopy(item.url)}
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black transition-all"
-                                style={{ background: copied === item.url ? '#34C759' : 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}
                             >
                                 {copied === item.url ? <Check size={12} /> : <Copy size={12} />}
                                 {copied === item.url ? 'הועתק' : 'העתק URL'}
@@ -84,7 +81,6 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                                 whileTap={{ scale: 0.88 }}
                                 onClick={() => window.open(item.url, '_blank')}
                                 className="p-2 rounded-xl text-white"
-                                style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}
                             >
                                 <ExternalLink size={12} />
                             </motion.button>
@@ -92,7 +88,6 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                                 whileTap={{ scale: 0.88 }}
                                 onClick={() => onDelete(item)}
                                 className="p-2 rounded-xl text-white"
-                                style={{ background: 'rgba(255,59,48,0.5)', backdropFilter: 'blur(8px)' }}
                             >
                                 <Trash2 size={12} />
                             </motion.button>
@@ -212,7 +207,6 @@ function AddUrlDialog({ onAdd, onClose }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
             onClick={onClose}
         >
             <motion.div
@@ -303,7 +297,7 @@ function ProductImagesTab({ onCopy, copied }) {
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <button onClick={() => onCopy(p.image)}
                                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
-                                        style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
+                                        style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)' }}>
                                         {copied === p.image ? <Check size={12} /> : <Copy size={12} />}
                                         {copied === p.image ? 'הועתק' : 'העתק URL'}
                                     </button>

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { User, Percent, Crown, Zap, Headphones, Star, FileText, ChevronDown } from 'lucide-react';
+import { User, Percent, Crown, Zap, Headphones, Star, FileText, ChevronDown, Check } from 'lucide-react';
 import { useAuth, TIER_CONFIG } from '../../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
@@ -13,49 +14,32 @@ function BlurFade({ children, delay = 0 }) {
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 18, filter: 'blur(4px)' }}
-      animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
+      initial={{ opacity: 0, y: 18 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay }}
     >
       {children}
     </motion.div>
   );
 }
 
-// ── Tier badge pill ───────────────────────────────────────────────────────────
-const TierBadge = ({ label, recommended }) => (
-  <span
-    style={{
-      fontFamily: SF,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      color: recommended ? '#fff' : '#98989D',
-      background: recommended ? '#007AFF' : 'rgba(255,255,255,0.1)',
-      borderRadius: 20,
-      padding: '3px 10px',
-      display: 'inline-block',
-      marginBottom: 8,
-    }}
-  >
-    {label}
-  </span>
-);
-
 // ── Tier card (vertical stack) ────────────────────────────────────────────────
-const TierCard = ({ name, discount, price, support, earlyAccess, volumeDiscount, recommended, delay }) => (
+function TierCard({ name, discount, price, support, earlyAccess, volumeDiscount, recommended, delay }) {
+  const { colors: c } = useTheme();
+  return (
   <BlurFade delay={delay}>
     <div
       style={{
         background: recommended
-          ? 'linear-gradient(145deg, rgba(0,122,255,0.22), rgba(0,122,255,0.1))'
-          : 'rgba(255,255,255,0.06)',
-        border: recommended ? '1.5px solid rgba(0,122,255,0.5)' : '1px solid rgba(255,255,255,0.1)',
+          ? 'linear-gradient(145deg, rgba(0,122,255,0.12), rgba(0,122,255,0.05))'
+          : c.surface,
+        border: recommended ? '1.5px solid rgba(0,122,255,0.40)' : `1px solid ${c.border}`,
         borderRadius: 20,
         padding: '20px 18px',
         marginBottom: 12,
         direction: 'rtl',
         position: 'relative',
+        boxShadow: recommended ? '0 4px 24px rgba(0,122,255,0.14)' : c.cardShadow,
       }}
     >
       {recommended && (
@@ -76,26 +60,36 @@ const TierCard = ({ name, discount, price, support, earlyAccess, volumeDiscount,
           מומלץ
         </span>
       )}
-      <TierBadge label={name} recommended={recommended} />
-      <div style={{ fontFamily: SF, fontSize: 38, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 2 }}>
+      <span style={{
+        fontFamily: SF, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+        color: recommended ? '#007AFF' : c.text3,
+        background: recommended ? 'rgba(0,122,255,0.10)' : c.input,
+        borderRadius: 20, padding: '3px 10px', display: 'inline-block', marginBottom: 8,
+      }}>
+        {name}
+      </span>
+      <div style={{ fontFamily: SF, fontSize: 22, fontWeight: 900, color: c.text, lineHeight: 1.2, marginBottom: 2 }}>
         {discount}
       </div>
-      <div style={{ fontFamily: SF, fontSize: 13, color: '#98989D', marginBottom: 14 }}>{price}</div>
-      {[['תמיכה', support], ['גישה מוקדמת', earlyAccess], ['הנחת כמות', volumeDiscount]].map(([label, val]) => (
+      <div style={{ fontFamily: SF, fontSize: 13, color: c.text3, marginBottom: 14 }}>{price}</div>
+      {[['תמיכה', support], ['גישה מוקדמת', earlyAccess], ['הנחות כמות', volumeDiscount]].map(([label, val]) => (
         <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontFamily: SF, fontSize: 13, color: '#98989D' }}>{label}</span>
-          <span style={{ fontFamily: SF, fontSize: 13, fontWeight: 600, color: '#fff' }}>{val}</span>
+          <span style={{ fontFamily: SF, fontSize: 13, color: c.text3 }}>{label}</span>
+          <span style={{ fontFamily: SF, fontSize: 13, fontWeight: 600, color: c.text }}>{val}</span>
         </div>
       ))}
     </div>
   </BlurFade>
-);
+  );
+}
 
 // ── FAQ accordion item ────────────────────────────────────────────────────────
-const FAQItem = ({ q, a, open, onToggle }) => (
+function FAQItem({ q, a, open, onToggle }) {
+  const { colors: c } = useTheme();
+  return (
   <div
     style={{
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: `1px solid ${c.border}`,
       borderRadius: 16,
       overflow: 'hidden',
       marginBottom: 10,
@@ -111,16 +105,16 @@ const FAQItem = ({ q, a, open, onToggle }) => (
         justifyContent: 'space-between',
         gap: 12,
         padding: '14px 16px',
-        background: 'rgba(255,255,255,0.05)',
+        background: c.surface,
         border: 'none',
         direction: 'rtl',
         cursor: 'pointer',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <span style={{ fontFamily: SF, fontSize: 14, fontWeight: 600, color: '#fff', flex: 1, textAlign: 'right' }}>{q}</span>
+      <span style={{ fontFamily: SF, fontSize: 14, fontWeight: 600, color: c.text, flex: 1, textAlign: 'right' }}>{q}</span>
       <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.22 }}>
-        <ChevronDown size={16} color="#98989D" />
+        <ChevronDown size={16} color={c.text3} />
       </motion.div>
     </motion.button>
     <AnimatePresence initial={false}>
@@ -131,14 +125,15 @@ const FAQItem = ({ q, a, open, onToggle }) => (
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div style={{ padding: '4px 16px 16px', direction: 'rtl' }}>
-            <p style={{ fontFamily: SF, fontSize: 13, color: '#98989D', lineHeight: 1.65, textAlign: 'right', margin: 0 }}>{a}</p>
+          <div style={{ padding: '4px 16px 16px', direction: 'rtl', background: c.bg }}>
+            <p style={{ fontFamily: SF, fontSize: 13, color: c.text3, lineHeight: 1.65, textAlign: 'right', margin: 0 }}>{a}</p>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
   </div>
-);
+  );
+}
 
 // ── Tier Unlock Journey ───────────────────────────────────────────────────────
 const JOURNEY_CONFIG = {
@@ -149,6 +144,7 @@ const JOURNEY_CONFIG = {
 
 function TierJourney() {
   const { memberTier, tierColor } = useAuth();
+  const { colors: c } = useTheme();
   const cfg = JOURNEY_CONFIG[memberTier] ?? JOURNEY_CONFIG.free;
   const currentStep = cfg.step;
 
@@ -166,13 +162,14 @@ function TierJourney() {
     <BlurFade delay={0}>
       <div style={{
         margin: '24px 16px 0',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: c.surface,
+        border: `1px solid ${c.border}`,
         borderRadius: 20,
         padding: '20px 16px 18px',
         direction: 'rtl',
+        boxShadow: c.cardShadow,
       }}>
-        <p style={{ fontFamily: SF, fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 18px', textAlign: 'right' }}>
+        <p style={{ fontFamily: SF, fontSize: 16, fontWeight: 800, color: c.text, margin: '0 0 18px', textAlign: 'right' }}>
           מסע השדרוג שלך
         </p>
 
@@ -188,7 +185,7 @@ function TierJourney() {
                 {i > 0 && (
                   <div style={{
                     flex: 1, height: 3, borderRadius: 99,
-                    background: i <= currentStep ? tierColor : 'rgba(255,255,255,0.15)',
+                    background: i <= currentStep ? tierColor : c.divider,
                     transition: 'background 0.4s',
                     margin: '0 4px',
                   }} />
@@ -196,28 +193,28 @@ function TierJourney() {
                 {/* Circle */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   <motion.div
-                    animate={current ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                    transition={current ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : {}}
+                    animate={current ? { scale: 1.06 } : { scale: 1 }}
+                    transition={{ duration: 0.3 }}
                     style={{
                       width: 38, height: 38, borderRadius: 99,
                       background: done ? tierColor : current ? tierColor : 'transparent',
-                      border: future ? '2px solid rgba(255,255,255,0.2)' : `2px solid ${tierColor}`,
+                      border: future ? `2px solid ${c.divider}` : `2px solid ${tierColor}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       boxShadow: current ? `0 0 14px ${tierColor}66` : 'none',
                       flexShrink: 0,
                     }}
                   >
                     {done ? (
-                      <span style={{ color: '#fff', fontSize: 14, fontWeight: 900 }}>✓</span>
+                      <Check size={14} color="#fff" strokeWidth={3} />
                     ) : (
                       <span style={{ fontFamily: SF, fontSize: 11, fontWeight: 800,
-                        color: future ? 'rgba(255,255,255,0.35)' : '#fff' }}>
+                        color: future ? c.text4 : '#fff' }}>
                         {i + 1}
                       </span>
                     )}
                   </motion.div>
                   <span style={{ fontFamily: SF, fontSize: 11, fontWeight: current ? 800 : 500,
-                    color: current ? tierColor : future ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)',
+                    color: current ? tierColor : future ? c.text4 : c.text3,
                     whiteSpace: 'nowrap' }}>
                     {s.label}
                   </span>
@@ -229,12 +226,12 @@ function TierJourney() {
 
         {/* Status text */}
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 900, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+          <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 900, color: c.text, margin: '0 0 4px', letterSpacing: '-0.02em' }}>
             אתה ב{cfg.label}
           </p>
           {nextTierCfg ? (
-            <p style={{ fontFamily: SF, fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
-              שדרג ל{nextTierCfg.label} וחסוך עוד {diff}%
+            <p style={{ fontFamily: SF, fontSize: 13, color: c.text3, margin: 0 }}>
+              שדרג ל{nextTierCfg.label} לקבלת הנחות גדולות יותר
             </p>
           ) : (
             <p style={{ fontFamily: SF, fontSize: 13, color: tierColor, fontWeight: 700, margin: 0 }}>
@@ -250,18 +247,19 @@ function TierJourney() {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MobileMembership() {
   const { openAuthModal, isMember } = useAuth();
+  const { colors: c } = useTheme();
   const [openFAQ, setOpenFAQ] = useState(null);
 
   const steps = [
     { icon: User, title: 'הרשם', desc: 'מלא שם, מוסד ותפקיד — 60 שניות' },
-    { icon: Percent, title: 'קבל הנחה', desc: '5% הנחה מיידית על כל רכישה' },
-    { icon: Crown, title: 'שדרג', desc: 'אמת מספר מוסד לקבלת 12% ועוד' },
+    { icon: Percent, title: 'קבל הנחה', desc: 'הנחה מיידית על כל רכישה' },
+    { icon: Crown, title: 'שדרג', desc: 'אמת מספר מוסד לקבלת הנחות מוסדיות' },
   ];
 
   const tiers = [
-    { name: 'פרטי', discount: '5%', price: 'הרשמה חינמית', support: 'בסיסית', earlyAccess: 'לא', volumeDiscount: 'לא', recommended: false },
-    { name: 'מוסדי', discount: '12%', price: 'אימות מוסד', support: 'מועדפת', earlyAccess: 'כן', volumeDiscount: 'כן', recommended: true },
-    { name: 'פרימיום', discount: '18%', price: 'מנוי שנתי', support: 'SLA 24 שעות', earlyAccess: 'ראשון', volumeDiscount: 'כן', recommended: false },
+    { name: 'פרטי', discount: 'הנחה מיידית', price: 'הרשמה חינמית', support: 'בסיסית', earlyAccess: 'לא', volumeDiscount: 'לא', recommended: false },
+    { name: 'מוסדי', discount: 'הנחה מוסדית', price: 'אימות מוסד', support: 'מועדפת', earlyAccess: 'כן', volumeDiscount: 'כן', recommended: true },
+    { name: 'פרימיום', discount: 'תנאים בלעדיים', price: 'מנוי שנתי', support: 'SLA 24 שעות', earlyAccess: 'ראשון', volumeDiscount: 'כן', recommended: false },
   ];
 
   const benefits = [
@@ -272,19 +270,19 @@ export default function MobileMembership() {
   ];
 
   const faqs = [
-    { q: 'האם ההרשמה בחינם?', a: 'כן לחלוטין. חשבון פרטי עם 5% הנחה — ללא תשלום.' },
+    { q: 'האם ההרשמה בחינם?', a: 'כן לחלוטין. חשבון פרטי עם הנחה מיידית — ללא תשלום.' },
     { q: 'איך מקבלים הנחת מוסד?', a: 'פנה לנציג NextClass עם מספר המוסד לאימות ושדרוג אוטומטי.' },
     { q: 'האם ההנחה מצטברת עם מבצעים?', a: 'כן — הנחת חבר מועדון מצטברת עם מבצעי עונה.' },
-    { q: 'מה כולל פרימיום?', a: '18% הנחה, SLA תמיכה 24 שעות, גישה מוקדמת לדגמים, מנהל חשבון ייעודי.' },
+    { q: 'מה כולל פרימיום?', a: 'הנחה מקסימלית, SLA תמיכה 24 שעות, גישה מוקדמת לדגמים, מנהל חשבון ייעודי.' },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #1D1D1F 0%, #2C2C2E 100%)', direction: 'rtl' }}>
+    <div style={{ minHeight: '100vh', background: c.bg, direction: 'rtl' }}>
 
       {/* ── 1. Hero ──────────────────────────────────────────────────────── */}
       <div
         style={{
-          background: 'linear-gradient(145deg, #1D1D1F, #2C2C2E)',
+          background: 'linear-gradient(145deg, #007AFF, #5856D6)',
           padding: '48px 20px 36px',
           borderRadius: '0 0 28px 28px',
           textAlign: 'center',
@@ -347,7 +345,7 @@ export default function MobileMembership() {
         {/* ── 2. How it works (horizontal scroll) ──────────────────────── */}
         <div style={{ marginTop: 32, marginBottom: 8 }}>
           <BlurFade delay={0}>
-            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'right' }}>איך זה עובד?</p>
+            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: c.text, margin: '0 0 16px', textAlign: 'right' }}>איך זה עובד?</p>
           </BlurFade>
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
             {steps.map((s, i) => {
@@ -358,18 +356,19 @@ export default function MobileMembership() {
                     style={{
                       flexShrink: 0,
                       width: 160,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: c.surface,
+                      border: `1px solid ${c.border}`,
                       borderRadius: 18,
                       padding: '18px 14px',
                       textAlign: 'right',
+                      boxShadow: c.cardShadow,
                     }}
                   >
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,122,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginRight: 'auto' }}>
-                      <Icon size={18} color="#60A5FA" />
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,122,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginRight: 'auto' }}>
+                      <Icon size={18} color="#007AFF" />
                     </div>
-                    <p style={{ fontFamily: SF, fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>{s.title}</p>
-                    <p style={{ fontFamily: SF, fontSize: 12, color: '#98989D', lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
+                    <p style={{ fontFamily: SF, fontSize: 14, fontWeight: 700, color: c.text, margin: '0 0 4px' }}>{s.title}</p>
+                    <p style={{ fontFamily: SF, fontSize: 12, color: c.text3, lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
                   </div>
                 </BlurFade>
               );
@@ -380,7 +379,7 @@ export default function MobileMembership() {
         {/* ── 3. Tiers (vertical stack) ────────────────────────────────── */}
         <div style={{ marginTop: 28 }}>
           <BlurFade delay={0}>
-            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'right' }}>רמות חברות</p>
+            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: c.text, margin: '0 0 16px', textAlign: 'right' }}>רמות חברות</p>
           </BlurFade>
           {tiers.map((t, i) => (
             <TierCard key={t.name} {...t} delay={i * 0.08} />
@@ -390,7 +389,7 @@ export default function MobileMembership() {
         {/* ── 4. Benefits 2x2 grid ─────────────────────────────────────── */}
         <div style={{ marginTop: 28 }}>
           <BlurFade delay={0}>
-            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'right' }}>יתרונות החברות</p>
+            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: c.text, margin: '0 0 16px', textAlign: 'right' }}>יתרונות החברות</p>
           </BlurFade>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {benefits.map((b, i) => {
@@ -399,8 +398,8 @@ export default function MobileMembership() {
                 <BlurFade key={b.title} delay={i * 0.07}>
                   <div
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: c.surface,
+                      border: `1px solid ${c.border}`,
                       borderRadius: 16,
                       padding: '18px 12px',
                       textAlign: 'center',
@@ -408,12 +407,13 @@ export default function MobileMembership() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: 10,
+                      boxShadow: c.cardShadow,
                     }}
                   >
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,122,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={18} color="#60A5FA" />
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,122,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} color="#007AFF" />
                     </div>
-                    <p style={{ fontFamily: SF, fontSize: 13, fontWeight: 600, color: '#fff', margin: 0 }}>{b.title}</p>
+                    <p style={{ fontFamily: SF, fontSize: 13, fontWeight: 600, color: c.text, margin: 0 }}>{b.title}</p>
                   </div>
                 </BlurFade>
               );
@@ -424,7 +424,7 @@ export default function MobileMembership() {
         {/* ── 5. FAQ ───────────────────────────────────────────────────── */}
         <div style={{ marginTop: 32 }}>
           <BlurFade delay={0}>
-            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'right' }}>שאלות נפוצות</p>
+            <p style={{ fontFamily: SF, fontSize: 20, fontWeight: 800, color: c.text, margin: '0 0 16px', textAlign: 'right' }}>שאלות נפוצות</p>
           </BlurFade>
           {faqs.map((item, i) => (
             <FAQItem
@@ -440,8 +440,8 @@ export default function MobileMembership() {
         {/* ── 6. Bottom CTA ────────────────────────────────────────────── */}
         <div style={{ marginTop: 36, marginBottom: 48, textAlign: 'center' }}>
           <BlurFade delay={0}>
-            <p style={{ fontFamily: SF, fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 0 6px' }}>מוכן להצטרף?</p>
-            <p style={{ fontFamily: SF, fontSize: 14, color: '#98989D', margin: '0 0 20px' }}>הרשמה חינמית. הנחה מיידית. ללא התחייבות.</p>
+            <p style={{ fontFamily: SF, fontSize: 22, fontWeight: 900, color: c.text, margin: '0 0 6px' }}>מוכן להצטרף?</p>
+            <p style={{ fontFamily: SF, fontSize: 14, color: c.text3, margin: '0 0 20px' }}>הרשמה חינמית. הנחות מיוחדות. ללא התחייבות.</p>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => { haptic('medium'); openAuthModal(); }}

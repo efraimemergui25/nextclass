@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
     Home, Grid3X3, BookOpen, Video, Newspaper,
     Phone, ChevronLeft, Info, Shield, FileText,
-    Moon, Sun, ShoppingCart, Heart, Lock,
+    Moon, Sun, ShoppingCart, Heart, Star, Check,
     Compass, Zap, MessageCircle,
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
@@ -93,10 +93,10 @@ export default function MobileMenu() {
     const NAV_GROUPS = buildNavGroups(phone);
 
     const quickActions = [
-        { Icon: Home,          label: 'בית',    dest: '/',          badge: null },
-        { Icon: ShoppingCart,  label: 'עגלה',   dest: '/cart',      badge: cartCount    || null },
-        { Icon: Heart,         label: 'מועדפים', dest: '/favorites', badge: wishlistCount || null },
-        { Icon: Lock,          label: 'אדמין',   dest: '/admin',     badge: null },
+        { Icon: Home,         label: 'בית',    dest: '/',           badge: null },
+        { Icon: ShoppingCart, label: 'עגלה',   dest: '/cart',       badge: cartCount     || null },
+        { Icon: Heart,        label: 'מועדפים', dest: '/favorites',  badge: wishlistCount || null },
+        { Icon: Star,         label: 'מועדון',  dest: '/membership', badge: null },
     ];
 
     return (
@@ -157,8 +157,8 @@ export default function MobileMenu() {
                                     פרופיל: {completeness}% הושלם
                                 </p>
                             ) : (
-                                <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600, marginTop: 3 }}>
-                                    פרופיל שלם ✓
+                                <p style={{ fontSize: 11, color: '#34C759', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    פרופיל שלם <Check size={11} strokeWidth={2.5} />
                                 </p>
                             )}
                         </div>
@@ -195,7 +195,7 @@ export default function MobileMenu() {
                     }}
                 >
                     <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>התחברות / הרשמה</span>
-                    <span style={{ fontSize: 20 }}>👋</span>
+                    <ChevronLeft size={18} color="#fff" strokeWidth={2.5} style={{ transform: 'rotate(180deg)' }} />
                 </motion.button>
             )}
 
@@ -219,7 +219,7 @@ export default function MobileMenu() {
                     )}
                     <div>
                         <p style={{ fontSize: 17, fontWeight: 900, color: c.text, letterSpacing: '-0.04em' }}>{siteName}</p>
-                        <p style={{ fontSize: 12, color: c.text3, direction: 'ltr' }}>{phone}</p>
+                        <p style={{ fontSize: 12, color: c.text3 }}><bdi dir="ltr">{phone}</bdi></p>
                     </div>
                 </div>
 
@@ -263,7 +263,8 @@ export default function MobileMenu() {
                         }}
                         aria-label={label}
                     >
-                        <Icon size={26} color={c.text} strokeWidth={1.7} />
+                        <Icon size={24} color={c.text} strokeWidth={1.7} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: c.text3, lineHeight: 1 }}>{label}</span>
                         {badge != null && badge > 0 && (
                             <span style={{
                                 position: 'absolute', top: 10, right: 10,
@@ -330,7 +331,7 @@ export default function MobileMenu() {
 
             {/* ── Footer ───────────────────────────────────────────────── */}
             <p style={{ textAlign: 'center', fontSize: 11, color: c.text4, fontWeight: 500, marginTop: 8 }}>
-                {siteName} · © 2026 · כל הזכויות שמורות
+                {siteName} · © {new Date().getFullYear()} · כל הזכויות שמורות
             </p>
         </div>
     );

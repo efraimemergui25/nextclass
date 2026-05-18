@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import {
     Wrench, Tag, Image, RefreshCw, Package, ExternalLink,
     ShoppingCart, BarChart2, Layers, AlertTriangle, Box,
-    Zap, TrendingUp, Users, MessageCircle, Mail, Activity
+    Zap, TrendingUp, Users, MessageCircle, Mail, Activity, ChevronLeft
 } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
@@ -55,10 +55,8 @@ function Card({ title, subtitle, accent, action, children, className = '' }) {
             viewport={{ once: true }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             style={{
-                background: 'rgba(255,255,255,0.88)',
-                backdropFilter: 'blur(28px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.75)',
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.07)',
                 boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
             }}
         >
@@ -194,16 +192,16 @@ export default function AdminDashboard() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex items-center justify-between flex-wrap gap-3">
                 <div className="text-right">
-                    <h1 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">{greeting()}, הנהלת NextClass</h1>
-                    <p className="text-[#86868B] text-sm mt-1 font-medium">{dateStr} · נתוני אמת מתעדכנים בזמן-אמת</p>
+                    <h1 className="text-xl sm:text-3xl font-black text-[#1D1D1F] tracking-tighter">{greeting()}, הנהלת NextClass</h1>
+                    <p className="text-[#86868B] text-xs sm:text-sm mt-1 font-medium">{dateStr} · נתוני אמת</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    {/* Live dot — enhanced with badge-pulse */}
+                <div className="flex items-center flex-wrap gap-2">
+                    {/* Live dot */}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full relative"
                         style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.25)' }}>
                         <span className="relative flex items-center justify-center w-2 h-2">
                             <span className="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-60" />
-                            <span className="relative w-2 h-2 rounded-full bg-[#34C759] animate-pulse-dot" />
+                            <span className="relative w-2 h-2 rounded-full bg-[#34C759]" />
                         </span>
                         <span className="text-[11px] font-black tracking-widest text-[#1D1D1F]">Live</span>
                     </div>
@@ -421,8 +419,8 @@ export default function AdminDashboard() {
                     accent="linear-gradient(90deg,#34C759,#30D158)"
                     className="lg:col-span-2"
                     action={
-                        <Link to="/admin/orders" className="text-[#007AFF] text-xs font-bold hover:underline">
-                            צפה בכולן ←
+                        <Link to="/admin/orders" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
+                            צפה בכולן <ChevronLeft size={12} strokeWidth={2.5} />
                         </Link>
                     }
                 >
@@ -462,8 +460,8 @@ export default function AdminDashboard() {
                         title="מלאי נמוך"
                         accent="linear-gradient(90deg,#FF3B30,#FF9500)"
                         action={
-                            <Link to="/admin/inventory" className="text-[#007AFF] text-xs font-bold hover:underline">
-                                ניהול ←
+                            <Link to="/admin/inventory" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
+                                ניהול <ChevronLeft size={12} strokeWidth={2.5} />
                             </Link>
                         }
                     >
@@ -610,7 +608,7 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                                 <p className="text-[11px] font-black text-[#1D1D1F] leading-tight">{action.label}</p>
-                                <p className="text-[9px] text-[#AEAEB2] mt-0.5 leading-snug">{action.desc}</p>
+                                <p className="hidden sm:block text-[9px] text-[#AEAEB2] mt-0.5 leading-snug">{action.desc}</p>
                             </div>
                             {action.active && (
                                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: action.color }} />

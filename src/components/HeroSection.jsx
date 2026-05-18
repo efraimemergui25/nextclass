@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useSettings } from '../context/SettingsContext';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { getCountFromServer, collection } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // Removed DEFAULTS and readContent helper
 
@@ -20,8 +22,16 @@ const HeroSection = () => {
  hero_bg_image: getSetting('hero_bg_image', DEFAULT_HERO_BG),
  trust_1: getSetting('hero_trust_pill_1', 'שירות ישיר ומהיר'),
  trust_2: getSetting('hero_trust_pill_2', 'ייעוץ ללא עלות'),
- trust_3: getSetting('hero_trust_pill_3', '+500 מוסדות חינוך'),
+ trust_3: getSetting('hero_trust_pill_3', null),
  }), [getSetting]);
+
+ // Live user count from Firestore
+ const [liveCount, setLiveCount] = useState(null);
+ useEffect(() => {
+   getCountFromServer(collection(db, 'users'))
+     .then(snap => setLiveCount(snap.data().count))
+     .catch(() => {});
+ }, []);
 
  // Preload the background URL — fall back to default if it fails or is empty
  const [activeBgUrl, setActiveBgUrl] = useState(DEFAULT_HERO_BG);
@@ -133,7 +143,7 @@ const HeroSection = () => {
  transition={{ delay: 1.0, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
  className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6"
  >
- {[content.trust_1, content.trust_2, content.trust_3].map((t, i) => (
+ {[content.trust_1, content.trust_2, content.trust_3 ?? (liveCount != null ? `+${liveCount} מוסדות חינוך` : '+500 מוסדות חינוך')].map((t, i) => (
  <motion.span
   key={i}
   initial={{ opacity: 0, y: 8 }}

@@ -25,19 +25,19 @@ const StepCard = ({ icon: Icon, title, desc, delay }) => (
     whileHover={{ y: -4, scale: 1.015 }}
     className="flex-1 rounded-3xl p-7 text-right"
     style={{
-      background: 'rgba(255,255,255,0.07)',
-      border: '1px solid rgba(255,255,255,0.12)',
-      backdropFilter: 'blur(20px)',
+      background: '#fff',
+      border: '1px solid rgba(0,0,0,0.08)',
+      boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
     }}
   >
     <div
       className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 mr-auto"
-      style={{ background: 'rgba(0,122,255,0.18)', border: '1px solid rgba(0,122,255,0.3)' }}
+      style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)' }}
     >
-      <Icon size={22} className="text-[#60A5FA]" />
+      <Icon size={22} className="text-[#007AFF]" />
     </div>
-    <h3 className="text-[17px] font-bold text-white mb-2 tracking-tight">{title}</h3>
-    <p className="text-[14px] text-[#98989D] leading-relaxed">{desc}</p>
+    <h3 className="text-[17px] font-bold text-[#1D1D1F] mb-2 tracking-tight">{title}</h3>
+    <p className="text-[14px] text-[#6B6B6B] leading-relaxed">{desc}</p>
   </motion.div>
 );
 
@@ -52,9 +52,10 @@ const TierCard = ({ name, discount, price, support, earlyAccess, volumeDiscount,
     className={`flex-1 rounded-3xl p-7 text-right relative overflow-hidden ${recommended ? 'ring-2 ring-[#007AFF]' : ''}`}
     style={{
       background: recommended
-        ? 'linear-gradient(145deg, rgba(0,122,255,0.2), rgba(0,122,255,0.08))'
-        : 'rgba(255,255,255,0.05)',
-      border: recommended ? '1px solid rgba(0,122,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
+        ? 'linear-gradient(145deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04))'
+        : '#fff',
+      border: recommended ? '1.5px solid rgba(0,122,255,0.35)' : '1px solid rgba(0,0,0,0.08)',
+      boxShadow: recommended ? '0 4px 24px rgba(0,122,255,0.14)' : '0 2px 16px rgba(0,0,0,0.06)',
     }}
   >
     {recommended && (
@@ -62,18 +63,18 @@ const TierCard = ({ name, discount, price, support, earlyAccess, volumeDiscount,
         מומלץ
       </div>
     )}
-    <p className="text-[13px] font-semibold text-[#98989D] mb-1 tracking-widest uppercase">{name}</p>
-    <p className="text-[40px] font-black text-white leading-none mb-1">{discount}</p>
-    <p className="text-[13px] text-[#98989D] mb-5">{price}</p>
+    <p className="text-[13px] font-semibold text-[#6B6B6B] mb-1 tracking-widest uppercase">{name}</p>
+    <p className="text-[32px] font-black text-[#1D1D1F] leading-none mb-1">{discount}</p>
+    <p className="text-[13px] text-[#6B6B6B] mb-5">{price}</p>
     <div className="space-y-2.5">
       {[
         ['תמיכה', support],
         ['גישה מוקדמת', earlyAccess],
-        ['הנחת כמות', volumeDiscount],
+        ['הנחות כמות', volumeDiscount],
       ].map(([label, val]) => (
         <div key={label} className="flex items-center justify-between gap-2">
-          <span className="text-[13px] text-[#98989D]">{label}</span>
-          <span className="text-[13px] font-semibold text-white">{val}</span>
+          <span className="text-[13px] text-[#6B6B6B]">{label}</span>
+          <span className="text-[13px] font-semibold text-[#1D1D1F]">{val}</span>
         </div>
       ))}
     </div>
@@ -90,15 +91,15 @@ const BenefitCard = ({ icon: Icon, title, delay }) => (
     variants={fadeUp}
     whileHover={{ y: -3 }}
     className="flex flex-col items-center gap-3 rounded-2xl p-6 text-center"
-    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+    style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}
   >
     <div
       className="w-11 h-11 rounded-xl flex items-center justify-center"
-      style={{ background: 'rgba(0,122,255,0.15)' }}
+      style={{ background: 'rgba(0,122,255,0.10)' }}
     >
-      <Icon size={20} className="text-[#60A5FA]" />
+      <Icon size={20} className="text-[#007AFF]" />
     </div>
-    <p className="text-[14px] font-semibold text-white">{title}</p>
+    <p className="text-[14px] font-semibold text-[#1D1D1F]">{title}</p>
   </motion.div>
 );
 
@@ -106,17 +107,17 @@ const BenefitCard = ({ icon: Icon, title, delay }) => (
 const FAQItem = ({ q, a, open, onToggle }) => (
   <div
     className="rounded-2xl overflow-hidden"
-    style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+    style={{ border: '1px solid rgba(0,0,0,0.08)' }}
   >
     <button
       onClick={onToggle}
       className="w-full flex items-center justify-between gap-4 p-5 text-right"
-      style={{ background: 'rgba(255,255,255,0.05)' }}
+      style={{ background: 'rgba(0,0,0,0.02)' }}
     >
       <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>
-        <ChevronDown size={18} className="text-[#98989D]" />
+        <ChevronDown size={18} className="text-[#6B6B6B]" />
       </motion.div>
-      <span className="flex-1 text-[15px] font-semibold text-white">{q}</span>
+      <span className="flex-1 text-[15px] font-semibold text-[#1D1D1F]">{q}</span>
     </button>
     <AnimatePresence initial={false}>
       {open && (
@@ -127,7 +128,7 @@ const FAQItem = ({ q, a, open, onToggle }) => (
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="px-5 pb-5 pt-1 text-right">
-            <p className="text-[14px] text-[#98989D] leading-relaxed">{a}</p>
+            <p className="text-[14px] text-[#6B6B6B] leading-relaxed">{a}</p>
           </div>
         </motion.div>
       )}
@@ -142,14 +143,14 @@ const MembershipPage = () => {
 
   const steps = [
     { icon: User, title: 'הרשם', desc: 'מלא שם, מוסד ותפקיד — 60 שניות' },
-    { icon: Percent, title: 'קבל הנחה', desc: '5% הנחה מיידית על כל רכישה' },
-    { icon: Crown, title: 'שדרג', desc: 'אמת מספר מוסד לקבלת 12% ועוד' },
+    { icon: Percent, title: 'קבל הנחה', desc: 'הנחה מיידית על כל רכישה' },
+    { icon: Crown, title: 'שדרג', desc: 'אמת מספר מוסד לקבלת הנחות מוסדיות' },
   ];
 
   const tiers = [
-    { name: 'פרטי', discount: '5%', price: 'הרשמה חינמית', support: 'בסיסית', earlyAccess: 'לא', volumeDiscount: 'לא', recommended: false },
-    { name: 'מוסדי', discount: '12%', price: 'אימות מוסד', support: 'מועדפת', earlyAccess: 'כן', volumeDiscount: 'כן', recommended: true },
-    { name: 'פרימיום', discount: '18%', price: 'מנוי שנתי', support: 'SLA 24 שעות', earlyAccess: 'ראשון', volumeDiscount: 'כן', recommended: false },
+    { name: 'פרטי', discount: 'הנחה מיידית', price: 'הרשמה חינמית', support: 'בסיסית', earlyAccess: 'לא', volumeDiscount: 'לא', recommended: false },
+    { name: 'מוסדי', discount: 'הנחה מוסדית', price: 'אימות מוסד', support: 'מועדפת', earlyAccess: 'כן', volumeDiscount: 'כן', recommended: true },
+    { name: 'פרימיום', discount: 'תנאים בלעדיים', price: 'מנוי שנתי', support: 'SLA 24 שעות', earlyAccess: 'ראשון', volumeDiscount: 'כן', recommended: false },
   ];
 
   const benefits = [
@@ -160,18 +161,18 @@ const MembershipPage = () => {
   ];
 
   const faqs = [
-    { q: 'האם ההרשמה בחינם?', a: 'כן לחלוטין. חשבון פרטי עם 5% הנחה — ללא תשלום.' },
+    { q: 'האם ההרשמה בחינם?', a: 'כן לחלוטין. חשבון פרטי עם הנחה מיידית — ללא תשלום.' },
     { q: 'איך מקבלים הנחת מוסד?', a: 'פנה לנציג NextClass עם מספר המוסד לאימות ושדרוג אוטומטי.' },
     { q: 'האם ההנחה מצטברת עם מבצעים?', a: 'כן — הנחת חבר מועדון מצטברת עם מבצעי עונה.' },
-    { q: 'מה כולל פרימיום?', a: '18% הנחה, SLA תמיכה 24 שעות, גישה מוקדמת לדגמים, מנהל חשבון ייעודי.' },
+    { q: 'מה כולל פרימיום?', a: 'הנחה מקסימלית, SLA תמיכה 24 שעות, גישה מוקדמת לדגמים, מנהל חשבון ייעודי.' },
   ];
 
   return (
     <PageTransition>
       <div
         dir="rtl"
-        className="min-h-screen text-white"
-        style={{ background: 'linear-gradient(180deg, #1D1D1F 0%, #2C2C2E 100%)' }}
+        className="min-h-screen text-[#1D1D1F]"
+        style={{ background: '#F8F9FA' }}
       >
         {/* ── 1. Hero ─────────────────────────────────────────────────────── */}
         <section className="relative flex flex-col items-center justify-center text-center px-6 py-28 overflow-hidden">
@@ -184,10 +185,10 @@ const MembershipPage = () => {
               <Star size={13} className="text-[#60A5FA]" />
               <span className="text-[12px] font-semibold text-[#60A5FA] tracking-wide">מועדון חברים בלעדי</span>
             </div>
-            <h1 className="text-[52px] font-black tracking-tight text-white leading-[1.1] mb-4">
+            <h1 className="text-[52px] font-black tracking-tight text-[#1D1D1F] leading-[1.1] mb-4">
               מועדון NextClass
             </h1>
-            <p className="text-[18px] text-[#98989D] font-medium mb-10 leading-relaxed">
+            <p className="text-[18px] text-[#6B6B6B] font-medium mb-10 leading-relaxed">
               מחירים מיוחדים. גישה מוקדמת. תמיכה ייעודית.
             </p>
             {isMember ? (
@@ -211,8 +212,8 @@ const MembershipPage = () => {
         {/* ── 2. How it works ─────────────────────────────────────────────── */}
         <section className="max-w-5xl mx-auto px-6 py-20">
           <motion.div custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
-            <h2 className="text-[32px] font-black text-white tracking-tight mb-2">איך זה עובד?</h2>
-            <p className="text-[15px] text-[#98989D]">שלושה צעדים פשוטים להתחלה</p>
+            <h2 className="text-[32px] font-black text-[#1D1D1F] tracking-tight mb-2">איך זה עובד?</h2>
+            <p className="text-[15px] text-[#6B6B6B]">שלושה צעדים פשוטים להתחלה</p>
           </motion.div>
           <div className="flex flex-col md:flex-row gap-4">
             {steps.map((s, i) => (
@@ -224,8 +225,8 @@ const MembershipPage = () => {
         {/* ── 3. Tier comparison ──────────────────────────────────────────── */}
         <section className="max-w-5xl mx-auto px-6 py-20">
           <motion.div custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
-            <h2 className="text-[32px] font-black text-white tracking-tight mb-2">השוואת רמות חברות</h2>
-            <p className="text-[15px] text-[#98989D]">בחר את הרמה המתאימה לך</p>
+            <h2 className="text-[32px] font-black text-[#1D1D1F] tracking-tight mb-2">השוואת רמות חברות</h2>
+            <p className="text-[15px] text-[#6B6B6B]">בחר את הרמה המתאימה לך</p>
           </motion.div>
           <div className="flex flex-col md:flex-row gap-4 items-stretch">
             {tiers.map((t, i) => (
@@ -237,7 +238,7 @@ const MembershipPage = () => {
         {/* ── 4. Benefits strip ───────────────────────────────────────────── */}
         <section className="max-w-5xl mx-auto px-6 py-20">
           <motion.div custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-12">
-            <h2 className="text-[32px] font-black text-white tracking-tight mb-2">יתרונות החברות</h2>
+            <h2 className="text-[32px] font-black text-[#1D1D1F] tracking-tight mb-2">יתרונות החברות</h2>
           </motion.div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {benefits.map((b, i) => (
@@ -249,7 +250,7 @@ const MembershipPage = () => {
         {/* ── 5. FAQ ──────────────────────────────────────────────────────── */}
         <section className="max-w-3xl mx-auto px-6 py-20">
           <motion.div custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-10">
-            <h2 className="text-[32px] font-black text-white tracking-tight mb-2">שאלות נפוצות</h2>
+            <h2 className="text-[32px] font-black text-[#1D1D1F] tracking-tight mb-2">שאלות נפוצות</h2>
           </motion.div>
           <motion.div
             custom={0.1}
@@ -274,8 +275,8 @@ const MembershipPage = () => {
         {/* ── 6. Final CTA ────────────────────────────────────────────────── */}
         <section className="py-24 text-center px-6">
           <motion.div custom={0} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <h2 className="text-[36px] font-black text-white tracking-tight mb-4">מוכן להצטרף?</h2>
-            <p className="text-[16px] text-[#98989D] mb-8">הרשמה חינמית. הנחה מיידית. ללא התחייבות.</p>
+            <h2 className="text-[36px] font-black text-[#1D1D1F] tracking-tight mb-4">מוכן להצטרף?</h2>
+            <p className="text-[16px] text-[#6B6B6B] mb-8">הרשמה חינמית. הנחות מיוחדות. ללא התחייבות.</p>
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}

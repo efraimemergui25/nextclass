@@ -516,6 +516,25 @@ const FIELD_SECTIONS = [
         ],
     },
     {
+        id: 'auth_modal',
+        label: 'מסך הרשמה / כניסה',
+        icon: '🔑',
+        accent: '#5856D6',
+        fields: [
+            { key: 'auth_hero_title',       label: 'כותרת פאנל הרשמה',              type: 'text',     default: 'בואו לבנות איתנו את עתיד החינוך' },
+            { key: 'auth_hero_subtitle',    label: 'תיאור קצר תחת הכותרת',          type: 'textarea', default: 'הצטרפו לקהילה של 800+ מוסדות חינוך שכבר שינו את הכיתה שלהם' },
+            { key: 'auth_hero_stat',        label: 'נתון בולט (chip ירוק)',          type: 'text',     default: '+800 מוסדות כבר כאן' },
+            { key: 'auth_benefits_enabled', label: 'הצג כרטיס הטבות בטופס הרשמה',  type: 'boolean',  default: false },
+            { key: 'auth_benefits_title',   label: 'כותרת כרטיס הטבות',            type: 'text',     default: 'ההצטרפות חינם — היתרונות שמחכים לך' },
+            { key: 'auth_benefit_1_tag',    label: 'הטבה 1: תג (לדוגמה "5%")',      type: 'text',     default: '5%' },
+            { key: 'auth_benefit_1_desc',   label: 'הטבה 1: תיאור',                 type: 'text',     default: 'הנחה מיידית על כל רכישה' },
+            { key: 'auth_benefit_2_tag',    label: 'הטבה 2: תג',                    type: 'text',     default: '12%' },
+            { key: 'auth_benefit_2_desc',   label: 'הטבה 2: תיאור',                 type: 'text',     default: 'הנחה מוסדית לאחר אימות' },
+            { key: 'auth_benefit_3_tag',    label: 'הטבה 3: תג',                    type: 'text',     default: 'גישה מוקדמת' },
+            { key: 'auth_benefit_3_desc',   label: 'הטבה 3: תיאור',                 type: 'text',     default: 'למבצעים ומוצרים חדשים' },
+        ],
+    },
+    {
         id: 'floating_concierge',
         label: 'ווידג׳ט קשר צף (Concierge)',
         icon: '💬',
@@ -1188,7 +1207,7 @@ const VisibilitySection = ({ content, onChange }) => (
     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {VISIBILITY_ITEMS.map(item => (
             <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border transition-all"
-                style={{ background: 'rgba(255,255,255,0.70)', borderColor: 'rgba(0,0,0,0.06)', backdropFilter: 'blur(20px)' }}>
+                style={{ background: 'rgba(255,255,255,0.70)', borderColor: 'rgba(0,0,0,0.06)' }}>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
                         <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
@@ -1672,7 +1691,6 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                             background: isActive
                                 ? `linear-gradient(135deg, ${group.accent} 0%, ${group.accent}CC 100%)`
                                 : 'rgba(255,255,255,0.85)',
-                            backdropFilter: 'blur(20px)',
                             boxShadow: isActive
                                 ? `0 8px 24px ${group.accent}35, 0 0 0 1px ${group.accent}20`
                                 : '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
@@ -2221,7 +2239,7 @@ export default function AdminContent({ showToast }) {
 
                             {/* Icon badge */}
                             <div className="relative z-10 w-20 h-20 rounded-[20px] flex items-center justify-center"
-                                style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)' }}>
+                                style={{ background: 'rgba(255,255,255,0.18)' }}>
                                 <Monitor size={38} className="text-white" />
                             </div>
 
@@ -2241,7 +2259,7 @@ export default function AdminContent({ showToast }) {
                             </div>
 
                             <div className="relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-[13px]"
-                                style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)' }}>
+                                style={{ background: 'rgba(255,255,255,0.22)' }}>
                                 <span>בחר גרסת מחשב</span>
                                 <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.7)' }} />
                             </div>
@@ -2264,7 +2282,7 @@ export default function AdminContent({ showToast }) {
 
                             {/* Icon badge */}
                             <div className="relative z-10 w-20 h-20 rounded-[20px] flex items-center justify-center"
-                                style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)' }}>
+                                style={{ background: 'rgba(255,255,255,0.18)' }}>
                                 <Smartphone size={38} className="text-white" />
                             </div>
 
@@ -2284,7 +2302,7 @@ export default function AdminContent({ showToast }) {
                             </div>
 
                             <div className="relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-[13px]"
-                                style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)' }}>
+                                style={{ background: 'rgba(255,255,255,0.22)' }}>
                                 <span>בחר גרסת מובייל</span>
                                 <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.7)' }} />
                             </div>
@@ -2383,7 +2401,6 @@ export default function AdminContent({ showToast }) {
                         className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
                         style={{
                             background: 'rgba(29,29,31,0.92)',
-                            backdropFilter: 'blur(20px)',
                             border: '1px solid rgba(255,255,255,0.12)',
                         }}
                     >

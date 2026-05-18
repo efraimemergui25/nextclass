@@ -93,8 +93,6 @@ const DEFAULT_TEMPLATES = [
 
 const GLASS = {
     background: 'rgba(255,255,255,0.88)',
-    backdropFilter: 'blur(28px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.75)',
     boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
     borderRadius: 22,
@@ -279,7 +277,6 @@ function CustomerCard({ lead, onStatusChange }) {
                                 className="absolute left-0 top-full mt-1 z-50 min-w-[180px] rounded-2xl p-1.5 shadow-xl"
                                 style={{
                                     background: 'rgba(255,255,255,0.97)',
-                                    backdropFilter: 'blur(24px)',
                                     border: '1px solid rgba(0,0,0,0.08)',
                                     boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
                                 }}
@@ -516,8 +513,6 @@ export default function AdminCommunications() {
                 style={{
                     width: 296,
                     background: 'rgba(255,255,255,0.82)',
-                    backdropFilter: 'blur(24px)',
-                    WebkitBackdropFilter: 'blur(24px)',
                     borderLeft: '1px solid rgba(0,0,0,0.08)',
                 }}
             >
@@ -663,7 +658,6 @@ export default function AdminCommunications() {
                                                         background: 'rgba(255,255,255,0.88)',
                                                         border: '1px solid rgba(0,0,0,0.06)',
                                                         borderRight: `3px solid ${s.dot}`,
-                                                        backdropFilter: 'blur(12px)',
                                                     }}
                                                 >
                                                     <StatusDot status={lead.status} />
@@ -709,7 +703,6 @@ export default function AdminCommunications() {
                                                         background: 'rgba(255,255,255,0.88)',
                                                         border: '1px solid rgba(0,0,0,0.06)',
                                                         borderRight: `3px solid ${s.dot}`,
-                                                        backdropFilter: 'blur(12px)',
                                                     }}
                                                 >
                                                     <StatusDot status={lead.status} />
@@ -773,8 +766,6 @@ export default function AdminCommunications() {
                             className="rounded-[22px] p-5"
                             style={{
                                 background: 'rgba(255,255,255,0.88)',
-                                backdropFilter: 'blur(28px)',
-                                WebkitBackdropFilter: 'blur(28px)',
                                 border: '1px solid rgba(255,255,255,0.75)',
                                 boxShadow: '0 4px 28px rgba(0,0,0,0.07)',
                             }}

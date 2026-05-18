@@ -7,6 +7,8 @@ import {
     updateProfile,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, getDocs, orderBy, query } from 'firebase/firestore';
@@ -45,6 +47,17 @@ export function AuthProvider({ children }) {
     const [firstLogin,  setFirstLogin]  = useState(false);   // first-ever login celebration
     const [prevUser,    setPrevUser]    = useState(undefined); // track login transitions
 
+    // ─── Handle Google redirect result on load ────────────────────────────────
+    // When the user returns after signInWithRedirect, this processes the result.
+    // onAuthStateChanged will fire automatically — no manual handling needed.
+    useEffect(() => {
+        getRedirectResult(auth)
+            .then(result => {
+                // result?.user is set — onAuthStateChanged handles state update
+            })
+            .catch(() => {});
+    }, []);
+
     // ─── Track auth state ─────────────────────────────────────────────────────
     useEffect(() => {
         return onAuthStateChanged(auth, async (firebaseUser) => {
@@ -65,12 +78,18 @@ export function AuthProvider({ children }) {
                 setUser(firebaseUser);
                 const ref = doc(db, 'users', firebaseUser.uid);
                 const snap = await getDoc(ref);
+                const googleFields = {
+                    photoURL:      firebaseUser.photoURL      || '',
+                    provider:      firebaseUser.providerData?.[0]?.providerId || 'password',
+                    emailVerified: firebaseUser.emailVerified,
+                    displayName:   firebaseUser.displayName   || '',
+                };
                 if (snap.exists()) {
                     setUserDoc(snap.data());
-                    updateDoc(ref, { lastLogin: serverTimestamp() }).catch(() => {});
+                    updateDoc(ref, { lastLogin: serverTimestamp(), ...googleFields }).catch(() => {});
                 } else {
                     const newDoc = {
-                        displayName: firebaseUser.displayName || '',
+                        ...googleFields,
                         email: firebaseUser.email || '',
                         institution: '',
                         role: 'teacher',
@@ -131,7 +150,8 @@ export function AuthProvider({ children }) {
     // ─── Auth actions ─────────────────────────────────────────────────────────
     const signUp = useCallback(async ({ email, password, displayName, institution, role }) => {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName });
+        // updateProfile and Firestore write are best-effort — auth is what matters
+        try { await updateProfile(cred.user, { displayName }); } catch {}
         const newDoc = {
             displayName,
             email,
@@ -141,7 +161,8 @@ export function AuthProvider({ children }) {
             createdAt: serverTimestamp(),
             lastLogin: serverTimestamp(),
         };
-        await setDoc(doc(db, 'users', cred.user.uid), newDoc);
+        // Fire-and-forget: onAuthStateChanged will create the doc if this fails
+        setDoc(doc(db, 'users', cred.user.uid), newDoc).catch(() => {});
         setUserDoc(newDoc);
         return cred.user;
     }, []);
@@ -149,11 +170,22 @@ export function AuthProvider({ children }) {
     const signIn = useCallback((email, password) =>
         signInWithEmailAndPassword(auth, email, password), []);
 
+    // Popup first (works in all modern browsers). If popup is blocked, fall back to redirect.
     const signInGoogle = useCallback(async () => {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        return signInWithPopup(auth, provider);
+        try {
+            return await signInWithPopup(auth, provider);
+        } catch (err) {
+            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-cancelled') {
+                return signInWithRedirect(auth, provider);
+            }
+            throw err;
+        }
     }, []);
+
+    // Keep alias for mobile components that import this name
+    const signInGoogleRedirect = signInGoogle;
 
     const signOut = useCallback(() => firebaseSignOut(auth), []);
     const resetPassword = useCallback((email) => sendPasswordResetEmail(auth, email), []);
@@ -181,7 +213,7 @@ export function AuthProvider({ children }) {
             getMemberPrice,
             showWelcome, dismissWelcome,
             firstLogin, dismissFirstLogin,
-            signUp, signIn, signInGoogle, signOut, resetPassword,
+            signUp, signIn, signInGoogle, signInGoogleRedirect, signOut, resetPassword,
             authOpen, openAuthModal, closeAuthModal,
             fetchAllUsers, updateUserTier,
         }}>

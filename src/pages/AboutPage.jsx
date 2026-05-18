@@ -354,12 +354,7 @@ const AboutPage = () => {
 
  {/* ── CTA ───────────────────────────────────────────────── */}
  <section className="py-20 md:py-28 relative overflow-hidden"
- style={{ background: 'linear-gradient(160deg, #0A0A0A 0%, #1C1C1E 50%, #0D0D1A 100%)' }}>
- <div className="absolute inset-0 pointer-events-none overflow-hidden">
- <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[140px] -mr-72 -mt-72" />
- <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-600/12 rounded-full blur-[140px] -ml-52 -mb-52" />
- </div>
-
+ style={{ background: 'linear-gradient(160deg, #EBF4FF 0%, #F0EEFF 50%, #EBF4FF 100%)' }}>
  <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
  <motion.div
  initial={{ opacity: 0, y: 20 }}
@@ -367,31 +362,32 @@ const AboutPage = () => {
  viewport={{ once: true }}
  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
  >
- <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 mb-8"
- style={{ background: 'rgba(255,255,255,0.06)' }}>
- <Sparkles size={11} className="text-blue-400" />
- <span className="text-[11px] font-black text-blue-400">בואו נדבר</span>
+ <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#007AFF]/20 mb-8"
+ style={{ background: 'rgba(0,122,255,0.08)' }}>
+ <Sparkles size={11} className="text-[#007AFF]" />
+ <span className="text-[11px] font-black text-[#007AFF]">בואו נדבר</span>
  </div>
 
- <h2 className="font-black text-white leading-[1.0] mb-5"
+ <h2 className="font-black text-[#1D1D1F] leading-[1.0] mb-5"
  style={{ fontSize: 'clamp(32px, 5vw, 64px)', letterSpacing: '-0.04em' }}>
  {c.ctaTitle.split('\n').map((t, i) => (
- <span key={i} className={`block ${i === 1 ? 'text-blue-400' : ''}`}>{t}</span>
+ <span key={i} className={`block ${i === 1 ? 'text-[#007AFF]' : ''}`}>{t}</span>
  ))}
  </h2>
 
- <p className="text-[16px] text-white/50 font-medium mb-10 max-w-xl mx-auto leading-relaxed">
+ <p className="text-[16px] text-[#6B6B6B] font-medium mb-10 max-w-xl mx-auto leading-relaxed">
  {c.ctaDesc}
  </p>
 
  <div className="flex flex-wrap justify-center gap-3">
  <Link to="/contact"
- className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1D1D1F] rounded-full font-black text-[14px] shadow-xl hover:scale-105 transition-transform">
+ className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-black text-[14px] text-white hover:scale-105 transition-transform"
+ style={{ background: '#007AFF', boxShadow: '0 8px 24px rgba(0,122,255,0.30)' }}>
  שלחו הודעה
  <ArrowLeft size={15} />
  </Link>
  <Link to="/catalog"
- className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-black text-[14px] text-white border border-white/15 hover:bg-white/10 transition-all">
+ className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-black text-[14px] text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/08 transition-all">
  צפו בקטלוג
  </Link>
  </div>

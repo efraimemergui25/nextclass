@@ -59,13 +59,11 @@ export function InfoTooltip({ text }) {
                             }}
                         >
                             <div style={{
-                                background: 'rgba(29,29,31,0.95)',
-                                backdropFilter: 'blur(28px) saturate(200%)',
-                                WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+                                background: 'rgba(29,29,31,0.97)',
                                 borderRadius: 13,
                                 padding: '10px 14px',
                                 boxShadow: '0 16px 48px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.18)',
-                                border: '1px solid rgba(255,255,255,0.12)',
+                                border: '1px solid rgba(255,255,255,0.10)',
                             }}>
                                 <p style={{ color: '#F5F5F7', fontSize: 11.5, fontWeight: 500, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
                             </div>
@@ -89,10 +87,8 @@ export function InfoTooltip({ text }) {
 
 // ─── Shared glass surface ─────────────────────────────────────────────────────
 const glassStyle = {
-    background: 'rgba(255,255,255,0.80)',
-    backdropFilter: 'blur(40px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.82)',
+    background: '#fff',
+    border: '1px solid rgba(0,0,0,0.07)',
     boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
 };
 
@@ -142,16 +138,14 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay, type: 'spring', stiffness: 340, damping: 28 }}
             whileHover={{ y: -4, scale: 1.018, boxShadow: `0 20px 48px ${color}22, inset 0 1px 0 rgba(255,255,255,0.9)` }}
             onClick={onClick}
             className={`relative overflow-hidden rounded-[26px] p-5 transition-shadow ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
             style={{
-                background: `linear-gradient(145deg, ${color}12 0%, rgba(255,255,255,0.94) 45%, rgba(255,255,255,0.88) 100%)`,
-                backdropFilter: 'blur(48px) saturate(220%)',
-                WebkitBackdropFilter: 'blur(48px) saturate(220%)',
+                background: `linear-gradient(145deg, ${color}12 0%, rgba(255,255,255,0.97) 45%, #fff 100%)`,
                 border: `1px solid ${color}24`,
                 boxShadow: `0 4px 24px ${color}12, 0 1px 0 rgba(255,255,255,0.95) inset, 0 -1px 0 rgba(0,0,0,0.025) inset`,
             }}
@@ -327,7 +321,7 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
                 className="w-full rounded-xl pr-10 pl-4 py-2.5 text-sm text-[#1D1D1F] placeholder-[#AEAEB2] outline-none transition-all"
                 style={{ ...glassStyle, boxShadow: 'none' }}
                 onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.50)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.08)'; }}
-                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.82)'; e.target.style.boxShadow = 'none'; }}
+                onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.07)'; e.target.style.boxShadow = 'none'; }}
             />
         </div>
     );
@@ -339,10 +333,10 @@ export function AdminSectionHeader({ title, subtitle, action }) {
         <div className="flex items-end justify-between mb-8 pb-5" style={{ borderBottom: '1px solid rgba(0,0,0,0.045)' }}>
             <div className="text-right">
                 <motion.h1
-                    initial={{ opacity: 0, x: 12, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                    className="text-[32px] font-[800] text-[#1D1D1F] tracking-tight leading-none"
+                    className="text-[22px] sm:text-[32px] font-[800] text-[#1D1D1F] tracking-tight leading-none"
                 >
                     {title}
                 </motion.h1>
@@ -442,7 +436,7 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={onClose}
                         className="fixed inset-0 z-[200]"
-                        style={{ background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+                        style={{ background: 'rgba(0,0,0,0.40)' }}
                     />
                     <motion.div
                         initial={{ opacity: 0, scale: 0.93, y: 24 }}
@@ -451,10 +445,8 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
                         transition={{ type: 'spring', stiffness: 440, damping: 32 }}
                         className={`fixed inset-x-4 top-1/2 -translate-y-1/2 ${widths[size]} mx-auto z-[201] rounded-[28px] overflow-hidden`}
                         style={{
-                            background: 'rgba(255,255,255,0.97)',
-                            backdropFilter: 'blur(48px) saturate(200%)',
-                            WebkitBackdropFilter: 'blur(48px) saturate(200%)',
-                            border: '1px solid rgba(255,255,255,0.85)',
+                            background: '#fff',
+                            border: '1px solid rgba(0,0,0,0.08)',
                             boxShadow: '0 48px 120px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.9)',
                         }}
                     >

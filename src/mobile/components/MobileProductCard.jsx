@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Heart, ShoppingBag, Scale, Check, Share2, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCompare } from '../../context/CompareContext';
@@ -89,15 +89,14 @@ function ContextMenu({ product, onClose }) {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                animate={{ opacity: 1, backdropFilter: 'blur(6px)' }}
-                exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
                 onClick={onClose}
                 style={{
                     position: 'fixed', inset: 0, zIndex: 999,
-                    background: 'rgba(0,0,0,0.45)',
-                    backdropFilter: 'blur(0px)',
+                    background: 'rgba(0,0,0,0.55)',
                     display: 'flex', alignItems: 'flex-end',
                 }}
             >
@@ -185,6 +184,10 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const [imgError, setImgError]          = useState(false);
     const [displaySrc, setDisplaySrc]      = useState(() => product.image || product._seedImage || GENERIC_FALLBACK);
     const fallbackStage                    = useRef(0);
+    const addedTimer                       = useRef(null);
+    const burstTimer                       = useRef(null);
+
+    useEffect(() => () => { clearTimeout(addedTimer.current); clearTimeout(burstTimer.current); }, []);
 
     // Reset image state whenever the primary URL changes (Firestore real-time update)
     useEffect(() => {
@@ -213,7 +216,8 @@ export default function MobileProductCard({ product, size = 'md' }) {
         haptic('medium');
         addToCart(product);
         setAddedToCart(true);
-        setTimeout(() => setAddedToCart(false), 1800);
+        clearTimeout(addedTimer.current);
+        addedTimer.current = setTimeout(() => setAddedToCart(false), 1800);
     };
 
     const handleWishlist = (e) => {
@@ -221,7 +225,8 @@ export default function MobileProductCard({ product, size = 'md' }) {
         if (!wishlisted) {
             haptic('success');
             setBurst(true);
-            setTimeout(() => setBurst(false), 600);
+            clearTimeout(burstTimer.current);
+            burstTimer.current = setTimeout(() => setBurst(false), 600);
         } else {
             haptic('light');
         }
@@ -238,8 +243,11 @@ export default function MobileProductCard({ product, size = 'md' }) {
     const discount = product.salePrice && product.price
         ? Math.round((1 - product.salePrice / product.price) * 100)
         : 0;
-    const { getMemberPrice, isMember, tierColor } = useAuth();
+    const stockStatus = product.stock === undefined ? null : product.stock > 10 ? 'ok' : product.stock > 0 ? 'low' : 'out';
+    const { getMemberPrice, tierColor } = useAuth();
     const { isVisible } = useSettings();
+    const showPrices   = isVisible('show_prices', true);
+    const allowOrders  = isVisible('allow_orders', true);
     const memberPricingOn = isVisible('vis_member_pricing', false);
     const memberPrice = memberPricingOn ? getMemberPrice(displayPrice) : null;
 
@@ -303,7 +311,6 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     style={{
                         position: 'absolute', top: 4, left: 4, zIndex: 2,
                         background: wishlisted ? 'rgba(255,45,85,0.12)' : c.wishlistBg,
-                        backdropFilter: 'blur(12px)',
                         border: 'none', borderRadius: 99,
                         width: 44, height: 44,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -328,7 +335,12 @@ export default function MobileProductCard({ product, size = 'md' }) {
                     position: 'relative',
                 }}>
                     {imgError ? (
-                        <span style={{ fontSize: isSmall ? 30 : 40, opacity: 0.4 }}>🖥️</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: 0.35 }}>
+                            <svg width={isSmall ? 28 : 36} height={isSmall ? 28 : 36} fill="none" viewBox="0 0 24 24" stroke="#aeaeb2" strokeWidth={1}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#aeaeb2', fontFamily: SF }}>nextclass</span>
+                        </div>
                     ) : (
                         <>
                             {!imgLoaded && (
@@ -336,7 +348,7 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                     position: 'absolute', inset: 0,
                                     background: `linear-gradient(90deg, ${c.shimmerA} 25%, ${c.shimmerB} 50%, ${c.shimmerA} 75%)`,
                                     backgroundSize: '200% 100%',
-                                    animation: 'shimmer 1.4s infinite',
+                                    animation: 'shimmer 1.4s infinite', willChange: 'background-position',
                                 }} />
                             )}
                             <motion.img
@@ -357,37 +369,19 @@ export default function MobileProductCard({ product, size = 'md' }) {
                                     }
                                     // GENERIC_FALLBACK is a data URI, cannot fail
                                 }}
-                                initial={{ scale: 1.08, filter: 'blur(8px)', opacity: 0 }}
-                                animate={imgLoaded ? { scale: 1, filter: 'blur(0px)', opacity: 1 } : {}}
-                                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                initial={{ scale: 1.06, opacity: 0 }}
+                                animate={imgLoaded ? { scale: 1, opacity: 1 } : {}}
+                                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                                 style={{
                                     width: '90%', height: '90%', objectFit: 'contain',
                                 }}
-                                loading="eager"
+                                loading="lazy"
                             />
                             <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
                         </>
                     )}
                 </div>
 
-                {/* ── Social proof chip ──────────────────────────────────── */}
-                {!isSmall && (() => {
-                    const hash = String(product.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-                    const viewers = 2 + (hash % 6);
-                    return (
-                        <div style={{
-                            position: 'absolute', bottom: 8, left: 8, zIndex: 3,
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)',
-                            borderRadius: 99, padding: '3px 7px',
-                        }}>
-                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#30D158', boxShadow: '0 0 4px #30D158', flexShrink: 0 }} />
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: SF, whiteSpace: 'nowrap' }}>
-                                {viewers} צופים
-                            </span>
-                        </div>
-                    );
-                })()}
 
                 {/* ── Info ───────────────────────────────────────────────── */}
                 <div style={{ padding: isSmall ? '8px 10px 10px' : '10px 12px 12px' }}>
@@ -406,18 +400,45 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         {product.title}
                     </p>
 
-                    <div style={{ marginBottom: isSmall ? 8 : 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                            <span style={{ fontSize: isSmall ? 14 : 16, fontWeight: 800, color: product.salePrice ? '#FF3B30' : c.text, letterSpacing: '-0.02em' }}>
-                                ₪{displayPrice?.toLocaleString()}
-                            </span>
-                            {product.salePrice && (
-                                <span style={{ fontSize: 10, color: c.text4, textDecoration: 'line-through' }}>
-                                    ₪{product.price?.toLocaleString()}
-                                </span>
+                    {/* Stock + sold indicators (matches desktop) */}
+                    {!isSmall && (stockStatus || product.sold > 0) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                            {stockStatus && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800,
+                                    color: stockStatus === 'ok' ? '#34C759' : stockStatus === 'low' ? '#FF9F0A' : '#FF375F' }}>
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%',
+                                        background: stockStatus === 'ok' ? '#34C759' : stockStatus === 'low' ? '#FF9F0A' : '#FF375F' }} />
+                                    {stockStatus === 'ok' ? 'במלאי' : stockStatus === 'low' ? `${product.stock} נותרו` : 'אזל המלאי'}
+                                </div>
+                            )}
+                            {product.sold > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800, color: '#86868B' }}>
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF9F0A' }} />
+                                    נמכרו {product.sold}+
+                                </div>
                             )}
                         </div>
-                        {memberPrice && (
+                    )}
+
+                    <div style={{ marginBottom: isSmall ? 8 : 10 }}>
+                        {showPrices && (
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                                {product.salePrice && (
+                                    <span style={{ fontSize: 10, color: c.text4, textDecoration: 'line-through' }}>
+                                        ₪{product.price?.toLocaleString()}
+                                    </span>
+                                )}
+                                {product.salePrice && (
+                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 99, background: 'rgba(255,59,48,0.10)', color: '#FF3B30' }}>
+                                        -{discount}%
+                                    </span>
+                                )}
+                                <span style={{ fontSize: isSmall ? 14 : 16, fontWeight: 800, color: product.salePrice ? '#FF3B30' : c.text, letterSpacing: '-0.02em' }}>
+                                    ₪{displayPrice?.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+                        {showPrices && memberPrice && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
                                 <span style={{ fontSize: 9, fontWeight: 800, color: tierColor, background: `${tierColor}18`, padding: '1px 6px', borderRadius: 99, flexShrink: 0 }}>מועדון</span>
                                 <span style={{ fontSize: 12, fontWeight: 800, color: tierColor }}>₪{memberPrice.toLocaleString()}</span>
@@ -435,40 +456,58 @@ export default function MobileProductCard({ product, size = 'md' }) {
                         </div>
                     )}
 
-                    {/* ── Add to cart ────────────────────────────────────── */}
-                    <motion.button
-                        whileTap={{ scale: 0.90 }}
-                        onClick={handleAdd}
-                        style={{
-                            width: '100%', height: isSmall ? 36 : 40,
-                            borderRadius: 10,
-                            background: addedToCart
-                                ? 'linear-gradient(135deg, #34C759, #28A745)'
-                                : 'linear-gradient(135deg, #007AFF, #0063CC)',
-                            color: '#fff', border: 'none',
-                            fontSize: isSmall ? 11 : 12, fontWeight: 700,
-                            cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                            marginBottom: isSmall ? 0 : 6,
-                            transition: 'background 0.2s',
-                            boxShadow: addedToCart ? '0 2px 10px rgba(52,199,89,0.3)' : '0 2px 8px rgba(0,122,255,0.22)',
-                        }}
-                    >
-                        <AnimatePresence mode="wait">
-                            {addedToCart ? (
-                                <motion.span key="done" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <Check size={11} strokeWidth={3} /> נוסף!
-                                </motion.span>
-                            ) : (
-                                <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <ShoppingBag size={11} strokeWidth={2} />
-                                    הוסף לעגלה
-                                </motion.span>
-                            )}
-                        </AnimatePresence>
-                    </motion.button>
+                    {/* ── Add to cart / contact CTA ──────────────────────── */}
+                    {allowOrders ? (
+                        <motion.button
+                            whileTap={{ scale: 0.90 }}
+                            onClick={handleAdd}
+                            style={{
+                                width: '100%', height: isSmall ? 36 : 40,
+                                borderRadius: 10,
+                                background: addedToCart
+                                    ? 'linear-gradient(135deg, #34C759, #28A745)'
+                                    : 'linear-gradient(135deg, #007AFF, #0063CC)',
+                                color: '#fff', border: 'none',
+                                fontSize: isSmall ? 11 : 12, fontWeight: 700,
+                                cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                marginBottom: isSmall ? 0 : 6,
+                                transition: 'background 0.2s',
+                                boxShadow: addedToCart ? '0 2px 10px rgba(52,199,89,0.3)' : '0 2px 8px rgba(0,122,255,0.22)',
+                            }}
+                        >
+                            <AnimatePresence mode="wait">
+                                {addedToCart ? (
+                                    <motion.span key="done" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <Check size={11} strokeWidth={3} /> נוסף!
+                                    </motion.span>
+                                ) : (
+                                    <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <ShoppingBag size={11} strokeWidth={2} />
+                                        הוסף לעגלה
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
+                    ) : (
+                        <Link
+                            to="/contact"
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                width: '100%', height: isSmall ? 36 : 40, borderRadius: 10,
+                                background: 'linear-gradient(135deg, #007AFF, #0063CC)',
+                                color: '#fff', textDecoration: 'none',
+                                fontSize: isSmall ? 11 : 12, fontWeight: 700,
+                                marginBottom: isSmall ? 0 : 6,
+                                boxShadow: '0 2px 8px rgba(0,122,255,0.22)',
+                            }}
+                        >
+                            פרטים והצעה
+                        </Link>
+                    )}
 
                     {/* ── Compare (md only) ──────────────────────────────── */}
                     {!isSmall && (
@@ -490,6 +529,13 @@ export default function MobileProductCard({ product, size = 'md' }) {
                             <Scale size={11} strokeWidth={2} />
                             {inCompare ? '✓ בהשוואה' : 'השווה'}
                         </motion.button>
+                    )}
+
+                    {/* ── Trust micro-line (md only — matches desktop) ────── */}
+                    {!isSmall && (
+                        <p style={{ textAlign: 'center', fontSize: 9, color: '#AEAEB2', fontWeight: 500, marginTop: 6 }}>
+                            שירות מקצועי · ייעוץ ללא עלות · רמה ללא פשרות
+                        </p>
                     )}
                 </div>
             </motion.div>

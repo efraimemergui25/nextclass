@@ -6,6 +6,7 @@ import { ChevronRight, ChevronLeft, Search, Monitor, Laptop2, FlaskConical, Volu
 import MenuOverlay from './MenuOverlay';
 import CartDrawer from './CartDrawer';
 import SmartSearchModal from './SmartSearchModal';
+import PersonalPanel from './PersonalPanel';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -94,6 +95,7 @@ const Header = () => {
  const { cartItems } = useCart();
  const { wishlistCount } = useWishlist();
  const { user, isMember, tierColor, openAuthModal } = useAuth();
+ const [panelOpen, setPanelOpen] = useState(false);
  const navigate = useNavigate();
 
  const cartCount = useMemo(
@@ -297,10 +299,10 @@ const Header = () => {
 
  {/* ── User / Auth ── */}
  <motion.button
- onClick={openAuthModal}
+ onClick={user ? () => setPanelOpen(true) : openAuthModal}
  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
  className="relative cursor-pointer focus:outline-none p-3 rounded-full text-[#1D1D1F] hover:bg-gray-100/50 transition-all flex items-center justify-center shrink-0 z-[120]"
- aria-label={user ? 'פרופיל' : 'כניסה / הרשמה'}
+ aria-label={user ? 'האזור האישי שלי' : 'כניסה / הרשמה'}
  style={{ color: user ? tierColor : undefined }}
  >
  {user ? (
@@ -314,7 +316,6 @@ const Header = () => {
   <span style={{ position: 'absolute', bottom: 6, right: 6, width: 8, height: 8, borderRadius: 99, background: tierColor, border: '1.5px solid white' }} />
  )}
  </motion.button>
-
  <button
  onClick={goBack}
  className="flex md:hidden w-10 h-10 cursor-pointer rounded-full bg-white/50 hover:bg-white backdrop-blur-xl border border-white/80 shadow-sm items-center justify-center transition-all active:scale-95 shrink-0 z-[120]"
@@ -447,6 +448,10 @@ const Header = () => {
  document.body
  )}
 
+ {createPortal(
+ <PersonalPanel open={panelOpen} onClose={() => setPanelOpen(false)} />,
+ document.body
+ )}
  <MenuOverlay isOpen={isMenuOpen} onClose={closeMenu} />
  <CartDrawer isOpen={isCartOpen} onClose={closeCart} />
  <AnimatePresence>

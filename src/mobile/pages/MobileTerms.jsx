@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, FileText } from 'lucide-react';
+import { ChevronDown, ChevronLeft, FileText } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -117,7 +117,9 @@ export default function MobileTerms() {
                     background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                     fontFamily: SF, WebkitTapHighlightColor: 'transparent', direction: 'rtl',
                 }}>
-                    קרא את מדיניות הפרטיות ←
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        קרא את מדיניות הפרטיות <ChevronLeft size={14} strokeWidth={2.5} />
+                    </span>
                 </button>
             </Accordion>
 

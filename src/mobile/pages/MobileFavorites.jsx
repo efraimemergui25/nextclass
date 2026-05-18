@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ChevronLeft, Trash2 } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -34,7 +34,7 @@ export default function MobileFavorites() {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 WebkitTapHighlightColor: 'transparent',
             }}>
-                לקטלוג המוצרים <ChevronLeft size={16} />
+                לקטלוג המוצרים <ChevronRight size={16} />
             </motion.button>
         </div>
     );

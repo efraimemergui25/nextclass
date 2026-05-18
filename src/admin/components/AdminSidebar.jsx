@@ -108,6 +108,7 @@ const NAV_GROUPS = [
         items: [
             { path: '/admin/orders',      icon: 'orders',      label: 'הזמנות',      badge: 'pending' },
             { path: '/admin/customers',   icon: 'customers',   label: 'לקוחות',      badge: 'newContacts' },
+            { path: '/admin/users',       icon: 'community',   label: 'משתמשים רשומים', badge: null },
             { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',        badge: 'lowStock' },
             { path: '/admin/fulfillment', icon: 'fulfillment', label: 'רכש וספקים',  badge: null },
         ],
@@ -563,9 +564,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     transition={{ type: 'spring', stiffness: 380, damping: 36 }}
                     className="fixed top-0 right-0 h-full w-72 flex flex-col z-[35] lg:hidden"
                     style={{
-                        background: 'rgba(248,248,252,0.96)',
-                        backdropFilter: 'blur(64px) saturate(240%)',
-                        WebkitBackdropFilter: 'blur(64px) saturate(240%)',
+                        background: '#F8F8FC',
                         borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.07)'}`,
                         boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
                     }}
@@ -646,7 +645,9 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     {/* Footer */}
                     <div className="p-2 border-t border-black/06 space-y-1">
                         <a href="/" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#007AFF] hover:bg-[#007AFF]/06 transition-all">
-                            <NavIcon d={ICONS.dashboard} />
+                            <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
                             <span className="text-[13px] font-bold">לאתר הראשי</span>
                         </a>
                         <motion.button whileTap={{ scale: 0.94 }} onClick={() => { logout(); navigate('/admin'); }}

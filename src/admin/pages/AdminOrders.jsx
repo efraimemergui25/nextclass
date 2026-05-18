@@ -13,8 +13,6 @@ const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
     background: 'rgba(255,255,255,0.88)',
-    backdropFilter: 'blur(28px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.75)',
     boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
 };
@@ -47,8 +45,6 @@ function Stat({ label, value, color, Icon, tooltip }) {
             className="rounded-[20px] p-4 text-right relative overflow-hidden"
             style={{
                 background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
-                backdropFilter: 'blur(40px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
                 border: `1px solid ${color}22`,
                 boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
             }}
@@ -265,7 +261,6 @@ function QuotesPipeline() {
                             transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => { setSelected(quote); setNewStatus(''); setSaved(false); setNoteText(''); }}
                             className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
-                            style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                         >
                             <Avatar name={quote.contactName} />
                             <div className="text-right">
@@ -566,7 +561,6 @@ function OrdersList() {
                             transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => { setSelected(order); setNewStatus(''); setSaved(false); }}
                             className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
-                            style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                         >
                             <Avatar name={order.customer} />
                             <div className="text-right">

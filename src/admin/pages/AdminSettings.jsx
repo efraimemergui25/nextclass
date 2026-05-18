@@ -13,8 +13,6 @@ function SettingCard({ title, Icon, accent = '#007AFF', children }) {
     return (
         <div className="rounded-[22px] overflow-hidden" style={{
             background: 'rgba(255,255,255,0.90)',
-            backdropFilter: 'blur(40px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
             border: '1px solid rgba(255,255,255,0.80)',
             boxShadow: '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
         }}>

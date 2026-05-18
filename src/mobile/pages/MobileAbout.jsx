@@ -2,7 +2,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BadgeDollarSign, Zap, Award, MessageCircle, Compass, Calendar, Phone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { haptic } from '../utils/haptic';
 
@@ -13,9 +13,9 @@ function BlurFade({ children, delay = 0 }) {
     const inView = useInView(ref, { once: true, margin: '-30px' });
     return (
         <motion.div ref={ref}
-            initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-            animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay }}>
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay }}>
             {children}
         </motion.div>
     );
@@ -69,9 +69,9 @@ export default function MobileAbout() {
     const ctaDesc  = getSetting('about_cta_desc', 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.');
 
     const VALUES = [
-        { emoji: '💰', title: v1Title, desc: v1Desc },
-        { emoji: '⚡', title: v2Title, desc: v2Desc },
-        { emoji: '🏆', title: v3Title, desc: v3Desc },
+        { icon: BadgeDollarSign, color: '#FF9F0A', title: v1Title, desc: v1Desc },
+        { icon: Zap,             color: '#007AFF', title: v2Title, desc: v2Desc },
+        { icon: Award,           color: '#30D158', title: v3Title, desc: v3Desc },
     ];
 
     const TIMELINE = [
@@ -89,15 +89,17 @@ export default function MobileAbout() {
             <div style={{ padding: '14px 16px 0' }}>
                 <div style={{
                     borderRadius: 24, overflow: 'hidden',
-                    background: 'linear-gradient(145deg, #1D1D1F 0%, #2C2C2E 60%, #1a1a2e 100%)',
+                    background: 'linear-gradient(145deg, #F0F6FF 0%, #EEF0FF 60%, #F5F8FF 100%)',
                     padding: '28px 22px 24px',
-                    boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
+                    boxShadow: '0 4px 20px rgba(0,122,255,0.08)',
+                    border: '1px solid rgba(0,122,255,0.10)',
                     position: 'relative',
                 }}>
-                    <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,122,255,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', top: -40, right: -30, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,122,255,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', bottom: -30, left: -20, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(88,86,214,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
                     {founderImg ? (
-                        <div style={{ width: 64, height: 64, borderRadius: 18, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 18, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
                             <img src={founderImg} alt={founderName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                     ) : (
@@ -106,33 +108,19 @@ export default function MobileAbout() {
                         </div>
                     )}
 
-                    <div style={{ display: 'inline-block', background: 'rgba(0,122,255,0.2)', color: '#64D2FF', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, marginBottom: 12, letterSpacing: '0.04em' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, marginBottom: 12, letterSpacing: '0.04em', border: '1px solid rgba(0,122,255,0.18)' }}>
                         {heroLabel}
                     </div>
-                    <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.12, marginBottom: 10, whiteSpace: 'pre-line' }}>
+                    <h1 style={{
+                        fontSize: 28, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.12, marginBottom: 10, whiteSpace: 'pre-line',
+                        background: 'linear-gradient(135deg, #1D1D1F 25%, #007AFF 100%)',
+                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                    }}>
                         {heroTitle}
                     </h1>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.62)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                    <p style={{ fontSize: 14, color: c.text3, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
                         {heroSub}
                     </p>
-                </div>
-            </div>
-            </BlurFade>
-
-            {/* ── Stats ─────────────────────────────────────────────── */}
-            <BlurFade delay={0.06}>
-            <div style={{ margin: '14px 16px 0' }}>
-                <div style={{ background: c.surface, borderRadius: 18, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', boxShadow: c.cardShadow, overflow: 'hidden' }}>
-                    {[[stat1Val, stat1Label], [stat2Val, stat2Label], [stat3Val, stat3Label]].map(([val, label], i) => (
-                        <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 8px', borderRight: i < 2 ? `0.5px solid ${c.divider}` : 'none' }}>
-                            <span style={{ fontSize: 22, fontWeight: 900, color: '#007AFF', letterSpacing: '-0.04em' }}>
-                                {val}{label.includes('%') ? '%' : '+'}
-                            </span>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text3, marginTop: 2, textAlign: 'center' }}>
-                                {label.replace(/ ?%/, '')}
-                            </span>
-                        </div>
-                    ))}
                 </div>
             </div>
             </BlurFade>
@@ -141,7 +129,7 @@ export default function MobileAbout() {
             <BlurFade delay={0.09}>
             <div style={{ margin: '16px 16px 0' }}>
                 <div style={{ background: c.surface, borderRadius: 20, padding: '20px 18px', boxShadow: c.cardShadow }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em', marginBottom: 12 }}>{storyTitle}</h2>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em', marginBottom: 12 }}>{storyTitle}</h2>
                     <p style={{ fontSize: 15, color: c.text2, lineHeight: 1.7 }}>{storyBody}</p>
                     <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {[check1, check2, check3].map(c2 => (
@@ -157,28 +145,62 @@ export default function MobileAbout() {
             </div>
             </BlurFade>
 
-            {/* ── Founder message ───────────────────────────────────── */}
+            {/* ── How We Work — matches desktop "קודם שואלים" section ── */}
             <BlurFade delay={0.12}>
             <div style={{ margin: '16px 16px 0' }}>
-                <div style={{ background: 'linear-gradient(135deg, #1D1D1F, #2C2C2E)', borderRadius: 20, padding: '22px 20px', boxShadow: '0 6px 28px rgba(0,0,0,0.18)' }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', marginBottom: 14 }}>
+                <div style={{ background: c.surface, borderRadius: 20, padding: '20px 18px', boxShadow: c.cardShadow }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#007AFF', letterSpacing: '0.04em', marginBottom: 8, display: 'block' }}>הגישה שלנו</span>
+                    <h2 style={{ fontSize: 20, fontWeight: 900, color: '#007AFF', letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 6 }}>
+                        קודם שואלים.{' '}
+                        <span style={{ color: '#AEAEB2' }}>אחר כך מציעים.</span>
+                    </h2>
+                    <p style={{ fontSize: 13, color: c.text2, lineHeight: 1.6, marginBottom: 16 }}>
+                        הרוב מוכרים. אנחנו מקשיבים. לפני כל המלצה מגיעה שיחה אמיתית שמבינה את הצורך.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {[
+                            { Icon: MessageCircle, color: '#007AFF', text: 'מקשיבים לצורך האמיתי — לפני שמציעים פתרון' },
+                            { Icon: Compass,       color: '#5856D6', text: 'ממליצים על מה שמתאים, לא על מה שהכי יקר' },
+                            { Icon: Calendar,      color: '#FF9500', text: 'מגיעים ביום שסוכם — תמיד, ללא עיכובים' },
+                            { Icon: Phone,         color: '#30D158', text: 'מענה ישיר ומהיר — בלי תורים, בלי המתנה' },
+                        ].map(({ Icon, color, text }, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(0,122,255,0.05)', borderRadius: 12, border: '0.5px solid rgba(0,122,255,0.1)' }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 9, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Icon size={16} color={color} strokeWidth={1.8} />
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: c.text2, lineHeight: 1.4 }}>{text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            </BlurFade>
+
+            {/* ── Founder message — light glass (matches desktop style) ── */}
+            <BlurFade delay={0.15}>
+            <div style={{ margin: '16px 16px 0' }}>
+                <div style={{
+                    background: c.surface, borderRadius: 20, padding: '22px 20px',
+                    boxShadow: c.cardShadow, border: `0.5px solid ${c.border}`,
+                }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#007AFF', letterSpacing: '0.08em', marginBottom: 14 }}>
                         {founderLabel.toUpperCase()}
                     </p>
-                    <h3 style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.2, marginBottom: 14, whiteSpace: 'pre-line' }}>
+                    <h3 style={{ fontSize: 20, fontWeight: 900, color: '#007AFF', letterSpacing: '-0.04em', lineHeight: 1.2, marginBottom: 14, whiteSpace: 'pre-line' }}>
                         {founderTitle}
                     </h3>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.62)', lineHeight: 1.7, marginBottom: 16 }}>
+                    <p style={{ fontSize: 14, color: c.text2, lineHeight: 1.7, marginBottom: 16 }}>
                         "{founderMessage}"
                     </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: '0.5px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: `0.5px solid ${c.divider}` }}>
                         {founderImg ? (
                             <img src={founderImg} alt={founderName} style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
                         ) : (
                             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #007AFF, #5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>א</div>
                         )}
                         <div>
-                            <p style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{founderName}</p>
-                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{founderRole}</p>
+                            <p style={{ fontSize: 14, fontWeight: 800, color: c.text }}>{founderName}</p>
+                            <p style={{ fontSize: 12, color: c.text3 }}>{founderRole}</p>
                         </div>
                     </div>
                 </div>
@@ -189,14 +211,14 @@ export default function MobileAbout() {
             <BlurFade delay={0.15}>
             <div style={{ margin: '16px 16px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>{valuesTitle}</h2>
                     <p style={{ fontSize: 13, color: c.text3 }}>{valuesDesc}</p>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em' }}>{valuesTitle}</h2>
                 </div>
                 <div style={{ background: c.surface, borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
-                    {VALUES.map(({ emoji, title, desc }, i) => (
+                    {VALUES.map(({ icon: VIcon, color, title, desc }, i) => (
                         <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', borderBottom: i < VALUES.length - 1 ? `0.5px solid ${c.divider}` : 'none' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 13, background: 'rgba(0,122,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
-                                {emoji}
+                            <div style={{ width: 44, height: 44, borderRadius: 13, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <VIcon size={22} color={color} strokeWidth={1.8} />
                             </div>
                             <div>
                                 <p style={{ fontSize: 15, fontWeight: 700, color: c.text, marginBottom: 4 }}>{title}</p>
@@ -208,43 +230,52 @@ export default function MobileAbout() {
             </div>
             </BlurFade>
 
-            {/* ── Timeline ──────────────────────────────────────────── */}
+            {/* ── Social Proof — matches desktop testimonials section ── */}
             <BlurFade delay={0.18}>
             <div style={{ margin: '20px 16px 0' }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: c.text, letterSpacing: '-0.03em', marginBottom: 16, textAlign: 'right' }}>{wayTitle}</h2>
-                <div style={{ position: 'relative', paddingRight: 20 }}>
-                    {/* vertical line */}
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: c.divider, borderRadius: 1 }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                        {TIMELINE.map(([year, title, desc, accent], i) => (
-                            <div key={year} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, paddingBottom: i < TIMELINE.length - 1 ? 20 : 0 }}>
-                                {/* dot */}
-                                <div style={{ width: 16, height: 16, borderRadius: 8, background: accent, flexShrink: 0, marginTop: 3, boxShadow: `0 0 0 3px ${accent}22`, zIndex: 1 }} />
-                                <div style={{ background: c.surface, borderRadius: 16, padding: '14px 16px', flex: 1, boxShadow: c.cardShadow }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                        <span style={{ fontSize: 13, fontWeight: 900, color: accent }}>{year}</span>
-                                        <span style={{ fontSize: 15, fontWeight: 800, color: c.text }}>{title}</span>
-                                    </div>
-                                    <p style={{ fontSize: 13, color: c.text3, lineHeight: 1.5 }}>{desc}</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>לקוחות מספרים</h2>
+                    <p style={{ fontSize: 12, color: c.text3, fontWeight: 600 }}>סומכים עלינו</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                        { quote: 'ביקשנו 12 מסכים לפני ינואר. הגיעו ב-27 בדצמבר, הותקנו ב-28, ויום אחרי כל הצוות כבר ידע להשתמש. אפס בירוקרטיה.', name: 'רינת לוי', role: 'רכזת טכנולוגיה, חט"ב, רמת גן', stars: 5 },
+                        { quote: 'עבדנו עם ספקים אחרים. ב-NextClass יש עם מי לדבר כשיש בעיה — לא רק לפני המכירה.', name: 'דוד אוחיון', role: 'מנהל רכש, רשות מקומית דרום', stars: 5 },
+                        { quote: 'ציוד בסדר גמור, אבל מה שגרם לנו לחזור זה השירות. אפרים ענה לי ב-WhatsApp בערב. זה לא מובן מאליו.', name: 'נועה שפירא', role: 'מנהלת חינוכית, מכללת עמק', stars: 5 },
+                    ].map(({ quote, name, role, stars }, i) => (
+                        <div key={i} style={{ background: c.surface, borderRadius: 18, padding: '16px 18px', boxShadow: c.cardShadow, border: `0.5px solid ${c.border}` }}>
+                            <div style={{ display: 'flex', gap: 2, marginBottom: 10, justifyContent: 'flex-end' }}>
+                                {Array.from({ length: stars }).map((_, s) => (
+                                    <span key={s} style={{ color: '#FF9500', fontSize: 14 }}>★</span>
+                                ))}
+                            </div>
+                            <p style={{ fontSize: 14, color: c.text2, lineHeight: 1.65, marginBottom: 14 }}>"{quote}"</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 99, background: 'linear-gradient(135deg, #007AFF, #5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+                                    {name[0]}
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 13, fontWeight: 800, color: c.text }}>{name}</p>
+                                    <p style={{ fontSize: 11, color: c.text3 }}>{role}</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    ))}
                 </div>
             </div>
             </BlurFade>
 
             {/* ── CTA ───────────────────────────────────────────────── */}
-            <BlurFade delay={0.21}>
+            <BlurFade delay={0.24}>
             <div style={{ margin: '20px 16px 0' }}>
                 <motion.div
                     whileTap={{ scale: 0.98 }}
                     onClick={() => { haptic('light'); navigate('/contact'); }}
-                    style={{ borderRadius: 20, padding: '24px 22px', cursor: 'pointer', background: 'linear-gradient(135deg, #007AFF, #5856D6)', boxShadow: '0 6px 28px rgba(0,122,255,0.28)', WebkitTapHighlightColor: 'transparent' }}
+                    style={{ borderRadius: 20, padding: '24px 22px', cursor: 'pointer', background: c.surface, boxShadow: c.cardShadow, WebkitTapHighlightColor: 'transparent', border: `1px solid ${c.divider}` }}
                 >
-                    <h3 style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', marginBottom: 10, lineHeight: 1.2, whiteSpace: 'pre-line' }}>{ctaTitle}</h3>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 18, lineHeight: 1.5 }}>{ctaDesc}</p>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.18)', padding: '10px 18px', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, border: '1px solid rgba(255,255,255,0.26)' }}>
+                    <h3 style={{ fontSize: 22, fontWeight: 900, color: c.text, letterSpacing: '-0.04em', marginBottom: 10, lineHeight: 1.2, whiteSpace: 'pre-line' }}>{ctaTitle}</h3>
+                    <p style={{ fontSize: 13, color: c.text3, marginBottom: 18, lineHeight: 1.5 }}>{ctaDesc}</p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#007AFF', padding: '10px 20px', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700 }}>
                         {getSetting('contact_form_btn', 'שלח פנייה')} <ArrowLeft size={15} />
                     </div>
                 </motion.div>

@@ -56,6 +56,16 @@
   <link rel="preconnect" href="https://firestore.googleapis.com" />
   <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
+  <!-- Canonical domain redirect — send all Vercel preview/alias URLs to production -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      if (h !== 'getnextclass.com' && h !== 'localhost' && !h.startsWith('192.168') && !h.startsWith('127.')) {
+        location.replace('https://getnextclass.com' + location.pathname + location.search + location.hash);
+      }
+    })();
+  </script>
+
   <!-- Google Analytics 4 — loaded only when VITE_GA_ID is set at build time -->
   <script>
     window.__GA_ID__ = '%VITE_GA_ID%';

@@ -6,6 +6,7 @@ import ProductCard from './ProductCard';
 import { ListCard } from './CatalogGrid';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 // Show products in clean full rows of 4 (8 = 2 rows, clean gestalt)
 const HOMEPAGE_PREVIEW = 8;
@@ -23,6 +24,7 @@ const SORT_OPTIONS = [
 const HomeProductsSection = () => {
  const { getSetting } = useSettings();
  const { activeProducts } = useProducts();
+ const { user, firstName, timeGreeting } = useAuth();
 
  // Categories from CMS
  const rawCats = getSetting(
@@ -102,6 +104,37 @@ const HomeProductsSection = () => {
 
  {/* ── Section header ─────────────────────────────────────── */}
  <div className="text-center mb-16" dir="rtl">
+
+ {/* Personalized greeting — shown only for logged-in users */}
+ {user && firstName && timeGreeting && (
+ <motion.div
+  initial={{ opacity: 0, y: -10 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+  className="mb-6"
+ >
+  <div style={{
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '8px 22px', borderRadius: 99,
+  background: 'rgba(255,255,255,0.80)',
+  backdropFilter: 'blur(24px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+  border: '1px solid rgba(0,122,255,0.16)',
+  boxShadow: '0 4px 24px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+  }}>
+  <span style={{
+   fontFamily: 'Heebo, sans-serif',
+   fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
+   background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
+   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+  }}>
+   {timeGreeting.emoji} {timeGreeting.word}, {firstName}
+  </span>
+  </div>
+ </motion.div>
+ )}
+
  <motion.div
  initial={{ opacity: 0, scale: 0.9 }}
  whileInView={{ opacity: 1, scale: 1 }}

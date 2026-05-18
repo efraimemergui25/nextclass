@@ -131,7 +131,6 @@ function ProductRow({ product, onEdit }) {
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             onClick={() => onEdit(product)}
             className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] cursor-pointer transition-all group"
-            style={{ opacity: product.isActive === false ? 0.6 : 1, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image

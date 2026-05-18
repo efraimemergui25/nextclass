@@ -9,8 +9,6 @@ import { StatusBadge, AdminSectionHeader, AdminSearchBar, AdminButton, AdminModa
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
     background: 'rgba(255,255,255,0.88)',
-    backdropFilter: 'blur(28px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.75)',
     boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
 };
@@ -167,7 +165,6 @@ export default function AdminCustomers() {
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
                                 className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
-                                style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                             >
                                 <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
                                 <div className="flex items-center gap-3 justify-end">
@@ -211,7 +208,6 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
-                                style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
                             >
                                 <Avatar name={c.name} size={11} />
                                 <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#007AFF] transition-colors">{c.name}</p>

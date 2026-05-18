@@ -138,11 +138,9 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
             <div
                 className="h-14 shrink-0 flex items-center gap-4 px-6 border-b border-white/60"
                 style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.72) 100%)',
-                    backdropFilter: 'blur(48px) saturate(2.0)',
-                    WebkitBackdropFilter: 'blur(48px) saturate(2.0)',
-                    borderBottom: '1px solid rgba(255,255,255,0.55)',
-                    boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 2px 16px rgba(0,0,0,0.04)',
+                    background: 'rgba(255,255,255,0.97)',
+                    borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
                 }}
                 dir="rtl"
             >
@@ -150,7 +148,7 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
                 <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={onMobileMenuToggle}
-                    className="flex lg:hidden w-9 h-9 rounded-xl items-center justify-center text-[#6E6E73] hover:bg-[#F5F5F7] transition-colors shrink-0"
+                    className="flex lg:hidden w-11 h-11 rounded-xl items-center justify-center text-[#6E6E73] hover:bg-[#F5F5F7] transition-colors shrink-0"
                     aria-label="פתח תפריט"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

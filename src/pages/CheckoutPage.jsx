@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import PageTransition from '../components/PageTransition';
 import { trackEvent } from '../App';
@@ -192,7 +192,14 @@ export default function CheckoutPage() {
  adminNotes: [],
  history: [{ status: 'חדש', date: now.toLocaleDateString('he-IL'), time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) }],
  };
- await setDoc(doc(db, 'quotes', id), quote);
+ const batch = writeBatch(db);
+ batch.set(doc(db, 'quotes', id), quote);
+ // Reserve stock for each item
+ (cartItems ?? []).forEach(item => {
+   const qty = Number(item.qty) || 1;
+   batch.update(doc(db, 'products', String(item.id)), { reserved: increment(qty) });
+ });
+ await batch.commit();
  trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
 
  // Fire-and-forget: push to HubSpot CRM + send confirmation email
@@ -597,18 +604,18 @@ export default function CheckoutPage() {
 
  {/* ── Right: Sticky cart summary ────────────────────── */}
  <div className="lg:sticky lg:top-28">
- <div className="rounded-[2rem] overflow-hidden shadow-xl"
- style={{ background: 'linear-gradient(160deg, #1C1C1E 0%, #2C2C2E 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+ <div className="rounded-[2rem] overflow-hidden"
+ style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 4px 28px rgba(0,0,0,0.08)' }}>
 
  {/* Header */}
- <div className="px-6 pt-6 pb-4 border-b border-white/10">
+ <div className="px-6 pt-6 pb-4 border-b border-black/[0.06]">
  <div className="flex items-center justify-between mb-1">
- <span className="text-[11px] font-black text-[#636366]">סל הקניות שלך</span>
- <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-[#007AFF]/20 text-[#007AFF]">
+ <span className="text-[11px] font-black text-[#86868B]">סל הקניות שלך</span>
+ <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-[#007AFF]/10 text-[#007AFF]">
  {(cartItems ?? []).reduce((s, i) => s + (i.qty ?? 1), 0)} פריטים
  </span>
  </div>
- <p className="text-white font-black text-lg">הצעת המחיר שלך</p>
+ <p className="text-[#1D1D1F] font-black text-lg">הצעת המחיר שלך</p>
  </div>
 
  {/* Items */}
@@ -616,20 +623,20 @@ export default function CheckoutPage() {
  {(cartItems ?? []).map(item => (
  <motion.div key={item.id} layout
  className="flex items-center gap-3 p-3 rounded-2xl"
- style={{ background: 'rgba(255,255,255,0.05)' }}>
- <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 shrink-0">
+ style={{ background: 'rgba(0,0,0,0.03)' }}>
+ <div className="w-12 h-12 rounded-xl overflow-hidden bg-black/[0.06] shrink-0">
  <img src={item.image || item.imageUrl} alt={item.title}
  className="w-full h-full object-cover" loading="lazy"
  onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-white font-bold text-[12px] line-clamp-1">{item.title}</p>
- <p className="text-[#636366] text-[10px] font-medium">₪{Number(item.price).toLocaleString()} × {item.qty ?? 1}</p>
+ <p className="text-[#1D1D1F] font-bold text-[12px] line-clamp-1">{item.title}</p>
+ <p className="text-[#86868B] text-[10px] font-medium">₪{Number(item.price).toLocaleString()} × {item.qty ?? 1}</p>
  </div>
  <div className="flex items-center gap-1.5 shrink-0">
- <button onClick={() => decreaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-white/10 text-white text-xs font-black flex items-center justify-center hover:bg-white/20 cursor-pointer">−</button>
- <span className="text-white font-black text-[12px] w-5 text-center">{item.qty ?? 1}</span>
- <button onClick={() => increaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-white/10 text-white text-xs font-black flex items-center justify-center hover:bg-white/20 cursor-pointer">+</button>
+ <button onClick={() => decreaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-black/[0.06] text-[#1D1D1F] text-xs font-black flex items-center justify-center hover:bg-black/10 cursor-pointer">−</button>
+ <span className="text-[#1D1D1F] font-black text-[12px] w-5 text-center">{item.qty ?? 1}</span>
+ <button onClick={() => increaseQuantity(item.id)} className="w-6 h-6 rounded-full bg-black/[0.06] text-[#1D1D1F] text-xs font-black flex items-center justify-center hover:bg-black/10 cursor-pointer">+</button>
  <button onClick={() => removeFromCart(item.id)} className="w-6 h-6 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 cursor-pointer mr-1">
  <Trash2 size={10} />
  </button>
@@ -639,10 +646,10 @@ export default function CheckoutPage() {
  </div>
 
  {/* Total + info */}
- <div className="px-6 py-5 border-t border-white/10">
+ <div className="px-6 py-5 border-t border-black/[0.06]">
  <div className="flex items-center justify-between mb-4">
- <span className="text-[#636366] text-sm font-bold">סה"כ משוער</span>
- <span className="text-white font-black text-2xl tracking-tight">₪{subtotal.toLocaleString()}</span>
+ <span className="text-[#86868B] text-sm font-bold">סה"כ משוער</span>
+ <span className="text-[#1D1D1F] font-black text-2xl tracking-tight">₪{subtotal.toLocaleString()}</span>
  </div>
  <div className="space-y-2.5">
  {[

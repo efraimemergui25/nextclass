@@ -3,6 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Star, Quote, ArrowLeft, Award, TrendingUp, Building2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../../context/SettingsContext';
 import { haptic } from '../utils/haptic';
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
@@ -71,12 +72,7 @@ const STORIES = [
     },
 ];
 
-// ─── Stats data ───────────────────────────────────────────────────────────────
-const STATS = [
-    { Icon: Building2, value: '500+',  label: 'מוסדות', accent: '#007AFF' },
-    { Icon: TrendingUp, value: '95%',  label: 'שביעות רצון', accent: '#30D158' },
-    { Icon: Award,      value: '12',   label: 'שנות ניסיון', accent: '#FF9F0A' },
-];
+// STATS derived in component from getSetting
 
 // ─── Star row ────────────────────────────────────────────────────────────────
 function StarRow({ count = 5 }) {
@@ -96,9 +92,9 @@ function BlurFade({ children, delay = 0 }) {
     return (
         <motion.div
             ref={ref}
-            initial={{ opacity: 0, y: 22, filter: 'blur(6px)', scale: 0.98 }}
-            animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 } : {}}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1], delay }}
+            initial={{ opacity: 0, y: 22, scale: 0.98 }}
+            animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay }}
         >
             {children}
         </motion.div>
@@ -152,8 +148,6 @@ function StoryCard({ story, c, delay, isDark }) {
                 boxShadow: isDark
                     ? `0 4px 24px rgba(0,0,0,0.28), inset 0 0.5px 0 rgba(255,255,255,0.05)`
                     : `0 2px 16px rgba(0,0,0,0.06), inset 0 0.5px 0 rgba(255,255,255,0.8)`,
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
                 padding: '20px 18px',
                 marginBottom: 0,
             }}>
@@ -225,6 +219,20 @@ function StoryCard({ story, c, delay, isDark }) {
 export default function MobileInnovation() {
     const navigate = useNavigate();
     const { colors: c, isDark } = useTheme();
+    const { getSetting } = useSettings();
+
+    const stat1Val   = getSetting('about_stat1_val', '1200');
+    const stat1Label = getSetting('about_stat1_label', 'מוסדות חינוך');
+    const stat2Val   = getSetting('about_stat3_val', '98');
+    const stat2Label = getSetting('about_stat3_label', '% שביעות רצון');
+    const stat3Val   = getSetting('about_stat2_val', '14');
+    const stat3Label = getSetting('about_stat2_label', 'שנות ניסיון');
+
+    const STATS = [
+        { Icon: Building2,  value: stat1Val,  label: stat1Label, accent: '#007AFF' },
+        { Icon: TrendingUp, value: `${stat2Val}%`, label: stat2Label, accent: '#30D158' },
+        { Icon: Award,      value: stat3Val,  label: stat3Label, accent: '#FF9F0A' },
+    ];
 
     return (
         <div style={{ fontFamily: SF, direction: 'rtl', minHeight: '100dvh', background: c.bg, paddingBottom: 40 }}>
@@ -237,10 +245,14 @@ export default function MobileInnovation() {
                     transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
                     style={{
                         borderRadius: 24, overflow: 'hidden',
-                        background: 'linear-gradient(145deg, #0a1628 0%, #0d2347 45%, #0f3460 100%)',
+                        background: isDark
+                            ? 'linear-gradient(145deg, #0a1628 0%, #0d2347 45%, #0f3460 100%)'
+                            : 'linear-gradient(145deg, #007AFF 0%, #5856D6 60%, #BF5AF2 100%)',
                         padding: '28px 22px 26px',
                         position: 'relative',
-                        boxShadow: '0 8px 40px rgba(0,0,0,0.24)',
+                        boxShadow: isDark
+                            ? '0 8px 40px rgba(0,0,0,0.24)'
+                            : '0 8px 40px rgba(0,122,255,0.30)',
                     }}
                 >
                     {/* Background glows */}
@@ -265,10 +277,7 @@ export default function MobileInnovation() {
                     }} />
 
                     {/* Label pill */}
-                    <motion.div
-                        animate={{ y: [0, -3, 0] }}
-                        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                    >
+                    <div>
                         <div style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             background: 'rgba(0,122,255,0.18)', color: '#64D2FF',
@@ -287,7 +296,7 @@ export default function MobileInnovation() {
                         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.55, marginBottom: 0 }}>
                             מוסדות חינוך מובילים בישראל בוחרים ב-NextClass כדי להוביל את המהפכה הטכנולוגית בכיתות.
                         </p>
-                    </motion.div>
+                    </div>
                 </motion.div>
             </div>
 
@@ -310,7 +319,7 @@ export default function MobileInnovation() {
                             flexShrink: 0,
                         }} />
                         <h2 style={{
-                            fontSize: 22, fontWeight: 900, color: c.text,
+                            fontSize: 22, fontWeight: 900, color: '#007AFF',
                             letterSpacing: '-0.04em',
                         }}>
                             סיפורי הצלחה
@@ -345,8 +354,8 @@ export default function MobileInnovation() {
                     }}>
                         {[
                             { label: 'ממוצע דירוג לקוחות', value: '4.9 / 5', accent: '#FF9F0A' },
-                            { label: 'מוסדות מרוצים', value: '500+', accent: '#30D158' },
-                            { label: 'שנות פעילות', value: '12 שנה', accent: '#007AFF' },
+                            { label: 'מוסדות מרוצים', value: `${stat1Val}+`, accent: '#30D158' },
+                            { label: 'שנות פעילות', value: `${stat3Val} שנה`, accent: '#007AFF' },
                         ].map(({ label, value, accent }, i, arr) => (
                             <div
                                 key={label}
@@ -414,14 +423,6 @@ export default function MobileInnovation() {
                         <div style={{ display: 'flex', gap: 10 }}>
                             <motion.button
                                 whileTap={{ scale: 0.93 }}
-                                animate={{
-                                    boxShadow: [
-                                        '0 4px 20px rgba(255,255,255,0.18)',
-                                        '0 4px 32px rgba(255,255,255,0.34)',
-                                        '0 4px 20px rgba(255,255,255,0.18)',
-                                    ],
-                                }}
-                                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
                                 onClick={() => { haptic('medium'); navigate('/contact'); }}
                                 style={{
                                     flex: 1, height: 50, borderRadius: 14,

@@ -184,9 +184,7 @@ export default function MobileCheckout() {
             {/* Fixed header */}
             <div style={{
                 position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-                background: c.navBg,
-                backdropFilter: 'blur(32px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+                background: c.surface,
                 borderBottom: `0.5px solid ${c.navBorder}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 height: 56, paddingTop: 'env(safe-area-inset-top, 0px)',

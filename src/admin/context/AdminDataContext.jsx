@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment } from 'firebase/firestore';
 import { db } from '../../firebase';
 import initialProducts, { productMeta } from '../../data/products';
 import { useAdminToast } from './AdminToastContext';
@@ -235,13 +235,45 @@ export function AdminDataProvider({ children }) {
     };
 
     const updateQuoteStatus = async (quoteId, newStatus) => {
-        const now = new Date();
+        const now  = new Date();
         const date = now.toLocaleDateString('he-IL');
         const time = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         const quote = quotes.find(q => q.id === quoteId);
-        const historyEntry = { status: newStatus, date, time };
-        const history = [...(quote?.history || []), historyEntry];
-        await setDoc(doc(db, 'quotes', quoteId), { status: newStatus, history }, { merge: true });
+        const history = [...(quote?.history || []), { status: newStatus, date, time }];
+
+        const batch = writeBatch(db);
+
+        // 1. Update quote status + history
+        batch.set(doc(db, 'quotes', quoteId), { status: newStatus, history }, { merge: true });
+
+        // 2. Inventory sync — only if not already settled
+        if (quote?.items?.length && !quote.inventorySettled) {
+            if (newStatus === 'נסגר') {
+                // Deal closed → decrement stock & reserved, increment sold
+                quote.items.forEach(item => {
+                    const qty = Number(item.qty) || 1;
+                    batch.update(doc(db, 'products', String(item.id)), {
+                        stock:    increment(-qty),
+                        reserved: increment(-qty),
+                        sold:     increment(qty),
+                    });
+                });
+                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'closed' }, { merge: true });
+                addActivity(`מלאי עודכן אוטומטית — עסקה נסגרה (${quoteId})`, 'inventory');
+            } else if (newStatus === 'אבד') {
+                // Deal lost → release reservation only, no stock change
+                quote.items.forEach(item => {
+                    const qty = Number(item.qty) || 1;
+                    batch.update(doc(db, 'products', String(item.id)), {
+                        reserved: increment(-qty),
+                    });
+                });
+                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'lost' }, { merge: true });
+                addActivity(`שמירת מלאי שוחררה — עסקה אבדה (${quoteId})`, 'inventory');
+            }
+        }
+
+        await batch.commit();
         addActivity(`הצעת מחיר ${quoteId} עודכנה ל"${newStatus}"`, 'order');
     };
 
