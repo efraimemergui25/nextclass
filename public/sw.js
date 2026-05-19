@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextclass-v5';
+const CACHE_NAME = 'nextclass-v6';
 
 self.addEventListener('message', (e) => {
     if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
@@ -20,6 +20,8 @@ self.addEventListener('activate', (e) => {
                 keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
             ))
             .then(() => self.clients.claim())
+        .then(() => self.clients.matchAll({ type: 'window' }))
+        .then(clients => clients.forEach(client => client.navigate(client.url)))
     );
 });
 
