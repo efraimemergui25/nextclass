@@ -147,8 +147,8 @@ const AboutPage = () => {
  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
  className="flex flex-col justify-center text-right px-8 md:px-14 lg:px-16 py-14 lg:py-20 order-2 lg:order-1"
  >
- <h2 className="font-black text-[#1D1D1F] leading-[1.05] mb-6"
- style={{ fontSize: 'clamp(28px, 4vw, 44px)', letterSpacing: '-0.03em' }}>
+ <h2 className="font-apple-display font-black text-[#1D1D1F] leading-[1.05] mb-6"
+ style={{ fontSize: 'clamp(30px, 4vw, 48px)', letterSpacing: '-0.04em' }}>
  {getSetting('about_story_section_title', 'הסיפור שלנו.')}
  </h2>
 
@@ -206,8 +206,8 @@ const AboutPage = () => {
  className="text-right"
  >
  <span className="text-[11px] font-black text-[#007AFF] block mb-4">הגישה שלנו</span>
- <h2 className="font-black text-[#1D1D1F] leading-[1.0] mb-5"
- style={{ fontSize: 'clamp(28px, 4vw, 44px)', letterSpacing: '-0.03em' }}>
+ <h2 className="font-apple-display font-black text-[#1D1D1F] leading-[1.0] mb-5"
+ style={{ fontSize: 'clamp(30px, 4vw, 48px)', letterSpacing: '-0.04em' }}>
  קודם שואלים.
  <span className="block text-[#AEAEB2]">אחר כך מציעים.</span>
  </h2>
@@ -255,8 +255,8 @@ const AboutPage = () => {
  viewport={{ once: true }}
  transition={{ duration: 0.55 }}
  >
- <h2 className="font-black text-[#1D1D1F] leading-snug mb-5"
- style={{ fontSize: 'clamp(22px, 3vw, 32px)', letterSpacing: '-0.03em' }}>
+ <h2 className="font-apple-display font-black text-[#1D1D1F] leading-[1.05] mb-5"
+ style={{ fontSize: 'clamp(28px, 3.5vw, 44px)', letterSpacing: '-0.04em' }}>
  {c.founderTitle.split('\n').map((line, i) => (
  <span key={i} className={`block ${i === 1 ? 'text-[#AEAEB2]' : ''}`}>{line}</span>
  ))}
@@ -389,7 +389,7 @@ const AboutPage = () => {
  <span className="text-[11px] font-black text-[#007AFF]">בואו נדבר</span>
  </div>
 
- <h2 className="font-black text-[#1D1D1F] leading-[1.0] mb-5"
+ <h2 className="font-apple-display font-black text-[#1D1D1F] leading-[1.0] mb-5"
  style={{ fontSize: 'clamp(32px, 5vw, 64px)', letterSpacing: '-0.04em' }}>
  {c.ctaTitle.split('\n').map((t, i) => (
  <span key={i} className={`block ${i === 1 ? 'text-[#007AFF]' : ''}`}>{t}</span>
