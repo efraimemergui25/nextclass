@@ -589,7 +589,7 @@ const FIELD_SECTIONS = [
             { key: 'about_way_desc',      label: 'תיאור "הדרך שעשינו"', type: 'text',     default: 'עשור של פריצות דרך בחינוך הישראלי.' },
             { key: 'about_founder_label', label: 'תווית "מילה מהמייסד"', type: 'text',     default: 'מילה אישית מהמייסד' },
             { key: 'about_values_title',  label: 'כותרת "הערכים שלנו"', type: 'text',     default: 'שלושה כללים' },
-            { key: 'about_values_desc',   label: 'תיאור "הערכים שלנו"', type: 'text',     default: 'מה שאמרנו — עמדנו בו. תמיד.' },
+            { key: 'about_values_desc',   label: 'תיאור "הערכים שלנו"', type: 'text',     default: 'לאמינות אין קיצורי דרך.' },
         ],
     },
     {
