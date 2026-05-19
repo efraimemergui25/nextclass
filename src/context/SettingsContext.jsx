@@ -54,12 +54,10 @@ export const SettingsProvider = ({ children }) => {
     }, []);
 
     const getSetting = useCallback((key, defaultValue) => {
-        const val = settingsRef.current[key];
+        const val = settings[key];
         if (val === undefined || val === null) return defaultValue;
         return val;
-    // settingsRef.current is always up-to-date — no deps needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [settings]);
 
     const isVisible = useCallback((key, defaultVal = true) => {
         return getSetting(key, defaultVal) !== false;
