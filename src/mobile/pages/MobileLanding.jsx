@@ -84,9 +84,9 @@ export default function MobileLanding() {
     const stat3Val   = getSetting('about_stat3_val', '98');
     const stat3Label = getSetting('about_stat3_label', '% שביעות רצון');
 
-    const discoverEyebrow = getSetting('home_discover_eyebrow', 'חדש');
-    const discoverTitle   = getSetting('home_discover_title', 'גלו מה חדש');
-    const discoverSub     = getSetting('home_discover_sub', 'מוצרים חדשים, מבצעים ועוד.');
+    const discoverEyebrow = getSetting('home_discover_eyebrow', 'מגוון פתרונות');
+    const discoverTitle   = getSetting('home_discover_title', 'גלו את הפתרונות שלנו.');
+    const discoverSub     = getSetting('home_discover_sub', 'מסכים אינטראקטיביים, מחשוב לחינוך, מעבדות STEM ועוד — הכל במקום אחד.');
     const productsTitle   = getSetting('home_products_title', 'פתרונות טכנולוגיים מובילים');
 
     const VALUE_PROPS = [
