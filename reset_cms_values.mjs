@@ -54,7 +54,7 @@ const updates = {
     about_cta_desc:           'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.',
     about_journey_hint:       'גלה את הסיפור שלנו',
     about_values_title:       'שלושה כללים',
-    about_values_desc:        'מה שאמרנו — עמדנו בו. תמיד.',
+    about_values_desc:        'לאמינות אין קיצורי דרך.',
 
     // ── Contact Page ─────────────────────────────────────────────
     contact_hero_subtitle: 'אנחנו כאן בשבילכם — שירות ישיר, מהיר ומקצועי מהרגע הראשון.',

@@ -24,11 +24,7 @@ import { AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import AnnouncementBar from './components/AnnouncementBar';
-import DynamicIsland from './components/DynamicIsland';
 import RouteProgressBar from './components/RouteProgressBar';
-import SmartConcierge from './components/SmartConcierge';
-import CompareTray from './components/CompareTray';
-import GlassCanvas from './components/GlassCanvas';
 import PageErrorBoundary from './components/PageErrorBoundary';
 import { CompareProvider } from './context/CompareContext';
 import { CartProvider } from './context/CartContext';
@@ -36,9 +32,15 @@ import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
-import AuthModal from './components/AuthModal';
-import CookieConsent from './components/CookieConsent';
-import PersonalizationLayer, { MemberBar } from './components/PersonalizationLayer';
+import { MemberBar } from './components/PersonalizationLayer';
+
+const DynamicIsland        = lazy(() => import('./components/DynamicIsland'));
+const SmartConcierge       = lazy(() => import('./components/SmartConcierge'));
+const CompareTray          = lazy(() => import('./components/CompareTray'));
+const GlassCanvas          = lazy(() => import('./components/GlassCanvas'));
+const AuthModal            = lazy(() => import('./components/AuthModal'));
+const CookieConsent        = lazy(() => import('./components/CookieConsent'));
+const PersonalizationLayer = lazy(() => import('./components/PersonalizationLayer'));
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
 const LandingPage       = lazy(() => import('./pages/LandingPage'));
@@ -225,8 +227,10 @@ function AppContent() {
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
             <AnalyticsTracker />
-            {/* ── Living Aurora Atmosphere — reactive, always present ── */}
-            <GlassCanvas mood={mood} />
+            {/* ── Living Aurora Atmosphere — deferred, non-blocking ── */}
+            <Suspense fallback={null}>
+                <GlassCanvas mood={mood} />
+            </Suspense>
 
             <PageErrorBoundary>
                 <AnnouncementBar />
@@ -245,13 +249,15 @@ function AppContent() {
             </PageErrorBoundary>
 
             <RouteProgressBar />
-            {/* ── Global Floating UI Layer ── */}
-            <DynamicIsland />
-            <SmartConcierge />
-            <CompareTray />
-            <CookieConsent />
-            <AuthModal />
-            <PersonalizationLayer />
+            {/* ── Global Floating UI Layer — all lazy-loaded after paint ── */}
+            <Suspense fallback={null}>
+                <DynamicIsland />
+                <SmartConcierge />
+                <CompareTray />
+                <CookieConsent />
+                <AuthModal />
+                <PersonalizationLayer />
+            </Suspense>
         </div>
     );
 }
