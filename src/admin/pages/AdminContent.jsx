@@ -23,10 +23,6 @@ import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
-// Clear stale Firestore-synced localStorage from old CMS implementation
-try { localStorage.removeItem('nextclass_cms_settings'); } catch {}
-
-const LS_KEY = 'nextclass_cms_settings'; // kept for any legacy reference
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
 

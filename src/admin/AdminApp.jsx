@@ -12,7 +12,6 @@ import { AdminToastProvider } from './context/AdminToastContext';
 // Components
 import AdminSidebar from './components/AdminSidebar';
 import AdminTopBar from './components/AdminTopBar';
-import AdminNotificationWatcher from './components/AdminNotificationWatcher';
 import AdminLogin from './AdminLogin';
 
 // Pages
@@ -51,7 +50,6 @@ function AdminShell() {
     return (
         <AdminToastProvider>
             <AdminDataProvider>
-            <AdminNotificationWatcher />
             <div className="flex h-screen overflow-hidden" dir="rtl"
             style={{ background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 35%, #F2EEFF 65%, #F5F0FF 100%)' }}>
                 {/* Ambient orbs */}
