@@ -23,7 +23,10 @@ import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
-const LS_KEY = 'nextclass_cms_settings';
+// Clear stale Firestore-synced localStorage from old CMS implementation
+try { localStorage.removeItem('nextclass_cms_settings'); } catch {}
+
+const LS_KEY = 'nextclass_cms_settings'; // kept for any legacy reference
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
 
@@ -1984,24 +1987,15 @@ export default function AdminContent({ showToast }) {
     const [content, setContent] = useState({});
     const [hasChanges, setHasChanges] = useState(false);
     const [saved, setSaved] = useState(false);
-    const { updateGlobalSettings, seedMissingDefaults, firestoreLoaded } = useSettings();
+    const { settings, updateGlobalSettings } = useSettings();
 
+    // Initialize form from live JSON settings — never from stale localStorage
     useEffect(() => {
-        if (firestoreLoaded) seedMissingDefaults(ALL_FIELD_DEFAULTS);
-    }, [firestoreLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        try {
-            const savedData = localStorage.getItem(LS_KEY);
-            if (savedData) {
-                const parsed = JSON.parse(savedData);
-                const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
-                setContent(Object.fromEntries(Object.entries(parsed).filter(([k]) => allowed.has(k))));
-            } else {
-                setContent(ALL_FIELD_DEFAULTS);
-            }
-        } catch {}
-    }, []);
+        const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
+        setContent(Object.fromEntries(
+            Object.entries(settings).filter(([k]) => allowed.has(k))
+        ));
+    }, [settings]);
 
     const handleChange = (key, value) => {
         setContent(prev => ({ ...prev, [key]: value }));
