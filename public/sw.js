@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextclass-v4';
+const CACHE_NAME = 'nextclass-v5';
 
 self.addEventListener('message', (e) => {
     if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();

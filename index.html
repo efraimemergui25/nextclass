@@ -10,14 +10,14 @@
   <meta name="description" content="NextClass — הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל. מסכים אינטראקטיביים, מחשוב, מעבדות STEM ועוד. הצעת מחיר תוך 24 שעות." />
   <meta name="keywords" content="מסכים אינטראקטיביים, ציוד לכיתות, טכנולוגיה לחינוך, לוח חכם, STEM, מחשוב לבתי ספר, NextClass" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://nextclass-v4-living.vercel.app/" />
+  <link rel="canonical" href="https://getnextclass.com/" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://nextclass-v4-living.vercel.app/" />
+  <meta property="og:url" content="https://getnextclass.com/" />
   <meta property="og:title" content="NextClass | פתרונות טכנולוגיה חדשנית לחינוך" />
   <meta property="og:description" content="הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל. מסכים, מחשוב, STEM. הצעת מחיר תוך 24 שעות." />
-  <meta property="og:image" content="https://nextclass-v4-living.vercel.app/og-image.jpg" />
+  <meta property="og:image" content="https://getnextclass.com/og-image.jpg" />
   <meta property="og:locale" content="he_IL" />
   <meta property="og:site_name" content="NextClass" />
 
@@ -25,7 +25,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NextClass | פתרונות טכנולוגיה לחינוך" />
   <meta name="twitter:description" content="הסטנדרט הטכנולוגי החדש של מוסדות החינוך המובילים בישראל." />
-  <meta name="twitter:image" content="https://nextclass-v4-living.vercel.app/og-image.jpg" />
+  <meta name="twitter:image" content="https://getnextclass.com/og-image.jpg" />
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
@@ -49,8 +49,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  <!-- Heebo font — used site-wide via font-heebo class -->
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Heebo font — non-blocking load -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" /></noscript>
 
   <!-- Preconnect to Firebase and CDN for faster loads -->
   <link rel="preconnect" href="https://firestore.googleapis.com" />
@@ -59,15 +60,6 @@
   <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
   <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
-  <!-- Canonical domain redirect — send all Vercel preview/alias URLs to production -->
-  <script>
-    (function () {
-      var h = location.hostname;
-      if (h !== 'getnextclass.com' && h !== 'localhost' && !h.startsWith('192.168') && !h.startsWith('127.')) {
-        location.replace('https://getnextclass.com' + location.pathname + location.search + location.hash);
-      }
-    })();
-  </script>
 
   <!-- Google Analytics 4 — loaded only when VITE_GA_ID is set at build time -->
   <script>
