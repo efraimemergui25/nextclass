@@ -161,7 +161,7 @@ function UserModal({ user, onClose, onTierChange }) {
     };
 
     return (
-        <AnimatePresence>
+        <>
             <motion.div key="modal-bd"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={onClose}
@@ -319,7 +319,7 @@ function UserModal({ user, onClose, onTierChange }) {
                     )}
                 </div>
             </motion.div>
-        </AnimatePresence>
+        </>
     );
 }
 
@@ -500,9 +500,11 @@ export default function AdminUsers() {
                 )}
             </div>
 
-            {selected && (
-                <UserModal user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} />
-            )}
+            <AnimatePresence>
+                {selected && (
+                    <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

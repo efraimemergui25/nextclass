@@ -46,12 +46,77 @@ function StatPill({ label, value, color, index = 0 }) {
     );
 }
 
+function CustomerDetailModal({ customer, onClose }) {
+    if (!customer) return null;
+    const phone = customer.phone?.replace(/\D/g, '');
+    const waLink = phone ? `https://wa.me/972${phone.replace(/^0/, '')}` : null;
+    return (
+        <AdminModal open={!!customer} onClose={onClose} title={customer.name} size="md">
+            <div className="space-y-5" dir="rtl">
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-3">
+                    {[
+                        ['מייל', customer.email],
+                        ['טלפון', customer.phone],
+                        ['עיר', customer.city],
+                        ['הזמנות', customer.orders.length],
+                        ['סה״כ רכישות', `₪${customer.total.toLocaleString()}`],
+                    ].map(([label, val]) => val ? (
+                        <div key={label} className="rounded-xl p-3 text-right" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{label}</p>
+                            <p className="text-[#1D1D1F] font-bold text-sm mt-0.5">{val}</p>
+                        </div>
+                    ) : null)}
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                    {waLink && (
+                        <a href={waLink} target="_blank" rel="noopener noreferrer"
+                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white"
+                            style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.3)' }}>
+                            WhatsApp
+                        </a>
+                    )}
+                    {customer.phone && (
+                        <a href={`tel:${customer.phone}`}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white"
+                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 6px 20px rgba(0,122,255,0.25)' }}>
+                            התקשר
+                        </a>
+                    )}
+                </div>
+
+                {/* Order history */}
+                <div>
+                    <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">היסטוריית הזמנות</p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {customer.orders.map(order => (
+                            <div key={order.id} className="flex items-center justify-between p-3 rounded-xl text-right" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                <div>
+                                    <p className="text-[#1D1D1F] font-bold text-sm">{order.product}</p>
+                                    <p className="text-[#AEAEB2] text-xs">{order.date} · {order.qty} יח׳</p>
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-black text-sm text-[#1D1D1F]">₪{(order.total || 0).toLocaleString()}</p>
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>{order.status}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </AdminModal>
+    );
+}
+
 export default function AdminCustomers() {
     const { contacts, orders, updateContactStatus } = useAdminData();
     const [tab, setTab] = useState('contacts');
     const [search, setSearch] = useState('');
     const [dateFilter, setDateFilter] = useState('all');
     const [selected, setSelected] = useState(null);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [reply, setReply] = useState('');
     const [replyDone, setReplyDone] = useState(false);
 
@@ -207,7 +272,8 @@ export default function AdminCustomers() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                                onClick={() => setSelectedCustomer(c)}
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
                             >
                                 <Avatar name={c.name} size={11} />
                                 <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#007AFF] transition-colors">{c.name}</p>
@@ -308,6 +374,8 @@ export default function AdminCustomers() {
                     </div>
                 )}
             </AdminModal>
+
+            <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
         </div>
     );
 }

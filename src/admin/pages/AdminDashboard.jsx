@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, animate as animateMotion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Wrench, Tag, Image, RefreshCw, Package, ExternalLink,
     ShoppingCart, BarChart2, Layers, AlertTriangle, Box,
@@ -125,6 +125,7 @@ export default function AdminDashboard() {
     const { kpis, orders, analytics, inventory, activityLog, repairProductImages, reseedDatabase } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
+    const navigate = useNavigate();
     const [period, setPeriod] = useState('30');
     const [drilldown, setDrilldown] = useState(null);
 
@@ -437,7 +438,8 @@ export default function AdminDashboard() {
                                 initial={{ opacity: 0, x: 10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.03 }}
-                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0"
+                                onClick={() => navigate('/admin/orders')}
+                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#F5F5F7] rounded-xl px-2 -mx-2 transition-colors"
                             >
                                 <StatusBadge status={order.status} />
                                 <div className="flex-1 min-w-0 text-right">
@@ -473,7 +475,7 @@ export default function AdminDashboard() {
                         ) : (
                             <div className="space-y-2">
                                 {lowStock.map(p => (
-                                    <div key={p.id} className="flex items-center justify-between">
+                                    <div key={p.id} onClick={() => navigate('/admin/inventory')} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
                                         <span className={`font-black text-[12px] shrink-0 ${p.stock === 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'}`}>
                                             {p.stock === 0 ? 'אזל' : `${p.stock} יח׳`}
                                         </span>
