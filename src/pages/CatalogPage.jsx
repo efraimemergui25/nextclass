@@ -35,7 +35,7 @@ const CatalogPage = () => {
 
  const { getSetting } = useSettings();
  const { activeProducts: products } = useProducts();
- const { user, firstName, userDoc } = useAuth();
+ const { user, firstName, userDoc, personalGreeting, tierColor, tierLabel, institution } = useAuth();
 
  const timeGreeting = () => {
    const h = new Date().getHours();
@@ -147,28 +147,6 @@ const CatalogPage = () => {
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] pointer-events-none"
  style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(0,122,255,0.10) 0%, rgba(88,86,214,0.06) 45%, transparent 72%)', filter: 'blur(32px)' }} />
 
- {user && firstName && (
-   <motion.div
-     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-     transition={{ duration: 0.5 }}
-     className="mb-3"
-   >
-     <p
-       className="font-bold"
-       style={{ fontSize: 'clamp(15px, 2vw, 19px)', letterSpacing: '-0.02em',
-         background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
-         backgroundSize: '200% auto',
-         WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-     >
-       {timeGreeting()}, {firstName} 👋
-     </p>
-     {roleSubtext() && (
-       <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, marginTop: 3, fontFamily: 'Heebo, sans-serif' }}>
-         {roleSubtext()}
-       </p>
-     )}
-   </motion.div>
- )}
 
  <motion.div
  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -368,6 +346,45 @@ const CatalogPage = () => {
 
  {/* Product area */}
  <div className="flex-1 min-w-0">
+
+ {/* Personalized greeting — glass card above products */}
+ {user && firstName && (
+   <motion.div
+     initial={{ opacity: 0, y: -8, scale: 0.98 }}
+     animate={{ opacity: 1, y: 0, scale: 1 }}
+     transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+     className="mb-5"
+   >
+     <div
+       style={{
+         background: `linear-gradient(135deg, ${tierColor}10, rgba(255,255,255,0.8))`,
+         border: `1px solid ${tierColor}20`,
+         backdropFilter: 'blur(20px) saturate(180%)',
+         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+         boxShadow: `0 4px 20px rgba(0,0,0,0.05), 0 0 0 0.5px ${tierColor}12`,
+       }}
+       className="rounded-2xl px-5 py-3 flex items-center gap-3.5"
+     >
+       <div
+         style={{ background: `linear-gradient(135deg, ${tierColor}28, ${tierColor}48)`, color: tierColor }}
+         className="w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black shrink-0 select-none"
+       >
+         {firstName[0].toUpperCase()}
+       </div>
+       <div className="flex-1 min-w-0 text-right">
+         <p className="text-[14px] font-black text-[#1D1D1F] tracking-tight leading-snug">
+           {personalGreeting}
+         </p>
+         {(institution || roleSubtext()) && (
+           <p className="text-[11px] text-[#86868B] font-medium mt-0.5">
+             {institution ? `${institution} · ` : ''}<span style={{ color: tierColor }} className="font-bold">{tierLabel}</span>
+             {roleSubtext() && ` · ${roleSubtext()}`}
+           </p>
+         )}
+       </div>
+     </div>
+   </motion.div>
+ )}
 
  {/* Result count */}
  <div className="flex items-center justify-between mb-5 h-7">
