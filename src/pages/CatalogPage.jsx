@@ -350,38 +350,59 @@ const CatalogPage = () => {
  {/* Personalized greeting — glass card above products */}
  {user && firstName && (
    <motion.div
-     initial={{ opacity: 0, y: -8, scale: 0.98 }}
+     initial={{ opacity: 0, y: 20, scale: 0.97 }}
      animate={{ opacity: 1, y: 0, scale: 1 }}
-     transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
      className="mb-5"
    >
      <div
        style={{
-         background: `linear-gradient(135deg, ${tierColor}10, rgba(255,255,255,0.8))`,
-         border: `1px solid ${tierColor}20`,
-         backdropFilter: 'blur(20px) saturate(180%)',
-         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-         boxShadow: `0 4px 20px rgba(0,0,0,0.05), 0 0 0 0.5px ${tierColor}12`,
+         background: `linear-gradient(135deg, rgba(255,255,255,0.82) 0%, ${tierColor}09 60%, rgba(255,255,255,0.60) 100%)`,
+         border: `1px solid ${tierColor}28`,
+         backdropFilter: 'blur(32px) saturate(200%)',
+         WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+         boxShadow: `0 8px 32px rgba(0,0,0,0.07), 0 1.5px 0 0 ${tierColor}18, inset 0 1px 0 rgba(255,255,255,0.9)`,
        }}
-       className="rounded-2xl px-5 py-3 flex items-center gap-3.5"
+       className="rounded-3xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
      >
-       <div
-         style={{ background: `linear-gradient(135deg, ${tierColor}28, ${tierColor}48)`, color: tierColor }}
-         className="w-8 h-8 rounded-xl flex items-center justify-center text-[13px] font-black shrink-0 select-none"
+       {/* Glow orb */}
+       <div style={{ background: `radial-gradient(circle, ${tierColor}22 0%, transparent 70%)`, width: 120, height: 120, position: 'absolute', left: -30, top: -30, pointerEvents: 'none' }} />
+       {/* Avatar */}
+       <motion.div
+         initial={{ scale: 0.7, rotate: -8 }}
+         animate={{ scale: 1, rotate: 0 }}
+         transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: 0.2 }}
+         style={{ background: `linear-gradient(140deg, ${tierColor}35, ${tierColor}60)`, color: tierColor, boxShadow: `0 4px 16px ${tierColor}30, inset 0 1px 0 rgba(255,255,255,0.4)` }}
+         className="w-10 h-10 rounded-2xl flex items-center justify-center text-[15px] font-black shrink-0 select-none relative z-10"
        >
          {firstName[0].toUpperCase()}
-       </div>
-       <div className="flex-1 min-w-0 text-right">
-         <p className="text-[14px] font-black text-[#1D1D1F] tracking-tight leading-snug">
+       </motion.div>
+       {/* Text */}
+       <div className="flex-1 min-w-0 text-right relative z-10">
+         <motion.p
+           initial={{ opacity: 0, x: 8 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.5, delay: 0.25 }}
+           className="text-[15px] font-black text-[#1D1D1F] tracking-tight leading-snug"
+         >
            {personalGreeting}
-         </p>
+         </motion.p>
          {(institution || roleSubtext()) && (
-           <p className="text-[11px] text-[#86868B] font-medium mt-0.5">
-             {institution ? `${institution} · ` : ''}<span style={{ color: tierColor }} className="font-bold">{tierLabel}</span>
-             {roleSubtext() && ` · ${roleSubtext()}`}
-           </p>
+           <motion.p
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ duration: 0.4, delay: 0.38 }}
+             className="text-[12px] text-[#86868B] font-medium mt-0.5 flex items-center gap-1.5 justify-end"
+           >
+             {institution && <span>{institution}</span>}
+             {institution && <span className="w-1 h-1 rounded-full bg-[#C7C7CC] inline-block" />}
+             <span style={{ color: tierColor }} className="font-bold">{tierLabel}</span>
+             {roleSubtext() && <><span className="w-1 h-1 rounded-full bg-[#C7C7CC] inline-block" /><span>{roleSubtext()}</span></>}
+           </motion.p>
          )}
        </div>
+       {/* Shine */}
+       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(255,255,255,0.18) 0%, transparent 50%)', borderRadius: 'inherit', pointerEvents: 'none' }} />
      </div>
    </motion.div>
  )}
