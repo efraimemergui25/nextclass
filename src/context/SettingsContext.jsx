@@ -1,57 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { db } from '../firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import DEFAULT_SETTINGS from '../data/cms-settings.json';
 
 const SettingsContext = createContext();
 
-const LS_KEY = 'nextclass_cms_settings';
-const FIREBASE_DOC_ID = 'global_config';
-
 export const SettingsProvider = ({ children }) => {
-    const [settings, setSettings] = useState(() => {
-        try {
-            const saved = localStorage.getItem(LS_KEY);
-            return saved ? JSON.parse(saved) : {};
-        } catch {
-            return {};
-        }
-    });
-
-    // True once the first Firestore snapshot has arrived — prevents false seeding on empty state
-    const [firestoreLoaded, setFirestoreLoaded] = useState(false);
-    const settingsRef = useRef(settings);
-    settingsRef.current = settings;
-
-    // ─── Live Firestore Sync ────────────────────────────────────────────────
-    useEffect(() => {
-        const unsub = onSnapshot(
-            doc(db, 'cms_settings', FIREBASE_DOC_ID),
-            (snap) => {
-                if (snap.exists()) {
-                    const cloudData = snap.data();
-                    setSettings(cloudData);
-                    localStorage.setItem(LS_KEY, JSON.stringify(cloudData));
-                }
-                setFirestoreLoaded(true);
-            },
-            (err) => {
-                console.warn('SettingsContext: Firestore unavailable, using local cache', err.code);
-                setFirestoreLoaded(true); // still mark loaded so admin can seed
-            }
-        );
-
-        const handleStorageChange = (e) => {
-            if (e.key === LS_KEY) {
-                try { setSettings(JSON.parse(e.newValue || '{}')); } catch {}
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => {
-            unsub();
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, []);
+    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
     const getSetting = useCallback((key, defaultValue) => {
         const val = settings[key];
@@ -63,37 +16,38 @@ export const SettingsProvider = ({ children }) => {
         return getSetting(key, defaultVal) !== false;
     }, [getSetting]);
 
+    // Called by admin panel to persist a change — optimistic UI + GitHub commit via API
     const updateGlobalSettings = useCallback(async (newSettings) => {
+        setSettings(prev => ({ ...prev, ...newSettings }));
+
         try {
-            await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), newSettings, { merge: true });
+            const res = await fetch('/api/cms-update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-cms-secret': 'nextclass-cms-2025',
+                },
+                body: JSON.stringify(newSettings),
+            });
+            if (!res.ok) throw new Error(await res.text());
         } catch (err) {
-            console.error('Failed to update global settings', err);
+            console.error('[CMS] Failed to persist settings:', err);
+            throw err;
         }
     }, []);
 
-    /**
-     * Called by AdminContent on mount (admin is authenticated).
-     * Writes only the keys that don't yet exist in Firestore — never overwrites existing values.
-     * This eliminates the need for manual push scripts when adding new CMS fields.
-     */
-    const seedMissingDefaults = useCallback(async (defaults) => {
-        if (!firestoreLoaded) return;
-        const current = settingsRef.current;
-        const missing = Object.fromEntries(
-            Object.entries(defaults).filter(([k]) => current[k] === undefined || current[k] === null)
-        );
-        if (Object.keys(missing).length === 0) return;
-        try {
-            await setDoc(doc(db, 'cms_settings', FIREBASE_DOC_ID), missing, { merge: true });
-            if (import.meta.env.DEV) console.log('[CMS] Seeded missing defaults:', Object.keys(missing));
-        } catch (err) {
-            // Admin may not be authenticated yet — silently skip, next load will retry
-            if (import.meta.env.DEV) console.warn('[CMS] Seed skipped (auth?):', err.code);
-        }
-    }, [firestoreLoaded]);
+    // No-op kept for backwards compatibility with AdminContent
+    const seedMissingDefaults = useCallback(() => {}, []);
 
     return (
-        <SettingsContext.Provider value={{ settings, getSetting, isVisible, updateGlobalSettings, seedMissingDefaults, firestoreLoaded }}>
+        <SettingsContext.Provider value={{
+            settings,
+            getSetting,
+            isVisible,
+            updateGlobalSettings,
+            seedMissingDefaults,
+            firestoreLoaded: true,
+        }}>
             {children}
         </SettingsContext.Provider>
     );

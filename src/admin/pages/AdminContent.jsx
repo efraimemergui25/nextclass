@@ -2011,17 +2011,15 @@ export default function AdminContent({ showToast }) {
 
     const handleSave = async () => {
         try {
-            // Only write CMS field keys — never overwrite vis_nav_*, vis_mob_*, mob_nav_order, etc.
             const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
             const fieldContent = Object.fromEntries(Object.entries(content).filter(([k]) => allowed.has(k)));
             await updateGlobalSettings(fieldContent);
-            // SettingsContext's onSnapshot will sync localStorage with the full merged Firestore doc
             setSaved(true);
             setHasChanges(false);
-            showToast('כל השינויים נשמרו בסנכרון ענן מלא', 'success');
-            setTimeout(() => setSaved(false), 2000);
+            showToast('השינויים נשמרו — האתר יתעדכן תוך ~30 שניות', 'success');
+            setTimeout(() => setSaved(false), 3000);
         } catch {
-            showToast('שגיאה בסנכרון הנתונים', 'error');
+            showToast('שגיאה בשמירה', 'error');
         }
     };
 
