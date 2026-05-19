@@ -59,6 +59,7 @@ const ProductCard = ({ product }) => {
  const [imgLoaded, setImgLoaded] = useState(false);
  const [imgError, setImgError] = useState(false);
  const fallbackStage = useRef(0);
+ const imgRef = useRef(null);
 
  // Reset image state whenever the primary URL changes (e.g. Firestore real-time update)
  useEffect(() => {
@@ -68,6 +69,14 @@ const ProductCard = ({ product }) => {
  setImgLoaded(false);
  setImgError(false);
  }, [image]);
+
+ // If image was already in browser cache, onLoad never fires — check complete after mount/src change
+ useEffect(() => {
+ const img = imgRef.current;
+ if (img && img.complete && img.naturalWidth > 0) {
+  setImgLoaded(true);
+ }
+ }, [displaySrc]);
 
  const { addToCompare, removeFromCompare, isSelected } = useCompare();
  const { cartItems, addToCart, removeFromCart } = useCart();
@@ -236,6 +245,7 @@ const ProductCard = ({ product }) => {
  <ImageFallback />
  ) : (
  <img
+ ref={imgRef}
  src={displaySrc}
  alt={title}
  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105"
