@@ -52,7 +52,7 @@ const AboutPage = () => {
  ctaDesc: getSetting('about_cta_desc', 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.'),
  journeyHint: getSetting('about_journey_hint', 'גלה את הסיפור שלנו'),
  valuesTitle: getSetting('about_values_title', 'שלושה כללים'),
- valuesDesc: getSetting('about_values_desc', 'מה שאמרנו — עמדנו בו. תמיד.'),
+ valuesDesc: getSetting('about_values_desc', 'לאמינות אין קיצורי דרך.'),
  v1Title: getSetting('about_v1_title', 'מחיר שקוף'),
  v1Desc: getSetting('about_v1_desc', 'הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים — נקודה. שקיפות מלאה מהשקל הראשון ועד האחרון.'),
  v2Title: getSetting('about_v2_title', 'שירות מהיר'),

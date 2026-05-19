@@ -57,7 +57,7 @@ export default function MobileAbout() {
     const v3Desc  = getSetting('about_v3_desc', 'כל פרט נבחן. כל בחירה מבוססת. הסטנדרט שאנחנו מציבים לעצמנו גבוה.');
 
     const valuesTitle = getSetting('about_values_title', 'שלושה כללים');
-    const valuesDesc  = getSetting('about_values_desc', 'מה שאמרנו — עמדנו בו. תמיד.');
+    const valuesDesc  = getSetting('about_values_desc', 'לאמינות אין קיצורי דרך.');
 
     const wayTitle = getSetting('about_way_title', 'הדרך שעשינו');
     const tm1Year  = getSetting('about_tm1_year', '2012'); const tm1Title = getSetting('about_tm1_title', 'ההתחלה'); const tm1Desc = getSetting('about_tm1_desc', 'הקמנו את NextClass עם חזון אחד ברור.');
