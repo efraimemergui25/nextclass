@@ -210,9 +210,20 @@ export default function MobileAbout() {
             {/* ── Values ────────────────────────────────────────────── */}
             <BlurFade delay={0.15}>
             <div style={{ margin: '16px 16px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>{valuesTitle}</h2>
-                    <p style={{ fontSize: 13, color: c.text3 }}>{valuesDesc}</p>
+                <div style={{ marginBottom: 16 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: '#007AFF', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{valuesTitle}</span>
+                    <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.05 }}>
+                        {(() => {
+                            const [first, ...rest] = valuesDesc.split(' ');
+                            return (
+                                <>
+                                    <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{first}</span>
+                                    {rest.length > 0 && <span style={{ color: c.text }}> {rest.join(' ')}</span>}
+                                </>
+                            );
+                        })()}
+                    </h2>
+                    <div style={{ marginTop: 10, height: 3, width: 44, borderRadius: 99, background: 'linear-gradient(90deg, #007AFF, #5856D6)' }} />
                 </div>
                 <div style={{ background: c.surface, borderRadius: 20, overflow: 'hidden', boxShadow: c.cardShadow }}>
                     {VALUES.map(({ icon: VIcon, color, title, desc }, i) => (

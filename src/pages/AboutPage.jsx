@@ -286,11 +286,32 @@ const AboutPage = () => {
  transition={{ duration: 0.6 }}
  className="text-right mb-10"
  >
- <span className="text-[11px] font-black text-[#007AFF] block mb-3">{c.valuesTitle}</span>
- <h2 className="font-black text-[#1D1D1F]"
- style={{ fontSize: 'clamp(28px, 4vw, 44px)', letterSpacing: '-0.03em' }}>
- {c.valuesDesc}
+ <span className="text-[11px] font-black text-[#007AFF] tracking-widest uppercase block mb-4">{c.valuesTitle}</span>
+ <h2 className="font-apple-display font-black leading-[1.05]"
+ style={{ fontSize: 'clamp(36px, 5vw, 64px)', letterSpacing: '-0.04em' }}>
+ {(() => {
+  const [first, ...rest] = c.valuesDesc.split(' ');
+  return (
+  <>
+   <span style={{
+   background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+   WebkitBackgroundClip: 'text',
+   WebkitTextFillColor: 'transparent',
+   backgroundClip: 'text',
+   }}>{first}</span>
+   {rest.length > 0 && <span className="text-[#1D1D1F]"> {rest.join(' ')}</span>}
+  </>
+  );
+ })()}
  </h2>
+ <div style={{
+ marginTop: 16,
+ height: 3,
+ width: 56,
+ borderRadius: 99,
+ background: 'linear-gradient(90deg, #007AFF, #5856D6)',
+ marginRight: 0,
+ }} />
  </motion.div>
 
  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
