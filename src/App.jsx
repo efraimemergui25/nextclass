@@ -32,7 +32,7 @@ import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
-import { MemberBar } from './components/PersonalizationLayer';
+import MemberBar from './components/MemberBar';
 
 const DynamicIsland        = lazy(() => import('./components/DynamicIsland'));
 const SmartConcierge       = lazy(() => import('./components/SmartConcierge'));

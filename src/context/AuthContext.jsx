@@ -8,7 +8,6 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signInWithRedirect,
-    getRedirectResult,
     sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, getDocs, orderBy, query } from 'firebase/firestore';
@@ -47,16 +46,9 @@ export function AuthProvider({ children }) {
     const [firstLogin,  setFirstLogin]  = useState(false);   // first-ever login celebration
     const [prevUser,    setPrevUser]    = useState(undefined); // track login transitions
 
-    // ─── Handle Google redirect result on load ────────────────────────────────
-    // When the user returns after signInWithRedirect, this processes the result.
-    // onAuthStateChanged will fire automatically — no manual handling needed.
-    useEffect(() => {
-        getRedirectResult(auth)
-            .then(result => {
-                // result?.user is set — onAuthStateChanged handles state update
-            })
-            .catch(() => {});
-    }, []);
+    // getRedirectResult is only needed if we used signInWithRedirect.
+    // signInGoogle uses popup-first, redirect only as fallback on mobile.
+    // Mobile lives in MobileApp — desktop never needs this call on load.
 
     // ─── Track auth state ─────────────────────────────────────────────────────
     useEffect(() => {
