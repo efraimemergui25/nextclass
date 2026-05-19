@@ -442,5 +442,6 @@
   "check_cc_exp": "תוקף",
   "biz_facebook": "",
   "check_phone_label": "טלפון",
-  "check_city": "עיר"
+  "check_city": "עיר",
+  "show_prices": true
 }
