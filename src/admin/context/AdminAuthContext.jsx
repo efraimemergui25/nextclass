@@ -24,10 +24,6 @@ export function AdminAuthProvider({ children }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            // If Firebase has a persistent session, sign out immediately —
-            // admin access is controlled solely by the local timed session (PIN-based).
-            if (user) signOut(auth).catch(() => {});
-
             const local   = localStorage.getItem(LOCAL_SESSION_KEY);
             const expired = isSessionExpired();
             if (expired) {

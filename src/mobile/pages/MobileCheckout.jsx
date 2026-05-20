@@ -165,7 +165,7 @@ export default function MobileCheckout() {
     const navigate = useNavigate();
     const { cartItems, cartTotal, clearCart } = useCart();
     const { colors: c } = useTheme();
-    const { user, openAuthModal, firstName } = useAuth();
+    const { user, openAuthModal, firstName, loading: authLoading } = useAuth();
     const [step,           setStep]           = useState(0);
     const [loading,        setLoading]        = useState(false);
     const [error,          setError]          = useState('');
@@ -229,6 +229,15 @@ export default function MobileCheckout() {
         }
         setLoading(false);
     };
+
+    if (authLoading) {
+        return (
+            <div style={{ minHeight: '100dvh', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', border: `4px solid ${c.border}`, borderTopColor: '#007AFF', animation: 'spin 0.8s linear infinite' }} />
+                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+            </div>
+        );
+    }
 
     if (!user) {
         const benefits = [

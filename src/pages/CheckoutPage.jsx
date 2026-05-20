@@ -95,7 +95,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, dir = '
 export default function CheckoutPage() {
  const { cartItems, clearCart, removeFromCart, increaseQuantity, decreaseQuantity } = useCart();
  const { getSetting, isVisible } = useSettings();
- const { user, openAuthModal, firstName } = useAuth();
+ const { user, openAuthModal, firstName, loading: authLoading } = useAuth();
  const allowPayments = isVisible('allow_payments', false);
 
  const [step,           setStep]           = useState(1);
@@ -253,6 +253,16 @@ export default function CheckoutPage() {
  }
 
  // ── Auth gate ────────────────────────────────────────────────────────────
+ if (authLoading) {
+ return (
+ <PageTransition>
+ <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center" dir="rtl">
+ <div className="w-10 h-10 rounded-full border-4 border-[#E5E5EA] border-t-[#007AFF] animate-spin" />
+ </div>
+ </PageTransition>
+ );
+ }
+
  if (!user) {
  const benefits = [
  { icon: '⚡', title: 'מענה מהיר', desc: 'נציג מוקצה לך אישית, מגיב תוך שעות' },
