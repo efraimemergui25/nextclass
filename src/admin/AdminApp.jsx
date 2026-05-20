@@ -33,6 +33,7 @@ import AdminCommunications from './pages/AdminCommunications';
 import AdminSecurity from './pages/AdminSecurity';
 import AdminMagazine from './pages/AdminMagazine';
 import AdminUsers from './pages/AdminUsers';
+import AdminSuppliers from './pages/AdminSuppliers';
 
 // Inner shell that requires authentication
 function AdminShell() {
@@ -114,6 +115,7 @@ function AdminShell() {
                                     <Route path="/admin/integrations" element={<AdminIntegrations />} />
                                     <Route path="/admin/content" element={<AdminContent />} />
                                     <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
+                                    <Route path="/admin/suppliers" element={<AdminSuppliers />} />
                                     <Route path="/admin/community" element={<AdminCommunity />} />
                                     <Route path="/admin/qa" element={<AdminQA />} />
                                     <Route path="/admin/media" element={<AdminMedia />} />
