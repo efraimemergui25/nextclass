@@ -181,16 +181,22 @@ function DetailView({ item, type, onBack }) {
     const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
     const isTerminal = item.status === 'אבד' || item.status === 'בוטל';
 
-    const [msgText, setMsgText]     = useState('');
+    const [msgText, setMsgText]       = useState('');
     const [msgSending, setMsgSending] = useState(false);
-    const threadEndRef = useRef(null);
+    const [hoveredMsg, setHoveredMsg] = useState(null);
+    const threadEndRef   = useRef(null);
+    const typingTimerRef = useRef(null);
 
-    // Mark unread as read when customer opens
+    // Mark read + set lastReadCustomer when customer opens; clear typing on unmount
     useEffect(() => {
-        if (item.unreadCustomer) {
-            const col = type === 'quote' ? 'quotes' : 'orders';
-            updateDoc(doc(db, col, item.id), { unreadCustomer: false }).catch(() => {});
-        }
+        const col = type === 'quote' ? 'quotes' : 'orders';
+        const upd = { lastReadCustomer: Date.now() };
+        if (item.unreadCustomer) upd.unreadCustomer = false;
+        updateDoc(doc(db, col, item.id), upd).catch(() => {});
+        return () => {
+            clearTimeout(typingTimerRef.current);
+            updateDoc(doc(db, col, item.id), { typingCustomer: false }).catch(() => {});
+        };
     }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Auto-scroll to bottom on new message
@@ -201,12 +207,30 @@ function DetailView({ item, type, onBack }) {
     const handleSendMsg = async () => {
         if (!msgText.trim()) return;
         setMsgSending(true);
+        clearTimeout(typingTimerRef.current);
         try {
             const col = type === 'quote' ? 'quotes' : 'orders';
             const msg = { id: `${Date.now()}_${Math.random().toString(36).slice(2,6)}`, from: 'customer', text: msgText.trim(), tsNum: Date.now() };
-            await updateDoc(doc(db, col, item.id), { thread: arrayUnion(msg), unreadAdmin: true, unreadCustomer: false });
+            await updateDoc(doc(db, col, item.id), { thread: arrayUnion(msg), unreadAdmin: true, unreadCustomer: false, typingCustomer: false });
             setMsgText('');
         } finally { setMsgSending(false); }
+    };
+
+    const handleTyping = () => {
+        const col = type === 'quote' ? 'quotes' : 'orders';
+        updateDoc(doc(db, col, item.id), { typingCustomer: true }).catch(() => {});
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+            updateDoc(doc(db, col, item.id), { typingCustomer: false }).catch(() => {});
+        }, 2000);
+    };
+
+    const handleReaction = (msgId, emoji) => {
+        const col = type === 'quote' ? 'quotes' : 'orders';
+        updateDoc(doc(db, col, item.id), {
+            [`reactions.${msgId}`]: arrayUnion({ from: 'customer', emoji, tsNum: Date.now() })
+        }).catch(() => {});
+        setHoveredMsg(null);
     };
 
     return (
@@ -243,6 +267,7 @@ function DetailView({ item, type, onBack }) {
                 <span style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.01em' }}>{item.id}</span>
             </div>
 
+            <style>{`@keyframes ppDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}`}</style>
             <div style={{ padding: '20px 18px 48px' }}>
 
                 {/* Header: status + date */}
@@ -357,6 +382,14 @@ function DetailView({ item, type, onBack }) {
                         const msgs = [...(item.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
                         if (!hasThread && item.customerMessage) msgs.push({ id: 'ln-a', from: 'admin', text: item.customerMessage, tsNum: 0 });
                         if (!hasThread && item.customerNote) msgs.push({ id: 'ln-c', from: 'customer', text: item.customerNote, tsNum: 1 });
+
+                        const rxns = item.reactions || {};
+                        const lastReadMsgId = (() => {
+                            if (!item.lastReadAdmin) return null;
+                            const read = msgs.filter(m => m.from === 'customer' && m.tsNum > 0 && item.lastReadAdmin >= m.tsNum);
+                            return read.length ? read[read.length - 1].id : null;
+                        })();
+
                         if (msgs.length === 0) return (
                             <div style={{ padding: '20px 14px', textAlign: 'center' }}>
                                 <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>
@@ -368,33 +401,96 @@ function DetailView({ item, type, onBack }) {
                             <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px 8px' }}>
                                 {msgs.map(m => {
                                     const isMine = m.from === 'customer';
+                                    const msgRxns = rxns[m.id] || [];
+                                    const rxnCounts = msgRxns.reduce((acc, r) => { acc[r.emoji] = (acc[r.emoji]||0)+1; return acc; }, {});
                                     return (
                                         <motion.div
                                             key={m.id}
                                             initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                                            style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-                                            <div style={{
-                                                maxWidth: '80%',
-                                                padding: '9px 13px 8px',
-                                                borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                                                background: isMine
-                                                    ? 'linear-gradient(135deg,#007AFF,#5856D6)'
-                                                    : 'rgba(255,255,255,0.9)',
-                                                color: isMine ? '#fff' : '#1D1D1F',
-                                                boxShadow: isMine
-                                                    ? '0 2px 12px rgba(0,122,255,0.25)'
-                                                    : '0 1px 4px rgba(0,0,0,0.08)',
-                                                border: isMine ? 'none' : '1px solid rgba(0,0,0,0.07)',
-                                            }}>
-                                                <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
-                                                <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right', letterSpacing: '0.01em' }}>
-                                                    {isMine ? 'אני' : 'NextClass'}
-                                                    {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
-                                                </p>
+                                            style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                                            {/* Bubble row */}
+                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMine ? 'row-reverse' : 'row' }}>
+                                                {/* Reaction picker on hover */}
+                                                <AnimatePresence>
+                                                {hoveredMsg === m.id && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.85, y: 4 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.85, y: 4 }}
+                                                        transition={{ type: 'spring', stiffness: 480, damping: 26 }}
+                                                        style={{
+                                                            position: 'absolute', top: -40, [isMine ? 'right' : 'left']: 0,
+                                                            display: 'flex', gap: 2, background: '#fff',
+                                                            borderRadius: 99, boxShadow: '0 4px 18px rgba(0,0,0,0.14)',
+                                                            padding: '5px 10px', zIndex: 20, border: '1px solid rgba(0,0,0,0.07)',
+                                                        }}>
+                                                        {['👍','✅','❓','⏰','😊'].map(emoji => (
+                                                            <motion.button key={emoji} whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.9 }}
+                                                                onClick={() => handleReaction(m.id, emoji)}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '0 2px', lineHeight: 1 }}>
+                                                                {emoji}
+                                                            </motion.button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                                </AnimatePresence>
+                                                <div
+                                                    onMouseEnter={() => setHoveredMsg(m.id)}
+                                                    onMouseLeave={() => setHoveredMsg(null)}
+                                                    style={{
+                                                        maxWidth: '80%',
+                                                        padding: '9px 13px 8px',
+                                                        borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                                        background: isMine
+                                                            ? 'linear-gradient(135deg,#007AFF,#5856D6)'
+                                                            : 'rgba(255,255,255,0.9)',
+                                                        color: isMine ? '#fff' : '#1D1D1F',
+                                                        boxShadow: isMine
+                                                            ? '0 2px 12px rgba(0,122,255,0.25)'
+                                                            : '0 1px 4px rgba(0,0,0,0.08)',
+                                                        border: isMine ? 'none' : '1px solid rgba(0,0,0,0.07)',
+                                                        cursor: 'default', transition: 'box-shadow 0.15s',
+                                                    }}>
+                                                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
+                                                    <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right', letterSpacing: '0.01em' }}>
+                                                        {isMine ? 'אני' : 'NextClass'}
+                                                        {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                                    </p>
+                                                </div>
                                             </div>
+                                            {/* Reactions */}
+                                            {Object.keys(rxnCounts).length > 0 && (
+                                                <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                                                    {Object.entries(rxnCounts).map(([emoji, count]) => (
+                                                        <motion.button key={emoji} whileTap={{ scale: 0.9 }}
+                                                            onClick={() => handleReaction(m.id, emoji)}
+                                                            style={{ fontSize: 12, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            {emoji}{count > 1 && <span style={{ fontSize: 9, fontWeight: 800, color: '#6E6E73' }}>{count}</span>}
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {/* Read receipt */}
+                                            {isMine && m.id === lastReadMsgId && (
+                                                <p style={{ fontSize: 9, color: '#007AFF', fontWeight: 700, margin: '2px 0 0', letterSpacing: '0.01em' }}>✓✓ נקרא</p>
+                                            )}
                                         </motion.div>
                                     );
                                 })}
+                                {/* Admin typing indicator */}
+                                <AnimatePresence>
+                                {item.typingAdmin && (
+                                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                                        style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                                        <div style={{ padding: '9px 14px', borderRadius: '18px 18px 18px 4px', background: 'rgba(255,255,255,0.9)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 4, alignItems: 'center' }}>
+                                            {[0,1,2].map(i => (
+                                                <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#AEAEB2', display: 'inline-block', animationName: 'ppDot', animationDuration: '1.4s', animationDelay: `${i*0.2}s`, animationIterationCount: 'infinite' }} />
+                                            ))}
+                                            <span style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 600, marginRight: 2 }}>NextClass מקליד</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
                                 <div ref={threadEndRef} />
                             </div>
                         );
@@ -411,7 +507,7 @@ function DetailView({ item, type, onBack }) {
                         }}>
                             <textarea
                                 value={msgText}
-                                onChange={e => setMsgText(e.target.value)}
+                                onChange={e => { setMsgText(e.target.value); if (e.target.value) handleTyping(); }}
                                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (msgText.trim()) handleSendMsg(); } }}
                                 placeholder="כתבו הודעה..."
                                 rows={1}

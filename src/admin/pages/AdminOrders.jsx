@@ -2,11 +2,48 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package, MessageSquare, Send } from 'lucide-react';
+import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package, MessageSquare, Send, PanelRight } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
+import { db } from '../../firebase';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+
+// ─── AI reply templates & intent detection ────────────────────────────────────
+const EMOJI_RXNS = ['👍','✅','❓','⏰','😊'];
+
+const AI_TEMPLATES = {
+    pricing: [
+        { label: 'אישור בקשה', text: 'קיבלנו את בקשת הצעת המחיר שלך. הצוות שלנו מכין עבורך הצעה מותאמת ויחזור אליך בהקדם.' },
+        { label: 'פרטים נוספים', text: 'תודה על פנייתך! כדי להכין הצעה מדויקת, נשמח לקבל פרטים נוספים על הכמויות הנדרשות.' },
+    ],
+    urgent: [
+        { label: 'טיפול דחוף', text: 'קיבלנו את הבקשה הדחופה ומטפלים בה בעדיפות גבוהה. נחזור אליך היום עם מענה.' },
+        { label: 'אישור דחיפות', text: 'הבנו שמדובר בבקשה דחופה. נעשה כמיטב יכולתנו להגיב בהקדם האפשרי.' },
+    ],
+    thanks: [
+        { label: 'תודה חזרה', text: 'תודה רבה! שמחנו לסייע ונשמח לעמוד לשירותך גם בעתיד.' },
+        { label: 'המשך שירות', text: 'תודה על האמון. אנחנו כאן לכל שאלה או צורך נוסף.' },
+    ],
+    delivery: [
+        { label: 'עדכון משלוח', text: 'ההזמנה שלך בטיפול ותישלח בתוך 3-5 ימי עסקים. תעדכן בדוא״ל עם קוד מעקב.' },
+        { label: 'אישור שילוח', text: 'קיבלנו את ההזמנה והיא תישלח בהקדם. ניצור קשר עם פרטי מעקב.' },
+    ],
+    general: [
+        { label: 'מענה כללי', text: 'תודה על פנייתך! קיבלנו את הבקשה ונחזור אליך בתוך שעות ספורות.' },
+        { label: 'בבירור', text: 'תודה על הפנייה. אנחנו בוחנים את הבקשה ונחזור אליך בהקדם עם מענה מפורט.' },
+    ],
+};
+
+function detectIntent(msgs) {
+    const last = [...msgs].reverse().find(m => m.from === 'customer')?.text || '';
+    if (/מחיר|עלות|תמחיר|הצעה|כמה עולה|תמחור/.test(last)) return 'pricing';
+    if (/דחוף|מיד|מהר|מחר|היום/.test(last)) return 'urgent';
+    if (/תודה|תנקיו|תנקס|מעולה|מצוין|יפה/.test(last)) return 'thanks';
+    if (/משלוח|שילוח|מתי מגיע|מעקב|נמסר|קבלה/.test(last)) return 'delivery';
+    return 'general';
+}
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -172,16 +209,38 @@ function QuotesPipeline() {
     const [saved, setSaved]             = useState(false);
     const [customerMsg, setCustomerMsg] = useState('');
     const [msgSaved, setMsgSaved]       = useState(false);
-    const [threadMsg, setThreadMsg]     = useState('');
+    const [threadMsg, setThreadMsg]         = useState('');
     const [threadSending, setThreadSending] = useState(false);
-    const threadEndRef = useRef(null);
+    const [sidebarOpen, setSidebarOpen]     = useState(() => { try { return localStorage.getItem('nc_admin_sidebar') === 'true'; } catch { return false; } });
+    const [hoveredMsg, setHoveredMsg]       = useState(null);
+    const threadEndRef   = useRef(null);
+    const typingTimerRef = useRef(null);
+    const prevSelectedId = useRef(null);
 
-    // Sync when modal opens
+    // Real-time sync: keep selected in sync with live quotes data
     useEffect(() => {
+        setSelected(prev => {
+            if (!prev) return prev;
+            const fresh = quotes.find(q => q.id === prev.id);
+            return fresh ?? prev;
+        });
+    }, [quotes]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Sync when modal opens/switches
+    useEffect(() => {
+        // Clear typing on previous quote when switching
+        if (prevSelectedId.current && prevSelectedId.current !== selected?.id) {
+            clearTimeout(typingTimerRef.current);
+            updateDoc(doc(db, 'quotes', prevSelectedId.current), { typingAdmin: false }).catch(() => {});
+        }
+        prevSelectedId.current = selected?.id || null;
+
         if (selected) {
             setCustomerMsg(selected.customerMessage || '');
             setThreadMsg('');
-            if (selected.unreadAdmin) markAdminThreadRead(selected.id).catch(() => {});
+            const upd = { lastReadAdmin: Date.now() };
+            if (selected.unreadAdmin) upd.unreadAdmin = false;
+            updateDoc(doc(db, 'quotes', selected.id), upd).catch(() => {});
         }
     }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -210,9 +269,28 @@ function QuotesPipeline() {
         setTimeout(() => setMsgSaved(false), 2000);
     };
 
+    const handleAdminTyping = () => {
+        if (!selected) return;
+        updateDoc(doc(db, 'quotes', selected.id), { typingAdmin: true }).catch(() => {});
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+            updateDoc(doc(db, 'quotes', selected.id), { typingAdmin: false }).catch(() => {});
+        }, 2000);
+    };
+
+    const handleReaction = (msgId, emoji) => {
+        if (!selected) return;
+        updateDoc(doc(db, 'quotes', selected.id), {
+            [`reactions.${msgId}`]: arrayUnion({ from: 'admin', emoji, tsNum: Date.now() })
+        }).catch(() => {});
+        setHoveredMsg(null);
+    };
+
     const handleSendThread = async () => {
         if (!threadMsg.trim() || !selected) return;
         setThreadSending(true);
+        clearTimeout(typingTimerRef.current);
+        updateDoc(doc(db, 'quotes', selected.id), { typingAdmin: false }).catch(() => {});
         try {
             await sendThreadMessage(selected.id, threadMsg);
             setThreadMsg('');
@@ -250,9 +328,17 @@ function QuotesPipeline() {
 
     const totalValue = useMemo(() => filtered.reduce((s, q) => s + (q.subtotal || 0), 0), [filtered]);
 
+    const suggestions = useMemo(() => {
+        if (!selected) return [];
+        const msgs = [...(selected.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
+        if (!msgs.length && selected.customerNote) return AI_TEMPLATES.general;
+        if (!msgs.length) return [];
+        return AI_TEMPLATES[detectIntent(msgs)] || AI_TEMPLATES.general;
+    }, [selected?.id, selected?.thread?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
         <>
-        <style>{`@keyframes ppulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.4)}}`}</style>
+        <style>{`@keyframes ppulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.4)}}@keyframes ppDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}`}</style>
         <div className="space-y-5">
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
@@ -368,237 +454,387 @@ function QuotesPipeline() {
             )}
 
             {/* Quote Detail Modal */}
-            <AdminModal open={!!selected} onClose={() => setSelected(null)} title={`הצעת מחיר ${selected?.id || ''}`} size="md">
+            <AdminModal open={!!selected} onClose={() => setSelected(null)} title={`הצעת מחיר ${selected?.id || ''}`} size={sidebarOpen ? 'xl' : 'lg'}>
                 {selected && (
-                    <div className="space-y-5" dir="rtl">
-                        {/* Pipeline progress */}
-                        {selected.status !== 'אבד' && (
-                            <div className="rounded-2xl p-4"
-                                style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.10)' }}>
-                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">מצב ההצעה</p>
-                                <StatusTimeline status={selected.status} flow={QUOTE_STATUS_FLOW} colors={QUOTE_STATUS_COLORS} />
-                            </div>
-                        )}
-
-                        {/* Contact details */}
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                ['שם איש קשר', selected.contactName],
-                                ['תפקיד', selected.contactRole],
-                                ['מוסד', selected.institution],
-                                ['סוג מוסד', selected.institutionType],
-                                ['טלפון', selected.phone],
-                                ['מייל', selected.email],
-                                ['אמצעי קשר מועדף', selected.preferredContact],
-                                ['זמן מועדף לשיחה', selected.bestTime],
-                                ['טווח תקציב', selected.budgetRange],
-                                ['דחיפות', selected.urgency],
-                            ].map(([l, v]) => v ? (
-                                <div key={l} className="text-right p-3 rounded-xl"
-                                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{l}</p>
-                                    <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v}</p>
-                                </div>
-                            ) : null)}
+                    <div dir="rtl">
+                        {/* Sidebar toggle */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16 }}>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setSidebarOpen(o => { const n = !o; try { localStorage.setItem('nc_admin_sidebar', String(n)); } catch {} return n; })}
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, fontSize: 11, fontWeight: 800, border: '1px solid rgba(0,0,0,0.09)', background: sidebarOpen ? 'rgba(0,122,255,0.08)' : 'rgba(0,0,0,0.04)', color: sidebarOpen ? '#007AFF' : '#6E6E73', cursor: 'pointer' }}>
+                                <PanelRight size={13} />
+                                {sidebarOpen ? 'סגור פרטים' : 'פרטי הבקשה'}
+                            </motion.button>
                         </div>
 
-                        {/* WhatsApp CTA */}
-                        {selected.phone && (
-                            <a href={`https://wa.me/972${selected.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(`שלום ${selected.contactName}, קיבלנו את בקשת הצעת המחיר שלך (${selected.id}). אנחנו רוצים לסייע לך.`)}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-black text-sm text-white transition-all hover:opacity-90"
-                                style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 8px 24px rgba(37,211,102,0.3)' }}>
-                                פתח WhatsApp עם {selected.contactName}
-                            </a>
-                        )}
-
-                        {/* Cart items */}
-                        {selected.items?.length > 0 && (
-                            <div>
-                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">פריטים בהצעה</p>
-                                <div className="space-y-2">
-                                    {selected.items.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right"
-                                            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                            <img src={item.image || item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover bg-[#F5F5F7] shrink-0"
-                                                onError={(e) => {
-                                                    if (!e.target.dataset.tried1) {
-                                                        e.target.dataset.tried1 = 'true';
-                                                        const orig = initialProducts.find(ip => String(ip.id) === String(item.id));
-                                                        if (orig?.image) { e.target.src = orig.image; return; }
-                                                    }
-                                                    e.target.onerror = null;
-                                                    e.target.src = IMG_FALLBACK;
-                                                }} />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[#1D1D1F] font-bold text-sm truncate">{item.title}</p>
-                                                <p className="text-[#86868B] text-xs">כמות: {item.qty ?? item.quantity ?? 1} · ₪{(item.salePrice ?? item.price)?.toLocaleString()}</p>
-                                            </div>
-                                            <p className="font-black text-sm shrink-0">₪{((item.salePrice ?? item.price) * (item.qty ?? item.quantity ?? 1)).toLocaleString()}</p>
-                                        </div>
-                                    ))}
-                                    <div className="flex justify-between px-3 pt-2">
-                                        <span className="text-[#86868B] text-sm">סה״כ הצעה</span>
-                                        <span className="font-black text-[#1D1D1F]">₪{(selected.subtotal || 0).toLocaleString()}</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: sidebarOpen ? '1fr 240px' : '1fr', gap: 20, alignItems: 'start' }}>
+                            {/* ── Main column ─────────────────────────────── */}
+                            <div className="space-y-5">
+                                {/* Pipeline progress */}
+                                {selected.status !== 'אבד' && (
+                                    <div className="rounded-2xl p-4"
+                                        style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.10)' }}>
+                                        <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">מצב ההצעה</p>
+                                        <StatusTimeline status={selected.status} flow={QUOTE_STATUS_FLOW} colors={QUOTE_STATUS_COLORS} />
                                     </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Notes */}
-                        {selected.notes && (
-                            <div className="rounded-xl px-4 py-3 text-right"
-                                style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                                <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest mb-1">הערות לקוח</p>
-                                <p className="text-[#1D1D1F] text-sm">{selected.notes}</p>
-                            </div>
-                        )}
-
-                        {/* Customer note (sent from profile panel) */}
-                        {selected.customerNote && (
-                            <div className="rounded-xl px-4 py-3 text-right"
-                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.22)' }}>
-                                <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#34C759' }}>💬 הערה מהלקוח</p>
-                                <p className="text-[#1D1D1F] text-sm leading-relaxed">{selected.customerNote}</p>
-                            </div>
-                        )}
-
-                        {/* Admin notes */}
-                        {selected.adminNotes?.length > 0 && (
-                            <div>
-                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">הערות פנימיות</p>
-                                <div className="space-y-2">
-                                    {selected.adminNotes.map((n, i) => (
-                                        <div key={i} className="p-3 rounded-xl text-right"
-                                            style={{ background: 'rgba(88,86,214,0.05)', border: '1px solid rgba(88,86,214,0.12)' }}>
-                                            <p className="text-[#5856D6] text-[10px] font-black mb-1">{n.date}</p>
-                                            <p className="text-[#1D1D1F] text-sm">{n.note}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Thread — two-way chat */}
-                        <div className="border-t border-black/06 pt-4">
-                            {/* Header */}
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
-                                    <MessageSquare size={12} color="#fff" />
-                                </div>
-                                <p className="text-[11px] font-black tracking-tight text-[#1D1D1F] flex-1">שיחה עם הלקוח</p>
-                                {selected.unreadAdmin && (
-                                    <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#34C759,#30D158)', boxShadow: '0 1px 6px rgba(52,199,89,0.4)' }}>הודעה חדשה</span>
                                 )}
-                            </div>
 
-                            {/* Messages */}
-                            {(() => {
-                                const hasThread = (selected.thread || []).length > 0;
-                                const msgs = [...(selected.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
-                                if (!hasThread && selected.customerMessage) msgs.push({ id: 'lg-a', from: 'admin', text: selected.customerMessage, tsNum: 0 });
-                                if (!hasThread && selected.customerNote) msgs.push({ id: 'lg-c', from: 'customer', text: selected.customerNote, tsNum: 1 });
-                                if (msgs.length === 0) return (
-                                    <p className="text-[#AEAEB2] text-xs text-center py-4">אין הודעות עדיין — שלח הודעה ראשונה</p>
-                                );
-                                return (
-                                    <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, padding: '4px 2px' }}>
-                                        {msgs.map(m => {
-                                            const isMine = m.from === 'admin';
-                                            return (
-                                                <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }} dir="rtl">
-                                                    <div style={{
-                                                        maxWidth: '74%', padding: '9px 13px 8px',
-                                                        borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                                                        background: isMine ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F5F5F7',
-                                                        color: isMine ? '#fff' : '#1D1D1F',
-                                                        boxShadow: isMine ? '0 2px 12px rgba(0,122,255,0.22)' : '0 1px 3px rgba(0,0,0,0.07)',
-                                                    }}>
-                                                        <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
-                                                        <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right' }}>
-                                                            {isMine ? 'NextClass' : (selected.contactName || 'לקוח')}
-                                                            {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
-                                                        </p>
+                                {/* Contact details — hidden when sidebar open */}
+                                {!sidebarOpen && (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                ['שם איש קשר', selected.contactName],
+                                                ['תפקיד', selected.contactRole],
+                                                ['מוסד', selected.institution],
+                                                ['סוג מוסד', selected.institutionType],
+                                                ['טלפון', selected.phone],
+                                                ['מייל', selected.email],
+                                                ['אמצעי קשר מועדף', selected.preferredContact],
+                                                ['זמן מועדף לשיחה', selected.bestTime],
+                                                ['טווח תקציב', selected.budgetRange],
+                                                ['דחיפות', selected.urgency],
+                                            ].map(([l, v]) => v ? (
+                                                <div key={l} className="text-right p-3 rounded-xl"
+                                                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{l}</p>
+                                                    <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v}</p>
+                                                </div>
+                                            ) : null)}
+                                        </div>
+                                        {selected.phone && (
+                                            <a href={`https://wa.me/972${selected.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(`שלום ${selected.contactName}, קיבלנו את בקשת הצעת המחיר שלך (${selected.id}). אנחנו רוצים לסייע לך.`)}`}
+                                                target="_blank" rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-black text-sm text-white transition-all hover:opacity-90"
+                                                style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', boxShadow: '0 8px 24px rgba(37,211,102,0.3)' }}>
+                                                פתח WhatsApp עם {selected.contactName}
+                                            </a>
+                                        )}
+                                        {selected.items?.length > 0 && (
+                                            <div>
+                                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">פריטים בהצעה</p>
+                                                <div className="space-y-2">
+                                                    {selected.items.map((item, idx) => (
+                                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right"
+                                                            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                            <img src={item.image || item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover bg-[#F5F5F7] shrink-0"
+                                                                onError={(e) => {
+                                                                    if (!e.target.dataset.tried1) {
+                                                                        e.target.dataset.tried1 = 'true';
+                                                                        const orig = initialProducts.find(ip => String(ip.id) === String(item.id));
+                                                                        if (orig?.image) { e.target.src = orig.image; return; }
+                                                                    }
+                                                                    e.target.onerror = null;
+                                                                    e.target.src = IMG_FALLBACK;
+                                                                }} />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[#1D1D1F] font-bold text-sm truncate">{item.title}</p>
+                                                                <p className="text-[#86868B] text-xs">כמות: {item.qty ?? item.quantity ?? 1} · ₪{(item.salePrice ?? item.price)?.toLocaleString()}</p>
+                                                            </div>
+                                                            <p className="font-black text-sm shrink-0">₪{((item.salePrice ?? item.price) * (item.qty ?? item.quantity ?? 1)).toLocaleString()}</p>
+                                                        </div>
+                                                    ))}
+                                                    <div className="flex justify-between px-3 pt-2">
+                                                        <span className="text-[#86868B] text-sm">סה״כ הצעה</span>
+                                                        <span className="font-black text-[#1D1D1F]">₪{(selected.subtotal || 0).toLocaleString()}</span>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                        <div ref={threadEndRef} />
+                                            </div>
+                                        )}
+                                        {selected.notes && (
+                                            <div className="rounded-xl px-4 py-3 text-right"
+                                                style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                                                <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest mb-1">הערות לקוח</p>
+                                                <p className="text-[#1D1D1F] text-sm">{selected.notes}</p>
+                                            </div>
+                                        )}
+                                        {selected.customerNote && (
+                                            <div className="rounded-xl px-4 py-3 text-right"
+                                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.22)' }}>
+                                                <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#34C759' }}>💬 הערה מהלקוח</p>
+                                                <p className="text-[#1D1D1F] text-sm leading-relaxed">{selected.customerNote}</p>
+                                            </div>
+                                        )}
+                                        {selected.adminNotes?.length > 0 && (
+                                            <div>
+                                                <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-2 text-right">הערות פנימיות</p>
+                                                <div className="space-y-2">
+                                                    {selected.adminNotes.map((n, i) => (
+                                                        <div key={i} className="p-3 rounded-xl text-right"
+                                                            style={{ background: 'rgba(88,86,214,0.05)', border: '1px solid rgba(88,86,214,0.12)' }}>
+                                                            <p className="text-[#5856D6] text-[10px] font-black mb-1">{n.date}</p>
+                                                            <p className="text-[#1D1D1F] text-sm">{n.note}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* Thread — two-way chat */}
+                                <div className="border-t border-black/06 pt-4">
+                                    {/* Header */}
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
+                                            <MessageSquare size={12} color="#fff" />
+                                        </div>
+                                        <p className="text-[11px] font-black tracking-tight text-[#1D1D1F] flex-1">שיחה עם הלקוח</p>
+                                        {selected.unreadAdmin && (
+                                            <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#34C759,#30D158)', boxShadow: '0 1px 6px rgba(52,199,89,0.4)' }}>הודעה חדשה</span>
+                                        )}
                                     </div>
-                                );
-                            })()}
 
-                            {/* Input */}
-                            <div className="flex gap-2 items-end">
-                                <textarea
-                                    value={threadMsg}
-                                    onChange={e => setThreadMsg(e.target.value)}
-                                    placeholder="כתוב הודעה... (Enter לשליחה)"
-                                    dir="rtl"
-                                    rows={2}
-                                    onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if(threadMsg.trim()) handleSendThread(); } }}
-                                    className="flex-1 px-3 py-2.5 rounded-2xl text-sm font-medium text-right outline-none transition-all resize-none"
-                                    style={{ background: '#F5F5F7', border: '1.5px solid rgba(0,0,0,0.08)', fontFamily: 'Heebo, sans-serif', lineHeight: 1.5 }}
-                                    onFocus={e => e.target.style.borderColor = 'rgba(0,122,255,0.35)'}
-                                    onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.08)'}
-                                />
-                                <motion.button
-                                    whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.05 }}
-                                    onClick={handleSendThread}
-                                    disabled={!threadMsg.trim() || threadSending}
-                                    className="shrink-0 flex items-center justify-center rounded-full"
-                                    style={{
-                                        width: 40, height: 40, border: 'none',
-                                        background: threadMsg.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
-                                        boxShadow: threadMsg.trim() ? '0 2px 12px rgba(0,122,255,0.35)' : 'none',
-                                        cursor: threadMsg.trim() ? 'pointer' : 'default',
-                                        transition: 'all 0.2s',
-                                    }}>
-                                    <Send size={15} color={threadMsg.trim() ? '#fff' : '#C7C7CC'} />
-                                </motion.button>
-                            </div>
-                        </div>
+                                    {/* Messages */}
+                                    {(() => {
+                                        const hasThread = (selected.thread || []).length > 0;
+                                        const msgs = [...(selected.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
+                                        if (!hasThread && selected.customerMessage) msgs.push({ id: 'lg-a', from: 'admin', text: selected.customerMessage, tsNum: 0 });
+                                        if (!hasThread && selected.customerNote) msgs.push({ id: 'lg-c', from: 'customer', text: selected.customerNote, tsNum: 1 });
 
-                        {/* Add admin note */}
-                        <div className="border-t border-black/06 pt-4 space-y-2">
-                            <p className="text-[#86868B] text-[10px] font-black tracking-widest text-right">הוסף הערה פנימית</p>
-                            <div className="flex gap-2">
-                                <input
-                                    value={noteText}
-                                    onChange={e => setNoteText(e.target.value)}
-                                    placeholder="הערה..."
-                                    dir="rtl"
-                                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
-                                    style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
-                                    onKeyDown={e => e.key === 'Enter' && handleAddNote()}
-                                />
-                                <AdminButton onClick={handleAddNote} disabled={!noteText.trim()}>שמור</AdminButton>
-                            </div>
-                        </div>
+                                        const rxns = selected.reactions || {};
+                                        const lastReadMsgId = (() => {
+                                            if (!selected.lastReadCustomer) return null;
+                                            const read = msgs.filter(m => m.from === 'admin' && m.tsNum > 0 && selected.lastReadCustomer >= m.tsNum);
+                                            return read.length ? read[read.length - 1].id : null;
+                                        })();
 
-                        {/* Status change */}
-                        <div className="border-t border-black/06 pt-4">
-                            <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">עדכן סטטוס</p>
-                            <div className="flex flex-wrap gap-2 mb-3 justify-end">
-                                {QUOTE_STATUSES.slice(1).map(s => (
-                                    <button key={s} type="button" onClick={() => setNewStatus(s)}
-                                        className="px-3 py-1.5 rounded-full text-xs font-black transition-all"
-                                        style={{
-                                            background: newStatus === s ? (QUOTE_STATUS_COLORS[s] || '#007AFF') : 'rgba(0,0,0,0.06)',
-                                            color: newStatus === s ? 'white' : '#6E6E73',
-                                            boxShadow: newStatus === s ? `0 4px 12px ${(QUOTE_STATUS_COLORS[s] || '#007AFF')}40` : 'none',
-                                        }}>
-                                        {s}
-                                    </button>
-                                ))}
+                                        if (msgs.length === 0) return (
+                                            <p className="text-[#AEAEB2] text-xs text-center py-4">אין הודעות עדיין — שלח הודעה ראשונה</p>
+                                        );
+                                        return (
+                                            <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, padding: '4px 2px' }}>
+                                                {msgs.map(m => {
+                                                    const isMine = m.from === 'admin';
+                                                    const msgRxns = rxns[m.id] || [];
+                                                    const rxnCounts = msgRxns.reduce((acc, r) => { acc[r.emoji] = (acc[r.emoji]||0)+1; return acc; }, {});
+                                                    return (
+                                                        <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }} dir="rtl">
+                                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMine ? 'row-reverse' : 'row' }}>
+                                                                {/* Reaction picker */}
+                                                                <AnimatePresence>
+                                                                {hoveredMsg === m.id && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, scale: 0.85, y: 4 }}
+                                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                        exit={{ opacity: 0, scale: 0.85, y: 4 }}
+                                                                        transition={{ type: 'spring', stiffness: 480, damping: 26 }}
+                                                                        style={{
+                                                                            position: 'absolute', top: -40, [isMine ? 'left' : 'right']: 0,
+                                                                            display: 'flex', gap: 2, background: '#fff',
+                                                                            borderRadius: 99, boxShadow: '0 4px 18px rgba(0,0,0,0.14)',
+                                                                            padding: '5px 10px', zIndex: 20, border: '1px solid rgba(0,0,0,0.07)',
+                                                                        }}>
+                                                                        {EMOJI_RXNS.map(emoji => (
+                                                                            <motion.button key={emoji} whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.9 }}
+                                                                                onClick={() => handleReaction(m.id, emoji)}
+                                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1 }}>
+                                                                                {emoji}
+                                                                            </motion.button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                                </AnimatePresence>
+                                                                <div
+                                                                    onMouseEnter={() => setHoveredMsg(m.id)}
+                                                                    onMouseLeave={() => setHoveredMsg(null)}
+                                                                    style={{
+                                                                        maxWidth: '74%', padding: '9px 13px 8px',
+                                                                        borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                                                        background: isMine ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F5F5F7',
+                                                                        color: isMine ? '#fff' : '#1D1D1F',
+                                                                        boxShadow: isMine ? '0 2px 12px rgba(0,122,255,0.22)' : '0 1px 3px rgba(0,0,0,0.07)',
+                                                                        cursor: 'default',
+                                                                    }}>
+                                                                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
+                                                                    <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right' }}>
+                                                                        {isMine ? 'NextClass' : (selected.contactName || 'לקוח')}
+                                                                        {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            {/* Reactions */}
+                                                            {Object.keys(rxnCounts).length > 0 && (
+                                                                <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                                                                    {Object.entries(rxnCounts).map(([emoji, count]) => (
+                                                                        <motion.button key={emoji} whileTap={{ scale: 0.9 }}
+                                                                            onClick={() => handleReaction(m.id, emoji)}
+                                                                            style={{ fontSize: 11, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                            {emoji}{count > 1 && <span style={{ fontSize: 9, fontWeight: 800, color: '#6E6E73' }}>{count}</span>}
+                                                                        </motion.button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {/* Read receipt */}
+                                                            {isMine && m.id === lastReadMsgId && (
+                                                                <p style={{ fontSize: 9, color: '#34C759', fontWeight: 700, margin: '2px 0 0', letterSpacing: '0.01em' }}>✓✓ נקרא</p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {/* Customer typing indicator */}
+                                                <AnimatePresence>
+                                                {selected.typingCustomer && (
+                                                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                                                        style={{ display: 'flex', justifyContent: 'flex-start' }} dir="rtl">
+                                                        <div style={{ padding: '9px 14px', borderRadius: '18px 18px 18px 4px', background: '#F5F5F7', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', display: 'flex', gap: 4, alignItems: 'center' }}>
+                                                            {[0,1,2].map(i => (
+                                                                <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#AEAEB2', display: 'inline-block', animationName: 'ppDot', animationDuration: '1.4s', animationDelay: `${i*0.2}s`, animationIterationCount: 'infinite' }} />
+                                                            ))}
+                                                            <span style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 600, marginRight: 4 }}>{selected.contactName || 'לקוח'} מקליד</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                                </AnimatePresence>
+                                                <div ref={threadEndRef} />
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* AI suggestion chips */}
+                                    {suggestions.length > 0 && (
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+                                            <span style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 800, letterSpacing: '0.07em' }}>הצעות:</span>
+                                            {suggestions.map((s, i) => (
+                                                <motion.button key={i} whileTap={{ scale: 0.95 }}
+                                                    onClick={() => setThreadMsg(s.text)}
+                                                    style={{ fontSize: 11, padding: '4px 11px', borderRadius: 99, background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.16)', color: '#007AFF', fontWeight: 700, cursor: 'pointer', fontFamily: 'Heebo, sans-serif' }}>
+                                                    {s.label}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Input */}
+                                    <div className="flex gap-2 items-end">
+                                        <textarea
+                                            value={threadMsg}
+                                            onChange={e => { setThreadMsg(e.target.value); if (e.target.value) handleAdminTyping(); }}
+                                            placeholder="כתוב הודעה... (Enter לשליחה)"
+                                            dir="rtl"
+                                            rows={2}
+                                            onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if(threadMsg.trim()) handleSendThread(); } }}
+                                            className="flex-1 px-3 py-2.5 rounded-2xl text-sm font-medium text-right outline-none transition-all resize-none"
+                                            style={{ background: '#F5F5F7', border: '1.5px solid rgba(0,0,0,0.08)', fontFamily: 'Heebo, sans-serif', lineHeight: 1.5 }}
+                                            onFocus={e => e.target.style.borderColor = 'rgba(0,122,255,0.35)'}
+                                            onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.08)'}
+                                        />
+                                        <motion.button
+                                            whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.05 }}
+                                            onClick={handleSendThread}
+                                            disabled={!threadMsg.trim() || threadSending}
+                                            className="shrink-0 flex items-center justify-center rounded-full"
+                                            style={{
+                                                width: 40, height: 40, border: 'none',
+                                                background: threadMsg.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
+                                                boxShadow: threadMsg.trim() ? '0 2px 12px rgba(0,122,255,0.35)' : 'none',
+                                                cursor: threadMsg.trim() ? 'pointer' : 'default',
+                                                transition: 'all 0.2s',
+                                            }}>
+                                            <Send size={15} color={threadMsg.trim() ? '#fff' : '#C7C7CC'} />
+                                        </motion.button>
+                                    </div>
+                                </div>
+
+                                {/* Add admin note */}
+                                <div className="border-t border-black/06 pt-4 space-y-2">
+                                    <p className="text-[#86868B] text-[10px] font-black tracking-widest text-right">הוסף הערה פנימית</p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={noteText}
+                                            onChange={e => setNoteText(e.target.value)}
+                                            placeholder="הערה..."
+                                            dir="rtl"
+                                            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                                            style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddNote()}
+                                        />
+                                        <AdminButton onClick={handleAddNote} disabled={!noteText.trim()}>שמור</AdminButton>
+                                    </div>
+                                </div>
+
+                                {/* Status change */}
+                                <div className="border-t border-black/06 pt-4">
+                                    <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">עדכן סטטוס</p>
+                                    <div className="flex flex-wrap gap-2 mb-3 justify-end">
+                                        {QUOTE_STATUSES.slice(1).map(s => (
+                                            <button key={s} type="button" onClick={() => setNewStatus(s)}
+                                                className="px-3 py-1.5 rounded-full text-xs font-black transition-all"
+                                                style={{
+                                                    background: newStatus === s ? (QUOTE_STATUS_COLORS[s] || '#007AFF') : 'rgba(0,0,0,0.06)',
+                                                    color: newStatus === s ? 'white' : '#6E6E73',
+                                                    boxShadow: newStatus === s ? `0 4px 12px ${(QUOTE_STATUS_COLORS[s] || '#007AFF')}40` : 'none',
+                                                }}>
+                                                {s}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <AdminButton variant="ghost" onClick={() => setSelected(null)}>סגור</AdminButton>
+                                        <AdminButton onClick={handleStatusSave} disabled={!newStatus}>
+                                            {saved ? '✓ עודכן!' : 'עדכן סטטוס'}
+                                        </AdminButton>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <AdminButton variant="ghost" onClick={() => setSelected(null)}>סגור</AdminButton>
-                                <AdminButton onClick={handleStatusSave} disabled={!newStatus}>
-                                    {saved ? '✓ עודכן!' : 'עדכן סטטוס'}
-                                </AdminButton>
-                            </div>
+
+                            {/* ── Sidebar ──────────────────────────────────── */}
+                            <AnimatePresence>
+                            {sidebarOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                                    style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {/* Contact info card */}
+                                    <div style={{ borderRadius: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.07)' }}>
+                                        <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px', textAlign: 'right' }}>פרטי קשר</p>
+                                        {[['שם', selected.contactName], ['תפקיד', selected.contactRole], ['מוסד', selected.institution], ['טלפון', selected.phone], ['מייל', selected.email], ['דחיפות', selected.urgency]].map(([l, v]) => v ? (
+                                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                <span style={{ fontSize: 11, fontWeight: 600, color: '#1D1D1F', direction: 'rtl', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '155px' }}>{v}</span>
+                                                <span style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 700, flexShrink: 0 }}>{l}</span>
+                                            </div>
+                                        ) : null)}
+                                    </div>
+
+                                    {/* WhatsApp quick action */}
+                                    {selected.phone && (
+                                        <a href={`https://wa.me/972${selected.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(`שלום ${selected.contactName}, קיבלנו את בקשת הצעת המחיר שלך (${selected.id}).`)}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 12, fontWeight: 800, fontSize: 12, color: '#fff', background: 'linear-gradient(135deg, #25D366, #128C7E)', textDecoration: 'none', boxShadow: '0 4px 12px rgba(37,211,102,0.28)' }}>
+                                            📱 WhatsApp
+                                        </a>
+                                    )}
+
+                                    {/* Cart summary */}
+                                    {selected.items?.length > 0 && (
+                                        <div style={{ borderRadius: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.07)' }}>
+                                            <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px', textAlign: 'right' }}>פריטים ({selected.items.length})</p>
+                                            {selected.items.map((item, idx) => (
+                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#007AFF', flexShrink: 0 }}>₪{((item.salePrice ?? item.price) * (item.qty ?? item.quantity ?? 1)).toLocaleString()}</span>
+                                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px', direction: 'rtl' }}>{item.title}</span>
+                                                </div>
+                                            ))}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0 0' }}>
+                                                <span style={{ fontSize: 13, fontWeight: 900, color: '#1D1D1F' }}>₪{(selected.subtotal || 0).toLocaleString()}</span>
+                                                <span style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 700 }}>סה״כ</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Notes & customer note */}
+                                    {(selected.notes || selected.customerNote) && (
+                                        <div style={{ borderRadius: 16, padding: '12px 14px', background: 'rgba(52,199,89,0.05)', border: '1px solid rgba(52,199,89,0.18)' }}>
+                                            <p style={{ fontSize: 10, fontWeight: 800, color: '#34C759', letterSpacing: '0.09em', margin: '0 0 6px', textAlign: 'right' }}>💬 הערות</p>
+                                            {selected.notes && <p style={{ fontSize: 12, color: '#1D1D1F', margin: '0 0 4px', textAlign: 'right', lineHeight: 1.5 }}>{selected.notes}</p>}
+                                            {selected.customerNote && <p style={{ fontSize: 12, color: '#1D1D1F', margin: 0, textAlign: 'right', lineHeight: 1.5 }}>{selected.customerNote}</p>}
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 )}
