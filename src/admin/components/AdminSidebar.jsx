@@ -106,7 +106,7 @@ const NAV_GROUPS = [
         icon: 'orders',
         accent: '#FF9500',
         items: [
-            { path: '/admin/orders',      icon: 'orders',      label: 'הזמנות',      badge: 'pending' },
+            { path: '/admin/orders',      icon: 'orders',      label: 'הזמנות',      badge: 'ordersAll' },
             { path: '/admin/customers',   icon: 'customers',   label: 'לקוחות',      badge: 'newContacts' },
             { path: '/admin/users',       icon: 'community',   label: 'משתמשים רשומים', badge: null },
             { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',        badge: 'lowStock' },
@@ -132,7 +132,7 @@ const NAV_GROUPS = [
         accent: '#FF2D55',
         items: [
             { path: '/admin/marketing',      icon: 'marketing',      label: 'שיווק וקופונים', badge: null },
-            { path: '/admin/communications', icon: 'communications', label: 'תקשורת',         badge: null },
+            { path: '/admin/communications', icon: 'communications', label: 'תקשורת',         badge: 'stalledLeads' },
             { path: '/admin/community',      icon: 'community',      label: 'קהילה',          badge: null },
             { path: '/admin/qa',             icon: 'qa',             label: 'שאלות גולשים',  badge: null },
         ],
@@ -212,13 +212,19 @@ function NavItem({ item, collapsed, badgeValue }) {
                 )}
             </AnimatePresence>
             {badgeValue && (
-                <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className={`${collapsed ? 'absolute top-1 right-1' : 'ml-auto'} relative z-10 min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-black flex items-center justify-center bg-[#FF3B30] text-white shadow-sm`}
-                >
-                    {badgeValue > 9 ? '9+' : badgeValue}
-                </motion.span>
+                <span className={`${collapsed ? 'absolute -top-0.5 -right-0.5' : 'ml-auto'} relative z-10 shrink-0 flex items-center justify-center`}>
+                    <span className="absolute inset-0 rounded-full bg-[#FF3B30] opacity-40" style={{ animation: 'nc-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }} />
+                    <motion.span
+                        key={badgeValue}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+                        className="relative flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-black text-white leading-none"
+                        style={{ background: 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: '0 2px 8px rgba(255,59,48,0.45)' }}
+                    >
+                        {badgeValue > 99 ? '99+' : badgeValue}
+                    </motion.span>
+                </span>
             )}
         </>
     );
@@ -238,6 +244,8 @@ function NavItem({ item, collapsed, badgeValue }) {
     }
     return link;
 }
+
+const BADGE_KEYFRAMES = `@keyframes nc-ping{0%{transform:scale(1);opacity:.4}70%,100%{transform:scale(2.2);opacity:0}}`;
 
 export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
     const { logout } = useAdminAuth();
@@ -279,15 +287,18 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
     const getBadge = (key) => {
         if (!key) return null;
-        const v = key === 'pending'     ? kpis.pendingOrders
-               :  key === 'lowStock'    ? kpis.lowStockCount
-               :  key === 'newContacts' ? kpis.contactsNew
+        const v = key === 'pending'      ? kpis.pendingOrders
+               :  key === 'ordersAll'    ? (kpis.pendingOrders || 0) + (kpis.newQuotes || 0) + (kpis.unreadQuotes || 0)
+               :  key === 'lowStock'     ? kpis.lowStockCount
+               :  key === 'newContacts'  ? kpis.contactsNew
+               :  key === 'stalledLeads' ? kpis.stalledLeads
                :  null;
         return v > 0 ? v : null;
     };
 
     return (
         <>
+        <style>{BADGE_KEYFRAMES}</style>
         {/* Desktop sidebar */}
         <motion.aside
             animate={{ width: collapsed ? 64 : 232 }}
@@ -448,11 +459,10 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
                                         {/* Dot badge when group is collapsed but has alerts */}
                                         {hasHiddenBadge && (
-                                            <motion.span
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="relative z-10 w-[6px] h-[6px] rounded-full bg-[#FF3B30] shrink-0"
-                                            />
+                                            <span className="relative z-10 shrink-0 flex items-center justify-center w-[10px] h-[10px]">
+                                                <span className="absolute inset-0 rounded-full bg-[#FF3B30] opacity-40" style={{ animation: 'nc-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }} />
+                                                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative w-[6px] h-[6px] rounded-full" style={{ background: 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: '0 0 4px rgba(255,59,48,0.6)' }} />
+                                            </span>
                                         )}
 
                                         {/* Chevron */}

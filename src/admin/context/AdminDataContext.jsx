@@ -390,8 +390,13 @@ export function AdminDataProvider({ children }) {
                 return v > 0 ? (s / v * 100).toFixed(1) : '0.0';
             })(),
             avgOrderValue: completedOrders.length ? Math.round(totalRevenue / completedOrders.length) : 0,
+            // Quote alerts
+            newQuotes:    quotes.filter(q => q.status === 'חדש').length,
+            unreadQuotes: quotes.filter(q => q.unreadAdmin === true).length,
+            // Leads in active pipeline stages that need follow-up outreach
+            stalledLeads: quotes.filter(q => ['ביצירת קשר', 'הוצע מחיר', 'במשא ומתן'].includes(q.status)).length,
         };
-    }, [orders, inventory, contacts, analytics]);
+    }, [orders, inventory, contacts, analytics, quotes]);
 
     return (
         <AdminDataContext.Provider value={{
