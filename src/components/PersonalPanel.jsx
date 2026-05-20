@@ -469,8 +469,9 @@ export default function PersonalPanel({ open, onClose }) {
                             direction: 'rtl',
                             boxShadow: '-20px 0 60px rgba(0,0,0,0.14)',
                             overflow: 'hidden',
-                            position: 'relative',
                         }}>
+                        {/* Inner relative wrapper for absolute children */}
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
                         {/* ── List view ─────────────────────────────────────── */}
                         <motion.div
@@ -758,6 +759,7 @@ export default function PersonalPanel({ open, onClose }) {
                             )}
                         </AnimatePresence>
 
+                        </div>{/* /inner relative wrapper */}
                     </motion.div>
                 </>
             )}
