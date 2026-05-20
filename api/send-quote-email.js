@@ -88,14 +88,22 @@ function customerEmailHtml(quote) {
         </tr>`;
     }).join('');
 
+    const ordersLink = `${SITE_URL}/orders`;
+
     return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>הבקשה שלך התקבלה</title>
+  <title>הבקשה שלך התקבלה — NextClass</title>
 </head>
 <body style="margin:0;padding:0;background:#F5F5F7;font-family:${FONT};-webkit-font-smoothing:antialiased;direction:rtl;">
+
+<!-- Preheader: visible in inbox preview, hidden in email body -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+  ${firstName ? `${firstName}, הבקשתך מטופלת עכשיו ✓ — נציג NextClass יחזור אליך בהקדם` : 'הבקשתך מטופלת עכשיו ✓ — נציג NextClass יחזור אליך בהקדם'}
+  &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+</div>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F7;min-height:100vh;">
 <tr><td align="center" style="padding:40px 16px;">
@@ -103,28 +111,44 @@ function customerEmailHtml(quote) {
 
   <!-- Logo bar -->
   <tr><td style="padding-bottom:28px;text-align:center;">
-    <div style="display:inline-flex;align-items:center;gap:8px;">
-      <div style="width:32px;height:32px;background:#007AFF;border-radius:50%;display:inline-block;vertical-align:middle;line-height:32px;text-align:center;font-size:16px;font-weight:900;color:#fff;">N</div>
-      <span style="font-size:16px;font-weight:800;color:#1D1D1F;vertical-align:middle;margin-right:6px;">NextClass</span>
-    </div>
+    <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+      <tr>
+        <td style="width:36px;height:36px;background:linear-gradient(135deg,#007AFF,#5856D6);border-radius:10px;text-align:center;vertical-align:middle;">
+          <span style="font-size:18px;font-weight:900;color:#fff;line-height:36px;">N</span>
+        </td>
+        <td style="padding-right:10px;vertical-align:middle;">
+          <span style="font-size:17px;font-weight:800;color:#1D1D1F;letter-spacing:-0.3px;">NextClass</span>
+        </td>
+      </tr>
+    </table>
   </td></tr>
 
   <!-- Main card -->
-  <tr><td style="background:#FFFFFF;border-radius:24px;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 6px 24px rgba(0,0,0,0.05);overflow:hidden;">
+  <tr><td style="background:#FFFFFF;border-radius:24px;box-shadow:0 1px 4px rgba(0,0,0,0.06),0 8px 32px rgba(0,0,0,0.07);overflow:hidden;">
 
-    <!-- Top accent bar -->
-    <div style="height:3px;background:#007AFF;border-radius:24px 24px 0 0;"></div>
+    <!-- Top gradient accent bar -->
+    <div style="height:4px;background:linear-gradient(90deg,#007AFF 0%,#5856D6 50%,#34C759 100%);border-radius:24px 24px 0 0;"></div>
 
     <!-- Hero confirmation area -->
-    <div style="background:#F0F7FF;padding:40px 40px 36px;text-align:center;">
-      <!-- Success ring with check -->
-      <div style="width:36px;height:36px;border-radius:50%;border:2px solid #34C759;margin:0 auto 20px;line-height:32px;font-size:18px;text-align:center;color:#34C759;">&#10003;</div>
-      <div style="font-size:24px;font-weight:800;color:#1D1D1F;letter-spacing:-0.5px;margin-bottom:8px;">הבקשה התקבלה</div>
-      <div style="font-size:14px;color:#6E6E73;margin-bottom:20px;">הצוות שלנו כבר בעניין ויצור איתך קשר בהקדם</div>
+    <div style="background:linear-gradient(180deg,#F0F7FF 0%,#FAFCFF 100%);padding:44px 40px 36px;text-align:center;">
+      <!-- Large success circle -->
+      <table cellpadding="0" cellspacing="0" style="margin:0 auto 22px;">
+        <tr>
+          <td style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#34C759,#28A745);text-align:center;vertical-align:middle;box-shadow:0 8px 28px rgba(52,199,89,0.38);">
+            <span style="font-size:34px;color:#fff;line-height:72px;font-weight:900;">✓</span>
+          </td>
+        </tr>
+      </table>
+      <div style="font-size:26px;font-weight:900;color:#1D1D1F;letter-spacing:-0.6px;margin-bottom:6px;">
+        ${firstName ? `תודה, ${firstName}!` : 'הבקשה התקבלה!'}
+      </div>
+      <div style="font-size:15px;color:#6E6E73;margin-bottom:22px;line-height:1.6;">
+        הצוות שלנו כבר בעניין ויצור איתך קשר בהקדם
+      </div>
       <!-- Order ID pill -->
-      <div style="display:inline-block;background:#FFFFFF;border:1px solid #007AFF;border-radius:50px;padding:8px 24px;">
+      <div style="display:inline-block;background:#FFFFFF;border:1.5px solid #007AFF;border-radius:50px;padding:8px 24px;">
         <span style="font-size:12px;color:#6E6E73;font-weight:600;">מספר בקשה</span>
-        <span style="font-size:14px;color:#007AFF;font-weight:800;margin-right:8px;">${quote.id}</span>
+        <span style="font-size:14px;color:#007AFF;font-weight:900;margin-right:10px;">${quote.id}</span>
       </div>
     </div>
 
@@ -177,13 +201,19 @@ function customerEmailHtml(quote) {
         <div style="font-size:12px;color:#AEAEB2;margin-top:2px;">נתחשב בכך במענה</div>
       </div>
 
-      <!-- CTA -->
-      <div style="text-align:center;margin-bottom:8px;">
-        <a href="${waLink}" style="display:inline-block;background:#007AFF;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:700;padding:16px 40px;border-radius:50px;">
+      <!-- Primary CTA: WhatsApp -->
+      <div style="text-align:center;margin-bottom:12px;">
+        <a href="${waLink}" style="display:inline-block;background:linear-gradient(135deg,#25D366,#128C7E);color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:800;padding:16px 40px;border-radius:50px;box-shadow:0 4px 16px rgba(37,211,102,0.35);">
           שלחו לנו הודעה בוואטסאפ
         </a>
       </div>
-      <div style="text-align:center;font-size:12px;color:#AEAEB2;margin-top:10px;">זמינים ב-WhatsApp ראשון–שישי, 08:00–20:00</div>
+      <div style="text-align:center;font-size:12px;color:#AEAEB2;margin-bottom:18px;">זמינים ב-WhatsApp ראשון–שישי, 08:00–20:00</div>
+      <!-- Secondary CTA: View in App -->
+      <div style="text-align:center;">
+        <a href="${ordersLink}" style="display:inline-block;background:#F5F5F7;color:#007AFF;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:50px;border:1.5px solid #007AFF;">
+          עקוב אחר הבקשה שלך
+        </a>
+      </div>
 
     </div>
 
@@ -431,9 +461,11 @@ export default async function handler(req, res) {
     // 1. Customer confirmation
     if (quote.email) {
         try {
+            const firstName = (quote.contactName || '').split(' ')[0];
+            const subjectName = firstName ? `${firstName}, ` : '';
             await sendEmail(
                 quote.email,
-                `הבקשה שלך התקבלה — ${quote.id} | NextClass`,
+                `${subjectName}הבקשה מ-${quote.institution || 'המוסד שלך'} התקבלה ✓ | NextClass`,
                 customerEmailHtml(quote),
                 `nextclass.en@gmail.com`
             );

@@ -6,13 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { doc, setDoc, writeBatch, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import PageTransition from '../components/PageTransition';
 import { trackEvent } from '../App';
 import {
  ArrowLeft, ArrowRight, CheckCircle, Building2, Phone, MessageSquare,
- Sparkles, ShoppingBag, Trash2,
+ Sparkles, ShoppingBag, Trash2, Lock,
  MessageCircle, Mail, PhoneCall, Send, Star, Zap
 } from 'lucide-react';
 
@@ -94,12 +95,14 @@ function FormField({ label, type = 'text', value, onChange, placeholder, dir = '
 export default function CheckoutPage() {
  const { cartItems, clearCart, removeFromCart, increaseQuantity, decreaseQuantity } = useCart();
  const { getSetting, isVisible } = useSettings();
+ const { user, openAuthModal, firstName } = useAuth();
  const allowPayments = isVisible('allow_payments', false);
 
- const [step, setStep] = useState(1);
- const [submitted, setSubmitted] = useState(false);
- const [submitting, setSubmitting] = useState(false);
- const [quoteId, setQuoteId] = useState('');
+ const [step,           setStep]           = useState(1);
+ const [submitted,      setSubmitted]      = useState(false);
+ const [submitting,     setSubmitting]     = useState(false);
+ const [quoteId,        setQuoteId]        = useState('');
+ const [submittedItems, setSubmittedItems] = useState([]);
  const [errors, setErrors] = useState({});
  const [consentGiven, setConsentGiven] = useState(false);
 
@@ -187,6 +190,9 @@ export default function CheckoutPage() {
  category: i.category, qty: i.qty ?? 1,
  })),
  subtotal,
+ // User identity (enables per-user order queries)
+ userId: user?.uid || null,
+ userEmail: user?.email || form.email,
  // Admin fields
  status: 'חדש',
  adminNotes: [],
@@ -215,6 +221,7 @@ export default function CheckoutPage() {
  }).catch(() => {});
 
  setQuoteId(id);
+ setSubmittedItems([...(cartItems ?? [])]);
  clearCart();
  setSubmitted(true);
  } catch (err) {
@@ -245,8 +252,87 @@ export default function CheckoutPage() {
  );
  }
 
+ // ── Auth gate ────────────────────────────────────────────────────────────
+ if (!user) {
+ const benefits = [
+ { icon: '⚡', title: 'מענה מהיר', desc: 'נציג מוקצה לך אישית, מגיב תוך שעות' },
+ { icon: '📊', title: 'מעקב סטטוס', desc: 'תראה בדיוק איפה ההצעה שלך בכל רגע' },
+ { icon: '💬', title: 'צ׳אט ישיר', desc: 'תקשורת ישירה עם הנציג שלך בצ׳אט' },
+ { icon: '🎯', title: 'הצעות מותאמות', desc: 'מחירים וחבילות מותאמים למוסד שלך' },
+ ];
+ return (
+ <PageTransition>
+ <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center px-6 py-16" dir="rtl">
+ <motion.div
+ initial={{ opacity: 0, scale: 0.9, y: 30 }}
+ animate={{ opacity: 1, scale: 1, y: 0 }}
+ transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+ className="max-w-md w-full bg-white rounded-[3rem] p-10 shadow-2xl text-center"
+ >
+ <motion.div
+ initial={{ scale: 0 }}
+ animate={{ scale: 1 }}
+ transition={{ delay: 0.25, type: 'spring', stiffness: 500, damping: 25 }}
+ className="w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl"
+ style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}
+ >
+ <Lock size={36} color="#fff" />
+ </motion.div>
+
+ <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-3">
+ שנייה לפני שממשיכים
+ </h2>
+ <p className="text-[#86868B] text-base font-medium leading-relaxed mb-8">
+ כדי לשלוח הצעת מחיר, צריך ליצור חשבון —<br />
+ <strong className="text-[#1D1D1F]">לוקח שנייה וזה בחינם לחלוטין.</strong>
+ </p>
+
+ <div className="text-right space-y-3 mb-8 bg-[#F5F5F7] rounded-2xl p-5">
+ {benefits.map(b => (
+ <motion.div
+ key={b.title}
+ initial={{ opacity: 0, x: 20 }}
+ animate={{ opacity: 1, x: 0 }}
+ transition={{ delay: 0.4 + benefits.indexOf(b) * 0.07 }}
+ className="flex items-center gap-4"
+ >
+ <span className="text-xl shrink-0">{b.icon}</span>
+ <div>
+ <p className="font-black text-[13px] text-[#1D1D1F]">{b.title}</p>
+ <p className="text-[11px] text-[#86868B]">{b.desc}</p>
+ </div>
+ </motion.div>
+ ))}
+ </div>
+
+ <div className="flex flex-col gap-3">
+ <motion.button
+ whileTap={{ scale: 0.97 }}
+ onClick={openAuthModal}
+ className="w-full py-4 rounded-2xl font-black text-white text-sm shadow-xl"
+ style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}
+ >
+ הרשמה / התחברות
+ </motion.button>
+ <Link to="/catalog" className="text-sm text-[#86868B] font-medium py-2 hover:text-[#1D1D1F] transition-colors">
+ חזרה לקטלוג
+ </Link>
+ </div>
+ </motion.div>
+ </div>
+ </PageTransition>
+ );
+ }
+
  // ── Success screen ──────────────────────────────────────────────────────
  if (submitted) {
+ const contactLabel = form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'שיחה טלפונית' : 'מייל';
+ const timeLabel    = form.bestTime === 'morning' ? 'בשעות הבוקר' : form.bestTime === 'afternoon' ? 'בשעות הצהריים' : 'אחרי הצהריים';
+ const steps = [
+ { n: '1', color: '#007AFF', t: 'הבקשה נקלטה', s: 'הפרטים שלך עברו לנציג הייעודי' },
+ { n: '2', color: '#5856D6', t: `ניצור איתך קשר ${timeLabel}`, s: `דרך ${contactLabel}` },
+ { n: '3', color: '#34C759', t: 'הצעת מחיר אישית', s: 'מותאמת לתקציב ולצרכי המוסד' },
+ ];
  return (
  <PageTransition>
  <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7] px-6 py-16" dir="rtl">
@@ -256,37 +342,74 @@ export default function CheckoutPage() {
  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
  className="max-w-lg w-full bg-white rounded-[3rem] p-10 shadow-2xl text-center"
  >
- {/* Check animation */}
+ {/* Success icon with pulse ring */}
+ <div className="relative w-28 h-28 mx-auto mb-8">
+ <motion.div
+ initial={{ scale: 0, opacity: 0 }}
+ animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0, 0] }}
+ transition={{ delay: 0.5, duration: 1.2, repeat: 1 }}
+ className="absolute inset-0 rounded-full"
+ style={{ background: 'rgba(52,199,89,0.2)' }}
+ />
  <motion.div
  initial={{ scale: 0 }}
  animate={{ scale: 1 }}
- transition={{ delay: 0.3, type: 'spring', stiffness: 500, damping: 25 }}
- className="w-24 h-24 bg-gradient-to-br from-[#34C759] to-[#30D158] rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl"
+ transition={{ delay: 0.25, type: 'spring', stiffness: 400, damping: 22 }}
+ className="w-28 h-28 rounded-full flex items-center justify-center shadow-2xl"
+ style={{ background: 'linear-gradient(135deg, #34C759 0%, #30D158 100%)', boxShadow: '0 12px 40px rgba(52,199,89,0.4)' }}
  >
- <CheckCircle size={44} className="text-white" strokeWidth={2.5} />
+ <CheckCircle size={52} className="text-white" strokeWidth={2.5} />
  </motion.div>
-
- <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
- <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#F5F5F7] rounded-full text-[11px] font-black text-[#86868B] mb-4">
- מזהה הצעה: {quoteId}
  </div>
- <h2 className="text-3xl font-black text-[#1D1D1F] tracking-tight mb-3">
- הצעתך התקבלה
+
+ <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
+ {/* Quote ID */}
+ <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black mb-5"
+ style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+ מס׳ בקשה: {quoteId}
+ </div>
+
+ {/* Personalized heading */}
+ <h2 className="text-[2rem] font-black text-[#1D1D1F] tracking-tight mb-3 leading-tight">
+ {firstName ? `תודה, ${firstName}!` : 'תודה!'}<br />
+ <span className="text-[#34C759]">הבקשה שלך בדרך.</span>
  </h2>
- <p className="text-[#86868B] text-base font-medium leading-relaxed mb-8">
- נציג NextClass יחזור אליך {form.bestTime === 'morning' ? 'בשעות הבוקר' : form.bestTime === 'afternoon' ? 'בשעות הצהריים' : 'אחרי הצהריים'} דרך {form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'שיחה טלפונית' : 'מייל'}.<br />
- <strong className="text-[#1D1D1F]">זמן מענה: עד 4 שעות בימי עסקים.</strong>
+ <p className="text-[#86868B] text-[15px] font-medium leading-relaxed mb-8">
+ נציג NextClass יחזור אליך <strong className="text-[#1D1D1F]">{timeLabel}</strong> דרך <strong className="text-[#1D1D1F]">{contactLabel}</strong>.
+ <br />זמן מענה: עד 4 שעות בימי עסקים.
  </p>
 
- {/* Next steps */}
+ {/* Items ordered — compact thumbnail row */}
+ {submittedItems.length > 0 && (
+ <div className="mb-6 text-right">
+ <p className="text-[11px] font-black text-[#86868B] mb-3">הפריטים שבחרת</p>
+ <div className="space-y-2">
+ {submittedItems.slice(0, 3).map(item => (
+ <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl bg-[#F5F5F7]">
+ <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/[0.06] shrink-0">
+ <img src={item.image || item.imageUrl} alt={item.title}
+ className="w-full h-full object-cover"
+ onError={e => { e.target.style.display='none'; }} />
+ </div>
+ <span className="flex-1 text-[12px] font-bold text-[#1D1D1F] line-clamp-1">{item.title}</span>
+ <span className="text-[11px] font-black text-[#86868B] shrink-0">×{item.qty ?? 1}</span>
+ </div>
+ ))}
+ {submittedItems.length > 3 && (
+ <p className="text-[11px] text-[#86868B] text-center">+ {submittedItems.length - 3} פריטים נוספים</p>
+ )}
+ </div>
+ </div>
+ )}
+
+ {/* Timeline steps */}
  <div className="text-right space-y-3 mb-8 bg-[#F5F5F7] rounded-2xl p-5">
- {[
- { n: '1', t: 'קיבלנו את פרטי הצעתך', s: 'מעובדת כרגע על ידי הצוות שלנו' },
- { n: '2', t: 'ניצור איתך קשר', s: `דרך ${form.preferredContact === 'whatsapp' ? 'וואטסאפ' : form.preferredContact === 'phone' ? 'טלפון' : 'מייל'}` },
- { n: '3', t: 'נציג מומחה יתאים לך הצעה', s: 'מותאמת אישית לתקציב ולצרכים שלך' },
- ].map(s => (
- <div key={s.n} className="flex items-center gap-4">
- <div className="w-7 h-7 rounded-full bg-[#007AFF] text-white font-black text-xs flex items-center justify-center shrink-0">{s.n}</div>
+ {steps.map(s => (
+ <div key={s.n} className="flex items-start gap-4">
+ <div className="w-7 h-7 rounded-full text-white font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5"
+ style={{ background: s.color, boxShadow: `0 3px 10px ${s.color}55` }}>
+ {s.n}
+ </div>
  <div>
  <p className="font-black text-[13px] text-[#1D1D1F]">{s.t}</p>
  <p className="text-[11px] text-[#86868B]">{s.s}</p>
@@ -295,6 +418,7 @@ export default function CheckoutPage() {
  ))}
  </div>
 
+ {/* CTAs */}
  <div className="flex flex-col gap-3">
  <a href={waUrl} target="_blank" rel="noopener noreferrer"
  className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-white text-sm shadow-xl"
@@ -303,7 +427,7 @@ export default function CheckoutPage() {
  דברו איתנו עכשיו בוואטסאפ
  </a>
  <Link to="/catalog"
- className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-[#1D1D1F] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">
+ className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-[#86868B] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">
  <ArrowRight size={15} />
  המשך לגלות מוצרים
  </Link>

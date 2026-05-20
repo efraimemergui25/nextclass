@@ -137,6 +137,7 @@ function AnimatedRoutes() {
                 <Route path="/privacy"    element={<PrivacyPage />} />
                 <Route path="/terms"      element={<TermsPage />} />
                 <Route path="/membership" element={isVisible('vis_membership_page') ? <MembershipPage /> : <Navigate to="/" replace />} />
+                <Route path="/orders"     element={<Navigate to="/" replace />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>

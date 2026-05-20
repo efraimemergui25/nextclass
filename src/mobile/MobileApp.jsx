@@ -38,6 +38,7 @@ const MobileTerms        = lazy(() => import('./pages/MobileTerms'));
 const MobileDiscover     = lazy(() => import('./pages/MobileDiscover'));
 const MobileInnovation   = lazy(() => import('./pages/MobileInnovation'));
 const MobileMembership   = lazy(() => import('./pages/MobileMembership'));
+const MobileOrders       = lazy(() => import('./pages/MobileOrders'));
 
 const SF = `-apple-system,BlinkMacSystemFont,'SF Pro Display',Heebo,'Helvetica Neue',Arial,sans-serif`;
 
@@ -713,7 +714,7 @@ function MobileHeader({ onSearch, onMenu }) {
 }
 
 // Route order for direction-aware transitions (higher index = deeper in hierarchy)
-const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/discover', '/innovation', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms', '/membership'];
+const ROUTE_ORDER = ['/', '/catalog', '/catalog/:id', '/cart', '/checkout', '/favorites', '/discover', '/innovation', '/contact', '/story', '/vod', '/magazine', '/menu', '/compare', '/privacy', '/terms', '/membership', '/orders'];
 
 function getRouteIndex(pathname) {
     if (pathname.startsWith('/catalog/')) return 2;
@@ -1485,6 +1486,7 @@ function MobileAppInner() {
                             <Route path="/discover"    element={<MobileDiscover />} />
                             <Route path="/innovation"  element={<MobileInnovation />} />
                             <Route path="/membership"  element={isVisible('vis_membership_page') ? <MobileMembership /> : <Navigate to="/" replace />} />
+                            <Route path="/orders"      element={<MobileOrders />} />
                             <Route path="*"            element={<MobileLanding />} />
                         </Routes>
                     </Suspense>

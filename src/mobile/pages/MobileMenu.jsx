@@ -4,7 +4,7 @@ import {
     Home, Grid3X3, BookOpen, Video, Newspaper,
     Phone, ChevronLeft, Info, Shield, FileText,
     Moon, Sun, ShoppingCart, Heart, Star, Check,
-    Compass, Zap, MessageCircle,
+    Compass, Zap, MessageCircle, ClipboardList,
 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth, TIER_CONFIG } from '../../context/AuthContext';
@@ -180,6 +180,27 @@ export default function MobileMenu() {
                             </div>
                         </div>
                     )}
+
+                    {/* My Orders link */}
+                    <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => { haptic('select'); navigate('/orders'); }}
+                        style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                            marginTop: 14, padding: '12px 14px',
+                            background: 'rgba(0,122,255,0.07)', borderRadius: 14,
+                            border: 'none', cursor: 'pointer', direction: 'rtl',
+                            WebkitTapHighlightColor: 'transparent', fontFamily: SF,
+                        }}
+                    >
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(0,122,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <ClipboardList size={16} color="#007AFF" strokeWidth={1.9} />
+                        </div>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#007AFF', textAlign: 'right' }}>
+                            הבקשות שלי
+                        </span>
+                        <ChevronLeft size={15} color="#007AFF" />
+                    </motion.button>
                 </motion.div>
             ) : (
                 <motion.button
