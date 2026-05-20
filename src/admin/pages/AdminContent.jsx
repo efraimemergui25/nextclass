@@ -48,6 +48,7 @@ const VISIBILITY_ITEMS = [
     { key: 'show_prices',           label: 'הצגת מחירים',           desc: 'הסתרת/הצגת מחירים בכל האתר', icon: '💰' },
     { key: 'vis_member_pricing',    label: 'מחירי מועדון (הנחות)',   desc: 'הצגת מחיר מועדון על גבי כרטיסי מוצר לחברים מחוברים', icon: '⭐' },
     { key: 'vis_membership_page',   label: 'עמוד מועדון NextClass',  desc: 'הצגת לינק לעמוד ה-/membership', icon: '🏆' },
+    { key: 'vis_membership_upsell', label: 'כרטיס שדרוג Premium',    desc: 'הצגת כרטיס שדרוג לחבר פרימיום בפאנל האישי', icon: '⭐' },
 ];
 
 // ─── Field Sections ───────────────────────────────────────────────────────────

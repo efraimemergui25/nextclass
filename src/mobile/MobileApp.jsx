@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, useAnimate, useMotionValueEvent } from 'framer-motion';
 import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu, Monitor, Compass, BookOpen, Award, GraduationCap, Newspaper, Star, Scale, Type, Sun, PauseCircle, Square, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -831,7 +831,7 @@ function MobileMenuOverlay({ open, onClose }) {
 
                         {/* Nav links */}
                         <div style={{ flex: 1, padding: '4px 12px' }}>
-                            {MENU_LINKS.map(({ path, label, Icon }, i) => {
+                            {MENU_LINKS.filter(({ path }) => path !== '/membership' || getSetting('vis_membership_page', false)).map(({ path, label, Icon }, i) => {
                                 const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
                                 return (
                                     <motion.button
@@ -1363,6 +1363,7 @@ function MobileAppInner() {
     const location = useLocation();
     const navigate  = useNavigate();
     const { colors: c } = useTheme();
+    const { isVisible } = useSettings();
     const hideBottomNav = location.pathname === '/checkout';
     const hideHeader    = location.pathname === '/checkout';
     const [searchOpen, setSearchOpen] = useState(false);
@@ -1483,7 +1484,7 @@ function MobileAppInner() {
                             <Route path="/terms"       element={<MobileTerms />} />
                             <Route path="/discover"    element={<MobileDiscover />} />
                             <Route path="/innovation"  element={<MobileInnovation />} />
-                            <Route path="/membership"  element={<MobileMembership />} />
+                            <Route path="/membership"  element={isVisible('vis_membership_page') ? <MobileMembership /> : <Navigate to="/" replace />} />
                             <Route path="*"            element={<MobileLanding />} />
                         </Routes>
                     </Suspense>

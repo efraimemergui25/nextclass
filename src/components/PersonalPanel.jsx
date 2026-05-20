@@ -7,6 +7,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductsContext';
+import { useSettings } from '../context/SettingsContext';
 
 // ─── Status maps (match actual Firestore values) ──────────────────────────────
 const QUOTE_STATUS = {
@@ -373,6 +374,7 @@ export default function PersonalPanel({ open, onClose }) {
     const { user, userDoc, firstName, tierLabel, tierColor, discountPct, isMember, memberTier, signOut } = useAuth();
     const { wishlistItems, wishlistCount } = useWishlist();
     const { activeProducts } = useProducts();
+    const { isVisible } = useSettings();
 
     const [quotes, setQuotes]   = useState([]);
     const [orders, setOrders]   = useState([]);
@@ -697,7 +699,7 @@ export default function PersonalPanel({ open, onClose }) {
                             )}
 
                             {/* Membership upsell */}
-                            {!isMember && (
+                            {isVisible('vis_membership_upsell') && !isMember && (
                                 <div style={{ padding: '28px 24px 0' }}>
                                     <Link to="/membership" onClick={onClose} style={{ textDecoration: 'none' }}>
                                         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}

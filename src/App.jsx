@@ -116,6 +116,7 @@ if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
 
 function AnimatedRoutes() {
     const location = useLocation();
+    const { isVisible } = useSettings();
     return (
         <AnimatePresence mode="popLayout">
             <Routes location={location} key={location.pathname}>
@@ -135,7 +136,7 @@ function AnimatedRoutes() {
                 <Route path="/favorites"  element={<WishlistPage />} />
                 <Route path="/privacy"    element={<PrivacyPage />} />
                 <Route path="/terms"      element={<TermsPage />} />
-                <Route path="/membership" element={<MembershipPage />} />
+                <Route path="/membership" element={isVisible('vis_membership_page') ? <MembershipPage /> : <Navigate to="/" replace />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
