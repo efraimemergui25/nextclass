@@ -24,20 +24,18 @@ export function AdminAuthProvider({ children }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setIsAuthenticated(true);
-                setIsLoading(false);
-            } else {
-                // Fallback: check local session + expiry
-                const local = localStorage.getItem(LOCAL_SESSION_KEY);
-                const expired = isSessionExpired();
-                if (expired) {
-                    localStorage.removeItem(LOCAL_SESSION_KEY);
-                    localStorage.removeItem(EXPIRY_KEY);
-                }
-                setIsAuthenticated(local === '1' && !expired);
-                setIsLoading(false);
+            // If Firebase has a persistent session, sign out immediately —
+            // admin access is controlled solely by the local timed session (PIN-based).
+            if (user) signOut(auth).catch(() => {});
+
+            const local   = localStorage.getItem(LOCAL_SESSION_KEY);
+            const expired = isSessionExpired();
+            if (expired) {
+                localStorage.removeItem(LOCAL_SESSION_KEY);
+                localStorage.removeItem(EXPIRY_KEY);
             }
+            setIsAuthenticated(local === '1' && !expired);
+            setIsLoading(false);
         });
         return () => unsubscribe();
     }, []);
@@ -55,13 +53,17 @@ export function AdminAuthProvider({ children }) {
     }, []);
 
     const login = useCallback(async (pin) => {
-        // Try Firebase first
+        // Use Firebase only to verify the PIN — then sign out immediately
+        // so Firebase never maintains a persistent session that bypasses the PIN screen.
         try {
             await signInWithEmailAndPassword(auth, 'nextclass.en@gmail.com', pin);
-            localStorage.removeItem(LOCAL_SESSION_KEY);
+            await signOut(auth).catch(() => {});
+            localStorage.setItem(LOCAL_SESSION_KEY, '1');
+            localStorage.setItem(EXPIRY_KEY, String(Date.now() + SESSION_TTL_MS));
+            setIsAuthenticated(true);
             return { success: true };
         } catch (_firebaseErr) {
-            // Fallback: local PIN — only works if explicitly set; no hardcoded default
+            // Fallback: local PIN — only works if explicitly set
             const localPin = localStorage.getItem(LOCAL_PIN_KEY);
             if (localPin && pin === localPin) {
                 localStorage.setItem(LOCAL_SESSION_KEY, '1');
