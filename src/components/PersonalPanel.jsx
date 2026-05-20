@@ -278,30 +278,6 @@ function DetailView({ item, type, onBack }) {
                     </div>
                 )}
 
-                {/* Message from NextClass */}
-                {item.customerMessage && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        style={{
-                            background: 'linear-gradient(135deg, rgba(0,122,255,0.06), rgba(88,86,214,0.04))',
-                            border: '1px solid rgba(0,122,255,0.20)',
-                            borderRadius: 18, padding: '14px 16px', marginBottom: 18,
-                        }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <div style={{
-                                width: 30, height: 30, borderRadius: 10,
-                                background: 'linear-gradient(135deg, #007AFF, #5856D6)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                            }}>
-                                <MessageCircle size={14} color="#fff" />
-                            </div>
-                            <p style={{ fontSize: 12, fontWeight: 800, color: '#007AFF', margin: 0 }}>הודעה מ-NextClass</p>
-                        </div>
-                        <p style={{ fontSize: 13, color: '#1D1D1F', fontWeight: 500, margin: 0, lineHeight: 1.65 }}>
-                            {item.customerMessage}
-                        </p>
-                    </motion.div>
-                )}
 
                 {/* Items */}
                 {item.items?.length > 0 && (
@@ -347,46 +323,78 @@ function DetailView({ item, type, onBack }) {
                 )}
 
                 {/* Thread chat */}
-                <div style={{ marginTop: item.notes ? 0 : 18 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 9, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <MessageCircle size={13} color="#fff" />
+                <div style={{
+                    marginTop: 18,
+                    background: 'rgba(0,0,0,0.02)',
+                    border: '1px solid rgba(0,0,0,0.07)',
+                    borderRadius: 20,
+                    overflow: 'hidden',
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '12px 14px 10px',
+                        background: 'rgba(255,255,255,0.7)',
+                        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                        borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 8, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <MessageCircle size={12} color="#fff" />
                         </div>
-                        <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.09em', margin: 0, flex: 1 }}>שיחה עם NextClass</p>
+                        <p style={{ fontSize: 11, fontWeight: 800, color: '#1D1D1F', margin: 0, flex: 1, letterSpacing: '-0.01em' }}>שיחה עם NextClass</p>
                         {item.unreadCustomer && (
-                            <span style={{ fontSize: 9, fontWeight: 800, background: '#007AFF', color: '#fff', padding: '2px 8px', borderRadius: 99 }}>הודעה חדשה</span>
+                            <motion.span
+                                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                style={{ fontSize: 9, fontWeight: 800, background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', padding: '3px 9px', borderRadius: 99, letterSpacing: '0.02em' }}>
+                                חדש
+                            </motion.span>
                         )}
                     </div>
 
-                    {/* Messages */}
+                    {/* Messages area */}
                     {(() => {
+                        const hasThread = (item.thread || []).length > 0;
                         const msgs = [...(item.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
-                        const legacy = [];
-                        if (msgs.length === 0 && item.customerNote) legacy.push({ id: 'ln-c', from: 'customer', text: item.customerNote, tsNum: 1 });
-                        if (msgs.length === 0 && item.customerMessage) legacy.push({ id: 'ln-a', from: 'admin', text: item.customerMessage, tsNum: 2 });
-                        const display = msgs.length > 0 ? msgs : legacy;
-                        if (display.length === 0 && isTerminal) return null;
-                        if (display.length === 0) return (
-                            <p style={{ fontSize: 12, color: '#AEAEB2', textAlign: 'center', padding: '12px 0 16px' }}>שלח הודעה לצוות שלנו</p>
+                        if (!hasThread && item.customerMessage) msgs.push({ id: 'ln-a', from: 'admin', text: item.customerMessage, tsNum: 0 });
+                        if (!hasThread && item.customerNote) msgs.push({ id: 'ln-c', from: 'customer', text: item.customerNote, tsNum: 1 });
+                        if (msgs.length === 0) return (
+                            <div style={{ padding: '20px 14px', textAlign: 'center' }}>
+                                <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>
+                                    {isTerminal ? 'הבקשה הסתיימה' : 'שלחו הודעה לצוות שלנו'}
+                                </p>
+                            </div>
                         );
                         return (
-                            <div style={{ maxHeight: 230, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, paddingBottom: 4 }}>
-                                {display.map(m => (
-                                    <div key={m.id} style={{ display: 'flex', justifyContent: m.from === 'customer' ? 'flex-end' : 'flex-start' }}>
-                                        <div style={{
-                                            maxWidth: '82%', padding: '9px 13px',
-                                            borderRadius: m.from === 'customer' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                                            background: m.from === 'customer' ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
-                                            color: m.from === 'customer' ? '#fff' : '#1D1D1F',
-                                        }}>
-                                            <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{m.text}</p>
-                                            <p style={{ fontSize: 9, margin: '4px 0 0', opacity: 0.6 }}>
-                                                {m.from === 'customer' ? 'אני' : 'NextClass'}
-                                                {m.tsNum > 2 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                            <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px 8px' }}>
+                                {msgs.map(m => {
+                                    const isMine = m.from === 'customer';
+                                    return (
+                                        <motion.div
+                                            key={m.id}
+                                            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                                            style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                                            <div style={{
+                                                maxWidth: '80%',
+                                                padding: '9px 13px 8px',
+                                                borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                                background: isMine
+                                                    ? 'linear-gradient(135deg,#007AFF,#5856D6)'
+                                                    : 'rgba(255,255,255,0.9)',
+                                                color: isMine ? '#fff' : '#1D1D1F',
+                                                boxShadow: isMine
+                                                    ? '0 2px 12px rgba(0,122,255,0.25)'
+                                                    : '0 1px 4px rgba(0,0,0,0.08)',
+                                                border: isMine ? 'none' : '1px solid rgba(0,0,0,0.07)',
+                                            }}>
+                                                <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
+                                                <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right', letterSpacing: '0.01em' }}>
+                                                    {isMine ? 'אני' : 'NextClass'}
+                                                    {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                                 <div ref={threadEndRef} />
                             </div>
                         );
@@ -394,28 +402,43 @@ function DetailView({ item, type, onBack }) {
 
                     {/* Input */}
                     {!isTerminal && (
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                        <div style={{
+                            padding: '10px 12px 12px',
+                            borderTop: '1px solid rgba(0,0,0,0.06)',
+                            background: 'rgba(255,255,255,0.6)',
+                            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                            display: 'flex', gap: 8, alignItems: 'flex-end',
+                        }}>
                             <textarea
                                 value={msgText}
                                 onChange={e => setMsgText(e.target.value)}
-                                placeholder="כתבו הודעה לצוות שלנו..."
-                                rows={2}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (msgText.trim()) handleSendMsg(); } }}
+                                placeholder="כתבו הודעה..."
+                                rows={1}
                                 style={{
-                                    flex: 1, borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)',
-                                    background: '#F5F5F7', padding: '10px 12px', fontSize: 13, fontWeight: 500,
+                                    flex: 1, borderRadius: 20, border: '1.5px solid rgba(0,0,0,0.1)',
+                                    background: '#fff', padding: '9px 14px', fontSize: 13, fontWeight: 500,
                                     color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', direction: 'rtl',
                                     resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5,
+                                    transition: 'border-color 0.15s',
+                                    maxHeight: 80, overflowY: 'auto',
                                 }}
+                                onFocus={e => e.target.style.borderColor = 'rgba(0,122,255,0.4)'}
+                                onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}
                             />
-                            <motion.button whileTap={{ scale: 0.96 }} onClick={handleSendMsg} disabled={msgSending || !msgText.trim()}
+                            <motion.button
+                                whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.05 }}
+                                onClick={handleSendMsg}
+                                disabled={msgSending || !msgText.trim()}
                                 style={{
-                                    padding: '10px 16px', borderRadius: 12, border: 'none', flexShrink: 0,
+                                    width: 36, height: 36, borderRadius: '50%', border: 'none', flexShrink: 0,
                                     background: msgText.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.08)',
-                                    color: msgText.trim() ? '#fff' : '#AEAEB2',
-                                    fontSize: 13, fontWeight: 700, cursor: msgText.trim() ? 'pointer' : 'default',
-                                    fontFamily: 'Heebo, sans-serif',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: msgText.trim() ? 'pointer' : 'default',
+                                    boxShadow: msgText.trim() ? '0 2px 10px rgba(0,122,255,0.35)' : 'none',
+                                    transition: 'all 0.2s',
                                 }}>
-                                {msgSending ? '...' : 'שלח'}
+                                <ArrowRight size={15} color={msgText.trim() ? '#fff' : '#C7C7CC'} style={{ transform: 'rotate(180deg)' }} />
                             </motion.button>
                         </div>
                     )}
@@ -561,7 +584,7 @@ export default function PersonalPanel({ open, onClose }) {
     };
 
     const activeList  = tab === 'quotes' ? quotes : orders;
-    const msgCount    = quotes.filter(q => q.customerMessage).length;
+    const msgCount    = quotes.filter(q => q.unreadCustomer).length;
 
     return (
         <AnimatePresence>

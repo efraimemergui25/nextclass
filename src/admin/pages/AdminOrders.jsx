@@ -251,6 +251,7 @@ function QuotesPipeline() {
     const totalValue = useMemo(() => filtered.reduce((s, q) => s + (q.subtotal || 0), 0), [filtered]);
 
     return (
+        <>
         <style>{`@keyframes ppulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.4)}}`}</style>
         <div className="space-y-5">
             {/* Stats */}
@@ -480,61 +481,82 @@ function QuotesPipeline() {
 
                         {/* Thread — two-way chat */}
                         <div className="border-t border-black/06 pt-4">
+                            {/* Header */}
                             <div className="flex items-center gap-2 mb-3">
                                 <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                                     style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
                                     <MessageSquare size={12} color="#fff" />
                                 </div>
-                                <p className="text-[#007AFF] text-[10px] font-black tracking-widest flex-1">שיחה עם הלקוח</p>
+                                <p className="text-[11px] font-black tracking-tight text-[#1D1D1F] flex-1">שיחה עם הלקוח</p>
                                 {selected.unreadAdmin && (
-                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: '#34C759' }}>הודעה חדשה</span>
+                                    <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#34C759,#30D158)', boxShadow: '0 1px 6px rgba(52,199,89,0.4)' }}>הודעה חדשה</span>
                                 )}
                             </div>
 
                             {/* Messages */}
                             {(() => {
+                                const hasThread = (selected.thread || []).length > 0;
                                 const msgs = [...(selected.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
-                                if (msgs.length === 0 && selected.customerMessage) msgs.push({ id: 'lg-a', from: 'admin', text: selected.customerMessage, tsNum: 0 });
-                                if (msgs.length === 0 && selected.customerNote) msgs.push({ id: 'lg-c', from: 'customer', text: selected.customerNote, tsNum: 1 });
-                                if (msgs.length === 0) return <p className="text-[#AEAEB2] text-xs text-center py-3">אין הודעות עדיין</p>;
+                                if (!hasThread && selected.customerMessage) msgs.push({ id: 'lg-a', from: 'admin', text: selected.customerMessage, tsNum: 0 });
+                                if (!hasThread && selected.customerNote) msgs.push({ id: 'lg-c', from: 'customer', text: selected.customerNote, tsNum: 1 });
+                                if (msgs.length === 0) return (
+                                    <p className="text-[#AEAEB2] text-xs text-center py-4">אין הודעות עדיין — שלח הודעה ראשונה</p>
+                                );
                                 return (
-                                    <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, padding: '2px 0' }}>
-                                        {msgs.map(m => (
-                                            <div key={m.id} style={{ display: 'flex', justifyContent: m.from === 'admin' ? 'flex-end' : 'flex-start' }}>
-                                                <div style={{
-                                                    maxWidth: '76%', padding: '8px 12px',
-                                                    borderRadius: m.from === 'admin' ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
-                                                    background: m.from === 'admin' ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
-                                                    color: m.from === 'admin' ? '#fff' : '#1D1D1F',
-                                                }}>
-                                                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.5, direction: 'rtl' }}>{m.text}</p>
-                                                    <p style={{ fontSize: 9, margin: '3px 0 0', opacity: 0.65 }}>
-                                                        {m.from === 'admin' ? 'NextClass' : selected.contactName || 'לקוח'}
-                                                        {m.tsNum > 2 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
-                                                    </p>
+                                    <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, padding: '4px 2px' }}>
+                                        {msgs.map(m => {
+                                            const isMine = m.from === 'admin';
+                                            return (
+                                                <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }} dir="rtl">
+                                                    <div style={{
+                                                        maxWidth: '74%', padding: '9px 13px 8px',
+                                                        borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                                        background: isMine ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F5F5F7',
+                                                        color: isMine ? '#fff' : '#1D1D1F',
+                                                        boxShadow: isMine ? '0 2px 12px rgba(0,122,255,0.22)' : '0 1px 3px rgba(0,0,0,0.07)',
+                                                    }}>
+                                                        <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</p>
+                                                        <p style={{ fontSize: 9, margin: '4px 0 0', opacity: isMine ? 0.7 : 0.5, textAlign: isMine ? 'left' : 'right' }}>
+                                                            {isMine ? 'NextClass' : (selected.contactName || 'לקוח')}
+                                                            {m.tsNum > 10 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         <div ref={threadEndRef} />
                                     </div>
                                 );
                             })()}
 
                             {/* Input */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-end">
                                 <textarea
                                     value={threadMsg}
                                     onChange={e => setThreadMsg(e.target.value)}
-                                    placeholder="כתוב הודעה ללקוח... (Enter לשליחה)"
+                                    placeholder="כתוב הודעה... (Enter לשליחה)"
                                     dir="rtl"
                                     rows={2}
                                     onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if(threadMsg.trim()) handleSendThread(); } }}
-                                    className="flex-1 px-3 py-2 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all resize-none"
-                                    style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)', fontFamily: 'Heebo, sans-serif' }}
+                                    className="flex-1 px-3 py-2.5 rounded-2xl text-sm font-medium text-right outline-none transition-all resize-none"
+                                    style={{ background: '#F5F5F7', border: '1.5px solid rgba(0,0,0,0.08)', fontFamily: 'Heebo, sans-serif', lineHeight: 1.5 }}
+                                    onFocus={e => e.target.style.borderColor = 'rgba(0,122,255,0.35)'}
+                                    onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.08)'}
                                 />
-                                <AdminButton onClick={handleSendThread} disabled={!threadMsg.trim() || threadSending}>
-                                    {threadSending ? '...' : <><Send size={13} style={{display:'inline',marginLeft:4}}/> שלח</>}
-                                </AdminButton>
+                                <motion.button
+                                    whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.05 }}
+                                    onClick={handleSendThread}
+                                    disabled={!threadMsg.trim() || threadSending}
+                                    className="shrink-0 flex items-center justify-center rounded-full"
+                                    style={{
+                                        width: 40, height: 40, border: 'none',
+                                        background: threadMsg.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
+                                        boxShadow: threadMsg.trim() ? '0 2px 12px rgba(0,122,255,0.35)' : 'none',
+                                        cursor: threadMsg.trim() ? 'pointer' : 'default',
+                                        transition: 'all 0.2s',
+                                    }}>
+                                    <Send size={15} color={threadMsg.trim() ? '#fff' : '#C7C7CC'} />
+                                </motion.button>
                             </div>
                         </div>
 
@@ -582,6 +604,7 @@ function QuotesPipeline() {
                 )}
             </AdminModal>
         </div>
+        </>
     );
 }
 
