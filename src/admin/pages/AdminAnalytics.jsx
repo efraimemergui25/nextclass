@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart2, Box } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
@@ -73,6 +74,7 @@ const RANGES = [
 
 export default function AdminAnalytics() {
     const { analytics, orders, kpis, inventory } = useAdminData();
+    const navigate = useNavigate();
     const [tab, setTab] = useState('overview');
     const [range, setRange] = useState('30');
 
@@ -378,7 +380,9 @@ export default function AdminAnalytics() {
                                 ) : (
                                     <div className="space-y-3">
                                         {topByCount.map((p, i) => (
-                                            <div key={i} className="flex items-center gap-3">
+                                            <div key={i} className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.title)}`)}
+                                                title={`פתח ${p.title} במלאי`}>
                                                 <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
                                                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
                                                     {p.image

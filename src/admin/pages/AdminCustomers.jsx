@@ -1,8 +1,9 @@
 /* eslint-disable */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InboxIcon } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { StatusBadge, AdminSectionHeader, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate } from '../components/AdminComponents';
 
@@ -46,7 +47,7 @@ function StatPill({ label, value, color, index = 0 }) {
     );
 }
 
-function CustomerDetailModal({ customer, onClose }) {
+function CustomerDetailModal({ customer, onClose, navigate }) {
     if (!customer) return null;
     const phone = customer.phone?.replace(/\D/g, '');
     const waLink = phone ? `https://wa.me/972${phone.replace(/^0/, '')}` : null;
@@ -92,9 +93,17 @@ function CustomerDetailModal({ customer, onClose }) {
                     <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">היסטוריית הזמנות</p>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {customer.orders.map(order => (
-                            <div key={order.id} className="flex items-center justify-between p-3 rounded-xl text-right" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <div key={order.id}
+                                className="flex items-center justify-between p-3 rounded-xl text-right cursor-pointer transition-all"
+                                style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+                                onClick={() => navigate && navigate(`/admin/orders?orderId=${order.id}`)}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.18)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; }}>
                                 <div>
-                                    <p className="text-[#1D1D1F] font-bold text-sm">{order.product}</p>
+                                    <p className="text-[#007AFF] font-bold text-sm hover:underline cursor-pointer"
+                                        onClick={e => { e.stopPropagation(); navigate && navigate(`/admin/inventory?search=${encodeURIComponent(order.product)}`); }}>
+                                        {order.product}
+                                    </p>
                                     <p className="text-[#AEAEB2] text-xs">{order.date} · {order.qty} יח׳</p>
                                 </div>
                                 <div className="text-left">
@@ -112,6 +121,8 @@ function CustomerDetailModal({ customer, onClose }) {
 
 export default function AdminCustomers() {
     const { contacts, orders, updateContactStatus } = useAdminData();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [tab, setTab] = useState('contacts');
     const [search, setSearch] = useState('');
     const [dateFilter, setDateFilter] = useState('all');
@@ -131,6 +142,12 @@ export default function AdminCustomers() {
         });
         return Object.values(map).sort((a, b) => b.total - a.total);
     }, [orders]);
+
+    // Auto-search/open from URL param
+    useEffect(() => {
+        const q = searchParams.get('search') || searchParams.get('customerName');
+        if (q) { setSearch(q); setTab('customers'); }
+    }, [searchParams]);
 
     const filteredContacts = useMemo(() => {
         let list = filterByDate([...contacts], 'dateTs', dateFilter).sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
@@ -375,7 +392,7 @@ export default function AdminCustomers() {
                 )}
             </AdminModal>
 
-            <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
+            <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} navigate={navigate} />
         </div>
     );
 }

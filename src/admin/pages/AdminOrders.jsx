@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package, MessageSquare, Send, PanelRight } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
@@ -199,6 +200,8 @@ function QuickDropdown({ item, statuses, colors, onUpdate }) {
 function QuotesPipeline() {
     const { quotes, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage, sendThreadMessage, markAdminThreadRead } = useAdminData();
     const { showToast } = useAdminToast();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const [search, setSearch]           = useState('');
     const [statusFilter, setStatusFilter] = useState('הכל');
@@ -216,6 +219,14 @@ function QuotesPipeline() {
     const threadEndRef   = useRef(null);
     const typingTimerRef = useRef(null);
     const prevSelectedId = useRef(null);
+
+    // Auto-open quote from URL param ?quoteId=xxx
+    useEffect(() => {
+        const id = searchParams.get('quoteId');
+        if (!id || !quotes.length) return;
+        const q = quotes.find(q => q.id === id);
+        if (q) setSelected(q);
+    }, [searchParams, quotes]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Real-time sync: keep selected in sync with live quotes data
     useEffect(() => {
@@ -485,9 +496,9 @@ function QuotesPipeline() {
                                     <>
                                         <div className="grid grid-cols-2 gap-3">
                                             {[
-                                                ['שם איש קשר', selected.contactName],
-                                                ['תפקיד', selected.contactRole],
-                                                ['מוסד', selected.institution],
+                                                ['שם איש קשר', selected.contactName, () => navigate(`/admin/customers?search=${encodeURIComponent(selected.contactName)}`)],
+                                                ['תפקיד', selected.contactRole, null],
+                                                ['מוסד', selected.institution, null],
                                                 ['סוג מוסד', selected.institutionType],
                                                 ['טלפון', selected.phone],
                                                 ['מייל', selected.email],
@@ -495,11 +506,14 @@ function QuotesPipeline() {
                                                 ['זמן מועדף לשיחה', selected.bestTime],
                                                 ['טווח תקציב', selected.budgetRange],
                                                 ['דחיפות', selected.urgency],
-                                            ].map(([l, v]) => v ? (
+                                            ].map(([l, v, onClick]) => v ? (
                                                 <div key={l} className="text-right p-3 rounded-xl"
-                                                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{l}</p>
-                                                    <p className="text-[#1D1D1F] font-bold text-sm mt-0.5 truncate">{v}</p>
+                                                    onClick={onClick || undefined}
+                                                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', cursor: onClick ? 'pointer' : 'default' }}
+                                                    onMouseEnter={e => { if (onClick) { e.currentTarget.style.background = 'rgba(0,122,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.2)'; } }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; }}>
+                                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-widests">{l}</p>
+                                                    <p className={`font-bold text-sm mt-0.5 truncate ${onClick ? 'text-[#007AFF]' : 'text-[#1D1D1F]'}`}>{v}</p>
                                                 </div>
                                             ) : null)}
                                         </div>
@@ -516,8 +530,11 @@ function QuotesPipeline() {
                                                 <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">פריטים בהצעה</p>
                                                 <div className="space-y-2">
                                                     {selected.items.map((item, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right"
-                                                            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl text-right cursor-pointer"
+                                                            onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(item.title || item.name || '')}`)}
+                                                            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', transition: 'all 0.15s' }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.18)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; }}>
                                                             <img src={item.image || item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover bg-[#F5F5F7] shrink-0"
                                                                 onError={(e) => {
                                                                     if (!e.target.dataset.tried1) {
@@ -529,7 +546,7 @@ function QuotesPipeline() {
                                                                     e.target.src = IMG_FALLBACK;
                                                                 }} />
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-[#1D1D1F] font-bold text-sm truncate">{item.title}</p>
+                                                                <p className="text-[#007AFF] font-bold text-sm truncate hover:underline">{item.title}</p>
                                                                 <p className="text-[#86868B] text-xs">כמות: {item.qty ?? item.quantity ?? 1} · ₪{(item.salePrice ?? item.price)?.toLocaleString()}</p>
                                                             </div>
                                                             <p className="font-black text-sm shrink-0">₪{((item.salePrice ?? item.price) * (item.qty ?? item.quantity ?? 1)).toLocaleString()}</p>
@@ -850,6 +867,8 @@ function QuotesPipeline() {
 function OrdersList() {
     const { orders, updateOrderStatus, inventory } = useAdminData();
     const { showToast } = useAdminToast();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const savedFilters = (() => { try { return JSON.parse(sessionStorage.getItem('admin_orders_filters') || '{}'); } catch { return {}; } })();
     const [search, setSearch]             = useState(savedFilters.search || '');
@@ -862,6 +881,14 @@ function OrdersList() {
     useEffect(() => {
         sessionStorage.setItem('admin_orders_filters', JSON.stringify({ search, statusFilter, dateFilter }));
     }, [search, statusFilter, dateFilter]);
+
+    // Auto-open order from URL param ?orderId=xxx
+    useEffect(() => {
+        const id = searchParams.get('orderId');
+        if (!id || !orders.length) return;
+        const o = orders.find(o => o.id === id);
+        if (o) setSelected(o);
+    }, [searchParams, orders]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleQuickStatus = (orderId, status) => {
         updateOrderStatus(orderId, status);
@@ -946,8 +973,14 @@ function OrdersList() {
                                 <p className="text-[#AEAEB2] text-[10px] mt-0.5">{order.date}</p>
                             </div>
                             <div className="text-right min-w-0">
-                                <p className="text-[#1D1D1F] font-bold text-sm truncate">{order.customer}</p>
-                                <p className="text-[#AEAEB2] text-[10px] truncate">{order.product} · {order.qty} יח׳</p>
+                                <p className="text-[#007AFF] font-bold text-sm truncate hover:underline"
+                                    onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(order.customer)}`); }}>
+                                    {order.customer}
+                                </p>
+                                <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
+                                    onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?search=${encodeURIComponent(order.product)}`); }}>
+                                    {order.product} · {order.qty} יח׳
+                                </p>
                             </div>
                             <p className="text-[#1D1D1F] font-black text-sm">₪{(order.total || 0).toLocaleString()}</p>
                             <QuickDropdown item={order} statuses={ORDER_STATUSES} colors={ORDER_STATUS_COLORS} onUpdate={handleQuickStatus} />

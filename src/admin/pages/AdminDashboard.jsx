@@ -438,13 +438,19 @@ export default function AdminDashboard() {
                                 initial={{ opacity: 0, x: 10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.03 }}
-                                onClick={() => navigate('/admin/orders')}
+                                onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
                                 className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#F5F5F7] rounded-xl px-2 -mx-2 transition-colors"
                             >
                                 <StatusBadge status={order.status} />
                                 <div className="flex-1 min-w-0 text-right">
-                                    <p className="text-[#1D1D1F] text-[12px] font-bold truncate">{order.customer}</p>
-                                    <p className="text-[#AEAEB2] text-[10px] truncate">{order.product}</p>
+                                    <p className="text-[#007AFF] text-[12px] font-bold truncate hover:underline"
+                                        onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(order.customer)}`); }}>
+                                        {order.customer}
+                                    </p>
+                                    <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
+                                        onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?search=${encodeURIComponent(order.product)}`); }}>
+                                        {order.product}
+                                    </p>
                                 </div>
                                 <div className="shrink-0 text-left">
                                     <p className="text-[#1D1D1F] font-black text-sm">₪{order.total.toLocaleString()}</p>
@@ -475,7 +481,7 @@ export default function AdminDashboard() {
                         ) : (
                             <div className="space-y-2">
                                 {lowStock.map(p => (
-                                    <div key={p.id} onClick={() => navigate('/admin/inventory')} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
+                                    <div key={p.id} onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.title)}`)} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
                                         <span className={`font-black text-[12px] shrink-0 ${p.stock === 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'}`}>
                                             {p.stock === 0 ? 'אזל' : `${p.stock} יח׳`}
                                         </span>
