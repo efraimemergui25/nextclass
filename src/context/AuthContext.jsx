@@ -197,6 +197,15 @@ export function AuthProvider({ children }) {
         await updateDoc(doc(db, 'users', uid), { memberTier: tier });
     }, []);
 
+    const updateUserProfile = useCallback(async ({ role, institution, memberTier: tier }) => {
+        if (!user) return;
+        const fields = {};
+        if (role !== undefined)        fields.role        = role;
+        if (institution !== undefined) fields.institution = institution;
+        if (tier !== undefined)        fields.memberTier  = tier;
+        await updateDoc(doc(db, 'users', user.uid), fields);
+    }, [user]);
+
     return (
         <AuthContext.Provider value={{
             user, userDoc, loading,
@@ -207,7 +216,7 @@ export function AuthProvider({ children }) {
             firstLogin, dismissFirstLogin,
             signUp, signIn, signInGoogle, signInGoogleRedirect, signOut, resetPassword,
             authOpen, openAuthModal, closeAuthModal,
-            fetchAllUsers, updateUserTier,
+            fetchAllUsers, updateUserTier, updateUserProfile,
         }}>
             {children}
         </AuthContext.Provider>

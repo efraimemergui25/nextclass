@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag, MessageCircle, Package, ArrowRight, ShoppingBag } from 'lucide-react';
+import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag, MessageCircle, Package, ArrowRight, ShoppingBag, Pencil, Check, Building2, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -53,11 +53,17 @@ function memberSince(ts) {
     return `חבר ${y} ${y === 1 ? 'שנה' : 'שנים'}`;
 }
 
-const ROLE_HE = { teacher: 'מורה', principal: 'מנהל', it: 'רכז טכנולוגיה', admin: 'מנהל מוסד', other: 'אחר' };
-const TIER_ORDER  = ['free', 'member', 'premium'];
-const TIER_NEXT   = { free: 'member', member: 'premium', premium: null };
-const TIER_LABELS = { free: 'פרטי', member: 'מוסדי', premium: 'פרימיום' };
-const TIER_COLORS = { free: '#8E8E93', member: '#007AFF', premium: '#FF9F0A' };
+const ROLES = [
+    { value: 'teacher',     label: 'מורה' },
+    { value: 'admin',       label: 'מנהל בית ספר' },
+    { value: 'procurement', label: 'רכז רכש' },
+    { value: 'other',       label: 'אחר' },
+];
+const ROLE_HE = Object.fromEntries(ROLES.map(r => [r.value, r.label]));
+const TIER_ORDER  = ['free', 'member'];
+const TIER_NEXT   = { free: 'member', member: null };
+const TIER_LABELS = { free: 'פרטי', member: 'מוסדי' };
+const TIER_COLORS = { free: '#8E8E93', member: '#007AFF' };
 
 // ─── Detail timeline ──────────────────────────────────────────────────────────
 function DetailTimeline({ status, flow, statusMap }) {
@@ -371,7 +377,7 @@ function SectionLabel({ children, action, actionTo }) {
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 export default function PersonalPanel({ open, onClose }) {
-    const { user, userDoc, firstName, tierLabel, tierColor, discountPct, isMember, memberTier, signOut } = useAuth();
+    const { user, userDoc, firstName, tierLabel, tierColor, discountPct, isMember, memberTier, signOut, updateUserProfile } = useAuth();
     const { wishlistItems, wishlistCount } = useWishlist();
     const { activeProducts } = useProducts();
     const { isVisible } = useSettings();
@@ -381,6 +387,9 @@ export default function PersonalPanel({ open, onClose }) {
     const [loading, setLoading] = useState(false);
     const [tab, setTab]         = useState('quotes');
     const [detail, setDetail]   = useState(null); // { item, type }
+    const [editOpen,  setEditOpen]  = useState(false);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editForm, setEditForm]   = useState({ role: '', institution: '', memberTier: 'free' });
 
     // Real-time listeners — only while panel is open
     useEffect(() => {
@@ -441,6 +450,15 @@ export default function PersonalPanel({ open, onClose }) {
     const handleSignOut = () => { onClose(); signOut(); };
     const role  = ROLE_HE[userDoc?.role] || '';
     const since = memberSince(userDoc?.createdAt);
+
+    const openEdit = () => {
+        setEditForm({ role: userDoc?.role || 'teacher', institution: userDoc?.institution || '', memberTier: memberTier || 'free' });
+        setEditOpen(true);
+    };
+    const handleSaveProfile = async () => {
+        setEditSaving(true);
+        try { await updateUserProfile(editForm); } finally { setEditSaving(false); setEditOpen(false); }
+    };
 
     const activeList  = tab === 'quotes' ? quotes : orders;
     const msgCount    = quotes.filter(q => q.customerMessage).length;
@@ -524,17 +542,27 @@ export default function PersonalPanel({ open, onClose }) {
                                     </span>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                    {(userDoc?.institution || role) && (
-                                        <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
-                                            {[userDoc?.institution, role].filter(Boolean).join(' · ')}
-                                        </p>
-                                    )}
-                                    {since && (
-                                        <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Sparkles size={11} color={tierColor} /> {since}
-                                        </p>
-                                    )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                                        {(userDoc?.institution || role) ? (
+                                            <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
+                                                {[userDoc?.institution, role].filter(Boolean).join(' · ')}
+                                            </p>
+                                        ) : (
+                                            <p style={{ fontSize: 13, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>הוסף תפקיד ומוסד</p>
+                                        )}
+                                        {since && (
+                                            <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <Sparkles size={11} color={tierColor} /> {since}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <motion.button
+                                        whileTap={{ scale: 0.88 }}
+                                        onClick={openEdit}
+                                        style={{ width: 30, height: 30, borderRadius: 99, border: 'none', background: editOpen ? `${tierColor}18` : 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Pencil size={13} color={editOpen ? tierColor : '#8E8E93'} />
+                                    </motion.button>
                                 </div>
                             </div>
 
@@ -542,7 +570,7 @@ export default function PersonalPanel({ open, onClose }) {
                             <div style={{ padding: '16px 24px 0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                     {TIER_ORDER.map((t, i) => (
-                                        <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: i === 0 ? 'flex-end' : i === 2 ? 'flex-start' : 'center', flex: 1 }}>
+                                        <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: i === 0 ? 'flex-end' : 'flex-start', flex: 1 }}>
                                             <div style={{
                                                 width: 28, height: 28, borderRadius: 99, marginBottom: 4,
                                                 background: i <= tierIdx ? `linear-gradient(135deg, ${TIER_COLORS[t]}, ${TIER_COLORS[t]}88)` : '#F0F0F0',
@@ -572,6 +600,67 @@ export default function PersonalPanel({ open, onClose }) {
                                     </p>
                                 )}
                             </div>
+
+                            {/* Inline edit profile */}
+                            <AnimatePresence>
+                            {editOpen && (
+                                <motion.div
+                                    key="edit-profile"
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.22 }}
+                                    style={{ overflow: 'hidden' }}>
+                                    <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        {/* Tier picker */}
+                                        <div>
+                                            <p style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>סוג חשבון</p>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                {TIER_ORDER.map(t => (
+                                                    <motion.button key={t} whileTap={{ scale: 0.96 }}
+                                                        onClick={() => setEditForm(f => ({ ...f, memberTier: t }))}
+                                                        style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${editForm.memberTier === t ? TIER_COLORS[t] : 'rgba(0,0,0,0.1)'}`, background: editForm.memberTier === t ? `${TIER_COLORS[t]}12` : 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: editForm.memberTier === t ? TIER_COLORS[t] : '#8E8E93' }}>
+                                                        {TIER_LABELS[t]}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* Role select */}
+                                        <div>
+                                            <p style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>תפקיד</p>
+                                            <div style={{ position: 'relative' }}>
+                                                <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                                                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontSize: 14, fontWeight: 600, color: '#1D1D1F', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer', fontFamily: 'Heebo, sans-serif', direction: 'rtl', outline: 'none' }}>
+                                                    {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                                                </select>
+                                                <ChevronDown size={14} color="#8E8E93" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                                            </div>
+                                        </div>
+                                        {/* Institution input */}
+                                        <div>
+                                            <p style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>שם מוסד</p>
+                                            <div style={{ position: 'relative' }}>
+                                                <Building2 size={14} color="#AEAEB2" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                                                <input value={editForm.institution} onChange={e => setEditForm(f => ({ ...f, institution: e.target.value }))}
+                                                    placeholder="בית ספר / עמותה / אוניברסיטה"
+                                                    style={{ width: '100%', padding: '10px 36px 10px 14px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontSize: 14, fontWeight: 500, color: '#1D1D1F', outline: 'none', fontFamily: 'Heebo, sans-serif', direction: 'rtl', boxSizing: 'border-box' }} />
+                                            </div>
+                                        </div>
+                                        {/* Actions */}
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <motion.button whileTap={{ scale: 0.96 }} onClick={handleSaveProfile} disabled={editSaving}
+                                                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: '#007AFF', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                                {editSaving ? '...' : <><Check size={14} /> שמור</>}
+                                            </motion.button>
+                                            <motion.button whileTap={{ scale: 0.96 }} onClick={() => setEditOpen(false)}
+                                                style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.1)', background: 'transparent', color: '#6E6E73', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                                                ביטול
+                                            </motion.button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                            </AnimatePresence>
 
                             {/* Quick stats */}
                             <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: 10 }}>
