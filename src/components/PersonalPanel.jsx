@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag, MessageCircle, Package, ArrowRight, ShoppingBag, Pencil, Check, Building2, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -181,6 +181,25 @@ function DetailView({ item, type, onBack }) {
     const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
     const isTerminal = item.status === 'אבד' || item.status === 'בוטל';
 
+    const [noteText, setNoteText]   = useState('');
+    const [noteSaving, setNoteSaving] = useState(false);
+    const [noteSent, setNoteSent]   = useState(false);
+
+    const handleSendNote = async () => {
+        if (!noteText.trim()) return;
+        setNoteSaving(true);
+        try {
+            const col = type === 'quote' ? 'quotes' : 'orders';
+            await updateDoc(doc(db, col, item.id), {
+                customerNote: noteText.trim(),
+                customerNoteTs: serverTimestamp(),
+            });
+            setNoteSent(true);
+            setNoteText('');
+            setTimeout(() => setNoteSent(false), 3000);
+        } finally { setNoteSaving(false); }
+    };
+
     return (
         <motion.div
             key="detail"
@@ -310,14 +329,64 @@ function DetailView({ item, type, onBack }) {
                     </div>
                 )}
 
-                {/* Customer notes */}
+                {/* Original order notes */}
                 {item.notes && (
                     <div style={{
                         background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)',
-                        borderRadius: 14, padding: '12px 14px',
+                        borderRadius: 14, padding: '12px 14px', marginBottom: 18,
                     }}>
                         <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 6px' }}>ההערות שלי</p>
                         <p style={{ fontSize: 13, color: '#1D1D1F', margin: 0, lineHeight: 1.55 }}>{item.notes}</p>
+                    </div>
+                )}
+
+                {/* Previous customer note */}
+                {item.customerNote && (
+                    <div style={{
+                        background: 'rgba(52,199,89,0.05)', border: '1px solid rgba(52,199,89,0.18)',
+                        borderRadius: 14, padding: '12px 14px', marginBottom: 18,
+                    }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#34C759', letterSpacing: '0.09em', margin: '0 0 6px' }}>ההערה שנשלחה</p>
+                        <p style={{ fontSize: 13, color: '#1D1D1F', margin: 0, lineHeight: 1.55 }}>{item.customerNote}</p>
+                    </div>
+                )}
+
+                {/* Add note */}
+                {!isTerminal && (
+                    <div style={{
+                        background: '#F5F5F7', borderRadius: 18, padding: '14px 16px',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                    }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.09em', margin: '0 0 10px' }}>
+                            {item.customerNote ? 'עדכן הערה' : 'הוסף הערה לבקשה'}
+                        </p>
+                        <textarea
+                            value={noteText}
+                            onChange={e => setNoteText(e.target.value)}
+                            placeholder="כתבו הערה, שאלה או בקשה עבור הצוות שלנו..."
+                            rows={3}
+                            style={{
+                                width: '100%', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)',
+                                background: '#fff', padding: '10px 12px', fontSize: 13, fontWeight: 500,
+                                color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', direction: 'rtl',
+                                resize: 'none', outline: 'none', boxSizing: 'border-box',
+                                lineHeight: 1.6, marginBottom: 8,
+                            }}
+                        />
+                        <motion.button
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleSendNote}
+                            disabled={noteSaving || !noteText.trim()}
+                            style={{
+                                width: '100%', padding: '10px 0', borderRadius: 12, border: 'none',
+                                background: noteSent ? '#34C759' : noteText.trim() ? '#007AFF' : 'rgba(0,0,0,0.08)',
+                                color: noteText.trim() ? '#fff' : '#AEAEB2',
+                                fontSize: 14, fontWeight: 700, cursor: noteText.trim() ? 'pointer' : 'default',
+                                fontFamily: 'Heebo, sans-serif', transition: 'background 0.2s',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            }}>
+                            {noteSent ? <>✓ נשלח בהצלחה</> : noteSaving ? '...' : <><MessageCircle size={14} /> שלח הערה</>}
+                        </motion.button>
                     </div>
                 )}
             </div>

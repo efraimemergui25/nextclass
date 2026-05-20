@@ -418,6 +418,15 @@ function QuotesPipeline() {
                             </div>
                         )}
 
+                        {/* Customer note (sent from profile panel) */}
+                        {selected.customerNote && (
+                            <div className="rounded-xl px-4 py-3 text-right"
+                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.22)' }}>
+                                <p className="text-[10px] font-black tracking-widest mb-1" style={{ color: '#34C759' }}>💬 הערה מהלקוח</p>
+                                <p className="text-[#1D1D1F] text-sm leading-relaxed">{selected.customerNote}</p>
+                            </div>
+                        )}
+
                         {/* Admin notes */}
                         {selected.adminNotes?.length > 0 && (
                             <div>
