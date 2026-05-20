@@ -386,8 +386,14 @@ export default function AdminUsers() {
     useEffect(() => {
         const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
         const unsub = onSnapshot(q, snap => {
-            setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
+            const list = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+            setUsers(list);
             setLoading(false);
+            setSelected(prev => {
+                if (!prev) return prev;
+                const fresh = list.find(u => u.uid === prev.uid);
+                return fresh ? fresh : prev;
+            });
         }, () => setLoading(false));
         return unsub;
     }, []);

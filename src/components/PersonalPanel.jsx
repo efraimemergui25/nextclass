@@ -594,11 +594,6 @@ export default function PersonalPanel({ open, onClose }) {
                                         style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${TIER_COLORS['free']}, ${tierColor})` }}
                                     />
                                 </div>
-                                {nextTier && (
-                                    <p style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 600, margin: '4px 0 0', textAlign: 'center' }}>
-                                        הדרגה הבאה: {TIER_LABELS[nextTier]}
-                                    </p>
-                                )}
                             </div>
 
                             {/* Inline edit profile */}
