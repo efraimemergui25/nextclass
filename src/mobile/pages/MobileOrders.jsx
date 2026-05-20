@@ -45,6 +45,8 @@ function detectIntent(msgs) {
 const ppDotStyle = `
 @keyframes ppBounceM { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
 .ppDotM { width:7px;height:7px;border-radius:50%;display:inline-block;animation:ppBounceM 1.2s infinite; }
+@keyframes ncPulseM { 0%{transform:scale(1);opacity:0.6} 70%,100%{transform:scale(2.4);opacity:0} }
+.ncUnreadPulse { animation: ncPulseM 1.8s cubic-bezier(0,0,0.2,1) infinite; }
 `;
 
 // ─── Single message bubble (needs its own ref for long-press) ────────────────
@@ -433,14 +435,19 @@ function OrderRow({ item, onSelect }) {
                 </div>
             </div>
 
-            {/* Unread badge */}
+            {/* Unread badge — pulsing ring */}
             {item.unreadCustomer && (
-                <div style={{
-                    position: 'absolute', top: 14, left: 14,
-                    width: 10, height: 10, borderRadius: 99,
-                    background: '#007AFF',
-                    boxShadow: '0 0 0 2px ' + c.surface,
-                }} />
+                <div style={{ position: 'absolute', top: 14, left: 14, width: 12, height: 12 }}>
+                    <div className="ncUnreadPulse" style={{
+                        position: 'absolute', inset: 0, borderRadius: 99,
+                        background: '#007AFF',
+                    }} />
+                    <div style={{
+                        position: 'absolute', inset: 0, borderRadius: 99,
+                        background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                        boxShadow: '0 0 0 2.5px ' + c.surface,
+                    }} />
+                </div>
             )}
         </motion.button>
     );

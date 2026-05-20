@@ -8,7 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from 'firebase/firestore';
 import CookieConsent from '../components/CookieConsent';
 import AnnouncementBar from '../components/AnnouncementBar';
 import MenuOverlay from '../components/MenuOverlay';
@@ -1359,6 +1359,126 @@ function PullToRefresh({ scrollRef }) {
 // Tab paths in order for swipe navigation (RTL: swipe right = prev, swipe left = next)
 const SWIPE_TAB_PATHS = ['/', '/catalog', '/discover', '/cart', '/favorites'];
 
+// ─── Global message notification banner ──────────────────────────────────────
+function MessageNotificationBanner() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { colors: c } = useTheme();
+    const [notif, setNotif] = useState(null); // { title, body, itemId }
+    const seenRef  = useRef(new Set()); // tracks item IDs we've already shown a banner for
+    const timerRef = useRef(null);
+
+    useEffect(() => {
+        if (!user?.email) return;
+
+        // Listen to quotes with unreadCustomer for this user
+        const q = query(
+            collection(db, 'quotes'),
+            where('email', '==', user.email),
+            where('unreadCustomer', '==', true)
+        );
+        let initialLoad = true;
+        const unsub = onSnapshot(q, (snap) => {
+            // Skip the very first snapshot (existing unread on page load)
+            if (initialLoad) {
+                snap.docs.forEach(d => seenRef.current.add(d.id));
+                initialLoad = false;
+                return;
+            }
+            snap.docChanges().forEach(change => {
+                if (change.type === 'modified' || change.type === 'added') {
+                    const data = change.doc.data();
+                    if (!data.unreadCustomer) return;
+                    if (seenRef.current.has(change.doc.id)) return;
+                    seenRef.current.add(change.doc.id);
+
+                    // Find last admin message
+                    const thread = [...(data.thread || [])].sort((a, b) => b.tsNum - a.tsNum);
+                    const lastAdminMsg = thread.find(m => m.from === 'admin');
+                    const title = data.institution || data.contactName || 'הצעת מחיר';
+                    const body  = lastAdminMsg?.text || 'הודעה חדשה מהנציג שלך';
+
+                    haptic('notification');
+                    clearTimeout(timerRef.current);
+                    setNotif({ title, body: body.length > 60 ? body.slice(0, 60) + '…' : body, itemId: change.doc.id });
+                    timerRef.current = setTimeout(() => setNotif(null), 5000);
+                }
+            });
+        });
+        return () => { unsub(); clearTimeout(timerRef.current); };
+    }, [user?.email]);
+
+    const dismiss = () => { clearTimeout(timerRef.current); setNotif(null); };
+    const open    = () => { dismiss(); navigate('/orders'); };
+
+    return (
+        <AnimatePresence>
+            {notif && (
+                <motion.div
+                    initial={{ y: -110, opacity: 0, scale: 0.94 }}
+                    animate={{ y: 0,    opacity: 1, scale: 1   }}
+                    exit={{    y: -110, opacity: 0, scale: 0.94 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    drag="y"
+                    dragConstraints={{ top: 0, bottom: 0 }}
+                    dragElastic={{ top: 0.6, bottom: 0 }}
+                    onDragEnd={(_, info) => { if (info.offset.y < -30) dismiss(); }}
+                    onClick={open}
+                    style={{
+                        position: 'fixed',
+                        top: 'calc(env(safe-area-inset-top, 12px) + 12px)',
+                        left: 16, right: 16,
+                        zIndex: 9999,
+                        borderRadius: 20,
+                        padding: '13px 16px',
+                        display: 'flex', alignItems: 'center', gap: 12, direction: 'rtl',
+                        cursor: 'pointer', fontFamily: SF,
+                        background: c.isDark
+                            ? 'rgba(28,28,30,0.92)'
+                            : 'rgba(255,255,255,0.92)',
+                        backdropFilter: 'blur(28px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+                        boxShadow: c.isDark
+                            ? '0 12px 40px rgba(0,0,0,0.55), inset 0 0.5px 0 rgba(255,255,255,0.08)'
+                            : '0 12px 40px rgba(0,0,0,0.14), inset 0 0.5px 0 rgba(255,255,255,0.9)',
+                        border: c.isDark ? '0.5px solid rgba(255,255,255,0.1)' : '0.5px solid rgba(0,0,0,0.08)',
+                    }}
+                >
+                    {/* App icon */}
+                    <div style={{
+                        width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+                        background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 3px 10px rgba(0,122,255,0.4)',
+                    }}>
+                        <MessageCircle size={20} color="#fff" strokeWidth={2} />
+                    </div>
+
+                    {/* Text */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                            <span style={{ fontSize: 11, color: c.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontWeight: 600 }}>עכשיו</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: '#007AFF' }}>NextClass</span>
+                        </div>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: c.isDark ? '#fff' : '#1D1D1F', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {notif.title} — הודעה חדשה
+                        </p>
+                        <p style={{ fontSize: 12, color: c.isDark ? 'rgba(255,255,255,0.55)' : '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {notif.body}
+                        </p>
+                    </div>
+
+                    {/* Dismiss */}
+                    <button onClick={e => { e.stopPropagation(); dismiss(); }}
+                        style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: c.isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)', flexShrink: 0 }}>
+                        <X size={14} />
+                    </button>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}
+
 // ─── Inner app (needs ThemeProvider in scope) ─────────────────────────────────
 function MobileAppInner() {
     const location = useLocation();
@@ -1502,6 +1622,7 @@ function MobileAppInner() {
             <CookieConsent />
             <InstallPrompt />
             <UpdateBanner />
+            <MessageNotificationBanner />
         </div>
     );
 }
