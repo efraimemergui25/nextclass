@@ -283,6 +283,10 @@ export function AdminDataProvider({ children }) {
         await setDoc(doc(db, 'quotes', quoteId), { adminNotes }, { merge: true });
     };
 
+    const setQuoteCustomerMessage = async (quoteId, message) => {
+        await setDoc(doc(db, 'quotes', quoteId), { customerMessage: message || null }, { merge: true });
+    };
+
     const updateContactStatus = async (id, status) => {
         await setDoc(doc(db, 'contacts', id.toString()), { status }, { merge: true });
         addActivity(`פנייה עודכנה לסטטוס "${status}"`, 'info');
@@ -383,7 +387,8 @@ export function AdminDataProvider({ children }) {
     return (
         <AdminDataContext.Provider value={{
             orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
-            updateOrderStatus, updateQuoteStatus, addQuoteNote, updateStock, updateProductDetails,
+            updateOrderStatus, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage,
+            updateStock, updateProductDetails,
             addProduct, deleteProduct, updateContactStatus,
             addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
             repairProductImages, reseedDatabase

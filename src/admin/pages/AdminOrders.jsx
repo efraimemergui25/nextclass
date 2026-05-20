@@ -160,7 +160,7 @@ function QuickDropdown({ item, statuses, colors, onUpdate }) {
 // QUOTES PIPELINE
 // ════════════════════════════════════════════════════════════════════════════
 function QuotesPipeline() {
-    const { quotes, updateQuoteStatus, addQuoteNote } = useAdminData();
+    const { quotes, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage } = useAdminData();
     const { showToast } = useAdminToast();
 
     const [search, setSearch]           = useState('');
@@ -170,6 +170,13 @@ function QuotesPipeline() {
     const [newStatus, setNewStatus]     = useState('');
     const [noteText, setNoteText]       = useState('');
     const [saved, setSaved]             = useState(false);
+    const [customerMsg, setCustomerMsg] = useState('');
+    const [msgSaved, setMsgSaved]       = useState(false);
+
+    // Sync customerMsg when modal opens
+    useEffect(() => {
+        if (selected) setCustomerMsg(selected.customerMessage || '');
+    }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleQuickStatus = (id, status) => {
         updateQuoteStatus(id, status);
@@ -182,6 +189,14 @@ function QuotesPipeline() {
         setSelected(prev => ({ ...prev, status: newStatus }));
         setSaved(true);
         setTimeout(() => { setSaved(false); setNewStatus(''); }, 1200);
+    };
+
+    const handleSaveCustomerMsg = async () => {
+        if (!selected) return;
+        await setQuoteCustomerMessage(selected.id, customerMsg.trim());
+        setMsgSaved(true);
+        showToast('הודעה נשלחה ללקוח', 'success');
+        setTimeout(() => setMsgSaved(false), 2000);
     };
 
     const handleAddNote = async () => {
@@ -418,6 +433,31 @@ function QuotesPipeline() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Message to customer */}
+                        <div className="border-t border-black/06 pt-4 space-y-2">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
+                                    <span style={{ fontSize: 10, color: '#fff' }}>✉</span>
+                                </div>
+                                <p className="text-[#007AFF] text-[10px] font-black tracking-widest">הודעה ללקוח (גלויה לו בפרופיל)</p>
+                            </div>
+                            <textarea
+                                value={customerMsg}
+                                onChange={e => setCustomerMsg(e.target.value)}
+                                placeholder="למשל: הצעת המחיר שלנו מוכנה, נשלחה למייל. נשמח לענות על שאלות."
+                                dir="rtl"
+                                rows={3}
+                                className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all resize-none"
+                                style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)', fontFamily: 'Heebo, sans-serif' }}
+                            />
+                            <div className="flex justify-end">
+                                <AdminButton onClick={handleSaveCustomerMsg}>
+                                    {msgSaved ? '✓ נשלח!' : 'שלח הודעה ללקוח'}
+                                </AdminButton>
+                            </div>
+                        </div>
 
                         {/* Add admin note */}
                         <div className="border-t border-black/06 pt-4 space-y-2">

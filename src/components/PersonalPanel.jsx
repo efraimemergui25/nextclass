@@ -1,21 +1,35 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag } from 'lucide-react';
+import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag, MessageCircle, Package, ArrowRight, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductsContext';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const STATUS = {
-    'חדש':    { bg: 'rgba(255,159,10,0.12)', color: '#FF9F0A', dot: '#FF9F0A' },
-    'בטיפול': { bg: 'rgba(0,122,255,0.12)',  color: '#007AFF', dot: '#007AFF' },
-    'הושלם':  { bg: 'rgba(48,209,88,0.12)',  color: '#30D158', dot: '#30D158' },
-    'בוטל':   { bg: 'rgba(255,69,58,0.12)',  color: '#FF453A', dot: '#FF453A' },
+// ─── Status maps (match actual Firestore values) ──────────────────────────────
+const QUOTE_STATUS = {
+    'חדש':         { bg: 'rgba(255,59,48,0.10)',   color: '#FF3B30' },
+    'ביצירת קשר':  { bg: 'rgba(255,149,0,0.10)',   color: '#FF9500' },
+    'הוצע מחיר':   { bg: 'rgba(0,122,255,0.10)',   color: '#007AFF' },
+    'במשא ומתן':   { bg: 'rgba(88,86,214,0.10)',   color: '#5856D6' },
+    'נסגר':        { bg: 'rgba(52,199,89,0.10)',   color: '#34C759' },
+    'אבד':         { bg: 'rgba(174,174,178,0.10)', color: '#AEAEB2' },
 };
+const QUOTE_FLOW = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'במשא ומתן', 'נסגר'];
 
+const ORDER_STATUS = {
+    'חדש':   { bg: 'rgba(255,59,48,0.10)',   color: '#FF3B30' },
+    'ממתין': { bg: 'rgba(255,149,0,0.10)',   color: '#FF9500' },
+    'אושר':  { bg: 'rgba(0,122,255,0.10)',   color: '#007AFF' },
+    'נשלח':  { bg: 'rgba(88,86,214,0.10)',   color: '#5856D6' },
+    'נמסר':  { bg: 'rgba(52,199,89,0.10)',   color: '#34C759' },
+    'בוטל':  { bg: 'rgba(255,59,48,0.10)',   color: '#FF3B30' },
+};
+const ORDER_FLOW = ['חדש', 'ממתין', 'אושר', 'נשלח', 'נמסר'];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function relativeDate(ts) {
     if (!ts) return '';
     const d = new Date(typeof ts === 'number' ? ts : ts.toDate?.() ?? ts);
@@ -23,7 +37,7 @@ function relativeDate(ts) {
     const days = Math.floor(diff / 86400000);
     if (days === 0) return 'היום';
     if (days === 1) return 'אתמול';
-    if (days < 7)  return `לפני ${days} ימים`;
+    if (days < 7) return `לפני ${days} ימים`;
     if (days < 30) return `לפני ${Math.floor(days / 7)} שבועות`;
     return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
 }
@@ -39,31 +53,278 @@ function memberSince(ts) {
 }
 
 const ROLE_HE = { teacher: 'מורה', principal: 'מנהל', it: 'רכז טכנולוגיה', admin: 'מנהל מוסד', other: 'אחר' };
+const TIER_ORDER  = ['free', 'member', 'premium'];
+const TIER_NEXT   = { free: 'member', member: 'premium', premium: null };
+const TIER_LABELS = { free: 'פרטי', member: 'מוסדי', premium: 'פרימיום' };
+const TIER_COLORS = { free: '#8E8E93', member: '#007AFF', premium: '#FF9F0A' };
 
-// ── Section header ────────────────────────────────────────────────────────────
-function SectionLabel({ children, action, actionTo }) {
+// ─── Detail timeline ──────────────────────────────────────────────────────────
+function DetailTimeline({ status, flow, statusMap }) {
+    const idx = flow.indexOf(status);
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                {children}
-            </span>
-            {action && (
-                <Link to={actionTo} style={{ fontSize: 12, fontWeight: 600, color: '#007AFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {action} <ChevronLeft size={12} />
-                </Link>
-            )}
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+            {flow.map((s, i) => {
+                const done = i <= idx;
+                const active = i === idx;
+                const color = statusMap[s]?.color || '#007AFF';
+                return (
+                    <div key={s} style={{ display: 'flex', alignItems: 'center', flex: i < flow.length - 1 ? 1 : 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                            <motion.div
+                                animate={{ scale: active ? [1, 1.12, 1] : 1 }}
+                                transition={{ repeat: active ? Infinity : 0, duration: 1.8 }}
+                                style={{
+                                    width: 26, height: 26, borderRadius: 99,
+                                    background: done ? color : 'rgba(0,0,0,0.07)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    boxShadow: active ? `0 0 0 5px ${color}22` : 'none',
+                                    flexShrink: 0,
+                                }}>
+                                <span style={{ fontSize: done ? 10 : 9, color: done ? '#fff' : '#C7C7CC', fontWeight: 900 }}>
+                                    {done ? '✓' : i + 1}
+                                </span>
+                            </motion.div>
+                            <p style={{ fontSize: 8, fontWeight: 800, color: done ? color : '#C7C7CC', whiteSpace: 'nowrap' }}>{s}</p>
+                        </div>
+                        {i < flow.length - 1 && (
+                            <div style={{
+                                flex: 1, height: 2, margin: '0 3px 18px',
+                                background: i < idx ? (statusMap[flow[i + 1]]?.color || '#007AFF') : 'rgba(0,0,0,0.08)',
+                                borderRadius: 99,
+                            }} />
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }
 
-// ── Product thumb ─────────────────────────────────────────────────────────────
-function ProductThumb({ product, tierColor }) {
+// ─── Item row (in list) ───────────────────────────────────────────────────────
+function ItemRow({ item, type, index, onClick, tierColor }) {
+    const statusMap = type === 'quote' ? QUOTE_STATUS : ORDER_STATUS;
+    const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
+    const hasMsg = !!item.customerMessage;
+
     return (
-        <Link to={`/products/${product.id}`} style={{ textDecoration: 'none', flex: '0 0 auto', width: 110 }}>
+        <motion.div
+            initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
+            onClick={onClick}
+            style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '13px 14px', borderRadius: 16,
+                background: '#F5F5F7', border: `1px solid ${hasMsg ? 'rgba(0,122,255,0.18)' : 'rgba(0,0,0,0.05)'}`,
+                cursor: 'pointer', position: 'relative',
+                boxShadow: hasMsg ? '0 0 0 3px rgba(0,122,255,0.07)' : 'none',
+            }}>
+            {/* Icon */}
+            <div style={{
+                width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+                background: `${st.color}14`, border: `1px solid ${st.color}20`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+                {type === 'quote'
+                    ? <FileText size={16} color={st.color} />
+                    : <ShoppingBag size={16} color={st.color} />}
+            </div>
+
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.id}
+                </p>
+                <p style={{ fontSize: 11, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>
+                    {relativeDate(item.dateTs)} · {item.items?.length || 0} פריטים
+                </p>
+            </div>
+
+            {/* Right side */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+                    {(item.subtotal || item.total) ? `₪${Number(item.subtotal || item.total).toLocaleString()}` : '—'}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: st.bg, color: st.color }}>
+                    {item.status || 'חדש'}
+                </span>
+            </div>
+
+            {/* Unread message badge */}
+            {hasMsg && (
+                <div style={{
+                    position: 'absolute', top: -5, right: -5,
+                    width: 18, height: 18, borderRadius: 99,
+                    background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(0,122,255,0.4)',
+                }}>
+                    <MessageCircle size={9} color="#fff" />
+                </div>
+            )}
+
+            <ChevronLeft size={14} color="#C7C7CC" />
+        </motion.div>
+    );
+}
+
+// ─── Detail view (drill-down) ─────────────────────────────────────────────────
+function DetailView({ item, type, onBack }) {
+    const statusMap = type === 'quote' ? QUOTE_STATUS : ORDER_STATUS;
+    const flow = type === 'quote' ? QUOTE_FLOW : ORDER_FLOW;
+    const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
+    const isTerminal = item.status === 'אבד' || item.status === 'בוטל';
+
+    return (
+        <motion.div
+            key="detail"
+            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-110%' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+            style={{
+                position: 'absolute', inset: 0, zIndex: 10,
+                background: '#fff', overflowY: 'auto',
+                fontFamily: 'Heebo, sans-serif', direction: 'rtl',
+            }}>
+
+            {/* Sticky nav bar */}
+            <div style={{
+                position: 'sticky', top: 0, zIndex: 20,
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(0,0,0,0.06)',
+                padding: '14px 18px',
+                display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+                <motion.button whileTap={{ scale: 0.88 }} onClick={onBack}
+                    style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        color: '#007AFF', fontSize: 14, fontWeight: 700, padding: 0,
+                        fontFamily: 'Heebo, sans-serif',
+                    }}>
+                    <ArrowRight size={15} />
+                    חזרה
+                </motion.button>
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.01em' }}>{item.id}</span>
+            </div>
+
+            <div style={{ padding: '20px 18px 48px' }}>
+
+                {/* Header: status + date */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <span style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 600 }}>{relativeDate(item.dateTs)}</span>
+                    <span style={{
+                        fontSize: 12, fontWeight: 800, padding: '4px 13px', borderRadius: 99,
+                        background: st.bg, color: st.color,
+                    }}>{item.status || 'חדש'}</span>
+                </div>
+
+                {/* Timeline */}
+                {!isTerminal && (
+                    <div style={{
+                        background: `${st.color}07`, border: `1px solid ${st.color}18`,
+                        borderRadius: 18, padding: '14px 16px 10px', marginBottom: 18,
+                    }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.09em', margin: '0 0 12px', textAlign: 'right' }}>מצב הבקשה</p>
+                        <DetailTimeline status={item.status} flow={flow} statusMap={statusMap} />
+                    </div>
+                )}
+
+                {isTerminal && (
+                    <div style={{
+                        background: 'rgba(174,174,178,0.08)', border: '1px solid rgba(174,174,178,0.18)',
+                        borderRadius: 16, padding: '14px 16px', marginBottom: 18,
+                        display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                        <span style={{ fontSize: 22 }}>{item.status === 'בוטל' ? '❌' : '📭'}</span>
+                        <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 600, margin: 0 }}>
+                            {item.status === 'בוטל' ? 'ההזמנה בוטלה' : 'ההצעה לא נסגרה'}
+                        </p>
+                    </div>
+                )}
+
+                {/* Message from NextClass */}
+                {item.customerMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0,122,255,0.06), rgba(88,86,214,0.04))',
+                            border: '1px solid rgba(0,122,255,0.20)',
+                            borderRadius: 18, padding: '14px 16px', marginBottom: 18,
+                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <div style={{
+                                width: 30, height: 30, borderRadius: 10,
+                                background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}>
+                                <MessageCircle size={14} color="#fff" />
+                            </div>
+                            <p style={{ fontSize: 12, fontWeight: 800, color: '#007AFF', margin: 0 }}>הודעה מ-NextClass</p>
+                        </div>
+                        <p style={{ fontSize: 13, color: '#1D1D1F', fontWeight: 500, margin: 0, lineHeight: 1.65 }}>
+                            {item.customerMessage}
+                        </p>
+                    </motion.div>
+                )}
+
+                {/* Items */}
+                {item.items?.length > 0 && (
+                    <div style={{ marginBottom: 18 }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.09em', margin: '0 0 10px' }}>פריטים</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {item.items.map((itm, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+                                    background: '#F5F5F7', borderRadius: 14, border: '1px solid rgba(0,0,0,0.04)',
+                                }}>
+                                    {(itm.image || itm.imageUrl) && (
+                                        <img src={itm.image || itm.imageUrl} alt={itm.title}
+                                            style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0, background: '#EBEBEB' }} />
+                                    )}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {itm.title}
+                                        </p>
+                                        <p style={{ fontSize: 11, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>כמות: {itm.qty ?? itm.quantity ?? 1}</p>
+                                    </div>
+                                    <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', flexShrink: 0, margin: 0 }}>
+                                        ₪{((itm.salePrice ?? itm.price) * (itm.qty ?? itm.quantity ?? 1)).toLocaleString()}
+                                    </p>
+                                </div>
+                            ))}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px 0' }}>
+                                <span style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F' }}>
+                                    ₪{(item.subtotal || item.total || 0).toLocaleString()}
+                                </span>
+                                <span style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 600 }}>סה״כ</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Customer notes */}
+                {item.notes && (
+                    <div style={{
+                        background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)',
+                        borderRadius: 14, padding: '12px 14px',
+                    }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 6px' }}>ההערות שלי</p>
+                        <p style={{ fontSize: 13, color: '#1D1D1F', margin: 0, lineHeight: 1.55 }}>{item.notes}</p>
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+}
+
+// ─── Product thumb ────────────────────────────────────────────────────────────
+function ProductThumb({ product, tierColor, onClick }) {
+    return (
+        <Link to={`/products/${product.id}`} onClick={onClick} style={{ textDecoration: 'none', flex: '0 0 auto', width: 110 }}>
             <motion.div whileHover={{ y: -2 }} style={{
                 borderRadius: 16, overflow: 'hidden',
-                background: '#F5F5F7',
-                border: '1px solid rgba(0,0,0,0.06)',
+                background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)',
             }}>
                 <div style={{ width: '100%', aspectRatio: '1', overflow: 'hidden', background: '#EBEBEB' }}>
                     {product.image ? (
@@ -76,12 +337,12 @@ function ProductThumb({ product, tierColor }) {
                     )}
                 </div>
                 <div style={{ padding: '8px 10px 10px' }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#1D1D1F', lineHeight: 1.3,
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#1D1D1F', lineHeight: 1.3, margin: 0,
                         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {product.title}
                     </p>
                     {product.price > 0 && (
-                        <p style={{ fontSize: 11, fontWeight: 800, color: tierColor, marginTop: 4 }}>
+                        <p style={{ fontSize: 11, fontWeight: 800, color: tierColor, margin: '4px 0 0' }}>
                             ₪{Number(product.price).toLocaleString()}
                         </p>
                     )}
@@ -91,42 +352,76 @@ function ProductThumb({ product, tierColor }) {
     );
 }
 
-// ── Main panel ────────────────────────────────────────────────────────────────
-const TIER_ORDER  = ['free', 'member', 'premium'];
-const TIER_NEXT   = { free: 'member', member: 'premium', premium: null };
-const TIER_LABELS = { free: 'פרטי', member: 'מוסדי', premium: 'פרימיום' };
-const TIER_COLORS = { free: '#8E8E93', member: '#007AFF', premium: '#FF9F0A' };
-const TIER_DISC   = { free: 5, member: 12, premium: 18 };
+// ─── Section label ────────────────────────────────────────────────────────────
+function SectionLabel({ children, action, actionTo }) {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                {children}
+            </span>
+            {action && (
+                <Link to={actionTo} style={{ fontSize: 12, fontWeight: 600, color: '#007AFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {action} <ChevronLeft size={12} />
+                </Link>
+            )}
+        </div>
+    );
+}
 
+// ─── Main panel ───────────────────────────────────────────────────────────────
 export default function PersonalPanel({ open, onClose }) {
     const { user, userDoc, firstName, tierLabel, tierColor, discountPct, isMember, memberTier, signOut } = useAuth();
     const { wishlistItems, wishlistCount } = useWishlist();
     const { activeProducts } = useProducts();
-    const [quotes, setQuotes] = useState([]);
-    const [loadingQuotes, setLoadingQuotes] = useState(false);
 
+    const [quotes, setQuotes]   = useState([]);
+    const [orders, setOrders]   = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [tab, setTab]         = useState('quotes');
+    const [detail, setDetail]   = useState(null); // { item, type }
+
+    // Real-time listeners — only while panel is open
     useEffect(() => {
         if (!open || !user?.email) return;
-        setLoadingQuotes(true);
-        getDocs(query(collection(db, 'quotes'), where('email', '==', user.email), limit(5)))
-            .then(snap => {
+        setLoading(true);
+
+        const unsubQuotes = onSnapshot(
+            query(collection(db, 'quotes'), where('email', '==', user.email), limit(15)),
+            snap => {
                 const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 docs.sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
-                setQuotes(docs.slice(0, 3));
-            })
-            .catch(() => setQuotes([]))
-            .finally(() => setLoadingQuotes(false));
+                setQuotes(docs);
+                setLoading(false);
+            },
+            () => { setQuotes([]); setLoading(false); }
+        );
+
+        const unsubOrders = onSnapshot(
+            query(collection(db, 'orders'), where('email', '==', user.email), limit(15)),
+            snap => {
+                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                docs.sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+                setOrders(docs);
+            },
+            () => setOrders([])
+        );
+
+        return () => { unsubQuotes(); unsubOrders(); };
     }, [open, user?.email]);
 
-    // Total ₪ saved from closed deals
-    const totalSaved = useMemo(() => {
-        return quotes
-            .filter(q => q.inventorySettled === 'closed')
-            .reduce((sum, q) => sum + Math.round((q.subtotal || 0) * discountPct / 100), 0);
-    }, [quotes, discountPct]);
+    // Reset detail on close
+    useEffect(() => { if (!open) { setDetail(null); setTab('quotes'); } }, [open]);
 
-    // Tier progress
-    const tierIdx  = TIER_ORDER.indexOf(memberTier || 'free');
+    // Sync detail item in real-time (if open)
+    useEffect(() => {
+        if (!detail) return;
+        const updated = detail.type === 'quote'
+            ? quotes.find(q => q.id === detail.item.id)
+            : orders.find(o => o.id === detail.item.id);
+        if (updated) setDetail(prev => ({ ...prev, item: updated }));
+    }, [quotes, orders]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const tierIdx = TIER_ORDER.indexOf(memberTier || 'free');
     const nextTier = TIER_NEXT[memberTier || 'free'];
 
     const recommendations = useMemo(() => {
@@ -142,8 +437,11 @@ export default function PersonalPanel({ open, onClose }) {
     }, [activeProducts, wishlistItems, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSignOut = () => { onClose(); signOut(); };
-    const role = ROLE_HE[userDoc?.role] || '';
+    const role  = ROLE_HE[userDoc?.role] || '';
     const since = memberSince(userDoc?.createdAt);
+
+    const activeList  = tab === 'quotes' ? quotes : orders;
+    const msgCount    = quotes.filter(q => q.customerMessage).length;
 
     return (
         <AnimatePresence>
@@ -167,276 +465,299 @@ export default function PersonalPanel({ open, onClose }) {
                             width: 'min(400px, 100vw)',
                             zIndex: 9101,
                             background: '#fff',
-                            overflowY: 'auto',
                             fontFamily: 'Heebo, sans-serif',
                             direction: 'rtl',
-                            display: 'flex', flexDirection: 'column',
                             boxShadow: '-20px 0 60px rgba(0,0,0,0.14)',
-                        }}
-                    >
-                        {/* ── Identity header ────────────────────────────── */}
-                        <div style={{
-                            padding: '52px 24px 28px',
-                            background: `linear-gradient(160deg, ${tierColor}12 0%, transparent 60%)`,
-                            borderBottom: '1px solid rgba(0,0,0,0.06)',
+                            overflow: 'hidden',
                             position: 'relative',
                         }}>
-                            {/* Close */}
-                            <motion.button whileTap={{ scale: 0.9 }} onClick={onClose}
-                                style={{ position: 'absolute', top: 16, left: 16,
-                                    width: 32, height: 32, borderRadius: 99,
-                                    background: 'rgba(0,0,0,0.06)', border: 'none',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    cursor: 'pointer', color: '#6E6E73' }}>
-                                <X size={15} />
-                            </motion.button>
 
-                            {/* Avatar */}
-                            <motion.div
-                                initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 0.05 }}
-                                style={{
-                                    width: 72, height: 72, borderRadius: 24,
-                                    background: `linear-gradient(135deg, ${tierColor}, ${tierColor}99)`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: `0 8px 24px ${tierColor}44`,
-                                    marginBottom: 16,
-                                }}
-                            >
-                                <span style={{ fontSize: 30, fontWeight: 900, color: '#fff' }}>
-                                    {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
-                                </span>
-                            </motion.div>
+                        {/* ── List view ─────────────────────────────────────── */}
+                        <motion.div
+                            animate={{ x: detail ? 60 : 0, opacity: detail ? 0 : 1 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+                            style={{ position: 'absolute', inset: 0, overflowY: 'auto', pointerEvents: detail ? 'none' : 'auto' }}>
 
-                            {/* Name + tier */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                                <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.04em', margin: 0 }}>
-                                    {user?.displayName || firstName}
-                                </h2>
-                                <span style={{
-                                    fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99,
-                                    background: isMember ? `${tierColor}18` : 'rgba(0,0,0,0.06)',
-                                    color: isMember ? tierColor : '#8E8E93',
-                                    letterSpacing: '0.02em',
-                                }}>
-                                    {tierLabel}
-                                </span>
-                            </div>
+                            {/* Identity header */}
+                            <div style={{
+                                padding: '52px 24px 24px',
+                                background: `linear-gradient(160deg, ${tierColor}12 0%, transparent 60%)`,
+                                borderBottom: '1px solid rgba(0,0,0,0.06)',
+                                position: 'relative',
+                            }}>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={onClose}
+                                    style={{ position: 'absolute', top: 16, left: 16,
+                                        width: 32, height: 32, borderRadius: 99,
+                                        background: 'rgba(0,0,0,0.06)', border: 'none',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', color: '#6E6E73' }}>
+                                    <X size={15} />
+                                </motion.button>
 
-                            {/* Sub info */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                {(userDoc?.institution || role) && (
-                                    <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
-                                        {[userDoc?.institution, role].filter(Boolean).join(' · ')}
-                                    </p>
-                                )}
-                                {since && (
-                                    <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Sparkles size={11} color={tierColor} /> {since}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* ── Tier progress bar ───────────────────────────── */}
-                        <div style={{ padding: '16px 24px 0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                {TIER_ORDER.map((t, i) => (
-                                    <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: i === 0 ? 'flex-end' : i === 2 ? 'flex-start' : 'center', flex: 1 }}>
-                                        <div style={{
-                                            width: 28, height: 28, borderRadius: 99, marginBottom: 4,
-                                            background: i <= tierIdx ? `linear-gradient(135deg, ${TIER_COLORS[t]}, ${TIER_COLORS[t]}88)` : '#F0F0F0',
-                                            border: i === tierIdx ? `2px solid ${TIER_COLORS[t]}` : '2px solid transparent',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            boxShadow: i === tierIdx ? `0 0 0 4px ${TIER_COLORS[t]}20` : 'none',
-                                            transition: 'all 0.3s',
-                                        }}>
-                                            {i <= tierIdx && <span style={{ fontSize: 12 }}>✓</span>}
-                                        </div>
-                                        <span style={{ fontSize: 9, fontWeight: 800, color: i === tierIdx ? TIER_COLORS[t] : '#C7C7CC', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                            {TIER_LABELS[t]}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{ height: 4, background: '#F0F0F0', borderRadius: 99, marginBottom: 4, overflow: 'hidden' }}>
                                 <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(tierIdx / (TIER_ORDER.length - 1)) * 100}%` }}
-                                    transition={{ type: 'spring', stiffness: 120, damping: 20, delay: 0.2 }}
-                                    style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${TIER_COLORS['free']}, ${tierColor})` }}
-                                />
-                            </div>
-                            {nextTier && (
-                                <p style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 600, margin: '4px 0 0', textAlign: 'center' }}>
-                                    הדרגה הבאה: {TIER_LABELS[nextTier]}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* ── Quick stats ─────────────────────────────────── */}
-                        <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: 10 }}>
-                            {[
-                                { icon: Heart, label: 'מועדפים', value: wishlistCount, to: '/wishlist' },
-                                { icon: FileText, label: 'בקשות', value: quotes.length || '—', to: null },
-                                { icon: Tag, label: 'מחירים', value: isMember ? 'VIP' : 'רגיל', to: '/membership' },
-                            ].map(({ icon: Icon, label, value, to }) => {
-                                const inner = (
-                                    <motion.div key={label} whileHover={{ y: -1 }} style={{
-                                        flex: 1, background: '#F5F5F7',
-                                        borderRadius: 16, padding: '14px 12px',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                                        border: '1px solid rgba(0,0,0,0.05)',
-                                        cursor: to ? 'pointer' : 'default',
+                                    initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 26, delay: 0.05 }}
+                                    style={{
+                                        width: 72, height: 72, borderRadius: 24,
+                                        background: `linear-gradient(135deg, ${tierColor}, ${tierColor}99)`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: `0 8px 24px ${tierColor}44`, marginBottom: 16,
                                     }}>
-                                        <Icon size={16} color={tierColor} strokeWidth={2} />
-                                        <span style={{ fontSize: 18, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.03em' }}>{value}</span>
-                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
-                                    </motion.div>
-                                );
-                                return to ? <Link key={label} to={to} onClick={onClose} style={{ flex: 1, textDecoration: 'none' }}>{inner}</Link> : inner;
-                            })}
-                        </div>
+                                    <span style={{ fontSize: 30, fontWeight: 900, color: '#fff' }}>
+                                        {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
+                                    </span>
+                                </motion.div>
 
-                        {/* ── Quotes ──────────────────────────────────────── */}
-                        <div style={{ padding: '24px 24px 0' }}>
-                            <SectionLabel>בקשות מחיר</SectionLabel>
-                            {loadingQuotes ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {[1, 2].map(i => (
-                                        <div key={i} style={{ height: 60, borderRadius: 14, background: '#F5F5F7', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                                    <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.04em', margin: 0 }}>
+                                        {user?.displayName || firstName}
+                                    </h2>
+                                    <span style={{
+                                        fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99,
+                                        background: isMember ? `${tierColor}18` : 'rgba(0,0,0,0.06)',
+                                        color: isMember ? tierColor : '#8E8E93',
+                                    }}>
+                                        {tierLabel}
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {(userDoc?.institution || role) && (
+                                        <p style={{ fontSize: 13, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
+                                            {[userDoc?.institution, role].filter(Boolean).join(' · ')}
+                                        </p>
+                                    )}
+                                    {since && (
+                                        <p style={{ fontSize: 12, color: '#AEAEB2', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <Sparkles size={11} color={tierColor} /> {since}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Tier progress */}
+                            <div style={{ padding: '16px 24px 0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    {TIER_ORDER.map((t, i) => (
+                                        <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: i === 0 ? 'flex-end' : i === 2 ? 'flex-start' : 'center', flex: 1 }}>
+                                            <div style={{
+                                                width: 28, height: 28, borderRadius: 99, marginBottom: 4,
+                                                background: i <= tierIdx ? `linear-gradient(135deg, ${TIER_COLORS[t]}, ${TIER_COLORS[t]}88)` : '#F0F0F0',
+                                                border: i === tierIdx ? `2px solid ${TIER_COLORS[t]}` : '2px solid transparent',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: i === tierIdx ? `0 0 0 4px ${TIER_COLORS[t]}20` : 'none',
+                                            }}>
+                                                {i <= tierIdx && <span style={{ fontSize: 12 }}>✓</span>}
+                                            </div>
+                                            <span style={{ fontSize: 9, fontWeight: 800, color: i === tierIdx ? TIER_COLORS[t] : '#C7C7CC', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                {TIER_LABELS[t]}
+                                            </span>
+                                        </div>
                                     ))}
                                 </div>
-                            ) : quotes.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '20px 0', color: '#AEAEB2', fontSize: 13, fontWeight: 500 }}>
-                                    טרם הגשת בקשות מחיר
-                                    <br />
-                                    <Link to="/catalog" onClick={onClose}
-                                        style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none', fontSize: 13, display: 'inline-block', marginTop: 6 }}>
-                                        גלה את הקטלוג →
+                                <div style={{ height: 4, background: '#F0F0F0', borderRadius: 99, marginBottom: 4, overflow: 'hidden' }}>
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${(tierIdx / (TIER_ORDER.length - 1)) * 100}%` }}
+                                        transition={{ type: 'spring', stiffness: 120, damping: 20, delay: 0.2 }}
+                                        style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${TIER_COLORS['free']}, ${tierColor})` }}
+                                    />
+                                </div>
+                                {nextTier && (
+                                    <p style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 600, margin: '4px 0 0', textAlign: 'center' }}>
+                                        הדרגה הבאה: {TIER_LABELS[nextTier]}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Quick stats */}
+                            <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: 10 }}>
+                                {[
+                                    { icon: Heart,     label: 'מועדפים', value: wishlistCount,      to: '/wishlist' },
+                                    { icon: FileText,  label: 'בקשות',   value: quotes.length || '—', to: null, badge: msgCount },
+                                    { icon: Package,   label: 'הזמנות',  value: orders.length || '—', to: null },
+                                ].map(({ icon: Icon, label, value, to, badge }) => {
+                                    const inner = (
+                                        <motion.div key={label} whileHover={{ y: -1 }} style={{
+                                            flex: 1, background: '#F5F5F7', borderRadius: 16, padding: '14px 12px',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                            border: '1px solid rgba(0,0,0,0.05)', cursor: to ? 'pointer' : 'default',
+                                            position: 'relative',
+                                        }}>
+                                            <Icon size={16} color={tierColor} strokeWidth={2} />
+                                            <span style={{ fontSize: 18, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.03em' }}>{value}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+                                            {badge > 0 && (
+                                                <div style={{
+                                                    position: 'absolute', top: -4, right: -4,
+                                                    width: 16, height: 16, borderRadius: 99,
+                                                    background: '#007AFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <span style={{ fontSize: 9, color: '#fff', fontWeight: 900 }}>{badge}</span>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                    return to ? <Link key={label} to={to} onClick={onClose} style={{ flex: 1, textDecoration: 'none' }}>{inner}</Link> : inner;
+                                })}
+                            </div>
+
+                            {/* Tabs: quotes | orders */}
+                            <div style={{ padding: '16px 24px 0' }}>
+                                <div style={{
+                                    display: 'flex', background: 'rgba(0,0,0,0.06)',
+                                    borderRadius: 13, padding: 3, marginBottom: 16,
+                                }}>
+                                    {[
+                                        { key: 'quotes', label: `בקשות מחיר${quotes.length ? ` (${quotes.length})` : ''}` },
+                                        { key: 'orders', label: `הזמנות${orders.length ? ` (${orders.length})` : ''}` },
+                                    ].map(({ key, label }) => (
+                                        <motion.button key={key} onClick={() => setTab(key)}
+                                            style={{
+                                                flex: 1, height: 36, borderRadius: 10, border: 'none',
+                                                background: tab === key ? '#fff' : 'transparent',
+                                                fontFamily: 'Heebo, sans-serif',
+                                                fontSize: 12, fontWeight: 800,
+                                                color: tab === key ? '#1D1D1F' : '#8E8E93',
+                                                cursor: 'pointer',
+                                                boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+                                                transition: 'all 0.2s',
+                                            }}>
+                                            {label}
+                                        </motion.button>
+                                    ))}
+                                </div>
+
+                                {/* List */}
+                                {loading ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {[1, 2].map(i => (
+                                            <div key={i} style={{ height: 66, borderRadius: 16, background: '#F5F5F7', opacity: 0.6 }} />
+                                        ))}
+                                    </div>
+                                ) : activeList.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '28px 0', color: '#AEAEB2' }}>
+                                        <p style={{ fontSize: 32, margin: '0 0 8px' }}>{tab === 'quotes' ? '📋' : '📦'}</p>
+                                        <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: '#6E6E73' }}>
+                                            {tab === 'quotes' ? 'טרם הגשת בקשות מחיר' : 'טרם ביצעת הזמנות'}
+                                        </p>
+                                        <Link to="/catalog" onClick={onClose}
+                                            style={{ color: '#007AFF', fontWeight: 700, textDecoration: 'none', fontSize: 13 }}>
+                                            גלה את הקטלוג →
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <AnimatePresence>
+                                            {activeList.map((item, i) => (
+                                                <ItemRow
+                                                    key={item.id}
+                                                    item={item}
+                                                    type={tab === 'quotes' ? 'quote' : 'order'}
+                                                    index={i}
+                                                    onClick={() => setDetail({ item, type: tab === 'quotes' ? 'quote' : 'order' })}
+                                                />
+                                            ))}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Wishlist */}
+                            {wishlistCount > 0 && (
+                                <div style={{ padding: '28px 24px 0' }}>
+                                    <SectionLabel action="הכל" actionTo="/wishlist">מועדפים שלי</SectionLabel>
+                                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                                        {wishlistItems.slice(0, 4).map((p, i) => (
+                                            <motion.div key={p.id} onClick={onClose}
+                                                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.07 }}>
+                                                <ProductThumb product={p} tierColor={tierColor} onClick={onClose} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recommendations */}
+                            {recommendations.length > 0 && (
+                                <div style={{ padding: '28px 24px 0' }}>
+                                    <SectionLabel action="גלה עוד" actionTo="/catalog">מומלץ עבורך</SectionLabel>
+                                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                                        {recommendations.map((p, i) => (
+                                            <motion.div key={p.id} onClick={onClose}
+                                                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.07 + 0.1 }}>
+                                                <ProductThumb product={p} tierColor={tierColor} onClick={onClose} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Membership upsell */}
+                            {!isMember && (
+                                <div style={{ padding: '28px 24px 0' }}>
+                                    <Link to="/membership" onClick={onClose} style={{ textDecoration: 'none' }}>
+                                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                                            style={{
+                                                borderRadius: 20, padding: '16px 18px',
+                                                background: 'linear-gradient(125deg, #007AFF14, #5856D614)',
+                                                border: '1px solid rgba(0,122,255,0.18)',
+                                                display: 'flex', alignItems: 'center', gap: 14,
+                                            }}>
+                                            <div style={{ width: 44, height: 44, borderRadius: 14,
+                                                background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Sparkles size={20} color="#fff" />
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F', margin: '0 0 3px', letterSpacing: '-0.02em' }}>
+                                                    שדרג לחבר Premium
+                                                </p>
+                                                <p style={{ fontSize: 12, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
+                                                    גישה למחירי מוסד · שירות VIP · עדיפות בטיפול
+                                                </p>
+                                            </div>
+                                            <ChevronLeft size={16} color="#007AFF" style={{ marginRight: 'auto', flexShrink: 0 }} />
+                                        </motion.div>
                                     </Link>
                                 </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {quotes.map((q, i) => {
-                                        const st = STATUS[q.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
-                                        return (
-                                            <motion.div key={q.id}
-                                                initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: i * 0.06 }}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                    padding: '12px 14px', borderRadius: 14,
-                                                    background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.05)',
-                                                }}>
-                                                <div>
-                                                    <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: '0 0 2px' }}>
-                                                        {q.id}
-                                                    </p>
-                                                    <p style={{ fontSize: 11, color: '#AEAEB2', fontWeight: 500, margin: 0 }}>
-                                                        {relativeDate(q.dateTs)} · {q.items?.length || 0} פריטים
-                                                    </p>
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                                                    <span style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                                                        {q.subtotal ? `₪${Number(q.subtotal).toLocaleString()}` : '—'}
-                                                    </span>
-                                                    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 99, background: st.bg, color: st.color }}>
-                                                        {q.status || 'חדש'}
-                                                    </span>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
                             )}
-                        </div>
 
-                        {/* ── Wishlist ─────────────────────────────────────── */}
-                        {wishlistCount > 0 && (
-                            <div style={{ padding: '28px 24px 0' }}>
-                                <SectionLabel action="הכל" actionTo="/wishlist">מועדפים שלי</SectionLabel>
-                                <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4,
-                                    scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                    {wishlistItems.slice(0, 4).map((p, i) => (
-                                        <motion.div key={p.id} onClick={onClose}
-                                            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: i * 0.07 }}>
-                                            <ProductThumb product={p} tierColor={tierColor} />
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Recommendations ──────────────────────────────── */}
-                        {recommendations.length > 0 && (
-                            <div style={{ padding: '28px 24px 0' }}>
-                                <SectionLabel action="גלה עוד" actionTo="/catalog">מומלץ עבורך</SectionLabel>
-                                <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4,
-                                    scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                    {recommendations.map((p, i) => (
-                                        <motion.div key={p.id} onClick={onClose}
-                                            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: i * 0.07 + 0.1 }}>
-                                            <ProductThumb product={p} tierColor={tierColor} />
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Membership upsell ────────────────────────────── */}
-                        {!isMember && (
-                            <div style={{ padding: '28px 24px 0' }}>
-                                <Link to="/membership" onClick={onClose} style={{ textDecoration: 'none' }}>
-                                    <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                            {/* Sign out */}
+                            <div style={{ padding: '28px 24px 40px', marginTop: 'auto' }}>
+                                <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 20 }}>
+                                    <motion.button
+                                        whileHover={{ background: 'rgba(255,69,58,0.06)' }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={handleSignOut}
                                         style={{
-                                            borderRadius: 20, padding: '16px 18px',
-                                            background: 'linear-gradient(125deg, #007AFF14, #5856D614)',
-                                            border: '1px solid rgba(0,122,255,0.18)',
-                                            display: 'flex', alignItems: 'center', gap: 14,
+                                            width: '100%', height: 48, borderRadius: 14,
+                                            background: 'transparent', border: '1px solid rgba(255,69,58,0.18)',
+                                            color: '#FF453A', fontSize: 14, fontWeight: 700,
+                                            cursor: 'pointer', fontFamily: 'Heebo, sans-serif',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                            transition: 'background 0.15s',
                                         }}>
-                                        <div style={{ width: 44, height: 44, borderRadius: 14,
-                                            background: 'linear-gradient(135deg, #007AFF, #5856D6)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <Sparkles size={20} color="#fff" />
-                                        </div>
-                                        <div>
-                                            <p style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F', margin: '0 0 3px', letterSpacing: '-0.02em' }}>
-                                                שדרג לחבר Premium
-                                            </p>
-                                            <p style={{ fontSize: 12, color: '#6E6E73', fontWeight: 500, margin: 0 }}>
-                                                גישה למחירי מוסד · שירות VIP · עדיפות בטיפול
-                                            </p>
-                                        </div>
-                                        <ChevronLeft size={16} color="#007AFF" style={{ marginRight: 'auto', flexShrink: 0 }} />
-                                    </motion.div>
-                                </Link>
+                                        <LogOut size={16} />
+                                        התנתק
+                                    </motion.button>
+                                </div>
                             </div>
-                        )}
+                        </motion.div>
 
-                        {/* ── Sign out ─────────────────────────────────────── */}
-                        <div style={{ padding: '28px 24px 40px', marginTop: 'auto' }}>
-                            <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 20 }}>
-                                <motion.button
-                                    whileHover={{ background: 'rgba(255,69,58,0.06)' }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleSignOut}
-                                    style={{
-                                        width: '100%', height: 48, borderRadius: 14,
-                                        background: 'transparent',
-                                        border: '1px solid rgba(255,69,58,0.18)',
-                                        color: '#FF453A', fontSize: 14, fontWeight: 700,
-                                        cursor: 'pointer', fontFamily: 'Heebo, sans-serif',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                        transition: 'background 0.15s',
-                                    }}>
-                                    <LogOut size={16} />
-                                    התנתק
-                                </motion.button>
-                            </div>
-                        </div>
+                        {/* ── Detail view ────────────────────────────────────── */}
+                        <AnimatePresence>
+                            {detail && (
+                                <DetailView
+                                    item={detail.item}
+                                    type={detail.type}
+                                    onBack={() => setDetail(null)}
+                                />
+                            )}
+                        </AnimatePresence>
+
                     </motion.div>
                 </>
             )}
