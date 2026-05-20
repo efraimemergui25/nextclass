@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package, MessageSquare, Send, PanelRight } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
