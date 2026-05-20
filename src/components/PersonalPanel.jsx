@@ -570,7 +570,7 @@ export default function PersonalPanel({ open, onClose }) {
                             <div style={{ padding: '16px 24px 0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                     {TIER_ORDER.map((t, i) => (
-                                        <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: i === 0 ? 'flex-end' : 'flex-start', flex: 1 }}>
+                                        <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                                             <div style={{
                                                 width: 28, height: 28, borderRadius: 99, marginBottom: 4,
                                                 background: i <= tierIdx ? `linear-gradient(135deg, ${TIER_COLORS[t]}, ${TIER_COLORS[t]}88)` : '#F0F0F0',
