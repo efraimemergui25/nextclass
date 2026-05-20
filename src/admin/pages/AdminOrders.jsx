@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package } from 'lucide-react';
+import { Bell, Phone, FileText, Handshake, CheckCircle2, AlertCircle, TrendingUp, Package, MessageSquare, Send } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
@@ -160,7 +160,7 @@ function QuickDropdown({ item, statuses, colors, onUpdate }) {
 // QUOTES PIPELINE
 // ════════════════════════════════════════════════════════════════════════════
 function QuotesPipeline() {
-    const { quotes, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage } = useAdminData();
+    const { quotes, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage, sendThreadMessage, markAdminThreadRead } = useAdminData();
     const { showToast } = useAdminToast();
 
     const [search, setSearch]           = useState('');
@@ -172,11 +172,22 @@ function QuotesPipeline() {
     const [saved, setSaved]             = useState(false);
     const [customerMsg, setCustomerMsg] = useState('');
     const [msgSaved, setMsgSaved]       = useState(false);
+    const [threadMsg, setThreadMsg]     = useState('');
+    const [threadSending, setThreadSending] = useState(false);
+    const threadEndRef = useRef(null);
 
-    // Sync customerMsg when modal opens
+    // Sync when modal opens
     useEffect(() => {
-        if (selected) setCustomerMsg(selected.customerMessage || '');
+        if (selected) {
+            setCustomerMsg(selected.customerMessage || '');
+            setThreadMsg('');
+            if (selected.unreadAdmin) markAdminThreadRead(selected.id).catch(() => {});
+        }
     }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [selected?.thread?.length]);
 
     const handleQuickStatus = (id, status) => {
         updateQuoteStatus(id, status);
@@ -197,6 +208,16 @@ function QuotesPipeline() {
         setMsgSaved(true);
         showToast('הודעה נשלחה ללקוח', 'success');
         setTimeout(() => setMsgSaved(false), 2000);
+    };
+
+    const handleSendThread = async () => {
+        if (!threadMsg.trim() || !selected) return;
+        setThreadSending(true);
+        try {
+            await sendThreadMessage(selected.id, threadMsg);
+            setThreadMsg('');
+            showToast('הודעה נשלחה ללקוח ✓', 'success');
+        } finally { setThreadSending(false); }
     };
 
     const handleAddNote = async () => {
@@ -230,9 +251,10 @@ function QuotesPipeline() {
     const totalValue = useMemo(() => filtered.reduce((s, q) => s + (q.subtotal || 0), 0), [filtered]);
 
     return (
+        <style>{`@keyframes ppulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.4)}}`}</style>
         <div className="space-y-5">
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                 <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={Bell}
                     tooltip="בקשות הצעת מחיר שנקלטו ועדיין לא טופלו." />
                 <Stat label="יצירת קשר" value={stats.contacting} color="#FF9500" Icon={Phone}
@@ -243,6 +265,8 @@ function QuotesPipeline() {
                     tooltip="הצעות בשלב הסכמה על תנאים — הסיכוי הגבוה ביותר לסגירה." />
                 <Stat label="נסגרו" value={stats.closed} color="#34C759" Icon={CheckCircle2}
                     tooltip="עסקאות שנסגרו בהצלחה — הלקוח אישר ורכש." />
+                <Stat label="הודעות חדשות" value={quotes.filter(q => q.unreadAdmin).length} color="#34C759" Icon={MessageSquare}
+                    tooltip="הודעות חדשות מלקוחות שטרם נקראו." />
             </div>
 
             {/* Filters */}
@@ -276,8 +300,19 @@ function QuotesPipeline() {
                             transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => { setSelected(quote); setNewStatus(''); setSaved(false); setNoteText(''); }}
                             className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                            style={{ borderColor: quote.unreadAdmin ? 'rgba(52,199,89,0.35)' : undefined, background: quote.unreadAdmin ? 'rgba(52,199,89,0.03)' : undefined }}
                         >
-                            <Avatar name={quote.contactName} />
+                            <div style={{ position: 'relative' }}>
+                                <Avatar name={quote.contactName} />
+                                {quote.unreadAdmin && (
+                                    <span style={{
+                                        position: 'absolute', top: -3, right: -3,
+                                        width: 11, height: 11, borderRadius: '50%',
+                                        background: '#34C759', border: '2px solid #fff',
+                                        animation: 'ppulse 1.4s infinite',
+                                    }} />
+                                )}
+                            </div>
                             <div className="text-right">
                                 <p className="text-[#007AFF] font-black text-xs group-hover:text-[#5856D6] transition-colors">{quote.id}</p>
                                 <p className="text-[#AEAEB2] text-[10px] mt-0.5">{quote.date}</p>
@@ -443,27 +478,62 @@ function QuotesPipeline() {
                             </div>
                         )}
 
-                        {/* Message to customer */}
-                        <div className="border-t border-black/06 pt-4 space-y-2">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                        {/* Thread — two-way chat */}
+                        <div className="border-t border-black/06 pt-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                                     style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
-                                    <span style={{ fontSize: 10, color: '#fff' }}>✉</span>
+                                    <MessageSquare size={12} color="#fff" />
                                 </div>
-                                <p className="text-[#007AFF] text-[10px] font-black tracking-widest">הודעה ללקוח (גלויה לו בפרופיל)</p>
+                                <p className="text-[#007AFF] text-[10px] font-black tracking-widest flex-1">שיחה עם הלקוח</p>
+                                {selected.unreadAdmin && (
+                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: '#34C759' }}>הודעה חדשה</span>
+                                )}
                             </div>
-                            <textarea
-                                value={customerMsg}
-                                onChange={e => setCustomerMsg(e.target.value)}
-                                placeholder="למשל: הצעת המחיר שלנו מוכנה, נשלחה למייל. נשמח לענות על שאלות."
-                                dir="rtl"
-                                rows={3}
-                                className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all resize-none"
-                                style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)', fontFamily: 'Heebo, sans-serif' }}
-                            />
-                            <div className="flex justify-end">
-                                <AdminButton onClick={handleSaveCustomerMsg}>
-                                    {msgSaved ? '✓ נשלח!' : 'שלח הודעה ללקוח'}
+
+                            {/* Messages */}
+                            {(() => {
+                                const msgs = [...(selected.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
+                                if (msgs.length === 0 && selected.customerMessage) msgs.push({ id: 'lg-a', from: 'admin', text: selected.customerMessage, tsNum: 0 });
+                                if (msgs.length === 0 && selected.customerNote) msgs.push({ id: 'lg-c', from: 'customer', text: selected.customerNote, tsNum: 1 });
+                                if (msgs.length === 0) return <p className="text-[#AEAEB2] text-xs text-center py-3">אין הודעות עדיין</p>;
+                                return (
+                                    <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, padding: '2px 0' }}>
+                                        {msgs.map(m => (
+                                            <div key={m.id} style={{ display: 'flex', justifyContent: m.from === 'admin' ? 'flex-end' : 'flex-start' }}>
+                                                <div style={{
+                                                    maxWidth: '76%', padding: '8px 12px',
+                                                    borderRadius: m.from === 'admin' ? '14px 14px 3px 14px' : '14px 14px 14px 3px',
+                                                    background: m.from === 'admin' ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
+                                                    color: m.from === 'admin' ? '#fff' : '#1D1D1F',
+                                                }}>
+                                                    <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.5, direction: 'rtl' }}>{m.text}</p>
+                                                    <p style={{ fontSize: 9, margin: '3px 0 0', opacity: 0.65 }}>
+                                                        {m.from === 'admin' ? 'NextClass' : selected.contactName || 'לקוח'}
+                                                        {m.tsNum > 2 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div ref={threadEndRef} />
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Input */}
+                            <div className="flex gap-2">
+                                <textarea
+                                    value={threadMsg}
+                                    onChange={e => setThreadMsg(e.target.value)}
+                                    placeholder="כתוב הודעה ללקוח... (Enter לשליחה)"
+                                    dir="rtl"
+                                    rows={2}
+                                    onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if(threadMsg.trim()) handleSendThread(); } }}
+                                    className="flex-1 px-3 py-2 rounded-xl text-sm font-medium text-right outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all resize-none"
+                                    style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)', fontFamily: 'Heebo, sans-serif' }}
+                                />
+                                <AdminButton onClick={handleSendThread} disabled={!threadMsg.trim() || threadSending}>
+                                    {threadSending ? '...' : <><Send size={13} style={{display:'inline',marginLeft:4}}/> שלח</>}
                                 </AdminButton>
                             </div>
                         </div>

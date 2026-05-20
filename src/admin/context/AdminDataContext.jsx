@@ -287,6 +287,15 @@ export function AdminDataProvider({ children }) {
         await setDoc(doc(db, 'quotes', quoteId), { customerMessage: message || null }, { merge: true });
     };
 
+    const sendThreadMessage = useCallback(async (quoteId, text) => {
+        const msg = { id: `${Date.now()}_${Math.random().toString(36).slice(2,6)}`, from: 'admin', text: text.trim(), tsNum: Date.now() };
+        await setDoc(doc(db, 'quotes', quoteId), { thread: arrayUnion(msg), unreadCustomer: true, unreadAdmin: false }, { merge: true });
+    }, []);
+
+    const markAdminThreadRead = useCallback(async (quoteId) => {
+        await setDoc(doc(db, 'quotes', quoteId), { unreadAdmin: false }, { merge: true });
+    }, []);
+
     const updateContactStatus = async (id, status) => {
         await setDoc(doc(db, 'contacts', id.toString()), { status }, { merge: true });
         addActivity(`פנייה עודכנה לסטטוס "${status}"`, 'info');
@@ -388,6 +397,7 @@ export function AdminDataProvider({ children }) {
         <AdminDataContext.Provider value={{
             orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
             updateOrderStatus, updateQuoteStatus, addQuoteNote, setQuoteCustomerMessage,
+            sendThreadMessage, markAdminThreadRead,
             updateStock, updateProductDetails,
             addProduct, deleteProduct, updateContactStatus,
             addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,

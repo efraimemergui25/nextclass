@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, FileText, LogOut, Sparkles, ChevronLeft, Tag, MessageCircle, Package, ArrowRight, ShoppingBag, Pencil, Check, Building2, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, limit, onSnapshot, doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -111,7 +111,7 @@ function DetailTimeline({ status, flow, statusMap }) {
 function ItemRow({ item, type, index, onClick, tierColor }) {
     const statusMap = type === 'quote' ? QUOTE_STATUS : ORDER_STATUS;
     const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
-    const hasMsg = !!item.customerMessage;
+    const hasMsg = item.unreadCustomer || !!item.customerMessage;
 
     return (
         <motion.div
@@ -181,23 +181,32 @@ function DetailView({ item, type, onBack }) {
     const st = statusMap[item.status] || { bg: 'rgba(0,0,0,0.06)', color: '#8E8E93' };
     const isTerminal = item.status === 'אבד' || item.status === 'בוטל';
 
-    const [noteText, setNoteText]   = useState('');
-    const [noteSaving, setNoteSaving] = useState(false);
-    const [noteSent, setNoteSent]   = useState(false);
+    const [msgText, setMsgText]     = useState('');
+    const [msgSending, setMsgSending] = useState(false);
+    const threadEndRef = useRef(null);
 
-    const handleSendNote = async () => {
-        if (!noteText.trim()) return;
-        setNoteSaving(true);
+    // Mark unread as read when customer opens
+    useEffect(() => {
+        if (item.unreadCustomer) {
+            const col = type === 'quote' ? 'quotes' : 'orders';
+            updateDoc(doc(db, col, item.id), { unreadCustomer: false }).catch(() => {});
+        }
+    }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Auto-scroll to bottom on new message
+    useEffect(() => {
+        threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [item.thread?.length]);
+
+    const handleSendMsg = async () => {
+        if (!msgText.trim()) return;
+        setMsgSending(true);
         try {
             const col = type === 'quote' ? 'quotes' : 'orders';
-            await updateDoc(doc(db, col, item.id), {
-                customerNote: noteText.trim(),
-                customerNoteTs: serverTimestamp(),
-            });
-            setNoteSent(true);
-            setNoteText('');
-            setTimeout(() => setNoteSent(false), 3000);
-        } finally { setNoteSaving(false); }
+            const msg = { id: `${Date.now()}_${Math.random().toString(36).slice(2,6)}`, from: 'customer', text: msgText.trim(), tsNum: Date.now() };
+            await updateDoc(doc(db, col, item.id), { thread: arrayUnion(msg), unreadAdmin: true, unreadCustomer: false });
+            setMsgText('');
+        } finally { setMsgSending(false); }
     };
 
     return (
@@ -331,64 +340,86 @@ function DetailView({ item, type, onBack }) {
 
                 {/* Original order notes */}
                 {item.notes && (
-                    <div style={{
-                        background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)',
-                        borderRadius: 14, padding: '12px 14px', marginBottom: 18,
-                    }}>
-                        <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 6px' }}>ההערות שלי</p>
+                    <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: '12px 14px', marginBottom: 18 }}>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 6px' }}>הערות מקוריות</p>
                         <p style={{ fontSize: 13, color: '#1D1D1F', margin: 0, lineHeight: 1.55 }}>{item.notes}</p>
                     </div>
                 )}
 
-                {/* Previous customer note */}
-                {item.customerNote && (
-                    <div style={{
-                        background: 'rgba(52,199,89,0.05)', border: '1px solid rgba(52,199,89,0.18)',
-                        borderRadius: 14, padding: '12px 14px', marginBottom: 18,
-                    }}>
-                        <p style={{ fontSize: 10, fontWeight: 800, color: '#34C759', letterSpacing: '0.09em', margin: '0 0 6px' }}>ההערה שנשלחה</p>
-                        <p style={{ fontSize: 13, color: '#1D1D1F', margin: 0, lineHeight: 1.55 }}>{item.customerNote}</p>
+                {/* Thread chat */}
+                <div style={{ marginTop: item.notes ? 0 : 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 9, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <MessageCircle size={13} color="#fff" />
+                        </div>
+                        <p style={{ fontSize: 10, fontWeight: 800, color: '#007AFF', letterSpacing: '0.09em', margin: 0, flex: 1 }}>שיחה עם NextClass</p>
+                        {item.unreadCustomer && (
+                            <span style={{ fontSize: 9, fontWeight: 800, background: '#007AFF', color: '#fff', padding: '2px 8px', borderRadius: 99 }}>הודעה חדשה</span>
+                        )}
                     </div>
-                )}
 
-                {/* Add note */}
-                {!isTerminal && (
-                    <div style={{
-                        background: '#F5F5F7', borderRadius: 18, padding: '14px 16px',
-                        border: '1px solid rgba(0,0,0,0.06)',
-                    }}>
-                        <p style={{ fontSize: 10, fontWeight: 800, color: '#8E8E93', letterSpacing: '0.09em', margin: '0 0 10px' }}>
-                            {item.customerNote ? 'עדכן הערה' : 'הוסף הערה לבקשה'}
-                        </p>
-                        <textarea
-                            value={noteText}
-                            onChange={e => setNoteText(e.target.value)}
-                            placeholder="כתבו הערה, שאלה או בקשה עבור הצוות שלנו..."
-                            rows={3}
-                            style={{
-                                width: '100%', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)',
-                                background: '#fff', padding: '10px 12px', fontSize: 13, fontWeight: 500,
-                                color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', direction: 'rtl',
-                                resize: 'none', outline: 'none', boxSizing: 'border-box',
-                                lineHeight: 1.6, marginBottom: 8,
-                            }}
-                        />
-                        <motion.button
-                            whileTap={{ scale: 0.97 }}
-                            onClick={handleSendNote}
-                            disabled={noteSaving || !noteText.trim()}
-                            style={{
-                                width: '100%', padding: '10px 0', borderRadius: 12, border: 'none',
-                                background: noteSent ? '#34C759' : noteText.trim() ? '#007AFF' : 'rgba(0,0,0,0.08)',
-                                color: noteText.trim() ? '#fff' : '#AEAEB2',
-                                fontSize: 14, fontWeight: 700, cursor: noteText.trim() ? 'pointer' : 'default',
-                                fontFamily: 'Heebo, sans-serif', transition: 'background 0.2s',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                            {noteSent ? <>✓ נשלח בהצלחה</> : noteSaving ? '...' : <><MessageCircle size={14} /> שלח הערה</>}
-                        </motion.button>
-                    </div>
-                )}
+                    {/* Messages */}
+                    {(() => {
+                        const msgs = [...(item.thread || [])].sort((a,b) => a.tsNum - b.tsNum);
+                        const legacy = [];
+                        if (msgs.length === 0 && item.customerNote) legacy.push({ id: 'ln-c', from: 'customer', text: item.customerNote, tsNum: 1 });
+                        if (msgs.length === 0 && item.customerMessage) legacy.push({ id: 'ln-a', from: 'admin', text: item.customerMessage, tsNum: 2 });
+                        const display = msgs.length > 0 ? msgs : legacy;
+                        if (display.length === 0 && isTerminal) return null;
+                        if (display.length === 0) return (
+                            <p style={{ fontSize: 12, color: '#AEAEB2', textAlign: 'center', padding: '12px 0 16px' }}>שלח הודעה לצוות שלנו</p>
+                        );
+                        return (
+                            <div style={{ maxHeight: 230, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, paddingBottom: 4 }}>
+                                {display.map(m => (
+                                    <div key={m.id} style={{ display: 'flex', justifyContent: m.from === 'customer' ? 'flex-end' : 'flex-start' }}>
+                                        <div style={{
+                                            maxWidth: '82%', padding: '9px 13px',
+                                            borderRadius: m.from === 'customer' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                                            background: m.from === 'customer' ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F0F0F5',
+                                            color: m.from === 'customer' ? '#fff' : '#1D1D1F',
+                                        }}>
+                                            <p style={{ fontSize: 13, fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{m.text}</p>
+                                            <p style={{ fontSize: 9, margin: '4px 0 0', opacity: 0.6 }}>
+                                                {m.from === 'customer' ? 'אני' : 'NextClass'}
+                                                {m.tsNum > 2 ? ` · ${new Date(m.tsNum).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={threadEndRef} />
+                            </div>
+                        );
+                    })()}
+
+                    {/* Input */}
+                    {!isTerminal && (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                            <textarea
+                                value={msgText}
+                                onChange={e => setMsgText(e.target.value)}
+                                placeholder="כתבו הודעה לצוות שלנו..."
+                                rows={2}
+                                style={{
+                                    flex: 1, borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)',
+                                    background: '#F5F5F7', padding: '10px 12px', fontSize: 13, fontWeight: 500,
+                                    color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', direction: 'rtl',
+                                    resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5,
+                                }}
+                            />
+                            <motion.button whileTap={{ scale: 0.96 }} onClick={handleSendMsg} disabled={msgSending || !msgText.trim()}
+                                style={{
+                                    padding: '10px 16px', borderRadius: 12, border: 'none', flexShrink: 0,
+                                    background: msgText.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.08)',
+                                    color: msgText.trim() ? '#fff' : '#AEAEB2',
+                                    fontSize: 13, fontWeight: 700, cursor: msgText.trim() ? 'pointer' : 'default',
+                                    fontFamily: 'Heebo, sans-serif',
+                                }}>
+                                {msgSending ? '...' : 'שלח'}
+                            </motion.button>
+                        </div>
+                    )}
+                </div>
             </div>
         </motion.div>
     );
@@ -880,6 +911,27 @@ export default function PersonalPanel({ open, onClose }) {
                                     </Link>
                                 </div>
                             )}
+
+                            {/* General contact */}
+                            <div style={{ padding: '16px 24px 0' }}>
+                                <Link to="/contact" onClick={onClose} style={{ textDecoration: 'none' }}>
+                                    <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                                        style={{
+                                            borderRadius: 16, padding: '14px 16px',
+                                            background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.07)',
+                                            display: 'flex', alignItems: 'center', gap: 12,
+                                        }}>
+                                        <div style={{ width: 36, height: 36, borderRadius: 11, background: '#F0F0F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <MessageCircle size={16} color="#8E8E93" />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', margin: '0 0 2px' }}>פנייה כללית</p>
+                                            <p style={{ fontSize: 11, color: '#8E8E93', fontWeight: 500, margin: 0 }}>שאלה שאינה קשורה להזמנה ספציפית</p>
+                                        </div>
+                                        <ChevronLeft size={14} color="#C7C7CC" style={{ flexShrink: 0 }} />
+                                    </motion.div>
+                                </Link>
+                            </div>
 
                             {/* Sign out */}
                             <div style={{ padding: '28px 24px 40px', marginTop: 'auto' }}>
