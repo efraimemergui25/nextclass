@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, BarChart2, Percent } from 'lucide-react';
+import { Ticket, BarChart2, Percent, Check } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminToggle } from '../components/AdminComponents';
@@ -10,9 +10,11 @@ import { useSettings } from '../../context/SettingsContext';
 
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid rgba(255,255,255,0.75)',
-    boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
 };
 
 const BANNER_COLORS = [
@@ -97,7 +99,7 @@ function BannerManager() {
                     </div>
                 )}
                 <AdminButton onClick={saveBanner}>
-                    {saved ? '✓ נשמר ופורסם!' : 'שמור ופרסם'}
+                    {saved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר ופורסם!</span> : 'שמור ופרסם'}
                 </AdminButton>
             </div>
         </div>
@@ -270,7 +272,7 @@ export default function AdminMarketing() {
                     <div className="flex gap-2 pt-1">
                         <AdminButton variant="ghost" onClick={() => setShowNew(false)}>ביטול</AdminButton>
                         <AdminButton onClick={handleAdd} disabled={!form.code || !form.discount}>
-                            {saved ? '✓ נוסף!' : 'הוסף קופון'}
+                            {saved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נוסף!</span> : 'הוסף קופון'}
                         </AdminButton>
                     </div>
                 </div>

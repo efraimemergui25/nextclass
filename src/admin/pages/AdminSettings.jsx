@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench } from 'lucide-react';
+import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench, Check, X } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
@@ -12,11 +12,13 @@ import { useSettings } from '../../context/SettingsContext';
 function SettingCard({ title, Icon, accent = '#007AFF', children }) {
     return (
         <div className="rounded-[22px] overflow-hidden" style={{
-            background: 'rgba(255,255,255,0.90)',
-            border: '1px solid rgba(255,255,255,0.80)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+            background: 'rgba(255,255,255,0.78)',
+            backdropFilter: 'blur(24px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+            border: '1px solid rgba(255,255,255,0.72)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
         }}>
-            <div className="h-[3px]" style={{ background: accent }} />
+            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60)` }} />
             <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
                 style={{ background: 'rgba(248,248,250,0.85)' }}>
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
@@ -166,7 +168,7 @@ export default function AdminSettings() {
                     <AdminInput label="כתובת" value={bizAddress} onChange={setBizAddress} placeholder="בראלי 10, תל אביב" />
                     <AdminInput label="שעות פעילות" value={bizHours} onChange={setBizHours} placeholder="ראשון–חמישי 08:00–18:00" />
                     <AdminButton onClick={saveBiz}>
-                        {bizSaved ? '✓ נשמר!' : 'שמור פרטי עסק'}
+                        {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור פרטי עסק'}
                     </AdminButton>
                     <p className="text-[#AEAEB2] text-xs">נשמר ב-Firestore · מתעדכן בפוטר, דף צור קשר ו-SmartConcierge</p>
                 </SettingCard>
@@ -177,7 +179,7 @@ export default function AdminSettings() {
                     <AdminInput label="Facebook (URL מלא או שם)" value={bizFacebook} onChange={setBizFacebook} dir="ltr" placeholder="nextclassil" />
                     <AdminInput label="YouTube (URL ערוץ)" value={bizYoutube} onChange={setBizYoutube} dir="ltr" placeholder="@nextclass" />
                     <AdminButton onClick={saveBiz}>
-                        {bizSaved ? '✓ נשמר!' : 'שמור קישורים'}
+                        {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור קישורים'}
                     </AdminButton>
                     <p className="text-[#AEAEB2] text-xs">מוצג בפוטר ובדף "הסיפור שלנו"</p>
                 </SettingCard>
@@ -191,10 +193,10 @@ export default function AdminSettings() {
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             className="text-sm font-bold text-right"
                             style={{ color: pinStatus === 'success' ? '#34C759' : '#FF3B30' }}>
-                            {pinStatus === 'success' && '✓ קוד הגישה עודכן בהצלחה'}
-                            {pinStatus === 'wrong'   && '✕ קוד הגישה הנוכחי שגוי'}
-                            {pinStatus === 'error'   && '✕ הקודים החדשים אינם תואמים'}
-                            {pinStatus === 'short'   && '✕ קוד חדש קצר מדי (מינימום 4)'}
+                            {pinStatus === 'success' && <span className="flex items-center gap-1 justify-end"><Check size={13} /> קוד הגישה עודכן בהצלחה</span>}
+                            {pinStatus === 'wrong'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד הגישה הנוכחי שגוי</span>}
+                            {pinStatus === 'error'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> הקודים החדשים אינם תואמים</span>}
+                            {pinStatus === 'short'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד חדש קצר מדי (מינימום 4)</span>}
                         </motion.p>
                     )}
                     <AdminButton onClick={handlePinChange} variant="outline">עדכן קוד גישה</AdminButton>
@@ -242,7 +244,7 @@ export default function AdminSettings() {
                     <AdminInput label="שם קטגוריה 'הכל'" value={catAllCat} onChange={setCatAllCat} placeholder="הכל" />
                     <AdminInput label="טקסט פס הכרזה (ריק = ללא)" value={announcText} onChange={setAnnouncText} placeholder="משלוח חינם מעל ₪500..." />
                     <AdminButton onClick={saveContent}>
-                        {contentSaved ? '✓ נשמר!' : 'שמור תוכן'}
+                        {contentSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור תוכן'}
                     </AdminButton>
                     <p className="text-[#AEAEB2] text-xs">מסתנכרן עם Firestore · תוצאות נראות מיידית</p>
                 </SettingCard>
@@ -271,8 +273,14 @@ export default function AdminSettings() {
             </div>
 
             {/* Session / Logout */}
-            <div className="bg-white rounded-[20px] p-6 flex items-center justify-between"
-                style={{ border: '1px solid rgba(255,59,48,0.15)', boxShadow: '0 2px 12px rgba(255,59,48,0.06)' }}>
+            <div className="rounded-[20px] p-6 flex items-center justify-between"
+                style={{
+                    background: 'rgba(255,255,255,0.78)',
+                    backdropFilter: 'blur(24px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                    border: '1px solid rgba(255,59,48,0.18)',
+                    boxShadow: '0 8px 32px rgba(255,59,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+                }}>
                 <AdminButton variant="danger" onClick={logout}>יציאה מהמערכת</AdminButton>
                 <div className="text-right">
                     <p className="text-[#1D1D1F] font-black text-sm">סיום Session</p>

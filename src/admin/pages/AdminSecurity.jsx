@@ -4,10 +4,10 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 const EVENT_LABELS = {
-    rate_limited:      { label: 'Rate Limited',    color: '#DC2626', bg: '#FEF2F2' },
-    payload_too_large: { label: 'Payload Too Large', color: '#D97706', bg: '#FFFBEB' },
-    crm_error:         { label: 'CRM Error',        color: '#7C3AED', bg: '#F5F3FF' },
-    auth_failed:       { label: 'Auth Failed',      color: '#DC2626', bg: '#FEF2F2' },
+    rate_limited:      { label: 'Rate Limited',    color: '#FF3B30', bg: 'rgba(255,59,48,0.08)' },
+    payload_too_large: { label: 'Payload Too Large', color: '#FF9500', bg: 'rgba(255,149,0,0.08)' },
+    crm_error:         { label: 'CRM Error',        color: '#5856D6', bg: 'rgba(88,86,214,0.08)' },
+    auth_failed:       { label: 'Auth Failed',      color: '#FF3B30', bg: 'rgba(255,59,48,0.08)' },
 };
 
 function EventBadge({ event }) {
@@ -70,6 +70,14 @@ export default function AdminSecurity() {
         return acc;
     }, {});
 
+    const glassCard = {
+        background: 'rgba(255,255,255,0.78)',
+        backdropFilter: 'blur(24px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+        border: '1px solid rgba(255,255,255,0.72)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+    };
+
     return (
         <div dir="rtl">
             {/* Header */}
@@ -81,7 +89,7 @@ export default function AdminSecurity() {
                     </h1>
                     <button
                         onClick={fetchLogs}
-                        style={{ background: '#007AFF', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                        style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,122,255,0.25)' }}
                     >
                         רענן
                     </button>
@@ -96,12 +104,12 @@ export default function AdminSecurity() {
             {/* Summary cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
                 {[
-                    { key: 'total', label: 'סך הכל אירועים', value: logs.length, color: '#374151', bg: '#F9FAFB', border: '#E5E7EB' },
-                    { key: 'rate_limited', label: 'חסימות Rate Limit', value: counts.rate_limited || 0, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
-                    { key: 'payload_too_large', label: 'Payload גדול מדי', value: counts.payload_too_large || 0, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-                    { key: 'other', label: 'אירועים אחרים', value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE' },
+                    { key: 'total', label: 'סך הכל אירועים', value: logs.length, color: '#007AFF' },
+                    { key: 'rate_limited', label: 'חסימות Rate Limit', value: counts.rate_limited || 0, color: '#FF3B30' },
+                    { key: 'payload_too_large', label: 'Payload גדול מדי', value: counts.payload_too_large || 0, color: '#FF9500' },
+                    { key: 'other', label: 'אירועים אחרים', value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#5856D6' },
                 ].map(card => (
-                    <div key={card.key} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 14, padding: '16px 20px' }}>
+                    <div key={card.key} style={{ ...glassCard, borderRadius: 16, padding: '16px 20px' }}>
                         <div style={{ fontSize: 28, fontWeight: 800, color: card.color, lineHeight: 1 }}>{card.value}</div>
                         <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, fontWeight: 600 }}>{card.label}</div>
                     </div>
@@ -109,21 +117,21 @@ export default function AdminSecurity() {
             </div>
 
             {/* Log table */}
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ ...glassCard, borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>100 אירועים אחרונים</span>
                     {loading && <span style={{ fontSize: 12, color: '#9CA3AF' }}>טוען...</span>}
                 </div>
 
                 {logs.length === 0 && !loading ? (
-                    <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
-                        אין אירועי אבטחה ב-100 הרשומות האחרונות ✓
+                    <div style={{ padding: '48px 20px', textAlign: 'center', color: '#34C759', fontSize: 14, fontWeight: 600 }}>
+                        אין אירועי אבטחה ב-100 הרשומות האחרונות — הכל תקין
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
-                                <tr style={{ background: '#F9FAFB' }}>
+                                <tr style={{ background: 'rgba(0,0,0,0.025)' }}>
                                     {['זמן', 'אירוע', 'נקודת קצה', 'כתובת IP', 'פרטים'].map(h => (
                                         <th key={h} style={{ padding: '10px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                                     ))}
@@ -131,7 +139,7 @@ export default function AdminSecurity() {
                             </thead>
                             <tbody>
                                 {logs.map((log, i) => (
-                                    <tr key={log.id} style={{ borderTop: '1px solid #F3F4F6', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
+                                    <tr key={log.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.012)' }}>
                                         <td style={{ padding: '10px 16px', whiteSpace: 'nowrap', color: '#6B7280', fontFamily: 'monospace', fontSize: 12 }}>
                                             {formatTs(log.ts)}
                                         </td>

@@ -11,9 +11,11 @@ import { AdminSectionHeader } from '../components/AdminComponents';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const GLASS = {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid rgba(255,255,255,0.75)',
-    boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
     borderRadius: 22,
 };
 const GLASS_INSET = {

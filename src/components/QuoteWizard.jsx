@@ -237,15 +237,19 @@ const QuoteWizard = () => {
  const handleSubmit = async () => {
  if (!contact.name.trim() || !contact.phone.trim()) return;
  setSubmitting(true);
+ const quoteId = `QW-${Date.now()}`;
+ const payload = {
+  id: quoteId, institution, equipment, scale, budget,
+  name: contact.name, phone: contact.phone, email: contact.email,
+  dateTs: Date.now(),
+  date: new Date().toLocaleDateString('he-IL'),
+  status: 'חדש', source: 'quote_wizard',
+  thread: [],
+ };
  try {
- const id = `LEAD-${Date.now()}`;
- await setDoc(doc(db, 'leads', id), {
- id, institution, equipment, scale, budget,
- name: contact.name, phone: contact.phone, email: contact.email,
- dateTs: Date.now(),
- date: new Date().toLocaleDateString('he-IL'),
- status: 'חדש', source: 'quote_wizard',
- });
+  // Write to both collections for compatibility
+  await setDoc(doc(db, 'leads', quoteId), payload);
+  await setDoc(doc(db, 'quotes', quoteId), payload);
  } catch {}
  setSubmitting(false);
  setIsCalculating(true);

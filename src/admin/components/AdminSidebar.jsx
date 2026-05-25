@@ -175,7 +175,7 @@ function initOpenGroups(pathname) {
     }
 }
 
-function NavItem({ item, collapsed, badgeValue }) {
+function NavItem({ item, collapsed, badgeValue, accent = '#007AFF' }) {
     const inner = ({ isActive }) => (
         <>
             {isActive && (
@@ -183,22 +183,14 @@ function NavItem({ item, collapsed, badgeValue }) {
                     layoutId="nav-active"
                     className="absolute inset-0 rounded-xl"
                     style={{
-                        background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.07) 100%)',
-                        border: '1px solid rgba(0,122,255,0.18)',
-                        boxShadow: '0 2px 12px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.7)',
+                        background: `linear-gradient(135deg, ${accent}22 0%, ${accent}10 100%)`,
+                        border: `1px solid ${accent}38`,
+                        boxShadow: `0 4px 16px ${accent}28, inset 0 1px 0 rgba(255,255,255,0.85)`,
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
             )}
-            {!isActive && (
-                <motion.div
-                    className="absolute inset-0 rounded-xl"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    style={{ background: 'rgba(0,0,0,0.035)' }}
-                />
-            )}
-            <div className={`relative z-10 shrink-0 transition-colors ${isActive ? 'text-[#007AFF]' : 'text-[#6E6E73]'}`}>
+            <div className="relative z-10 shrink-0 transition-colors" style={{ color: isActive ? accent : '#8E8E93' }}>
                 <NavIcon d={ICONS[item.icon]} />
             </div>
             <AnimatePresence>
@@ -207,7 +199,8 @@ function NavItem({ item, collapsed, badgeValue }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className={`text-[13px] whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1 ${isActive ? 'font-black text-[#007AFF]' : 'font-medium text-[#6E6E73]'}`}
+                        className="text-[13px] whitespace-nowrap overflow-hidden leading-none relative z-10 flex-1"
+                        style={{ fontWeight: isActive ? 900 : 600, color: isActive ? accent : '#3C3C43' }}
                     >
                         {item.label}
                     </motion.span>
@@ -234,7 +227,7 @@ function NavItem({ item, collapsed, badgeValue }) {
     const link = (
         <NavLink
             to={item.path}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all relative group"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all relative group hover:bg-white/60"
         >
             {inner}
         </NavLink>
@@ -307,20 +300,20 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             className="h-full flex flex-col shrink-0 relative overflow-visible hidden lg:flex"
             style={{
-                background: 'rgba(248,248,252,0.88)',
-                backdropFilter: 'blur(64px) saturate(240%)',
-                WebkitBackdropFilter: 'blur(64px) saturate(240%)',
-                borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.07)'}`,
-                boxShadow: '4px 0 32px rgba(0,0,0,0.05), inset -1px 0 0 rgba(255,255,255,0.85)',
+                background: 'rgba(255,255,255,0.72)',
+                backdropFilter: 'blur(80px) saturate(280%)',
+                WebkitBackdropFilter: 'blur(80px) saturate(280%)',
+                borderLeft: `1px solid ${glowColor || 'rgba(255,255,255,0.75)'}`,
+                boxShadow: '4px 0 48px rgba(0,0,0,0.08), inset -1px 0 0 rgba(255,255,255,0.98), inset 1px 0 0 rgba(0,0,0,0.02)',
                 transition: 'border-color 2s ease',
             }}
         >
             {/* Brand header */}
-            <div className="flex items-center gap-3 px-4 py-4 border-b border-black/06">
+            <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(255,255,255,0.4)' }}>
                 <motion.div
                     whileHover={{ scale: 1.08, rotate: -5 }}
                     className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg"
-                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.30)' }}
+                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 20px rgba(0,122,255,0.45), 0 0 0 1px rgba(255,255,255,0.25) inset' }}
                 >
                     {/* NextClass monogram — NC stacked */}
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -366,8 +359,9 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                         <div
                             className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
                             style={{
-                                background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.06))',
-                                border: '1px solid rgba(0,122,255,0.12)',
+                                background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))',
+                                border: '1px solid rgba(0,122,255,0.20)',
+                                boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)',
                             }}
                         >
                             <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
@@ -388,7 +382,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                         {NAV_GROUPS.map((group, gi) => (
                             <div key={group.id}>
                                 {gi > 0 && (
-                                    <div className="mx-3 my-1.5 border-t border-black/[0.06]" />
+                                    <div className="mx-3 my-1.5" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }} />
                                 )}
                                 {group.items.map(item => (
                                     <NavItem
@@ -417,6 +411,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                             item={group.items[0]}
                                             collapsed={false}
                                             badgeValue={getBadge(group.items[0].badge)}
+                                            accent={group.accent}
                                         />
                                     </div>
                                 );
@@ -438,14 +433,14 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                         {/* Hover overlay */}
                                         <span
                                             className="absolute inset-0 rounded-xl opacity-0 group-hover/hdr:opacity-100 transition-opacity"
-                                            style={{ background: 'rgba(0,0,0,0.038)' }}
+                                            style={{ background: 'rgba(255,255,255,0.5)' }}
                                         />
 
                                         {/* Group icon */}
                                         <svg
                                             className="w-[14px] h-[14px] shrink-0 relative z-10 transition-colors"
                                             fill="none" viewBox="0 0 24 24"
-                                            stroke={isGroupActive ? group.accent : '#AEAEB2'}
+                                            stroke={isGroupActive ? group.accent : '#8E8E93'}
                                             strokeWidth={2}
                                         >
                                             {ICONS[group.icon]}
@@ -454,7 +449,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                         {/* Group label — no (Hebrew has no case) */}
                                         <span
                                             className="flex-1 text-right text-[11.5px] font-bold tracking-tight relative z-10 transition-colors"
-                                            style={{ color: isGroupActive ? group.accent : '#6E6E73' }}
+                                            style={{ color: isGroupActive ? group.accent : '#3C3C43' }}
                                         >
                                             {group.label}
                                         </span>
@@ -473,7 +468,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                             transition={{ duration: 0.18, ease: 'easeInOut' }}
                                             className="w-3 h-3 shrink-0 relative z-10 transition-colors"
                                             fill="none" viewBox="0 0 24 24"
-                                            stroke={isGroupActive ? group.accent : '#AEAEB2'}
+                                            stroke={isGroupActive ? group.accent : '#8E8E93'}
                                             strokeWidth={2.5}
                                         >
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -502,6 +497,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                             item={item}
                                                             collapsed={false}
                                                             badgeValue={getBadge(item.badge)}
+                                                            accent={group.accent}
                                                         />
                                                     ))}
                                                 </div>
@@ -516,11 +512,11 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
             </nav>
 
             {/* Footer */}
-            <div className="p-2 border-t border-black/06 space-y-1">
+            <div className="p-2 space-y-1" style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: 'rgba(255,255,255,0.3)' }}>
                 <CollapsedTooltip label="לאתר הראשי">
                     <a
                         href="/"
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#007AFF] hover:bg-[#007AFF]/06 transition-all"
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[#007AFF] hover:bg-[#007AFF]/10 transition-all"
                         title="חזרה לאתר הראשי"
                     >
                         <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -574,11 +570,14 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     animate={{ x: 0 }}
                     exit={{ x: '100%' }}
                     transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-                    className="fixed top-0 right-0 h-full w-72 flex flex-col z-[35] lg:hidden"
+                    className="fixed top-0 right-0 h-full flex flex-col z-[35] lg:hidden"
                     style={{
-                        background: '#F8F8FC',
-                        borderLeft: `1px solid ${glowColor || 'rgba(0,0,0,0.07)'}`,
-                        boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
+                        width: 'min(288px, 85vw)',
+                        background: 'rgba(255,255,255,0.82)',
+                        backdropFilter: 'blur(60px) saturate(250%)',
+                        WebkitBackdropFilter: 'blur(60px) saturate(250%)',
+                        borderLeft: `1px solid ${glowColor || 'rgba(255,255,255,0.75)'}`,
+                        boxShadow: '-8px 0 64px rgba(0,0,0,0.18)',
                     }}
                 >
                     {/* Mobile header */}
@@ -607,7 +606,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
                     {/* Revenue stat */}
                     <div className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
-                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(88,86,214,0.06))', border: '1px solid rgba(0,122,255,0.12)' }}>
+                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                         <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
                         <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
                         <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות</p>
@@ -622,7 +621,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                 if (group.standalone) {
                                     return (
                                         <div key={group.id} className={gi > 0 ? 'border-t border-black/[0.06] pt-1 mt-1' : ''}>
-                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} />
+                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} accent={group.accent} />
                                         </div>
                                     );
                                 }
@@ -642,7 +641,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                 <motion.div key="open" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                                                     <div className="mt-0.5 space-y-0.5 pr-1 border-r-2" style={{ borderColor: group.accent + '28' }}>
                                                         {group.items.map(item => (
-                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} />
+                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} accent={group.accent} />
                                                         ))}
                                                     </div>
                                                 </motion.div>

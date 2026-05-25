@@ -115,17 +115,19 @@ export function ProductsProvider({ children }) {
         [activeProductsWithBadges]
     );
 
+    const value = useMemo(() => ({
+        products: productsWithBadges,
+        activeProducts: activeProductsWithBadges,
+        bestSellers,
+        newArrivals,
+        dealProducts,
+        featuredProduct,
+        getProductById,
+        getActiveProductById,
+    }), [productsWithBadges, activeProductsWithBadges, bestSellers, newArrivals, dealProducts, featuredProduct, getProductById, getActiveProductById]);
+
     return (
-        <ProductsContext.Provider value={{
-            products: productsWithBadges,
-            activeProducts: activeProductsWithBadges,
-            bestSellers,
-            newArrivals,
-            dealProducts,
-            featuredProduct,
-            getProductById,
-            getActiveProductById,
-        }}>
+        <ProductsContext.Provider value={value}>
             {children}
         </ProductsContext.Provider>
     );

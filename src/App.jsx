@@ -1,4 +1,4 @@
-import { useEffect, Component, lazy, Suspense } from 'react';
+import { useEffect, useMemo, Component, lazy, Suspense } from 'react';
 
 class AppErrorBoundary extends Component {
     state = { crashed: false, error: null };
@@ -41,6 +41,7 @@ const GlassCanvas          = lazy(() => import('./components/GlassCanvas'));
 const AuthModal            = lazy(() => import('./components/AuthModal'));
 const CookieConsent        = lazy(() => import('./components/CookieConsent'));
 const PersonalizationLayer = lazy(() => import('./components/PersonalizationLayer'));
+const LiveChatWidget       = lazy(() => import('./components/LiveChatWidget'));
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
 const LandingPage       = lazy(() => import('./pages/LandingPage'));
@@ -59,7 +60,9 @@ const WishlistPage      = lazy(() => import('./pages/WishlistPage'));
 const PrivacyPage       = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage         = lazy(() => import('./pages/TermsPage'));
 const MembershipPage    = lazy(() => import('./pages/MembershipPage'));
-const MobileApp         = lazy(() => import('./mobile/MobileApp'));
+const MobileApp           = lazy(() => import('./mobile/MobileApp'));
+const OrderTrackingPage   = lazy(() => import('./pages/OrderTrackingPage'));
+const MyOrdersPage        = lazy(() => import('./pages/MyOrdersPage'));
 import { db } from './firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import useIsMobile from './hooks/useIsMobile';
@@ -137,7 +140,9 @@ function AnimatedRoutes() {
                 <Route path="/privacy"    element={<PrivacyPage />} />
                 <Route path="/terms"      element={<TermsPage />} />
                 <Route path="/membership" element={isVisible('vis_membership_page') ? <MembershipPage /> : <Navigate to="/" replace />} />
-                <Route path="/orders"     element={<Navigate to="/" replace />} />
+                <Route path="/orders"     element={<Navigate to="/my-orders" replace />} />
+                <Route path="/my-orders"  element={<MyOrdersPage />} />
+                <Route path="/track/:orderId" element={<OrderTrackingPage />} />
                 <Route path="*"           element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
@@ -171,6 +176,19 @@ function AppContent() {
     const { getSetting } = useSettings();
     const maintenance = getSetting('maintenance_mode', false);
     const isMobile  = useIsMobile();
+
+    // ─── Adaptive Mood — must stay before all early returns (Rules of Hooks) ──
+    const mood = useMemo(() => {
+        const path = location.pathname;
+        if (path === '/')                              return { primary: '#007AFF', secondary: '#5856D6' };
+        if (path.startsWith('/catalog/'))              return { primary: '#FF9500', secondary: '#FF2D55' };
+        if (path.startsWith('/catalog'))               return { primary: '#34C759', secondary: '#007AFF' };
+        if (path === '/cart' || path === '/checkout')  return { primary: '#FF3B30', secondary: '#FF9500' };
+        if (path === '/story')                         return { primary: '#5856D6', secondary: '#007AFF' };
+        if (path === '/discover')                      return { primary: '#007AFF', secondary: '#30D158' };
+        if (path === '/innovation')                    return { primary: '#FF9F0A', secondary: '#FF375F' };
+        return { primary: '#007AFF', secondary: '#5856D6' };
+    }, [location.pathname]);
 
     // ─── Admin Route Isolation (desktop only) ─────────────────────────────────
     if (location.pathname.startsWith('/admin')) {
@@ -206,21 +224,6 @@ function AppContent() {
             </div>
         );
     }
-
-    // ─── Adaptive Mood — unique color personality per page ──────────────────
-    const getMood = () => {
-        const path = location.pathname;
-        if (path === '/')                              return { primary: '#007AFF', secondary: '#5856D6' };
-        if (path.startsWith('/catalog/'))              return { primary: '#FF9500', secondary: '#FF2D55' };
-        if (path.startsWith('/catalog'))               return { primary: '#34C759', secondary: '#007AFF' };
-        if (path === '/cart' || path === '/checkout')  return { primary: '#FF3B30', secondary: '#FF9500' };
-        if (path === '/story')                         return { primary: '#5856D6', secondary: '#007AFF' };
-        if (path === '/discover')                      return { primary: '#007AFF', secondary: '#30D158' };
-        if (path === '/innovation')                    return { primary: '#FF9F0A', secondary: '#FF375F' };
-        return { primary: '#007AFF', secondary: '#5856D6' };
-    };
-
-    const mood = getMood();
 
     return (
         <div
@@ -259,6 +262,7 @@ function AppContent() {
                 <CookieConsent />
                 <AuthModal />
                 <PersonalizationLayer />
+                <LiveChatWidget />
             </Suspense>
         </div>
     );

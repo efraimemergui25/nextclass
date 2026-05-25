@@ -13,7 +13,14 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
 
     return (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6" dir="rtl">
+            className="rounded-2xl p-6 mb-6" dir="rtl"
+            style={{
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+            }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
                     <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">כותרת</label>
@@ -71,11 +78,13 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
 
             <div className="flex gap-3 justify-start">
                 <button onClick={() => onSave(form)} disabled={loading || !form.title || !form.url}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#007AFF] text-white font-bold rounded-xl text-[13px] hover:bg-[#0066DD] disabled:opacity-40 transition-colors">
+                    className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] disabled:opacity-40 transition-all"
+                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                     {loading ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
                     שמור
                 </button>
-                <button onClick={onCancel} className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl text-[13px] hover:bg-gray-200 transition-colors">
+                <button onClick={onCancel} className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
+                    style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>
                     <X size={14} />ביטול
                 </button>
             </div>
@@ -131,16 +140,18 @@ export default function AdminMagazine() {
                     <p className="text-[13px] text-gray-400 mt-0.5">{articles.length} כתבות ב-Firestore</p>
                 </div>
                 <button onClick={() => { setShowAdd(true); setEditId(null); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white font-bold rounded-xl text-[13px] hover:bg-[#007AFF] transition-colors">
+                    className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] transition-all"
+                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                     <Plus size={15} />הוסף כתבה
                 </button>
             </div>
 
             {/* Note when Firestore is empty */}
             {articles.length === 0 && (
-                <div className="mb-6 p-5 rounded-2xl bg-blue-50 border border-blue-100 text-right">
+                <div className="mb-6 p-5 rounded-2xl text-right"
+                    style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.18)' }}>
                     <p className="text-[13px] font-bold text-[#007AFF] mb-1">הכתבות הסטטיות מוצגות כרגע</p>
-                    <p className="text-[12px] text-blue-500">הוסף כתבה אחת לפחות כדי שהמגזין יציג את הכתבות מה-Firestore.</p>
+                    <p className="text-[12px] text-[#007AFF]/70">הוסף כתבה אחת לפחות כדי שהמגזין יציג את הכתבות מה-Firestore.</p>
                 </div>
             )}
 
@@ -154,7 +165,13 @@ export default function AdminMagazine() {
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
                     {['הכל', ...CATEGORIES].map(c => (
                         <button key={c} onClick={() => setFilterCat(c)}
-                            className={`px-4 py-1.5 rounded-full font-bold text-[12px] whitespace-nowrap transition-all ${filterCat === c ? 'bg-[#1D1D1F] text-white' : 'bg-white text-gray-500 border border-gray-200 hover:text-[#1D1D1F]'}`}>
+                            className="px-4 py-1.5 rounded-full font-bold text-[12px] whitespace-nowrap transition-all"
+                            style={{
+                                background: filterCat === c ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
+                                color: filterCat === c ? 'white' : '#6E6E73',
+                                border: filterCat === c ? 'none' : '1px solid rgba(0,0,0,0.08)',
+                                boxShadow: filterCat === c ? '0 2px 12px rgba(0,122,255,0.22)' : 'none',
+                            }}>
                             {c}
                         </button>
                     ))}
@@ -167,7 +184,14 @@ export default function AdminMagazine() {
                     {displayed.map(article => (
                         <motion.div key={article.id}
                             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            className="rounded-2xl overflow-hidden"
+                            style={{
+                                background: 'rgba(255,255,255,0.78)',
+                                backdropFilter: 'blur(24px) saturate(200%)',
+                                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                                border: '1px solid rgba(255,255,255,0.72)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+                            }}>
                             {editId === article.id ? (
                                 <div className="p-4">
                                     <ArticleForm initial={editArticle} onSave={handleEdit} onCancel={() => setEditId(null)} loading={loading} />
@@ -188,15 +212,18 @@ export default function AdminMagazine() {
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <a href={article.url} target="_blank" rel="noopener noreferrer"
-                                            className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-blue-50 hover:text-[#007AFF] transition-colors">
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                                            style={{ background: 'rgba(0,122,255,0.07)', color: '#007AFF' }}>
                                             <ExternalLink size={14} />
                                         </a>
                                         <button onClick={() => { setEditId(article.id); setShowAdd(false); }}
-                                            className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                                            style={{ background: 'rgba(88,86,214,0.07)', color: '#5856D6' }}>
                                             <Edit2 size={14} />
                                         </button>
                                         <button onClick={() => handleDelete(article.id)} disabled={deleting === article.id}
-                                            className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-40">
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40"
+                                            style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }}>
                                             {deleting === article.id ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
                                         </button>
                                     </div>

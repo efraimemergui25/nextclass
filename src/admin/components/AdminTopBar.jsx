@@ -46,17 +46,18 @@ function SearchModal({ onClose }) {
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="fixed inset-0 bg-black/25 backdrop-blur-sm z-[300]" />
+                className="fixed inset-0 z-[300]"
+                style={{ background: 'rgba(0,0,0,0.30)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
             <motion.div
                 initial={{ opacity: 0, y: -20, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -16, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                className="fixed top-16 right-4 left-4 max-w-xl mx-auto z-[301] rounded-[24px] overflow-hidden bg-white"
-                style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.18), 0 1px 0 rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.08)' }}
+                className="fixed top-16 right-2 left-2 sm:right-4 sm:left-4 max-w-xl mx-auto z-[301] rounded-[20px] sm:rounded-[24px] overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)', boxShadow: '0 40px 100px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.7)' }}
             >
                 {/* Search Input */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-black/06">
+                <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(248,248,252,0.8)' }}>
                     <svg className="w-5 h-5 text-[#AEAEB2] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -136,11 +137,13 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
     return (
         <>
             <div
-                className="h-14 shrink-0 flex items-center gap-4 px-6 border-b border-white/60"
+                className="h-14 shrink-0 flex items-center gap-4 px-6"
                 style={{
-                    background: 'rgba(255,255,255,0.97)',
-                    borderBottom: '1px solid rgba(0,0,0,0.06)',
-                    boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
+                    background: 'rgba(255,255,255,0.82)',
+                    backdropFilter: 'blur(40px) saturate(220%)',
+                    WebkitBackdropFilter: 'blur(40px) saturate(220%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.7)',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.05), inset 0 -1px 0 rgba(0,0,0,0.04)',
                 }}
                 dir="rtl"
             >
@@ -168,7 +171,8 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
                 <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setSearchOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#EBEBEB] transition-colors text-[#6E6E73] text-sm font-medium"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-[#6E6E73] text-sm font-medium"
+                    style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -182,9 +186,9 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
                 {/* Today revenue */}
                 {todayRevenue > 0 && (
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#34C759]/08 border border-[#34C759]/20">
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl" style={{ background: 'linear-gradient(135deg, rgba(52,199,89,0.12) 0%, rgba(48,209,88,0.08) 100%)', border: '1px solid rgba(52,199,89,0.25)', boxShadow: '0 2px 8px rgba(52,199,89,0.12)' }}>
                         <span className="text-[#1A8C40] text-xs font-black">₪{todayRevenue.toLocaleString()}</span>
-                        <span className="text-[#34C759] text-[10px] font-bold">היום</span>
+                        <span className="text-[#34C759] text-[10px] font-bold hidden sm:inline">היום</span>
                     </div>
                 )}
 
@@ -192,7 +196,8 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
                 <motion.button
                     whileTap={{ scale: 0.94 }}
                     onClick={() => navigate('/admin/orders')}
-                    className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-all"
+                    className="relative w-9 h-9 rounded-xl flex items-center justify-center text-[#6E6E73] hover:text-[#1D1D1F] transition-all"
+                    style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -212,7 +217,7 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
                 <a
                     href="/"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-black transition-all shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#5856D6,#007AFF)', boxShadow: '0 2px 12px rgba(88,86,214,0.35)' }}
+                    style={{ background: 'linear-gradient(135deg,#5856D6,#007AFF)', boxShadow: '0 4px 16px rgba(88,86,214,0.45), inset 0 1px 0 rgba(255,255,255,0.20)' }}
                     title="חזרה לאתר הראשי"
                 >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -223,7 +228,7 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
                 {/* Admin avatar */}
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
+                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.40), 0 0 0 2px rgba(255,255,255,0.8)', cursor: 'default' }}>
                     N
                 </div>
             </div>

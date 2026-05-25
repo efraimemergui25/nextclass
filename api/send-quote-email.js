@@ -63,24 +63,29 @@ function customerEmailHtml(quote) {
     const waLink    = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! שלחתי בקשה מספר ${quote.id} ואשמח לתיאום`)}`;
 
     const itemRows = (quote.items || []).map(item => {
-        const lineTotal = priceNum(item.price ?? 0) * (item.qty ?? 1);
+        const lineTotal = priceNum(item.salePrice ?? item.price ?? 0) * (item.qty ?? 1);
+        const unitPrice = priceNum(item.salePrice ?? item.price ?? 0);
         return `
         <tr>
-          <td style="padding:16px 0;border-bottom:1px solid #F5F5F7;">
-            <table width="100%" cellpadding="0" cellspacing="0">
+          <td style="padding:0 0 12px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFCFF;border-radius:14px;overflow:hidden;border:1px solid #EEF2FF;">
               <tr>
-                <td width="52" style="vertical-align:middle;padding-left:0;">
+                <td width="80" style="vertical-align:top;padding:0;">
                   ${item.image
-                    ? `<img src="${item.image}" width="48" height="48" style="border-radius:10px;object-fit:cover;display:block;border:1px solid #E5E7EB;" />`
-                    : `<div style="width:48px;height:48px;border-radius:10px;background:#F0F7FF;"></div>`}
+                    ? `<img src="${item.image}" width="80" height="80" style="border-radius:14px 0 0 14px;object-fit:cover;display:block;border:none;" />`
+                    : `<div style="width:80px;height:80px;border-radius:14px 0 0 14px;background:linear-gradient(135deg,#EEF2FF,#F0F7FF);display:flex;align-items:center;justify-content:center;"><span style='font-size:28px;'>📦</span></div>`}
                 </td>
-                <td style="padding-right:14px;vertical-align:middle;">
-                  <div style="font-size:14px;font-weight:600;color:#1D1D1F;line-height:1.4;">${item.title || '—'}</div>
-                  ${item.category ? `<div style="font-size:12px;color:#AEAEB2;margin-top:2px;">${item.category}</div>` : ''}
+                <td style="padding:12px 16px;vertical-align:middle;">
+                  <div style="font-size:14px;font-weight:700;color:#1D1D1F;line-height:1.4;margin-bottom:4px;">${item.title || '—'}</div>
+                  ${item.category ? `<div style="display:inline-block;font-size:10px;font-weight:700;color:#5856D6;background:#EEF2FF;padding:2px 8px;border-radius:50px;margin-bottom:6px;">${item.category}</div>` : ''}
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                    <span style="font-size:11px;color:#AEAEB2;">יח׳: ${item.qty ?? 1}</span>
+                    <span style="width:3px;height:3px;border-radius:50%;background:#AEAEB2;display:inline-block;"></span>
+                    <span style="font-size:11px;color:#AEAEB2;">₪${unitPrice.toLocaleString()} ליחידה</span>
+                  </div>
                 </td>
-                <td style="vertical-align:middle;white-space:nowrap;text-align:left;">
-                  <div style="font-size:12px;color:#AEAEB2;text-align:center;">x ${item.qty ?? 1}</div>
-                  <div style="font-size:14px;font-weight:700;color:#1D1D1F;text-align:center;margin-top:2px;">&#8362;${lineTotal.toLocaleString()}</div>
+                <td style="padding:12px 16px;vertical-align:middle;white-space:nowrap;text-align:left;">
+                  <div style="font-size:18px;font-weight:800;color:#1D1D1F;">&#8362;${lineTotal.toLocaleString()}</div>
                 </td>
               </tr>
             </table>
@@ -256,24 +261,25 @@ function teamEmailHtml(quote) {
     ).join('');
 
     const itemRows = (quote.items || []).map((item, i) => {
-        const lineTotal = priceNum(item.price ?? 0) * (item.qty ?? 1);
-        const rowBg = i % 2 === 1 ? 'background:#FAFAFA;' : '';
+        const unitPrice = priceNum(item.salePrice ?? item.price ?? 0);
+        const lineTotal = unitPrice * (item.qty ?? 1);
+        const rowBg = i % 2 === 1 ? 'background:#FAFCFF;' : '';
         return `
-        <tr style="border-bottom:1px solid #F5F5F7;${rowBg}">
-          <td style="padding:12px 16px;vertical-align:middle;">
-            <div style="display:flex;align-items:center;gap:12px;">
+        <tr style="border-bottom:1px solid #F0F4FF;${rowBg}">
+          <td style="padding:14px 16px;vertical-align:middle;">
+            <div style="display:flex;align-items:center;gap:14px;">
               ${item.image
-                ? `<img src="${item.image}" width="40" height="40" style="border-radius:8px;object-fit:cover;border:1px solid #E5E7EB;flex-shrink:0;" />`
-                : `<div style="width:40px;height:40px;border-radius:8px;background:#F5F5F7;flex-shrink:0;"></div>`}
+                ? `<img src="${item.image}" width="52" height="52" style="border-radius:12px;object-fit:cover;border:1px solid #EEF2FF;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.07);" />`
+                : `<div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#EEF2FF,#F0F7FF);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>`}
               <div>
-                <div style="font-size:13px;font-weight:600;color:#1D1D1F;">${item.title || '—'}</div>
-                ${item.category ? `<div style="font-size:11px;color:#AEAEB2;margin-top:1px;">${item.category}</div>` : ''}
+                <div style="font-size:13px;font-weight:700;color:#1D1D1F;margin-bottom:3px;">${item.title || '—'}</div>
+                ${item.category ? `<span style="font-size:10px;font-weight:700;color:#5856D6;background:#EEF2FF;padding:2px 8px;border-radius:50px;">${item.category}</span>` : ''}
               </div>
             </div>
           </td>
-          <td style="padding:12px 16px;text-align:center;font-size:13px;color:#6E6E73;white-space:nowrap;">x ${item.qty ?? 1}</td>
-          <td style="padding:12px 16px;text-align:center;font-size:13px;color:#6E6E73;white-space:nowrap;">&#8362;${priceNum(item.price??0).toLocaleString()}</td>
-          <td style="padding:12px 16px;text-align:center;font-size:13px;font-weight:700;color:#1D1D1F;white-space:nowrap;">&#8362;${lineTotal.toLocaleString()}</td>
+          <td style="padding:14px 16px;text-align:center;font-size:13px;color:#6E6E73;white-space:nowrap;font-weight:600;">×${item.qty ?? 1}</td>
+          <td style="padding:14px 16px;text-align:center;font-size:13px;color:#6E6E73;white-space:nowrap;">&#8362;${unitPrice.toLocaleString()}</td>
+          <td style="padding:14px 16px;text-align:center;font-size:14px;font-weight:800;color:#1D1D1F;white-space:nowrap;">&#8362;${lineTotal.toLocaleString()}</td>
         </tr>`;
     }).join('');
 

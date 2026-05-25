@@ -30,7 +30,8 @@ export function AdminAuthProvider({ children }) {
                 localStorage.removeItem(LOCAL_SESSION_KEY);
                 localStorage.removeItem(EXPIRY_KEY);
             }
-            setIsAuthenticated(local === '1' && !expired);
+            // Require BOTH Firebase auth AND local session — no Firebase auth = back to login screen
+            setIsAuthenticated(!!user && local === '1' && !expired);
             setIsLoading(false);
         });
         return () => unsubscribe();
@@ -42,6 +43,7 @@ export function AdminAuthProvider({ children }) {
             if (isSessionExpired()) {
                 localStorage.removeItem(LOCAL_SESSION_KEY);
                 localStorage.removeItem(EXPIRY_KEY);
+                signOut(auth).catch(() => {});
                 setIsAuthenticated(false);
             }
         }, 5 * 60 * 1000);
@@ -49,11 +51,8 @@ export function AdminAuthProvider({ children }) {
     }, []);
 
     const login = useCallback(async (pin) => {
-        // Use Firebase only to verify the PIN — then sign out immediately
-        // so Firebase never maintains a persistent session that bypasses the PIN screen.
         try {
             await signInWithEmailAndPassword(auth, 'nextclass.en@gmail.com', pin);
-            await signOut(auth).catch(() => {});
             localStorage.setItem(LOCAL_SESSION_KEY, '1');
             localStorage.setItem(EXPIRY_KEY, String(Date.now() + SESSION_TTL_MS));
             setIsAuthenticated(true);

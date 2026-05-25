@@ -13,9 +13,11 @@ function Card({ title, subtitle, accent, action, children, className = '' }) {
     return (
         <div className={`rounded-[22px] overflow-hidden ${className}`}
             style={{
-                background: 'rgba(255,255,255,0.88)',
-                border: '1px solid rgba(255,255,255,0.75)',
-                boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
             }}
         >
             {accent && <div className="h-[3px]" style={{ background: accent }} />}
@@ -176,10 +178,10 @@ export default function AdminAnalytics() {
                         {RANGES.map(r => (
                             <motion.button key={r.id} onClick={() => setRange(r.id)}
                                 className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap"
-                                style={{ color: range === r.id ? '#1D1D1F' : '#86868B' }}>
+                                style={{ color: range === r.id ? '#007AFF' : '#86868B' }}>
                                 {range === r.id && (
-                                    <motion.div layoutId="range-pill" className="absolute inset-0 rounded-xl bg-white"
-                                        style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
+                                    <motion.div layoutId="range-pill" className="absolute inset-0 rounded-xl"
+                                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                                         transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                                 )}
                                 <span className="relative z-10">{r.label}</span>

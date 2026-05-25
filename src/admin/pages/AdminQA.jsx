@@ -72,7 +72,13 @@ export default function AdminQA() {
 
             {/* Tabs */}
             <div className="flex items-center gap-2 p-1.5 rounded-2xl w-fit"
-                style={{ background: 'rgba(255,255,255,0.60)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                style={{
+                    background: 'rgba(255,255,255,0.78)',
+                    backdropFilter: 'blur(24px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                    border: '1px solid rgba(255,255,255,0.72)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
                 {[
                     { id: 'pending',  label: 'ממתינות לתשובה', count: pending.length },
                     { id: 'answered', label: 'נענו',             count: answered.length },
@@ -98,7 +104,13 @@ export default function AdminQA() {
                 </div>
             ) : displayed.length === 0 ? (
                 <div className="text-center py-24 rounded-[2rem]"
-                    style={{ background: 'rgba(255,255,255,0.60)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                    style={{
+                        background: 'rgba(255,255,255,0.78)',
+                        backdropFilter: 'blur(24px) saturate(200%)',
+                        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                        border: '1px solid rgba(255,255,255,0.72)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+                    }}>
                     <MessageSquare size={40} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-[#86868B] font-bold">
                         {activeTab === 'pending' ? 'אין שאלות ממתינות' : 'אין שאלות שנענו עדיין'}
@@ -113,9 +125,11 @@ export default function AdminQA() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 className="rounded-[1.5rem] p-6"
                                 style={{
-                                    background: 'rgba(255,255,255,0.88)',
-                                    border: '1px solid rgba(0,0,0,0.06)',
-                                    boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
+                                    background: 'rgba(255,255,255,0.78)',
+                                    backdropFilter: 'blur(24px) saturate(200%)',
+                                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                                    border: '1px solid rgba(255,255,255,0.72)',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
                                 }}>
                                 {/* Question header */}
                                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -181,7 +195,7 @@ export default function AdminQA() {
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => handleAnswer(item.id)}
                                         className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white cursor-pointer shrink-0"
-                                        style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                                        style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
                                         <Send size={15} />
                                         פרסם
                                     </motion.button>

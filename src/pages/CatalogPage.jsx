@@ -31,6 +31,7 @@ const CatalogPage = () => {
  const [sidebarOpen, setSidebarOpen] = useState(true);
  const [drawerOpen, setDrawerOpen] = useState(false);
  const [sortOpen, setSortOpen] = useState(false);
+ const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
  const sortRef = useRef(null);
 
  const { getSetting } = useSettings();
@@ -127,14 +128,22 @@ const CatalogPage = () => {
  const price = typeof p.price === 'number' ? p.price : Number(p.price) || 0;
  return price >= priceRange[0] && price <= priceRange[1];
  });
+ if (searchQuery.trim()) {
+  const q = searchQuery.trim().toLowerCase();
+  r = r.filter(p =>
+  (p.title || '').toLowerCase().includes(q) ||
+  (p.description || '').toLowerCase().includes(q) ||
+  (p.category || '').toLowerCase().includes(q)
+  );
+ }
  if (sortBy === 'price-asc') r.sort((a, b) => Number(a.price) - Number(b.price));
  if (sortBy === 'price-desc') r.sort((a, b) => Number(b.price) - Number(a.price));
  if (sortBy === 'name') r.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
  return r;
- }, [products, selectedCategory, sortBy, priceRange]);
+ }, [products, selectedCategory, sortBy, priceRange, searchQuery]);
 
  const currentSortLabel = SORT_OPTIONS.find(o => o.id === sortBy)?.label || 'רלוונטיות';
- const hasActiveFilters = sortBy !== 'default' || priceRange[1] < maxPrice;
+ const hasActiveFilters = sortBy !== 'default' || priceRange[1] < maxPrice || searchQuery.trim() !== '';
 
  return (
  <PageTransition>
@@ -179,6 +188,28 @@ const CatalogPage = () => {
  >
  {getSetting('catalog_subtitle', 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.')}
  </motion.p>
+ </div>
+
+ {/* ── Search Bar ─────────────────────────────────────────────── */}
+ <div className="max-w-7xl mx-auto px-6 mb-3">
+  <div className="relative max-w-md">
+   <svg className="absolute top-1/2 -translate-y-1/2 right-4 w-4 h-4 text-[#AEAEB2] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+   </svg>
+   <input
+    type="text"
+    placeholder="חפשו מוצר, קטגוריה..."
+    value={searchQuery}
+    onChange={e => setSearchQuery(e.target.value)}
+    className="w-full bg-white/80 backdrop-blur-xl border border-white/80 rounded-2xl pr-11 pl-4 py-2.5 text-[13px] font-medium text-[#1D1D1F] placeholder-[#AEAEB2] outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]/30 transition-all"
+    style={{ direction: 'rtl' }}
+   />
+   {searchQuery && (
+    <button onClick={() => setSearchQuery('')} className="absolute top-1/2 -translate-y-1/2 left-3 text-[#AEAEB2] hover:text-[#1D1D1F] transition-colors">
+     <X size={14} />
+    </button>
+   )}
+  </div>
  </div>
 
  {/* ── Filter Bar ──────────────────────────────────────────────── */}
@@ -333,7 +364,7 @@ const CatalogPage = () => {
 
  {hasActiveFilters && (
  <button
- onClick={() => { setSortBy('default'); setPriceRange([0, maxPrice]); }}
+ onClick={() => { setSortBy('default'); setPriceRange([0, maxPrice]); setSearchQuery(''); }}
  className="w-full py-2 text-[11px] font-bold text-[#86868B] hover:text-red-500 transition-colors text-center rounded-xl hover:bg-red-50"
  >
  איפוס סינון
@@ -347,76 +378,17 @@ const CatalogPage = () => {
  {/* Product area */}
  <div className="flex-1 min-w-0">
 
- {/* Personalized greeting — glass card above products */}
- {user && firstName && (
-   <motion.div
-     initial={{ opacity: 0, y: 20, scale: 0.97 }}
-     animate={{ opacity: 1, y: 0, scale: 1 }}
-     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-     className="mb-5"
-   >
-     <div
-       style={{
-         background: `linear-gradient(135deg, rgba(255,255,255,0.82) 0%, ${tierColor}09 60%, rgba(255,255,255,0.60) 100%)`,
-         border: `1px solid ${tierColor}28`,
-         backdropFilter: 'blur(32px) saturate(200%)',
-         WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-         boxShadow: `0 8px 32px rgba(0,0,0,0.07), 0 1.5px 0 0 ${tierColor}18, inset 0 1px 0 rgba(255,255,255,0.9)`,
-       }}
-       className="rounded-3xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
-     >
-       {/* Glow orb */}
-       <div style={{ background: `radial-gradient(circle, ${tierColor}22 0%, transparent 70%)`, width: 120, height: 120, position: 'absolute', left: -30, top: -30, pointerEvents: 'none' }} />
-       {/* Avatar */}
-       <motion.div
-         initial={{ scale: 0.7, rotate: -8 }}
-         animate={{ scale: 1, rotate: 0 }}
-         transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: 0.2 }}
-         style={{ background: `linear-gradient(140deg, ${tierColor}35, ${tierColor}60)`, color: tierColor, boxShadow: `0 4px 16px ${tierColor}30, inset 0 1px 0 rgba(255,255,255,0.4)` }}
-         className="w-10 h-10 rounded-2xl flex items-center justify-center text-[15px] font-black shrink-0 select-none relative z-10"
-       >
-         {firstName[0].toUpperCase()}
-       </motion.div>
-       {/* Text */}
-       <div className="flex-1 min-w-0 text-right relative z-10">
-         <motion.p
-           initial={{ opacity: 0, x: 8 }}
-           animate={{ opacity: 1, x: 0 }}
-           transition={{ duration: 0.5, delay: 0.25 }}
-           className="text-[15px] font-black text-[#1D1D1F] tracking-tight leading-snug"
-         >
-           {personalGreeting}
-         </motion.p>
-         {(institution || roleSubtext()) && (
-           <motion.p
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             transition={{ duration: 0.4, delay: 0.38 }}
-             className="text-[12px] text-[#86868B] font-medium mt-0.5 flex items-center gap-1.5 justify-end"
-           >
-             {institution && <span>{institution}</span>}
-             {institution && <span className="w-1 h-1 rounded-full bg-[#C7C7CC] inline-block" />}
-             <span style={{ color: tierColor }} className="font-bold">{tierLabel}</span>
-             {roleSubtext() && <><span className="w-1 h-1 rounded-full bg-[#C7C7CC] inline-block" /><span>{roleSubtext()}</span></>}
-           </motion.p>
-         )}
-       </div>
-       {/* Shine */}
-       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(120deg, rgba(255,255,255,0.18) 0%, transparent 50%)', borderRadius: 'inherit', pointerEvents: 'none' }} />
-     </div>
-   </motion.div>
- )}
 
  {/* Result count */}
  <div className="flex items-center justify-between mb-5 h-7">
  <motion.p
- key={filtered.length}
+ key={filtered.length + searchQuery}
  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
  className="text-[13px] font-bold text-[#86868B]"
  >
  {filtered.length > 0
- ? <>{filtered.length} פתרונות{selectedCategory !== allLabel && <> — <span className="text-[#1D1D1F]">{selectedCategory}</span></>}</>
- : 'לא נמצאו תוצאות'
+ ? <>נמצאו <span className="text-[#1D1D1F]">{filtered.length}</span> מוצרים{selectedCategory !== allLabel && <> — <span className="text-[#007AFF]">{selectedCategory}</span></>}{searchQuery && <> עבור "<span className="text-[#1D1D1F]">{searchQuery}</span>"</>}</>
+ : <span className="text-[#FF3B30]">לא נמצאו מוצרים — נסו חיפוש אחר</span>
  }
  </motion.p>
  </div>

@@ -618,7 +618,9 @@ export default function PersonalPanel({ open, onClose }) {
         const unsubQuotes = onSnapshot(
             query(collection(db, 'quotes'), where('email', '==', user.email), limit(15)),
             snap => {
-                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const docs = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(d => !d.deleted);
                 docs.sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
                 setQuotes(docs);
                 setLoading(false);
@@ -629,7 +631,9 @@ export default function PersonalPanel({ open, onClose }) {
         const unsubOrders = onSnapshot(
             query(collection(db, 'orders'), where('email', '==', user.email), limit(15)),
             snap => {
-                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const docs = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(d => !d.deleted);
                 docs.sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
                 setOrders(docs);
             },

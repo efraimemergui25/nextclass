@@ -15,15 +15,19 @@ import {
 } from 'lucide-react';
 
 const CARD = {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid rgba(0,0,0,0.06)',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
 };
 
 const GLASS = {
-    background: 'rgba(255,255,255,0.75)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
     border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
 };
 
 function formatSize(bytes) {
@@ -146,8 +150,11 @@ function DropZone({ onFiles, uploading }) {
             onClick={() => inputRef.current?.click()}
             className="relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 p-10 flex flex-col items-center gap-4"
             style={{
-                borderColor: isDragActive ? '#007AFF' : '#D1D1D6',
-                background: isDragActive ? 'rgba(0,122,255,0.04)' : 'rgba(0,0,0,0.012)',
+                borderColor: isDragActive ? '#007AFF' : 'rgba(0,122,255,0.35)',
+                background: isDragActive ? 'rgba(0,122,255,0.06)' : 'rgba(255,255,255,0.55)',
+                backdropFilter: 'blur(12px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+                boxShadow: isDragActive ? '0 0 0 4px rgba(0,122,255,0.12)' : 'none',
             }}
         >
             {uploading ? (
@@ -258,7 +265,7 @@ function AddUrlDialog({ onAdd, onClose }) {
                             onClick={() => { if (url) { onAdd({ url, name: name || url, source: 'url' }); onClose(); } }}
                             disabled={!url}
                             className="w-full py-3 rounded-xl font-black text-[13px] text-white transition-all disabled:opacity-40"
-                            style={{ background: '#007AFF' }}
+                            style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}
                         >
                             הוסף לספרייה
                         </button>
@@ -281,8 +288,8 @@ function ProductImagesTab({ onCopy, copied }) {
             <div className="relative">
                 <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש מוצר..."
-                    className="w-full pr-9 pl-4 py-2.5 bg-white rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none"
-                    style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }} />
+                    className="w-full pr-9 pl-4 py-2.5 rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/25 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
             </div>
             <p className="text-[11px] text-[#AEAEB2] font-bold">{items.length} מוצרים עם תמונות</p>
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -353,8 +360,8 @@ function VodTab({ onCopy, copied }) {
             <div className="relative">
                 <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש קורס..."
-                    className="w-full pr-9 pl-4 py-2.5 bg-white rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none"
-                    style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }} />
+                    className="w-full pr-9 pl-4 py-2.5 rounded-xl text-[13px] font-medium text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/25 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
             </div>
             <p className="text-[11px] text-[#AEAEB2] font-bold">{items.length} קורסי VOD</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -534,10 +541,10 @@ export default function AdminMedia() {
                     <button key={t.id} onClick={() => setTab(t.id)}
                         className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all"
                         style={{
-                            background: tab === t.id ? '#007AFF' : 'rgba(255,255,255,0.88)',
+                            background: tab === t.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
                             color: tab === t.id ? 'white' : '#6E6E73',
-                            border: `1px solid ${tab === t.id ? '#007AFF' : 'rgba(0,0,0,0.07)'}`,
-                            boxShadow: tab === t.id ? '0 2px 12px rgba(0,122,255,0.25)' : 'none',
+                            border: tab === t.id ? 'none' : '1px solid rgba(0,0,0,0.07)',
+                            boxShadow: tab === t.id ? '0 4px 16px rgba(0,122,255,0.28)' : 'none',
                         }}>
                         <t.Icon size={13} />
                         {t.label}
@@ -621,9 +628,10 @@ export default function AdminMedia() {
                         <button key={f.id} onClick={() => setFilter(f.id)}
                             className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
                             style={{
-                                background: filter === f.id ? '#007AFF' : 'rgba(255,255,255,0.88)',
+                                background: filter === f.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
                                 color: filter === f.id ? 'white' : '#6E6E73',
-                                border: '1px solid rgba(0,0,0,0.06)',
+                                border: filter === f.id ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                                boxShadow: filter === f.id ? '0 2px 10px rgba(0,122,255,0.22)' : 'none',
                             }}>
                             {f.label}
                         </button>

@@ -55,12 +55,14 @@ function Card({ title, subtitle, accent, action, children, className = '' }) {
             viewport={{ once: true }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             style={{
-                background: '#fff',
-                border: '1px solid rgba(0,0,0,0.07)',
-                boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
             }}
         >
-            {accent && <div className="h-[3px]" style={{ background: accent }} />}
+            {accent && <div className="h-[3px] rounded-t-[22px]" style={{ background: accent }} />}
             <div className="p-5">
                 {(title || action) && (
                     <div className="flex items-center justify-between mb-4">
@@ -89,10 +91,10 @@ function PeriodSelector({ value, onChange }) {
             {opts.map(o => (
                 <motion.button key={o.v} onClick={() => onChange(o.v)}
                     className="relative px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap"
-                    style={{ color: value === o.v ? '#1D1D1F' : '#86868B' }}>
+                    style={{ color: value === o.v ? '#007AFF' : '#86868B' }}>
                     {value === o.v && (
-                        <motion.div layoutId="period-pill" className="absolute inset-0 rounded-xl bg-white"
-                            style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}
+                        <motion.div layoutId="period-pill" className="absolute inset-0 rounded-xl"
+                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
                     <span className="relative z-10">{o.label}</span>
@@ -145,10 +147,28 @@ export default function AdminDashboard() {
     const periodSales   = useMemo(() => periodData?.sales.reduce((a, b) => a + b, 0) || 0, [periodData]);
     const periodRevenue = useMemo(() => periodData?.revenue.reduce((a, b) => a + b, 0) || 0, [periodData]);
 
+    // Daily conversion rate series: orders/visits per day (0–100 scale)
+    const conversionSpark = useMemo(() => {
+        if (!periodData) return [];
+        return periodData.visits.map((v, i) => {
+            const s = periodData.sales[i] || 0;
+            return v > 0 ? parseFloat(((s / v) * 100).toFixed(2)) : 0;
+        });
+    }, [periodData]);
+
+    // Daily average order value series: revenue/sales per day
+    const avgOrderSpark = useMemo(() => {
+        if (!periodData) return [];
+        return periodData.revenue.map((rev, i) => {
+            const cnt = periodData.sales[i] || 0;
+            return cnt > 0 ? Math.round(rev / cnt) : 0;
+        });
+    }, [periodData]);
+
     // Real trends computed from data
-    const trendRevenue = useMemo(() => computeTrend(periodData?.revenue), [periodData]);
-    const trendSales   = useMemo(() => computeTrend(periodData?.sales),   [periodData]);
-    const trendVisits  = useMemo(() => computeTrend(periodData?.visits),  [periodData]);
+    const trendRevenue = useMemo(() => computeTrend(periodData?.revenue),    [periodData]);
+    const trendSales   = useMemo(() => computeTrend(periodData?.sales),      [periodData]);
+    const trendVisits  = useMemo(() => computeTrend(conversionSpark),        [conversionSpark]);
 
     // Monthly goal: target = 1.5× last-month slice, min ₪5000
     const monthlyGoal = useMemo(() => {
@@ -199,7 +219,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center flex-wrap gap-2">
                     {/* Live dot */}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full relative"
-                        style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.25)' }}>
+                        style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.28)', boxShadow: '0 2px 8px rgba(52,199,89,0.15)' }}>
                         <span className="relative flex items-center justify-center w-2 h-2">
                             <span className="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-60" />
                             <span className="relative w-2 h-2 rounded-full bg-[#34C759]" />
@@ -211,14 +231,14 @@ export default function AdminDashboard() {
             </motion.div>
 
             {/* ── Primary KPIs ───────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {[
                     {
                         title: 'הכנסות', icon: 'revenue', color: '#34C759', delay: 0,
                         value: `₪${kpis.totalRevenue.toLocaleString()}`,
                         subtitle: `₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`,
                         trend: trendRevenue.value, trendUp: trendRevenue.up,
-                        sparkData: periodData?.revenue,
+                        sparkData: periodData && periodData.revenue.length >= 2 ? periodData.revenue : (analytics?.revenue?.slice(-7) || []),
                         tooltip: 'סך כל ההכנסות מהזמנות שהושלמו. לחץ לפירוט לפי יום.',
                         onClick: () => setDrilldown('revenue'),
                     },
@@ -227,7 +247,7 @@ export default function AdminDashboard() {
                         value: kpis.totalOrders,
                         subtitle: `${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`,
                         trend: trendSales.value, trendUp: trendSales.up,
-                        sparkData: periodData?.sales,
+                        sparkData: periodData && periodData.sales.length >= 2 ? periodData.sales : (analytics?.sales?.slice(-7) || []),
                         tooltip: 'מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו. לחץ לפירוט.',
                         onClick: () => setDrilldown('orders'),
                     },
@@ -236,7 +256,7 @@ export default function AdminDashboard() {
                         value: `${kpis.conversionRate}%`,
                         subtitle: 'מכניסות ייחודיות',
                         trend: trendVisits.value, trendUp: trendVisits.up,
-                        sparkData: periodData?.visits,
+                        sparkData: conversionSpark.length >= 2 ? conversionSpark : (analytics ? analytics.visits.map((v, i) => v > 0 ? parseFloat(((analytics.sales[i] || 0) / v * 100).toFixed(2)) : 0).slice(-7) : []),
                         tooltip: 'אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100.',
                         onClick: () => setDrilldown('conversion'),
                     },
@@ -244,7 +264,7 @@ export default function AdminDashboard() {
                         title: 'ממוצע עסקה', icon: 'products', color: '#FF9500', delay: 0.15,
                         value: `₪${kpis.avgOrderValue.toLocaleString()}`,
                         subtitle: `${kpis.completedOrders} הזמנות הושלמו`,
-                        sparkData: periodData?.revenue,
+                        sparkData: avgOrderSpark.length >= 2 ? avgOrderSpark : (analytics?.revenue?.slice(-7) || []),
                         tooltip: 'ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו.',
                         onClick: () => setDrilldown('avg'),
                     },
@@ -260,7 +280,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Secondary KPIs ──────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {[
                     {
                         title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.2,
@@ -298,7 +318,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Charts Row ──────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
 
                 {/* Traffic Chart — 2/3 width */}
                 <Card
@@ -333,7 +353,7 @@ export default function AdminDashboard() {
                             </div>
                         )}
                         {topProducts.map((p, i) => (
-                            <Link key={i} to={`/admin/inventory?search=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
+                            <Link key={i} to={`/admin/inventory?open=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
                                 <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
                                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
                                     {p.image
@@ -361,7 +381,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Revenue + Daily Sales Row ──────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
                 <Card
                     title="מחזור הכנסות"
                     subtitle={`${period === '1' ? 'היום' : `${period} ימים`} · ₪ ביחידה`}
@@ -412,7 +432,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* ── Bottom Row ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
 
                 {/* Recent Orders */}
                 <Card
@@ -439,7 +459,7 @@ export default function AdminDashboard() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.03 }}
                                 onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
-                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#F5F5F7] rounded-xl px-2 -mx-2 transition-colors"
+                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors"
                             >
                                 <StatusBadge status={order.status} />
                                 <div className="flex-1 min-w-0 text-right">
@@ -448,11 +468,11 @@ export default function AdminDashboard() {
                                         {order.customer}
                                     </p>
                                     <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
-                                        onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?search=${encodeURIComponent(order.product)}`); }}>
+                                        onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?open=${encodeURIComponent(order.product)}`); }}>
                                         {order.product}
                                     </p>
                                 </div>
-                                <div className="shrink-0 text-left">
+                                <div className="shrink-0 text-right">
                                     <p className="text-[#1D1D1F] font-black text-sm">₪{order.total.toLocaleString()}</p>
                                     <p className="text-[#AEAEB2] text-[9px] font-mono">{order.id}</p>
                                 </div>
@@ -481,7 +501,7 @@ export default function AdminDashboard() {
                         ) : (
                             <div className="space-y-2">
                                 {lowStock.map(p => (
-                                    <div key={p.id} onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.title)}`)} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
+                                    <div key={p.id} onClick={() => navigate(`/admin/inventory?open=${encodeURIComponent(p.title)}`)} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
                                         <span className={`font-black text-[12px] shrink-0 ${p.stock === 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'}`}>
                                             {p.stock === 0 ? 'אזל' : `${p.stock} יח׳`}
                                         </span>
@@ -535,7 +555,7 @@ export default function AdminDashboard() {
 
             {/* ── Quick Actions ─────────────────────────────────────────────── */}
             <Card title="פעולות מהירות" subtitle="ניהול האתר בלחיצה אחת" accent="linear-gradient(90deg,#5856D6,#007AFF)">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                     {[
                         {
                             label: 'תחזוקה', icon: <Wrench className="w-5 h-5" />,
@@ -606,8 +626,11 @@ export default function AdminDashboard() {
                             } : undefined)}
                             className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center cursor-pointer"
                             style={{
-                                background: action.active ? `${action.color}12` : 'rgba(0,0,0,0.025)',
-                                border: `1px solid ${action.active ? action.color + '30' : 'rgba(0,0,0,0.07)'}`,
+                                background: action.active ? `${action.color}14` : 'rgba(255,255,255,0.72)',
+                                backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                border: `1px solid ${action.active ? action.color + '35' : 'rgba(255,255,255,0.7)'}`,
+                                boxShadow: action.active ? `0 4px 16px ${action.color}20` : '0 2px 8px rgba(0,0,0,0.05)',
                             }}
                         >
                             <div className="w-9 h-9 rounded-2xl flex items-center justify-center"

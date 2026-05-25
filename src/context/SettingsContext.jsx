@@ -1,15 +1,29 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import DEFAULT_SETTINGS from '../data/cms-settings.json';
 
 const SettingsContext = createContext();
 
-// Secret read from env at build time — not a hardcoded string in source
 const CMS_SECRET = import.meta.env.VITE_CMS_SECRET || '';
 
 export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-    // Serialize concurrent saves: wait for in-flight request before starting next
     const saveQueue = useRef(Promise.resolve());
+
+    // Real-time Firestore sync — any admin save is visible site-wide in <100ms
+    useEffect(() => {
+        const unsub = onSnapshot(
+            doc(db, 'config', 'cms'),
+            (snap) => {
+                if (snap.exists()) {
+                    setSettings(() => ({ ...DEFAULT_SETTINGS, ...snap.data() }));
+                }
+            },
+            (err) => console.warn('[CMS] Firestore listener error:', err.message)
+        );
+        return () => unsub();
+    }, []);
 
     const getSetting = useCallback((key, defaultValue) => {
         const val = settings[key];
@@ -22,11 +36,16 @@ export const SettingsProvider = ({ children }) => {
     }, [getSetting]);
 
     const updateGlobalSettings = useCallback(async (newSettings) => {
-        // Optimistic update — capture previous for rollback
         const previous = settings;
+        // Optimistic update
         setSettings(prev => ({ ...prev, ...newSettings }));
 
-        // Queue saves so concurrent calls don't race on GitHub's SHA
+        // Write to Firestore immediately — all clients see change in <100ms
+        setDoc(doc(db, 'config', 'cms'), newSettings, { merge: true }).catch(err =>
+            console.warn('[CMS] Firestore write error:', err.message)
+        );
+
+        // Also persist to GitHub JSON (for SSR/CDN cold starts) — queued to avoid SHA conflicts
         saveQueue.current = saveQueue.current.then(async () => {
             try {
                 const res = await fetch('/api/cms-update', {
@@ -39,9 +58,8 @@ export const SettingsProvider = ({ children }) => {
                 });
                 if (!res.ok) throw new Error(await res.text());
             } catch (err) {
-                // Rollback optimistic update on failure
                 setSettings(previous);
-                console.error('[CMS] Save failed, rolled back:', err.message);
+                console.error('[CMS] GitHub save failed, rolled back:', err.message);
                 throw err;
             }
         });
@@ -51,15 +69,18 @@ export const SettingsProvider = ({ children }) => {
 
     const seedMissingDefaults = useCallback(() => {}, []);
 
+    // Only [settings] as dependency — all functions change only when settings changes anyway
+    const value = useMemo(() => ({
+        settings,
+        getSetting,
+        isVisible,
+        updateGlobalSettings,
+        seedMissingDefaults,
+        firestoreLoaded: true,
+    }), [settings]);
+
     return (
-        <SettingsContext.Provider value={{
-            settings,
-            getSetting,
-            isVisible,
-            updateGlobalSettings,
-            seedMissingDefaults,
-            firestoreLoaded: true,
-        }}>
+        <SettingsContext.Provider value={value}>
             {children}
         </SettingsContext.Provider>
     );

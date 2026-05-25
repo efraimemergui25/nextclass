@@ -94,7 +94,7 @@ const HomeProductsSection = () => {
  const sub = getSetting('home_products_sub', 'בחרו קטגוריה וגלו את הפתרונות הטכנולוגיים המתאימים למוסד שלכם.');
 
  return (
- <section className="w-full bg-[#F5F5F7] pt-16 pb-16 overflow-hidden relative">
+ <section className="w-full bg-[#F5F5F7] pt-16 pb-8 overflow-hidden relative">
 
  {/* Ambient gradient blobs */}
  <div className="absolute top-0 right-1/3 w-[500px] h-[350px] bg-[#007AFF]/5 blur-[120px] rounded-full pointer-events-none" />
@@ -123,28 +123,18 @@ const HomeProductsSection = () => {
   border: '1px solid rgba(0,122,255,0.16)',
   boxShadow: '0 4px 24px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
   }}>
+  <Sparkles size={13} color="#007AFF" strokeWidth={2.5} />
   <span style={{
    fontFamily: 'Heebo, sans-serif',
    fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
    background: 'linear-gradient(125deg, #007AFF 0%, #5856D6 55%, #007AFF 100%)',
    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
   }}>
-   {timeGreeting.emoji} {timeGreeting.word}, {firstName}
+   {timeGreeting.word}, {firstName}
   </span>
   </div>
  </motion.div>
  )}
-
- <motion.div
- initial={{ opacity: 0, scale: 0.9 }}
- whileInView={{ opacity: 1, scale: 1 }}
- viewport={{ once: true }}
- transition={{ duration: 0.4 }}
- className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] mb-7 shadow-sm border border-white/60"
- >
- <Sparkles size={11} strokeWidth={2.5} />
- <span>{eyebrow}</span>
- </motion.div>
 
  <motion.h2
  initial={{ opacity: 0, y: 22 }}
@@ -182,10 +172,21 @@ const HomeProductsSection = () => {
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
  transition={{ delay: 0.18, duration: 0.75 }}
- className="text-lg md:text-xl text-[#86868B] font-medium max-w-xl mx-auto leading-relaxed"
+ className="text-lg md:text-xl text-[#86868B] font-medium max-w-xl mx-auto leading-relaxed mb-6"
  >
  {sub}
  </motion.p>
+
+ <motion.div
+ initial={{ opacity: 0, scale: 0.9 }}
+ whileInView={{ opacity: 1, scale: 1 }}
+ viewport={{ once: true }}
+ transition={{ duration: 0.4, delay: 0.25 }}
+ className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#007AFF] font-bold text-[10px] shadow-sm border border-white/60"
+ >
+ <Sparkles size={11} strokeWidth={2.5} />
+ <span>{eyebrow}</span>
+ </motion.div>
  </div>
 
  {/* ── Category tabs ──────────────────────────────────────── */}
@@ -396,12 +397,12 @@ const HomeProductsSection = () => {
  {getSetting('home_products_cta1', 'לכל הקטלוג המלא')}
  <ArrowLeft size={16} className="transition-transform duration-300 group-hover:-translate-x-1" />
  </Link>
- <button
- onClick={() => window.dispatchEvent(new CustomEvent('open-concierge'))}
- className="px-10 py-4 rounded-full border border-[#D2D2D7] bg-white text-[#1D1D1F] font-bold text-[15px] hover:border-[#1D1D1F] hover:shadow-md transition-all duration-300 cursor-pointer"
+ <Link
+ to="/compare"
+ className="px-10 py-4 rounded-full border border-[#D2D2D7] bg-white text-[#1D1D1F] font-bold text-[15px] hover:border-[#1D1D1F] hover:shadow-md transition-all duration-300"
  >
- {getSetting('home_products_cta2', 'גלה פתרונות לפי צורך')}
- </button>
+ השוואת דגמים
+ </Link>
  </motion.div>
 
  </div>

@@ -11,7 +11,7 @@ import { useAdminData } from '../context/AdminDataContext';
 import {
     MessageSquare, Mail, Phone, Edit2, Trash2, Plus, Send, X,
     ChevronDown, AlertCircle, MessageCircle, Zap, Clock,
-    AtSign, Star, TrendingUp, Users, Hash,
+    AtSign, Star, TrendingUp, Users, Hash, AlertTriangle, Check,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -19,13 +19,13 @@ import {
 const SF = `-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',Heebo,Arial,sans-serif`;
 
 const PIPELINE_STATUSES = {
-    'חדש':           { color: '#2563EB', bg: 'rgba(37,99,235,0.07)',   dot: '#3B82F6' },
-    'ביצירת קשר':    { color: '#0891B2', bg: 'rgba(8,145,178,0.07)',   dot: '#06B6D4' },
-    'הוצע מחיר':     { color: '#7C3AED', bg: 'rgba(124,58,237,0.07)',  dot: '#8B5CF6' },
-    'במשא ומתן':     { color: '#D97706', bg: 'rgba(217,119,6,0.07)',   dot: '#F59E0B' },
-    'ממתין לאישור':  { color: '#059669', bg: 'rgba(5,150,105,0.07)',   dot: '#10B981' },
-    'נסגר':          { color: '#16A34A', bg: 'rgba(22,163,74,0.07)',   dot: '#22C55E' },
-    'אבד':           { color: '#DC2626', bg: 'rgba(220,38,38,0.07)',   dot: '#EF4444' },
+    'חדש':           { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
+    'ביצירת קשר':    { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
+    'הוצע מחיר':     { color: '#5856D6', bg: 'rgba(88,86,214,0.07)',    dot: '#5856D6' },
+    'במשא ומתן':     { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
+    'ממתין לאישור':  { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
+    'נסגר':          { color: '#34C759', bg: 'rgba(52,199,89,0.07)',    dot: '#34C759' },
+    'אבד':           { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',    dot: '#FF3B30' },
 };
 
 const CHANNELS = [
@@ -69,11 +69,11 @@ const DEFAULT_TEMPLATES = [
 
 // ─── Glass token ──────────────────────────────────────────────────────────────
 const CARD = {
-    background:   'rgba(255,255,255,0.9)',
-    backdropFilter: 'blur(40px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-    border:       '1px solid rgba(255,255,255,0.75)',
-    boxShadow:    '0 4px 32px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.95)',
+    background:   'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border:       '1px solid rgba(255,255,255,0.72)',
+    boxShadow:    '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
     borderRadius: 20,
 };
 
@@ -192,7 +192,7 @@ function ContactActions({ lead, size = 28, showLabels = false }) {
 function TemplateEditor({ template, onSave, onCancel }) {
     const [form, setForm] = useState({ ...template });
     const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-    const inputStyle = { width: '100%', padding: '9px 12px', fontSize: 12, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.10)', background: '#fff', color: '#1D1D1F', boxSizing: 'border-box' };
+    const inputStyle = { width: '100%', padding: '9px 12px', fontSize: 12, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(255,255,255,0.72)', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', color: '#1D1D1F', boxSizing: 'border-box' };
     return (
         <div style={{ borderRadius: 16, padding: 16, marginBottom: 12, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.07)' }}>
             <p style={{ fontSize: 11, fontWeight: 800, color: '#86868B', marginBottom: 12, fontFamily: SF }}>עריכת תבנית</p>
@@ -229,7 +229,7 @@ function TemplateEditor({ template, onSave, onCancel }) {
                     ביטול
                 </button>
                 <button onClick={() => onSave(form)}
-                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(180deg,#2A2A2C,#1D1D1F)', color: '#fff', cursor: 'pointer' }}>
+                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,122,255,0.28)' }}>
                     שמור
                 </button>
             </div>
@@ -263,8 +263,8 @@ function OutreachHistory({ commLog }) {
                                     </div>
                                     <span style={{
                                         fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, flexShrink: 0,
-                                        background: entry.type === 'whatsapp' ? 'rgba(37,211,102,0.10)' : 'rgba(37,99,235,0.10)',
-                                        color: entry.type === 'whatsapp' ? '#16A34A' : '#2563EB',
+                                        background: entry.type === 'whatsapp' ? 'rgba(52,199,89,0.10)' : 'rgba(0,122,255,0.10)',
+                                        color: entry.type === 'whatsapp' ? '#34C759' : '#007AFF',
                                         fontFamily: SF,
                                     }}>
                                         {entry.type === 'whatsapp' ? 'WA' : 'מייל'}
@@ -524,11 +524,36 @@ export default function AdminCommunications() {
 
     const showToast = (msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
 
+    const [deletedLeads, setDeletedLeads] = useState([]);
+    const [showTrash,    setShowTrash]    = useState(false);
+
     // Load quotes
     useEffect(() => {
         const q = query(collection(db, 'quotes'), orderBy('dateTs', 'desc'));
-        return onSnapshot(q, snap => setLeads(snap.docs.map(d => ({ ...d.data(), _docId: d.id }))));
+        return onSnapshot(q, snap => {
+            const all = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+            setLeads(all.filter(l => !l.deleted));
+            setDeletedLeads(all.filter(l => l.deleted).sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0)));
+        });
     }, []);
+
+    const handleDeleteLead = async (lead) => {
+        if (!window.confirm('להעביר ליד זה לסל המחזור?')) return;
+        await setDoc(doc(db, 'quotes', lead._docId), { deleted: true, deletedAt: Date.now() }, { merge: true });
+        setSelected(null);
+        showToast('הועבר לסל המחזור');
+    };
+
+    const handleRestoreLead = async (lead) => {
+        await setDoc(doc(db, 'quotes', lead._docId), { deleted: false, deletedAt: null }, { merge: true });
+        showToast('הליד שוחזר');
+    };
+
+    const handleHardDeleteLead = async (lead) => {
+        if (!window.confirm('למחוק לצמיתות? לא ניתן לשחזר.')) return;
+        await deleteDoc(doc(db, 'quotes', lead._docId));
+        showToast('נמחק לצמיתות');
+    };
 
     // Load templates
     useEffect(() => {
@@ -599,12 +624,27 @@ export default function AdminCommunications() {
         });
     }, [customMsg]);
 
+    // Stale lead helpers — must be defined before useMemo that uses them
+    const now = Date.now();
+    const STALE_DAYS = 3;
+    const getLeadAgeDays = (lead) => {
+        const ts = lead.updatedAt || lead.dateTs;
+        if (!ts) return 0;
+        const msPerDay = 1000 * 60 * 60 * 24;
+        return Math.floor((now - (typeof ts === 'number' ? ts : ts?.seconds ? ts.seconds * 1000 : Date.parse(ts) || 0)) / msPerDay);
+    };
+    const isStale = (lead) => {
+        const staleStatuses = ['חדש', 'ביצירת קשר'];
+        return staleStatuses.includes(lead.status || 'חדש') && getLeadAgeDays(lead) > STALE_DAYS;
+    };
+    const [showStaleOnly, setShowStaleOnly] = useState(false);
+
     const sendWhatsApp = async () => {
         if (!selected?.phone || !customMsg) return;
         const num = selected.phone.replace(/\D/g,'').replace(/^0/,'');
         window.open(`https://wa.me/972${num}?text=${encodeURIComponent(customMsg)}`, '_blank');
         await logOutreach('whatsapp', activeTpl?.name, customMsg);
-        showToast('WhatsApp נפתח ✓');
+        showToast('WhatsApp נפתח');
     };
 
     const sendEmail = async () => {
@@ -612,14 +652,16 @@ export default function AdminCommunications() {
         const subject = encodeURIComponent(customSubject || `הודעה מ-NextClass`);
         window.open(`mailto:${selected.email}?subject=${subject}&body=${encodeURIComponent(customMsg)}`, '_blank');
         await logOutreach('email', activeTpl?.name, customMsg);
-        showToast('מייל נפתח ✓');
+        showToast('מייל נפתח');
     };
 
     const filtered = useMemo(() => leads.filter(l => {
         const q = search.toLowerCase();
-        return (!q || (l.contactName||'').toLowerCase().includes(q) || (l.institution||'').toLowerCase().includes(q) || (l.phone||'').includes(q))
-            && (!filterStatus || l.status === filterStatus);
-    }), [leads, search, filterStatus]);
+        const matchesSearch = !q || (l.contactName||'').toLowerCase().includes(q) || (l.institution||'').toLowerCase().includes(q) || (l.phone||'').includes(q);
+        const matchesStatus = !filterStatus || l.status === filterStatus;
+        const matchesStale  = !showStaleOnly || isStale(l);
+        return matchesSearch && matchesStatus && matchesStale;
+    }), [leads, search, filterStatus, showStaleOnly]);
 
     const sortedFiltered = useMemo(() =>
         [...filtered].sort((a, b) => getLeadScore(b) - getLeadScore(a)),
@@ -631,6 +673,8 @@ export default function AdminCommunications() {
     const recommendedTpl = selected ? getRecommendedTpl(selected, channelTpls) : null;
     const newCount       = leads.filter(l => (l.status || 'חדש') === 'חדש').length;
     const unreadCount    = leads.filter(l => l.unreadAdmin).length;
+    const staleLeads     = leads.filter(isStale);
+    const staleCount     = staleLeads.length;
 
     return (
         <div style={{ display: 'flex', height: '100%', direction: 'rtl', fontFamily: SF, position: 'relative' }}>
@@ -639,7 +683,7 @@ export default function AdminCommunications() {
             <AnimatePresence>
                 {toast && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? '#1D1D1F' : '#DC2626', boxShadow: '0 8px 30px rgba(0,0,0,0.22)', whiteSpace: 'nowrap' }}>
+                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: toast.ok ? '0 8px 30px rgba(0,122,255,0.30)' : '0 8px 30px rgba(255,59,48,0.30)', whiteSpace: 'nowrap' }}>
                         {toast.msg}
                     </motion.div>
                 )}
@@ -688,10 +732,12 @@ export default function AdminCommunications() {
                         <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>לא נמצאו לידים</div>
                     )}
                     {sortedFiltered.map(lead => {
-                        const isActive = selected?._docId === lead._docId;
-                        const score    = getLeadScore(lead);
-                        const sColor   = scoreColor(score);
-                        const status   = PIPELINE_STATUSES[lead.status] || PIPELINE_STATUSES['חדש'];
+                        const isActive  = selected?._docId === lead._docId;
+                        const score     = getLeadScore(lead);
+                        const sColor    = scoreColor(score);
+                        const status    = PIPELINE_STATUSES[lead.status] || PIPELINE_STATUSES['חדש'];
+                        const leadStale = isStale(lead);
+                        const ageDays   = getLeadAgeDays(lead);
                         return (
                             <motion.div key={lead._docId}
                                 onClick={() => { setSelected(lead); setActiveTpl(null); setCustomMsg(''); setCustomSubject(''); }}
@@ -700,8 +746,8 @@ export default function AdminCommunications() {
                                 style={{
                                     padding: '10px 14px', cursor: 'pointer', position: 'relative',
                                     borderBottom: '1px solid rgba(0,0,0,0.04)',
-                                    background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent',
-                                    borderRight: isActive ? `3px solid #007AFF` : '3px solid transparent',
+                                    background: isActive ? 'rgba(0,122,255,0.06)' : leadStale ? 'rgba(255,149,0,0.03)' : 'transparent',
+                                    borderRight: isActive ? `3px solid #007AFF` : leadStale ? '3px solid #FF9500' : '3px solid transparent',
                                     transition: 'background 0.15s',
                                 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -709,7 +755,14 @@ export default function AdminCommunications() {
                                     <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                                             <span style={{ fontSize: 10, color: '#AEAEB2', fontFamily: SF, flexShrink: 0 }}>{lead.date || ''}</span>
-                                            <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', fontFamily: SF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.contactName || '—'}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                {leadStale && (
+                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(255,149,0,0.12)', color: '#FF9500', fontFamily: SF, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                                        <AlertTriangle size={8} />{ageDays} ימים
+                                                    </span>
+                                                )}
+                                                <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', fontFamily: SF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.contactName || '—'}</span>
+                                            </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                             <ScoreDots score={score} />
@@ -732,9 +785,35 @@ export default function AdminCommunications() {
                     })}
                 </div>
 
-                <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: 10, fontWeight: 700, color: '#AEAEB2', fontFamily: SF, textAlign: 'center' }}>
-                    {sortedFiltered.length} לידים · ממוינים לפי עדיפות
+                <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <button onClick={() => setShowTrash(v => !v)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 8, border: 'none', background: showTrash ? 'rgba(255,59,48,0.09)' : 'rgba(0,0,0,0.04)', color: showTrash ? '#FF3B30' : '#AEAEB2', cursor: 'pointer', fontSize: 10, fontWeight: 800, fontFamily: SF }}>
+                        <Trash2 size={10} />סל{deletedLeads.length > 0 ? ` (${deletedLeads.length})` : ''}
+                    </button>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', fontFamily: SF }}>
+                        {sortedFiltered.length} לידים · ממוינים לפי עדיפות
+                    </span>
                 </div>
+
+                {/* Trash panel */}
+                {showTrash && (
+                    <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', background: 'rgba(255,59,48,0.02)' }}>
+                        {deletedLeads.length === 0 ? (
+                            <div style={{ padding: '14px', textAlign: 'center', fontSize: 11, color: '#AEAEB2', fontFamily: SF }}>הסל ריק</div>
+                        ) : deletedLeads.map(lead => (
+                            <div key={lead._docId} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 8 }} dir="rtl">
+                                <div style={{ flex: 1, textAlign: 'right' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', fontFamily: SF }}>{lead.contactName || '—'}</div>
+                                    <div style={{ fontSize: 10, color: '#AEAEB2', fontFamily: SF }}>{lead.institution || ''}</div>
+                                </div>
+                                <button onClick={() => handleRestoreLead(lead)}
+                                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(52,199,89,0.1)', color: '#34C759', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>שחזר</button>
+                                <button onClick={() => handleHardDeleteLead(lead)}
+                                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>מחק</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* ── RIGHT PANEL ──────────────────────────────────────────────── */}
@@ -749,6 +828,21 @@ export default function AdminCommunications() {
                                 {newCount} לידים חדשים · {unreadCount} הודעות שלא נקראו · סה״כ {leads.length} לידים
                             </p>
                         </div>
+
+                        {/* #6 Stale leads banner */}
+                        {staleCount > 0 && (
+                            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderRadius: 16, marginBottom: 20, background: 'rgba(255,149,0,0.08)', border: '1.5px solid rgba(255,149,0,0.22)', fontFamily: SF }}>
+                                <button onClick={() => setShowStaleOnly(v => !v)}
+                                    style={{ padding: '7px 16px', borderRadius: 99, border: 'none', background: showStaleOnly ? '#FF9500' : 'rgba(255,149,0,0.15)', color: showStaleOnly ? '#fff' : '#FF9500', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: SF, flexShrink: 0, transition: 'all 0.15s' }}>
+                                    {showStaleOnly ? 'הצג הכל' : 'צפה בהם'}
+                                </button>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: 14, fontWeight: 800, color: '#FF9500', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={15} style={{ flexShrink: 0 }} />{staleCount} לידים ממתינים לטיפול מעל {STALE_DAYS} ימים</p>
+                                    <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontFamily: SF }}>לידים בסטטוס "חדש" או "ביצירת קשר" שלא עודכנו</p>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Pipeline */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10, marginBottom: 24 }}>
@@ -829,12 +923,18 @@ export default function AdminCommunications() {
                     /* ── Lead detail ── */
                     <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-                        {/* Back */}
-                        <button onClick={() => setSelected(null)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 700, fontFamily: SF, cursor: 'pointer', padding: 0, alignSelf: 'flex-end' }}>
-                            כל הלידים
-                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                        </button>
+                        {/* Back + Delete */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <button onClick={() => handleDeleteLead(selected)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 13px', borderRadius: 10, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: SF }}>
+                                <Trash2 size={13} />מחק
+                            </button>
+                            <button onClick={() => setSelected(null)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 700, fontFamily: SF, cursor: 'pointer', padding: 0 }}>
+                                כל הלידים
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </div>
 
                         <LeadHero lead={selected} onStatusChange={updated => setSelected(updated)} />
 
@@ -916,18 +1016,18 @@ export default function AdminCommunications() {
                                             return (
                                                 <div key={tpl.id} style={{ display: 'flex', alignItems: 'center' }}>
                                                     <button onClick={() => { setActiveTpl(tpl); setEditingTpl(null); setAddingTpl(false); }}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', fontSize: 12, fontWeight: 700, fontFamily: SF, cursor: 'pointer', transition: 'all 0.15s', borderRadius: '99px 0 0 99px', border: `1.5px solid ${isActiveTpl ? '#007AFF' : isRec ? 'rgba(0,122,255,0.3)' : 'rgba(0,0,0,0.10)'}`, borderLeft: 'none', background: isActiveTpl ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.9)', color: isActiveTpl ? '#007AFF' : '#374151' }}>
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', fontSize: 12, fontWeight: 700, fontFamily: SF, cursor: 'pointer', transition: 'all 0.15s', borderRadius: '99px 0 0 99px', border: `1.5px solid ${isActiveTpl ? '#007AFF' : isRec ? 'rgba(0,122,255,0.3)' : 'rgba(0,0,0,0.10)'}`, borderLeft: 'none', background: isActiveTpl ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', color: isActiveTpl ? '#007AFF' : '#374151' }}>
                                                         {isRec && <Zap size={11} color="#007AFF" strokeWidth={2.5} />}
                                                         {tpl.name}
                                                     </button>
                                                     <button onClick={() => { setEditingTpl(tpl); setAddingTpl(false); }} title="ערוך"
-                                                        style={{ width: 28, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${isActiveTpl ? '#007AFF' : 'rgba(0,0,0,0.10)'}`, borderLeft: 'none', borderRight: 'none', background: 'rgba(255,255,255,0.9)', cursor: 'pointer' }}>
+                                                        style={{ width: 28, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${isActiveTpl ? '#007AFF' : 'rgba(0,0,0,0.10)'}`, borderLeft: 'none', borderRight: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', cursor: 'pointer' }}>
                                                         <Edit2 size={11} color="#AEAEB2" strokeWidth={2} />
                                                     </button>
                                                     <button onClick={() => deleteTpl(tpl.id)} title="מחק"
-                                                        style={{ width: 28, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0 99px 99px 0', border: `1.5px solid ${isActiveTpl ? '#007AFF' : 'rgba(0,0,0,0.10)'}`, background: 'rgba(255,255,255,0.9)', cursor: 'pointer', color: '#AEAEB2' }}
+                                                        style={{ width: 28, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0 99px 99px 0', border: `1.5px solid ${isActiveTpl ? '#007AFF' : 'rgba(0,0,0,0.10)'}`, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', cursor: 'pointer', color: '#AEAEB2' }}
                                                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.06)'; e.currentTarget.style.color = '#FF3B30'; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.9)'; e.currentTarget.style.color = '#AEAEB2'; }}>
+                                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.78)'; e.currentTarget.style.color = '#AEAEB2'; }}>
                                                         <Trash2 size={11} strokeWidth={2} />
                                                     </button>
                                                 </div>
@@ -999,7 +1099,7 @@ export default function AdminCommunications() {
                                             ) : (
                                                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={sendEmail}
                                                     disabled={!customMsg || !selected?.email}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#2563EB,#1D4ED8)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(37,99,235,0.38)', transition: 'all 0.2s' }}>
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(0,122,255,0.38)', transition: 'all 0.2s' }}>
                                                     <Mail size={15} strokeWidth={2} />
                                                     שלח מייל
                                                 </motion.button>

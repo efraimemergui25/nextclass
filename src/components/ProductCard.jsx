@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -78,10 +78,18 @@ const ProductCard = ({ product }) => {
  }
  }, [displaySrc]);
 
+ const navigate = useNavigate();
  const { addToCompare, removeFromCompare, isSelected } = useCompare();
  const { cartItems, addToCart, removeFromCart } = useCart();
  const { toggleWishlist, isInWishlist } = useWishlist();
  const { state: popState, trigger } = useCartPop();
+
+ const handleQuoteClick = useCallback((e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // Navigate to contact with product pre-selected via query params
+  navigate(`/contact?product=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}`);
+ }, [navigate, title, category]);
 
  // ─── Spatial tilt motion values ───────────────────────────────────────────
  const cardRef = useRef(null);
@@ -433,7 +441,7 @@ const ProductCard = ({ product }) => {
  </Link>
  )}
  {/* Trust micro-line */}
- <p className="text-center text-[10px] text-[#AEAEB2] font-medium mt-2.5 ">
+ <p className="text-center text-[10px] text-[#AEAEB2] font-medium mt-2.5">
  שירות מקצועי · ייעוץ ללא עלות · רמה ללא פשרות
  </p>
  </div>

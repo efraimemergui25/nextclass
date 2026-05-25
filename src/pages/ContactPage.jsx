@@ -5,6 +5,7 @@ import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useSearchParams } from 'react-router-dom';
 
 // Controlled floating label input
 const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, onChange }) => {
@@ -56,6 +57,7 @@ const FloatingInput = ({ label, id, type = 'text', isTextArea = false, value, on
 
 const ContactPage = () => {
  const { getSetting } = useSettings();
+ const [searchParams] = useSearchParams();
  const [isSubmitted, setIsSubmitted] = useState(false);
  const [currentTime, setCurrentTime] = useState('');
 
@@ -84,13 +86,18 @@ const ContactPage = () => {
  formBtn: getSetting('contact_form_btn', 'שלח פנייה'),
  }), [getSetting]);
 
+ // Pre-fill from product query param (from "קבלו הצעה" button in product cards)
+ const preProduct = searchParams.get('product') || '';
+ const preCategory = searchParams.get('category') || '';
+ const preMsg = preProduct ? `אני מעוניין בהצעת מחיר עבור: ${preProduct}${preCategory ? ` (${preCategory})` : ''}` : '';
+
  // Controlled form state
  const [formData, setFormData] = useState({
  name: '',
  inst: '',
  email: '',
  phone: '',
- msg: '',
+ msg: preMsg,
  });
  const [selectedTopics, setSelectedTopics] = useState([]);
  const [instSize, setInstSize] = useState('');
@@ -135,6 +142,8 @@ const ContactPage = () => {
  setSubmitError('');
  try {
  await setDoc(doc(db, 'contacts', id), contact);
+ // Also write to quotes for admin visibility
+ await setDoc(doc(db, 'quotes', id), { ...contact, source: 'contact_form', thread: [] }).catch(() => {});
  } catch {
  // Firestore unavailable — store locally as fallback
  let savedLocally = false;

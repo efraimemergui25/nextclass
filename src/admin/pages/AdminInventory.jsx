@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2 } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, InfoTooltip } from '../components/AdminComponents';
@@ -16,9 +16,11 @@ const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 
 // ─── Shared glass ─────────────────────────────────────────────────────────────
 const glass = {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid rgba(255,255,255,0.75)',
-    boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
 };
 
 // ─── Stock bar ────────────────────────────────────────────────────────────────
@@ -62,10 +64,10 @@ function EditStockInput({ value, onSave, onCancel }) {
     const [v, setV] = useState(String(value));
     return (
         <div className="flex items-center gap-2">
-            <button type="button" onClick={onCancel} className="text-[#AEAEB2] hover:text-[#FF3B30] text-sm transition-colors">✕</button>
-            <button type="button" onClick={() => onSave(Number(v))} className="text-[#34C759] hover:text-[#1A8C40] text-sm transition-colors">✓</button>
+            <button type="button" onClick={onCancel} className="text-[#AEAEB2] hover:text-[#FF3B30] text-sm transition-colors"><X size={14} /></button>
+            <button type="button" onClick={() => onSave(Number(v))} className="text-[#34C759] hover:text-[#1A8C40] text-sm transition-colors"><Check size={14} /></button>
             <input type="number" value={v} onChange={e => setV(e.target.value)} autoFocus
-                className="w-16 rounded-lg px-2 py-1 text-xs text-[#1D1D1F] text-center outline-none"
+                className="w-20 sm:w-16 rounded-lg px-2 py-1 text-xs text-[#1D1D1F] text-center outline-none"
                 style={{ border: '1px solid rgba(0,122,255,0.40)', background: 'rgba(0,122,255,0.04)' }}
             />
         </div>
@@ -100,7 +102,7 @@ function StockCard({ label, value, color, Icon, tooltip }) {
 }
 
 export default function AdminInventory() {
-    const { inventory, updateStock, updateProductDetails } = useAdminData();
+    const { inventory, updateStock, updateProductDetails, deleteProduct } = useAdminData();
     const { showToast } = useAdminToast();
     const [searchParams] = useSearchParams();
     const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -114,6 +116,17 @@ export default function AdminInventory() {
         const query = searchParams.get('search');
         if (query) setSearch(query);
     }, [searchParams]);
+
+    // Auto-open product when ?open= param is present
+    useEffect(() => {
+        const openTitle = searchParams.get('open');
+        if (!openTitle || !inventory.length) return;
+        const decoded = decodeURIComponent(openTitle).toLowerCase();
+        const match = inventory.find(p =>
+            p.title?.toLowerCase() === decoded || p.id === openTitle
+        );
+        if (match) setSelectedProduct(match);
+    }, [searchParams, inventory]);
 
     const enterBulkMode = () => {
         const draft = {};
@@ -204,7 +217,7 @@ export default function AdminInventory() {
             <div className="space-y-3 mt-4">
                 {/* Header */}
                 {filtered.length > 0 && (
-                    <div className="hidden lg:grid grid-cols-[auto_1fr_200px_80px_auto] gap-4 px-6 py-2 text-right">
+                    <div className="hidden lg:grid grid-cols-[auto_1fr_120px_60px_auto] gap-4 px-6 py-2 text-right">
                         {['', 'מוצר', 'מלאי', 'סף', bulkMode ? 'יחידות חדשות' : 'עדכון'].map((h, i) => (
                             <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
                         ))}
@@ -221,7 +234,7 @@ export default function AdminInventory() {
                             exit={{ opacity: 0, scale: 0.98 }}
                             transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => setSelectedProduct(product)}
-                            className="grid grid-cols-[auto_1fr_200px_80px_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                            className="grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_120px_60px_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
                         >
                             {/* Thumbnail */}
                             <div className="w-12 h-12 rounded-[14px] overflow-hidden shrink-0 bg-[#F5F5F7]">
@@ -284,14 +297,30 @@ export default function AdminInventory() {
                                     onCancel={(e) => { e.stopPropagation(); setEditingId(null); }}
                                 />
                             ) : (
-                                <motion.button
-                                    type="button"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={(e) => { e.stopPropagation(); setEditingId(product.id); }}
-                                    className="text-xs font-black px-4 py-2 rounded-xl transition-all bg-black/04 text-[#1D1D1F] hover:bg-[#007AFF] hover:text-white hover:shadow-lg">
-                                    עדכן
-                                </motion.button>
+                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                    <motion.button
+                                        type="button"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={(e) => { e.stopPropagation(); setEditingId(product.id); }}
+                                        className="text-xs font-black px-4 py-2 rounded-xl transition-all bg-black/04 text-[#1D1D1F] hover:bg-[#007AFF] hover:text-white hover:shadow-lg">
+                                        עדכן
+                                    </motion.button>
+                                    <motion.button
+                                        type="button"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm(`למחוק את "${product.title}" לצמיתות?`)) {
+                                                deleteProduct(product.id);
+                                                showToast('המוצר נמחק', 'warning');
+                                            }
+                                        }}
+                                        className="w-8 h-8 flex items-center justify-center rounded-xl transition-all text-[#AEAEB2] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30]">
+                                        <Trash2 size={13} />
+                                    </motion.button>
+                                </div>
                             )}
                         </motion.div>
                     ))}
@@ -346,7 +375,8 @@ function ProductModal({ product, onClose, onSave }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 16 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl overflow-hidden"
+                className="relative w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}
                 dir="rtl"
             >
                 {/* Header */}
@@ -363,7 +393,7 @@ function ProductModal({ product, onClose, onSave }) {
                     </div>
                     <button onClick={onClose}
                         className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA] transition-colors text-sm">
-                        ✕
+                        <X size={14} />
                     </button>
                 </div>
 

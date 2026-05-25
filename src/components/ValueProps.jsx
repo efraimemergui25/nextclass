@@ -75,7 +75,7 @@ const ValueProps = () => {
  };
 
  return (
- <section className="bg-brand-light py-24 w-full border-t border-gray-200/50 relative overflow-hidden">
+ <section className="bg-brand-light pt-10 pb-14 w-full border-t border-gray-200/50 relative overflow-hidden">
  {/* Ambient background orbs */}
  <div className="absolute top-0 left-1/4 w-[600px] h-[400px] rounded-full opacity-30 pointer-events-none"
  style={{ background: 'radial-gradient(circle, rgba(0,122,255,0.12) 0%, transparent 70%)', filter: 'blur(60px)' }} />

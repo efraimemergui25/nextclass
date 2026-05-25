@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { motion, useInView } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
@@ -9,6 +9,7 @@ import ShoppableImage from '../components/ShoppableImage';
 import EcosystemVisualizer from '../components/EcosystemVisualizer';
 import ValueProps from '../components/ValueProps';
 import QuoteWizard from '../components/QuoteWizard';
+import TestimonialsSection from '../components/TestimonialsSection';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -20,28 +21,35 @@ const SECTION_DEFS = [
  { key: 'vis_value_props', Component: ValueProps, delay: 0.04 },
  { key: 'vis_ecosystem', Component: EcosystemVisualizer, delay: 0.05 },
  { key: 'vis_shoppable', Component: ShoppableImage, delay: 0.04 },
+ { key: 'vis_testimonials', Component: TestimonialsSection, delay: 0.04 },
  { key: 'vis_quote_wizard', Component: QuoteWizard, delay: 0.04 },
 ];
 
-function ScrollReveal({ children, delay = 0, distance = 28 }) {
+const REVEAL_TRANSITION = { duration: 0.6, ease: [0.22, 1, 0.36, 1] };
+const REVEAL_HIDDEN     = { opacity: 0, y: 24 };
+const REVEAL_VISIBLE    = { opacity: 1, y: 0 };
+
+function ScrollReveal({ children, delay = 0, distance = 24 }) {
  const ref = useRef(null);
- const inView = useInView(ref, { once: true, margin: '-12% 0px' });
+ const inView = useInView(ref, { once: true, margin: '-10% 0px' });
  return (
   <motion.div
    ref={ref}
-   initial={{ opacity: 0, y: distance, filter: 'blur(8px)' }}
-   animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-   transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1], delay }}
+   initial={REVEAL_HIDDEN}
+   animate={inView ? REVEAL_VISIBLE : REVEAL_HIDDEN}
+   transition={{ ...REVEAL_TRANSITION, delay }}
   >
    {children}
   </motion.div>
  );
 }
 
-
 const LandingPage = () => {
  const { isVisible } = useSettings();
- const visibleSections = SECTION_DEFS.filter(s => isVisible(s.key, true));
+ const visibleSections = useMemo(
+   () => SECTION_DEFS.filter(s => isVisible(s.key, true)),
+   [isVisible]
+ );
 
  return (
  <PageTransition>

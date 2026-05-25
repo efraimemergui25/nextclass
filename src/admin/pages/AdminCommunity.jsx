@@ -48,9 +48,11 @@ function StatCard({ label, value, icon: Icon, color, sub }) {
             animate={{ opacity: 1, y: 0 }}
             className="relative overflow-hidden rounded-[20px] p-5"
             style={{
-                background: 'rgba(255,255,255,0.75)',
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                 border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: `0 4px 24px rgba(0,0,0,0.04), 0 1px 0 rgba(255,255,255,0.9) inset`,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
             }}
         >
             <div className="absolute inset-0 pointer-events-none rounded-[20px]"
@@ -190,8 +192,10 @@ export default function AdminCommunity() {
 
     const panelStyle = {
         background: 'rgba(255,255,255,0.78)',
+        backdropFilter: 'blur(24px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
         border: '1px solid rgba(255,255,255,0.72)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.05), 0 1px 0 rgba(255,255,255,0.9) inset',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
     };
 
     return (
@@ -519,9 +523,11 @@ export default function AdminCommunity() {
                             onClick={e => e.stopPropagation()}
                             className="rounded-[26px] p-7 max-w-sm w-full mx-4 text-right"
                             style={{
-                                background: 'rgba(255,255,255,0.95)',
-                                boxShadow: '0 32px 80px rgba(0,0,0,0.18)',
-                                border: '1px solid rgba(255,255,255,0.8)',
+                                background: 'rgba(255,255,255,0.92)',
+                                backdropFilter: 'blur(32px) saturate(200%)',
+                                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+                                border: '1px solid rgba(255,255,255,0.80)',
+                                boxShadow: '0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.95)',
                             }}
                         >
                             <div className="w-12 h-12 rounded-2xl bg-[#FF3B30]/10 flex items-center justify-center mb-4 mr-auto ml-0">

@@ -198,26 +198,31 @@ export default function CheckoutPage() {
  adminNotes: [],
  history: [{ status: 'חדש', date: now.toLocaleDateString('he-IL'), time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) }],
  };
- const batch = writeBatch(db);
- batch.set(doc(db, 'quotes', id), quote);
- // Reserve stock for each item
- (cartItems ?? []).forEach(item => {
-   const qty = Number(item.qty) || 1;
-   batch.update(doc(db, 'products', String(item.id)), { reserved: increment(qty) });
- });
- await batch.commit();
+ // Save quote doc — this is the critical write
+ await setDoc(doc(db, 'quotes', id), quote);
+
+ // Best-effort stock reservation — failure does NOT block success
+ try {
+   const batch = writeBatch(db);
+   (cartItems ?? []).forEach(item => {
+     const qty = Number(item.qty) || 1;
+     batch.set(doc(db, 'products', String(item.id)), { reserved: increment(qty) }, { merge: true });
+   });
+   await batch.commit();
+ } catch (_) { /* non-critical */ }
+
  trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
 
  // Fire-and-forget: push to HubSpot CRM + send confirmation email
  fetch('/api/crm', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ quote }),
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ quote }),
  }).catch(() => {});
  fetch('/api/send-quote-email', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ quote }),
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ quote }),
  }).catch(() => {});
 
  setQuoteId(id);
@@ -225,7 +230,8 @@ export default function CheckoutPage() {
  clearCart();
  setSubmitted(true);
  } catch (err) {
- console.error(err);
+ console.error('[checkout] submit failed:', err);
+ setErrors({ _global: 'אירעה שגיאה בשליחה. נסו שנית או פנו אלינו בוואטסאפ.' });
  } finally {
  setSubmitting(false);
  }
@@ -733,6 +739,11 @@ export default function CheckoutPage() {
  </motion.button>
  )}
  </div>
+ {errors._global && (
+   <p className="text-center text-[13px] font-bold text-[#FF3B30] mt-3 bg-[#FF3B3010] rounded-2xl px-4 py-3">
+     {errors._global}
+   </p>
+ )}
  </div>
  </div>
 

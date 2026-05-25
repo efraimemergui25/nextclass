@@ -11,7 +11,7 @@ import {
 } from '../components/AdminComponents';
 import {
     Eye, Layout, Type, Image as ImageIcon, Search, Menu,
-    ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw,
+    ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw, Check,
     ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X,
     Palette, Navigation, Award, Layers, LayoutGrid, UserCircle, Package,
     Ruler, Shield, Headphones, HelpCircle, Info, Clock, Phone, Compass,
@@ -729,6 +729,47 @@ const FIELD_SECTIONS = [
             { key: 'about_story_body',     label: 'הסיפור שלנו — טקסט',        type: 'textarea', default: 'NextClass נולד מתוך הבנה עמוקה של צרכי מוסדות החינוך בישראל.' },
         ],
     },
+    {
+        id: 'testimonials_section',
+        label: 'עדויות לקוחות (Testimonials)',
+        icon: '💬',
+        accent: '#007AFF',
+        fields: [
+            // ── Header ──────────────────────────────────────────────────────────
+            { key: 'tst_eyebrow',      label: 'תווית Badge עליונה',  type: 'text',     default: 'לקוחות מספרים' },
+            { key: 'tst_header_title', label: 'כותרת הסקציה',        type: 'text',     default: '800+ מוסדות חינוך בחרו בנו' },
+            { key: 'tst_header_desc',  label: 'תיאור הסקציה',        type: 'textarea', default: 'מבתי ספר יסודיים ועד אוניברסיטאות — שותפות ארוכת טווח בכל שלב.' },
+            // ── Stats bar ───────────────────────────────────────────────────────
+            { key: 'tst_stat1_val',    label: 'סטטיסטיקה 1: ערך',   type: 'text',     default: 'ייעוץ חינם' },
+            { key: 'tst_stat1_lbl',    label: 'סטטיסטיקה 1: תווית', type: 'text',     default: 'ללא התחייבות' },
+            { key: 'tst_stat2_val',    label: 'סטטיסטיקה 2: ערך',   type: 'text',     default: '24 שעות' },
+            { key: 'tst_stat2_lbl',    label: 'סטטיסטיקה 2: תווית', type: 'text',     default: 'מענה להצעת מחיר' },
+            { key: 'tst_stat3_val',    label: 'סטטיסטיקה 3: ערך',   type: 'text',     default: 'איכות גבוהה' },
+            { key: 'tst_stat3_lbl',    label: 'סטטיסטיקה 3: תווית', type: 'text',     default: 'הציוד המתקדם ביותר' },
+            { key: 'tst_stat4_val',    label: 'סטטיסטיקה 4: ערך',   type: 'text',     default: 'מחירי יבואן' },
+            { key: 'tst_stat4_lbl',    label: 'סטטיסטיקה 4: תווית', type: 'text',     default: 'ישירות ללא מתווכים' },
+            // ── Testimonial 1 ───────────────────────────────────────────────────
+            { key: 'tst_1_quote',  label: 'עדות 1: ציטוט',   type: 'textarea', default: 'מאז שהתקנו את המסכים האינטראקטיביים של NextClass, רמת המעורבות של התלמידים עלתה פלאים. המורים מתלהבים, ההורים מדברים על זה — ואנחנו רואים תוצאות.' },
+            { key: 'tst_1_name',   label: 'עדות 1: שם',      type: 'text',     default: 'רחל לוי' },
+            { key: 'tst_1_role',   label: 'עדות 1: תפקיד',   type: 'text',     default: 'מנהלת בית ספר יסודי' },
+            { key: 'tst_1_school', label: 'עדות 1: מוסד',    type: 'text',     default: 'בית ספר "אורות" – תל אביב' },
+            // ── Testimonial 2 ───────────────────────────────────────────────────
+            { key: 'tst_2_quote',  label: 'עדות 2: ציטוט',   type: 'textarea', default: 'ביצענו מכרז ו-NextClass לא רק ניצחו במחיר — הם ניצחו בשירות. הייתה נוכחות אישית, ליווי מקצועי, ועמידה בכל לוחות הזמנים. נדיר.' },
+            { key: 'tst_2_name',   label: 'עדות 2: שם',      type: 'text',     default: 'מנחם כהן' },
+            { key: 'tst_2_role',   label: 'עדות 2: תפקיד',   type: 'text',     default: 'מנהל רכש עיריית רמת גן' },
+            { key: 'tst_2_school', label: 'עדות 2: מוסד',    type: 'text',     default: 'עיריית רמת גן' },
+            // ── Testimonial 3 ───────────────────────────────────────────────────
+            { key: 'tst_3_quote',  label: 'עדות 3: ציטוט',   type: 'textarea', default: 'הקמנו מעבדת STEM שלמה תוך שלושה שבועות. הצוות של NextClass הגיע לאתר, הדריך את המורים, ועד היום זמין לכל שאלה. שותפות אמיתית.' },
+            { key: 'tst_3_name',   label: 'עדות 3: שם',      type: 'text',     default: 'ד"ר יוסי אברהם' },
+            { key: 'tst_3_role',   label: 'עדות 3: תפקיד',   type: 'text',     default: 'סמנכ"ל אקדמי' },
+            { key: 'tst_3_school', label: 'עדות 3: מוסד',    type: 'text',     default: 'מכללת צפת' },
+            // ── Testimonial 4 ───────────────────────────────────────────────────
+            { key: 'tst_4_quote',  label: 'עדות 4: ציטוט',   type: 'textarea', default: 'פיתרון מקצה לקצה — ממצגת מכירות ועד ההתקנה האחרונה בכיתה. אין ספק שנמשיך לעבוד עם NextClass בכל פרויקט עתידי של הרשת.' },
+            { key: 'tst_4_name',   label: 'עדות 4: שם',      type: 'text',     default: 'שרית מזרחי' },
+            { key: 'tst_4_role',   label: 'עדות 4: תפקיד',   type: 'text',     default: 'מנהלת פדגוגית' },
+            { key: 'tst_4_school', label: 'עדות 4: מוסד',    type: 'text',     default: 'רשת אורט ישראל' },
+        ],
+    },
 ];
 
 // ─── Top-Level Nav Groups (5 clean sections) ──────────────────────────────────
@@ -740,7 +781,7 @@ const SECTION_GROUPS = [
         accent: '#007AFF',
         subGroups: [
             { label: 'מסך ראשי (מעל הקפל)', sections: ['hero'] },
-            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp'] },
+            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp', 'testimonials_section'] },
             { label: 'ויטרינת מוצרים', sections: ['feature_tiles', 'shoppable_image', 'home_discover_products'] },
             { label: 'המרה וייעוץ', sections: ['quote_wizard', 'expert_consultation'] },
         ],
@@ -809,7 +850,7 @@ const DESKTOP_GROUPS = [
         id: 'dg_home', label: 'דף הבית', accent: '#007AFF',
         subGroups: [
             { label: 'מסך ראשי (מעל הקפל)', sections: ['hero'] },
-            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp'] },
+            { label: 'אמון ושותפות', sections: ['homepage_sections', 'homepage_vp', 'testimonials_section'] },
             { label: 'ויטרינת מוצרים', sections: ['feature_tiles', 'shoppable_image', 'home_discover_products'] },
             { label: 'המרה וייעוץ', sections: ['quote_wizard', 'expert_consultation'] },
         ],
@@ -997,6 +1038,7 @@ const SECTION_ICON_COMPONENTS = {
     quote_wizard:           <FileText size={13} />,
     expert_consultation:    <UserCircle size={13} />,
     home_discover_products: <Search size={13} />,
+    testimonials_section:   <Star size={13} />,
     catalog_full:           <List size={13} />,
     search_section:         <Search size={13} />,
     product_detail:         <Package size={13} />,
@@ -1035,6 +1077,7 @@ const SECTION_LOCATIONS = {
     quote_wizard:           'דף הבית',
     expert_consultation:    'דף הבית',
     home_discover_products: 'דף הבית',
+    testimonials_section:   'דף הבית',
     catalog_full:           'קטלוג',
     search_section:         'קטלוג',
     product_detail:         'דף מוצר',
@@ -1207,7 +1250,7 @@ const VisibilitySection = ({ content, onChange }) => (
     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {VISIBILITY_ITEMS.map(item => (
             <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border transition-all"
-                style={{ background: 'rgba(255,255,255,0.70)', borderColor: 'rgba(0,0,0,0.06)' }}>
+                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
                         <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
@@ -1267,8 +1310,8 @@ const NavMenuManager = ({ showToast }) => {
             <div className="space-y-2">
                 {items.map((item) => (
                     <div key={item.id}
-                        style={{ opacity: item.visible === false ? 0.45 : 1 }}
-                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:border-[#007AFF]/30 transition-colors">
+                        className="flex items-center gap-4 p-4 rounded-2xl border group hover:border-[#007AFF]/30 transition-colors"
+                        style={{ opacity: item.visible === false ? 0.45 : 1, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
                         <div className="flex-1 text-right">
                             <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
@@ -1332,8 +1375,8 @@ const MobileMenuManager = ({ showToast }) => {
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
-                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none' }}
-                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#34C759]/40 transition-colors select-none">
+                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#34C759]/40 transition-colors select-none"
+                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#34C759] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
@@ -1403,8 +1446,8 @@ const SidebarSectionManager = ({ showToast }) => {
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
-                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none' }}
-                        className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing group hover:border-[#5856D6]/30 transition-colors select-none">
+                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#5856D6]/30 transition-colors select-none"
+                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5856D6] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
@@ -1435,7 +1478,8 @@ const VideosSection = ({ showToast }) => {
         <div className="p-6">
             <div className="grid grid-cols-1 gap-3">
                 {videos.map(v => (
-                    <div key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <div key={v.id} className="flex items-center justify-between p-3 rounded-xl border"
+                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="flex items-center gap-4">
                             <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg" alt="" />
                             <div className="text-right"><p className="text-sm font-bold">{v.title}</p><p className="text-[10px] text-gray-400">{v.category} • {v.duration}</p></div>
@@ -1497,7 +1541,8 @@ const StaticArticlesSection = ({ firestoreArticles, showToast }) => {
                         const c = getCatColor(article.category);
                         return (
                             <div key={article.id}
-                                className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-[#FAFAFA] text-right">
+                                className="flex items-center gap-3 p-3 rounded-2xl border text-right"
+                                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                                 <button
                                     onClick={() => handleImport(article)}
                                     disabled={importing === article.id}
@@ -1597,7 +1642,8 @@ const MagazineSection = ({ showToast }) => {
                 {articles.map(a => (
                     <motion.div key={a.id}
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
-                        className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white hover:border-[#007AFF]/20 transition-colors group">
+                        className="flex items-center gap-3 p-3 rounded-2xl border hover:border-[#007AFF]/20 transition-colors group"
+                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         {a.image && (
                             <img src={a.image} alt="" className="w-14 h-10 object-cover rounded-lg shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
                         )}
@@ -1690,10 +1736,13 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                         style={{
                             background: isActive
                                 ? `linear-gradient(135deg, ${group.accent} 0%, ${group.accent}CC 100%)`
-                                : 'rgba(255,255,255,0.85)',
+                                : 'rgba(255,255,255,0.78)',
+                            backdropFilter: 'blur(24px) saturate(200%)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                             boxShadow: isActive
                                 ? `0 8px 24px ${group.accent}35, 0 0 0 1px ${group.accent}20`
-                                : '0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                                : '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+                            border: isActive ? 'none' : '1px solid rgba(255,255,255,0.72)',
                         }}
                     >
                         {isActive && (
@@ -1753,10 +1802,12 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
         <div
             className="rounded-2xl overflow-hidden transition-all duration-200"
             style={{
-                background: isOpen ? '#ffffff' : 'rgba(255,255,255,0.72)',
-                border: `1px solid ${isOpen ? sec.accent + '28' : 'rgba(0,0,0,0.06)'}`,
+                background: isOpen ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.72)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: `1px solid ${isOpen ? sec.accent + '28' : 'rgba(255,255,255,0.72)'}`,
                 boxShadow: isOpen
-                    ? `0 4px 24px rgba(0,0,0,0.07), 0 0 0 1px ${sec.accent}12`
+                    ? `0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1px ${sec.accent}12`
                     : '0 1px 3px rgba(0,0,0,0.04)',
             }}
         >
@@ -1930,7 +1981,7 @@ function UsersSection() {
                         const tier   = u.memberTier || 'free';
                         const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
                         return (
-                            <div key={u.uid} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#F2F2F7] transition-colors" style={{ border: '1px solid #F2F2F7' }}>
+                            <div key={u.uid} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#007AFF]/[0.04] transition-colors" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                                 {/* Avatar */}
                                 <div style={{ width: 38, height: 38, borderRadius: 99, background: `linear-gradient(135deg, ${config.color}, ${config.color}88)`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <span style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{(u.displayName || u.email || '?')[0].toUpperCase()}</span>
@@ -2370,7 +2421,7 @@ export default function AdminContent({ showToast }) {
                                 }}
                             >
                                 <Save size={14} />
-                                {saved ? '✓ נשמר!' : 'שמור הכל'}
+                                {saved ? <><Check size={14} style={{ display: 'inline', marginLeft: 4 }} /> נשמר!</> : 'שמור הכל'}
                             </motion.button>
                         </div>
                     </div>

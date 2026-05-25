@@ -2,19 +2,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, limit, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where, limit, getDocs } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader } from '../components/AdminComponents';
 import {
     Users, Search, Download, Mail, Building2,
-    Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText
+    Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2
 } from 'lucide-react';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const glass = {
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid rgba(255,255,255,0.75)',
-    boxShadow: '0 4px 28px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
 };
 
 const TIER_CONFIG = {
@@ -71,7 +73,7 @@ function UserAvatar({ user, size = 40 }) {
     return (
         <div style={{
             width: size, height: size, borderRadius: size / 2.5, flexShrink: 0,
-            background: `linear-gradient(135deg, ${color}, ${color}88)`,
+            background: 'linear-gradient(135deg, #007AFF, #5856D6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
             <span style={{ fontSize: size * 0.38, fontWeight: 900, color: '#fff' }}>
@@ -130,7 +132,7 @@ const QUOTE_STATUS = {
 };
 
 // ── User detail modal ─────────────────────────────────────────────────────────
-function UserModal({ user, onClose, onTierChange }) {
+function UserModal({ user, onClose, onTierChange, onDelete }) {
     const { addToast } = useAdminToast();
     const [saving, setSaving]         = useState(false);
     const [userQuotes, setUserQuotes] = useState([]);
@@ -174,9 +176,10 @@ function UserModal({ user, onClose, onTierChange }) {
                 style={{
                     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
                     zIndex: 9901, width: 'min(580px, 95vw)',
-                    background: '#fff', borderRadius: 28, padding: 32,
+                    background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                    border: '1px solid rgba(255,255,255,0.72)', borderRadius: 28, padding: 32,
                     fontFamily: 'Heebo, sans-serif', direction: 'rtl',
-                    boxShadow: '0 32px 80px rgba(0,0,0,0.18)',
+                    boxShadow: '0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.95)',
                     maxHeight: '90vh', overflowY: 'auto',
                 }}>
                 <button onClick={onClose} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 99, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E6E73' }}>
@@ -214,7 +217,7 @@ function UserModal({ user, onClose, onTierChange }) {
                         { label: 'הצטרף',          value: fmtDate(user.createdAt),          icon: Clock },
                         { label: 'כניסה אחרונה',  value: relTime(user.lastLogin),          icon: RefreshCw },
                     ].map(({ label, value, icon: Icon }) => (
-                        <div key={label} style={{ background: '#F5F5F7', borderRadius: 14, padding: '12px 14px' }}>
+                        <div key={label} style={{ background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 14, padding: '12px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                                 <Icon size={12} color="#8E8E93" />
                                 <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
@@ -260,7 +263,7 @@ function UserModal({ user, onClose, onTierChange }) {
 
                     {loadingQ ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {[1, 2].map(i => <div key={i} style={{ height: 52, borderRadius: 12, background: '#F5F5F7', animation: 'pulse 1.4s ease-in-out infinite' }} />)}
+                            {[1, 2].map(i => <div key={i} style={{ height: 52, borderRadius: 12, background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.7)', animation: 'pulse 1.4s ease-in-out infinite' }} />)}
                         </div>
                     ) : userQuotes.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '16px 0', color: '#AEAEB2', fontSize: 13 }}>
@@ -288,7 +291,7 @@ function UserModal({ user, onClose, onTierChange }) {
                                             </div>
                                             {/* Content */}
                                             <div style={{
-                                                flex: 1, background: '#F5F5F7', borderRadius: 12,
+                                                flex: 1, background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12,
                                                 padding: '10px 14px', display: 'flex', alignItems: 'center',
                                                 justifyContent: 'space-between', gap: 8,
                                             }}>
@@ -318,6 +321,31 @@ function UserModal({ user, onClose, onTierChange }) {
                         </div>
                     )}
                 </div>
+
+                {/* Delete user */}
+                <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', paddingTop: 16, marginTop: 8 }}>
+                    <button
+                        onClick={async () => {
+                            if (!window.confirm(`למחוק את המשתמש "${user.displayName || user.email}" לצמיתות? פעולה זו אינה הפיכה.`)) return;
+                            try {
+                                await deleteDoc(doc(db, 'users', user.uid));
+                                addToast('המשתמש נמחק', 'warning');
+                                onDelete(user.uid);
+                                onClose();
+                            } catch { addToast('שגיאה במחיקת המשתמש', 'error'); }
+                        }}
+                        style={{
+                            width: '100%', padding: '10px 0', borderRadius: 12, border: '1px solid rgba(255,59,48,0.25)',
+                            background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            fontFamily: 'Heebo, sans-serif', fontWeight: 800, fontSize: 13, transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.12)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.06)'; }}
+                    >
+                        <Trash2 size={13} /> מחק משתמש לצמיתות
+                    </button>
+                </div>
             </motion.div>
         </>
     );
@@ -332,7 +360,7 @@ function UserRow({ user, index, onClick }) {
             transition={{ delay: index * 0.03 }}
             onClick={onClick}
             style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="hover:bg-[#F5F5F7] transition-colors"
+            className="hover:bg-[#007AFF]/[0.04] transition-colors"
         >
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -402,6 +430,9 @@ export default function AdminUsers() {
         setUsers(prev => prev.map(u => u.uid === uid ? { ...u, memberTier: newTier } : u));
         if (selected?.uid === uid) setSelected(prev => ({ ...prev, memberTier: newTier }));
     };
+    const handleDeleteUser = (uid) => {
+        setUsers(prev => prev.filter(u => u.uid !== uid));
+    };
 
     const filtered = useMemo(() => {
         let list = [...users];
@@ -455,8 +486,9 @@ export default function AdminUsers() {
                         placeholder="חיפוש לפי שם, מייל, מוסד..."
                         style={{
                             width: '100%', height: 38, paddingRight: 34, paddingLeft: 12,
-                            borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)',
-                            background: '#fff', fontFamily: 'Heebo, sans-serif',
+                            borderRadius: 12, border: '1px solid rgba(255,255,255,0.72)',
+                            background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                            fontFamily: 'Heebo, sans-serif',
                             fontSize: 13, color: '#1D1D1F', outline: 'none', direction: 'rtl',
                         }} />
                 </div>
@@ -469,7 +501,8 @@ export default function AdminUsers() {
                     <select key={key} value={value} onChange={e => set(e.target.value)}
                         style={{
                             height: 38, padding: '0 12px', borderRadius: 12,
-                            border: '1px solid rgba(0,0,0,0.1)', background: '#fff',
+                            border: '1px solid rgba(255,255,255,0.72)', background: 'rgba(255,255,255,0.78)',
+                            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
                             fontFamily: 'Heebo, sans-serif', fontSize: 13,
                             color: '#1D1D1F', cursor: 'pointer', outline: 'none',
                         }}>
@@ -486,7 +519,7 @@ export default function AdminUsers() {
                     <div style={{ padding: 48, textAlign: 'center', color: '#8E8E93', fontSize: 14 }}>לא נמצאו משתמשים</div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }} dir="rtl">
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                                     {['משתמש', 'מוסד / תפקיד', 'ספק', 'דרגה', 'הצטרף', 'כניסה אחרונה'].map(h => (
@@ -508,7 +541,7 @@ export default function AdminUsers() {
 
             <AnimatePresence>
                 {selected && (
-                    <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} />
+                    <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} onDelete={handleDeleteUser} />
                 )}
             </AnimatePresence>
         </div>

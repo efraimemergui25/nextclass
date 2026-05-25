@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
     collection, query, orderBy, onSnapshot,
-    doc, updateDoc, addDoc, deleteDoc, serverTimestamp
+    doc, updateDoc, addDoc, deleteDoc, serverTimestamp,
+    arrayUnion
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import {
@@ -16,7 +17,8 @@ import {
     Clock, CheckCircle, AlertTriangle, Send, X, Phone,
     Mail, TrendingUp, ChevronDown, ArrowRight, Factory, Box,
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
-    Copy, Check, Tag, ExternalLink
+    Copy, Check, Tag, ExternalLink, Star, MessageSquare,
+    DollarSign, ChevronRight, Activity, Printer
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -53,7 +55,13 @@ const TABS = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const card = { background: 'rgba(255,255,255,0.88)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' };
+const card = {
+    background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(24px) saturate(200%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+    border: '1px solid rgba(255,255,255,0.72)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+};
 
 function StatusPill({ statusId }) {
     const s = STATUSES.find(s => s.id === statusId) || STATUSES[0];
@@ -81,9 +89,9 @@ function DetailRow({ label, value, action }) {
     if (!value || value === '—') return null;
     return (
         <div className="flex items-center gap-3 py-2 border-b border-black/[0.04] last:border-0">
-            {action && <div className="shrink-0">{action}</div>}
+            <span className="text-[10px] font-black text-[#AEAEB2] tracking-wider shrink-0 w-24 text-right">{label}</span>
             <span className="text-sm text-[#1D1D1F] font-medium flex-1 text-right break-all">{value}</span>
-            <span className="text-[10px] font-black text-[#AEAEB2] tracking-wider shrink-0 w-24 text-left">{label}</span>
+            {action && <div className="shrink-0">{action}</div>}
         </div>
     );
 }
@@ -101,11 +109,91 @@ function EditableField({ label, value, onChange, placeholder, type = 'text' }) {
 
 // ── Order Detail Drawer ───────────────────────────────────────────────────────
 
+// ── Generate PO PDF ───────────────────────────────────────────────────────────
+function generatePO(order, customerOrder, supplier) {
+    const today = new Date().toLocaleDateString('he-IL');
+    const subTotal = parseFloat(order.totalCost) || 0;
+    const vat = (subTotal * 0.17).toFixed(2);
+    const grand = (subTotal * 1.17).toFixed(2);
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>הזמנת רכש — ${order.id}</title><style>
+        *{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,Heebo,Arial,sans-serif;color:#1D1D1F;background:#fff;padding:40px;direction:rtl;text-align:right}
+        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #007AFF}
+        .logo{font-size:28px;font-weight:900;color:#007AFF}.po-num{font-size:13px;color:#86868B;margin-top:4px}
+        .section{margin-bottom:20px}.section-title{font-size:10px;font-weight:800;color:#86868B;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+        .info-block{background:#F5F5F7;border-radius:12px;padding:14px}
+        .info-label{font-size:11px;color:#AEAEB2;font-weight:600;margin-bottom:2px}.info-value{font-size:14px;font-weight:700;color:#1D1D1F}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th{background:#007AFF;color:#fff;padding:10px 14px;font-size:12px;font-weight:800;text-align:right}
+        td{padding:10px 14px;font-size:13px;border-bottom:1px solid #F0F0F0;text-align:right}
+        tr:nth-child(even) td{background:#F9F9FB}
+        .totals{margin-top:16px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+        .total-row{display:flex;gap:20px;font-size:13px}.total-label{color:#86868B;width:120px}.total-val{font-weight:700}
+        .grand{font-size:16px;font-weight:900;color:#007AFF;border-top:2px solid #007AFF;padding-top:8px;margin-top:4px}
+        .footer{margin-top:32px;padding-top:16px;border-top:1px solid #E5E5EA;font-size:11px;color:#AEAEB2;text-align:center}
+        @media print{body{padding:20px}.footer{position:fixed;bottom:0;left:0;right:0}}
+    </style></head><body>
+    <div class="header">
+        <div>
+            <div class="logo">NextClass</div>
+            <div class="po-num">הזמנת רכש מס׳ ${order.id}</div>
+            <div class="po-num">תאריך: ${today}</div>
+        </div>
+        <div style="text-align:right">
+            <div class="info-label">מס׳ ע.מ. רוכש</div>
+            <div class="info-value">514XXXXXX (NextClass)</div>
+        </div>
+    </div>
+    <div class="grid2">
+        <div class="info-block">
+            <div class="section-title">פרטי ספק</div>
+            <div class="info-label">שם</div><div class="info-value">${supplier?.name || '—'}</div>
+            <div style="margin-top:8px"><div class="info-label">איש קשר</div><div class="info-value">${supplier?.contact || '—'}</div></div>
+            <div style="margin-top:8px"><div class="info-label">מס׳ ע.מ. ספק</div><div class="info-value">${supplier?.vatNumber || '—'}</div></div>
+            <div style="margin-top:8px"><div class="info-label">טלפון</div><div class="info-value">${supplier?.phone || '—'}</div></div>
+        </div>
+        <div class="info-block">
+            <div class="section-title">כתובת משלוח</div>
+            <div class="info-value">${customerOrder?.address || customerOrder?.shippingAddress || '—'}</div>
+            <div style="margin-top:8px"><div class="info-label">לקוח</div><div class="info-value">${order.customerName || '—'}</div></div>
+            <div style="margin-top:8px"><div class="info-label">ETA</div><div class="info-value">${order.eta || '—'}</div></div>
+            <div style="margin-top:8px"><div class="info-label">תנאי תשלום</div><div class="info-value">${supplier?.paymentTerms || '—'}</div></div>
+        </div>
+    </div>
+    <table>
+        <thead><tr><th>סה״כ</th><th>מחיר יחידה</th><th>כמות</th><th>תיאור מוצר</th></tr></thead>
+        <tbody>
+            <tr><td>₪${subTotal.toFixed(2)}</td><td>₪${(order.qty ? (subTotal / order.qty).toFixed(2) : subTotal.toFixed(2))}</td><td>${order.qty || 1}</td><td>${order.productTitle || '—'}</td></tr>
+        </tbody>
+    </table>
+    <div class="totals">
+        <div class="total-row"><span class="total-label">סכום לפני מע״מ</span><span class="total-val">₪${subTotal.toFixed(2)}</span></div>
+        <div class="total-row"><span class="total-label">מע״מ 17%</span><span class="total-val">₪${vat}</span></div>
+        <div class="total-row grand"><span class="total-label">סה״כ לתשלום</span><span class="total-val">₪${grand}</span></div>
+    </div>
+    ${order.notes ? `<div class="info-block" style="margin-top:20px"><div class="section-title">הערות</div><div class="info-value">${order.notes}</div></div>` : ''}
+    <div class="footer">NextClass · הזמנת רכש זו הופקה אוטומטית · ${today}</div>
+    <script>window.onload=()=>setTimeout(()=>window.print(),300)</script>
+    </body></html>`);
+    win.document.close();
+}
+
 function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToast }) {
     const [edits, setEdits] = useState({});
     const [saving, setSaving] = useState(false);
     const [advancing, setAdvancing] = useState(false);
     const [copied, setCopied] = useState(null);
+    // #4 Checklist
+    const [checklistOpen, setChecklistOpen] = useState(false);
+    const [checklist, setChecklist] = useState(order.checklistStatus || {});
+    // #8 Supplier rating
+    const [ratingOpen, setRatingOpen] = useState(false);
+    const [ratings, setRatings] = useState({ timing: 3, accuracy: 3, communication: 3, pricing: 3 });
+    const [ratingSaved, setRatingSaved] = useState(false);
+    // #9 Timeline
+    const [timelineOpen, setTimelineOpen] = useState(false);
 
     const customerOrder = customerOrders.find(o => o.id === order.customerOrderId) || {};
     const supplier = suppliers.find(s => s.id === order.supplierId);
@@ -118,11 +206,22 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
     const nextStatusId = NEXT_STATUS[order.status];
     const nextStatusObj = STATUSES.find(s => s.id === nextStatusId);
 
+    // #5 Profit margin
+    const revenue = parseFloat(customerOrder.total) || 0;
+    const cost     = parseFloat(order.totalCost) || 0;
+    const profit   = revenue - cost;
+    const margin   = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : null;
+
     const handleSave = async () => {
         if (!isDirty) return;
         setSaving(true);
         try {
-            await updateDoc(doc(db, 'supplier_orders', order.id), edits);
+            const updates = { ...edits };
+            // #9 Timeline: add status-change event if status is in edits
+            if (edits.status) {
+                updates.timeline = arrayUnion({ action: `סטטוס שונה ל: ${edits.status}`, timestamp: Date.now(), by: 'admin' });
+            }
+            await updateDoc(doc(db, 'supplier_orders', order.id), updates);
             showToast('עודכן בהצלחה', 'success');
             setEdits({});
         } catch { showToast('שגיאה בשמירה', 'error'); }
@@ -133,13 +232,69 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
         if (!nextStatusId) return;
         setAdvancing(true);
         try {
-            await updateDoc(doc(db, 'supplier_orders', order.id), {
+            const updateData = {
                 status: nextStatusId,
                 [`${nextStatusId}At`]: serverTimestamp(),
-            });
-            showToast(`סטטוס עודכן ל: ${nextStatusObj?.label}`, 'success');
+                // #9 Timeline
+                timeline: arrayUnion({ action: `סטטוס שונה ל: ${nextStatusObj?.label}`, timestamp: Date.now(), by: 'admin' }),
+            };
+            await updateDoc(doc(db, 'supplier_orders', order.id), updateData);
+
+            // #7 Status cascade: if advancing to 'shipped', update customer order too
+            if (nextStatusId === 'shipped' && order.customerOrderId) {
+                try {
+                    await updateDoc(doc(db, 'orders', order.customerOrderId), {
+                        status: 'נשלח',
+                        shippedAt: serverTimestamp(),
+                        trackingNumber: order.trackingNumber || '',
+                    });
+                    showToast('סטטוס עודכן ל: נשלח — הלקוח עודכן אוטומטית', 'success');
+                } catch {
+                    showToast(`סטטוס עודכן ל: ${nextStatusObj?.label}`, 'success');
+                }
+            } else {
+                showToast(`סטטוס עודכן ל: ${nextStatusObj?.label}`, 'success');
+            }
         } catch { showToast('שגיאה', 'error'); }
         setAdvancing(false);
+    };
+
+    // #4 Checklist toggle — saves to Firestore immediately
+    const CHECKLIST_STEPS = [
+        { key: 'po_sent',       label: 'PO נשלח לספק' },
+        { key: 'confirmed',     label: 'אישור התקבל מהספק' },
+        { key: 'invoice',       label: 'חשבונית התקבלה' },
+        { key: 'inspected',     label: 'סחורה נבדקה ואושרה' },
+        { key: 'packed',        label: 'ארוז ומוכן למשלוח' },
+        { key: 'customer_notified', label: 'לקוח עודכן' },
+    ];
+    const checklistDone = CHECKLIST_STEPS.filter(s => checklist[s.key]).length;
+
+    const toggleChecklistItem = async (key) => {
+        const newVal = !checklist[key];
+        const updated = { ...checklist, [key]: newVal };
+        setChecklist(updated);
+        try {
+            await updateDoc(doc(db, 'supplier_orders', order.id), { checklistStatus: updated });
+        } catch {}
+    };
+
+    // #8 Supplier rating submit
+    const submitRating = async () => {
+        if (!supplier) return;
+        const avg = ((ratings.timing + ratings.accuracy + ratings.communication + ratings.pricing) / 4).toFixed(1);
+        try {
+            await updateDoc(doc(db, 'suppliers', order.supplierId), {
+                ratings: arrayUnion({
+                    orderId: order.id,
+                    date: new Date().toISOString(),
+                    scores: { ...ratings },
+                    avg: parseFloat(avg),
+                }),
+            });
+            setRatingSaved(true);
+            showToast('דירוג נשמר בהצלחה', 'success');
+        } catch { showToast('שגיאה בשמירת דירוג', 'error'); }
     };
 
     const copyText = (text, key) => {
@@ -147,6 +302,35 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
         setCopied(key);
         setTimeout(() => setCopied(null), 1600);
     };
+
+    // #3 Customer WhatsApp buttons
+    const customerPhone = customerOrder.phone;
+    const customerFirstName = (order.customerName || '').split(' ')[0] || 'לקוח';
+    const buildWaLink = (text) => {
+        if (!customerPhone) return '#';
+        const num = customerPhone.replace(/\D/g, '').replace(/^0/, '');
+        return `https://wa.me/972${num}?text=${encodeURIComponent(text)}`;
+    };
+    const waShortcuts = [
+        {
+            label: 'הזמנה התקבלה',
+            icon: CheckCircle,
+            text: `שלום ${customerFirstName}, הזמנתך מנקסטקלאס התקבלה ועוברת לטיפול! ניצור איתך קשר בקרוב.`,
+            color: '#34C759',
+        },
+        {
+            label: 'יצאה לדרך',
+            icon: Truck,
+            text: `שלום ${customerFirstName}, הזמנתך יצאה לדרך! צפי הגעה: ${order.eta || '—'}. מספר מעקב: ${order.trackingNumber || '—'}`,
+            color: '#007AFF',
+        },
+        {
+            label: 'נמסרה',
+            icon: Package,
+            text: `שלום ${customerFirstName}, הזמנתך נמסרה! תודה שבחרת בנקסטקלאס.`,
+            color: '#5856D6',
+        },
+    ];
 
     return (
         <>
@@ -165,11 +349,11 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                 exit={{ x: '-100%', opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 40 }}
                 className="fixed top-0 left-0 bottom-0 z-[46] flex flex-col"
-                style={{ width: 500, maxWidth: '100vw', background: '#FAFAFA', boxShadow: '6px 0 48px rgba(0,0,0,0.16)' }}
+                style={{ width: 500, maxWidth: '100vw', background: 'rgba(248,248,250,0.96)', backdropFilter: 'blur(32px) saturate(180%)', WebkitBackdropFilter: 'blur(32px) saturate(180%)', boxShadow: '6px 0 48px rgba(0,0,0,0.16)' }}
                 dir="rtl"
             >
                 {/* Header */}
-                <div className="flex items-center gap-3 p-5 border-b border-black/[0.06] bg-white shrink-0">
+                <div className="flex items-center gap-3 p-5 border-b border-black/[0.06] shrink-0" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)' }}>
                     <button onClick={onClose}
                         className="p-2 rounded-xl hover:bg-gray-100 transition-all cursor-pointer shrink-0">
                         <X size={18} className="text-[#86868B]" />
@@ -190,7 +374,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
 
                     {/* Status Timeline */}
-                    <div className="rounded-2xl p-4 bg-white border border-black/[0.06]">
+                    <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-4">מסלול ההזמנה</p>
                         <div className="flex items-start gap-0">
                             {STATUSES.map((s, i) => {
@@ -235,15 +419,16 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                             </motion.button>
                         )}
                         {!nextStatusId && (
-                            <div className="mt-4 py-2 rounded-xl text-[12px] font-bold text-[#34C759] text-center"
+                            <div className="mt-4 py-2 rounded-xl text-[12px] font-bold text-[#34C759] text-center flex items-center justify-center gap-2"
                                 style={{ background: 'rgba(52,199,89,0.08)' }}>
-                                ✓ הזמנה הושלמה
+                                <CheckCircle size={14} style={{ color: '#34C759' }} />
+                                הזמנה הושלמה
                             </div>
                         )}
                     </div>
 
                     {/* Customer Details */}
-                    <div className="rounded-2xl overflow-hidden bg-white border border-black/[0.06]">
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">פרטי לקוח</p>
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,122,255,0.10)' }}>
@@ -283,7 +468,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                     </div>
 
                     {/* Order Items */}
-                    <div className="rounded-2xl overflow-hidden bg-white border border-black/[0.06]">
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">פרטי הזמנה</p>
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,149,0,0.10)' }}>
@@ -304,7 +489,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
 
                     {/* Supplier */}
                     {supplier && (
-                        <div className="rounded-2xl overflow-hidden bg-white border border-black/[0.06]">
+                        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                             <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                                 <p className="text-[12px] font-black text-[#1D1D1F]">{supplier.name}</p>
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(88,86,214,0.10)' }}>
@@ -336,7 +521,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                     )}
 
                     {/* Tracking & Fulfillment — editable */}
-                    <div className="rounded-2xl overflow-hidden bg-white border border-black/[0.06]">
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">מעקב ואספקה</p>
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,159,10,0.10)' }}>
@@ -367,11 +552,208 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                                     placeholder="0"
                                     type="number" />
                             </div>
+
+                            {/* #3 Customer WhatsApp shortcuts */}
+                            {customerPhone && (
+                                <div style={{ paddingTop: 8, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                                    <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.08em', marginBottom: 8, textAlign: 'right' }}>עדכון לקוח מהיר</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                                        {waShortcuts.map((ws, i) => (
+                                            <a key={i} href={buildWaLink(ws.text)} target="_blank" rel="noreferrer"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 99, fontSize: 11, fontWeight: 700, textDecoration: 'none', background: `${ws.color}12`, color: ws.color, border: `1px solid ${ws.color}30`, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+                                                <ws.icon size={11} />
+                                                {ws.label}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
+                    {/* #5 Profit Margin */}
+                    {revenue > 0 && (
+                        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                            <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
+                                <p className="text-[12px] font-black text-[#1D1D1F]">רווחיות</p>
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(52,199,89,0.10)' }}>
+                                    <TrendingUp size={13} style={{ color: '#34C759' }} />
+                                </div>
+                            </div>
+                            <div className="p-4">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                    {[
+                                        { label: 'הכנסה', value: `₪${revenue.toFixed(0)}`, color: '#007AFF' },
+                                        { label: 'עלות ספק', value: cost > 0 ? `₪${cost.toFixed(0)}` : '—', color: '#FF9500' },
+                                        { label: 'רווח גולמי', value: cost > 0 ? `₪${profit.toFixed(0)}` : '—', color: profit >= 0 ? '#34C759' : '#FF3B30' },
+                                        { label: 'מרווח', value: margin !== null && cost > 0 ? `${margin}%` : '—', color: parseFloat(margin) >= 20 ? '#34C759' : parseFloat(margin) >= 0 ? '#FF9500' : '#FF3B30' },
+                                    ].map((m, i) => (
+                                        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', borderRadius: 12, padding: '10px 12px', textAlign: 'right', border: `1px solid ${m.color}18` }}>
+                                            <p style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', marginBottom: 3 }}>{m.label}</p>
+                                            <p style={{ fontSize: 16, fontWeight: 900, color: m.color }}>{m.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                {margin !== null && cost > 0 && (
+                                    <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 12px', borderRadius: 99, background: parseFloat(margin) >= 20 ? 'rgba(52,199,89,0.12)' : parseFloat(margin) >= 0 ? 'rgba(255,149,0,0.12)' : 'rgba(255,59,48,0.12)', color: parseFloat(margin) >= 20 ? '#34C759' : parseFloat(margin) >= 0 ? '#FF9500' : '#FF3B30' }}>
+                                            מרווח {margin}%
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* #4 Fulfillment Checklist */}
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        <button onClick={() => setChecklistOpen(v => !v)} className="w-full px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#007AFF]/[0.04] transition-all">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B' }}>{checklistDone}/6 שלבים</span>
+                                <div style={{ width: 60, height: 4, borderRadius: 99, background: '#F0F0F0', overflow: 'hidden' }}>
+                                    <div style={{ width: `${(checklistDone / 6) * 100}%`, height: '100%', background: checklistDone === 6 ? '#34C759' : '#007AFF', borderRadius: 99, transition: 'width 0.3s' }} />
+                                </div>
+                                <ChevronDown size={13} className="text-[#AEAEB2]" style={{ transform: checklistOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>צ׳קליסט מילוי הזמנה</p>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,122,255,0.10)' }}>
+                                    <CheckCircle size={13} style={{ color: '#007AFF' }} />
+                                </div>
+                            </div>
+                        </button>
+                        <AnimatePresence>
+                            {checklistOpen && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                                    <div className="px-4 pb-4 space-y-2">
+                                        {CHECKLIST_STEPS.map((step, i) => (
+                                            <button key={step.key} onClick={() => toggleChecklistItem(step.key)}
+                                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: checklist[step.key] ? 'rgba(52,199,89,0.07)' : 'rgba(0,0,0,0.02)', border: `1px solid ${checklist[step.key] ? 'rgba(52,199,89,0.2)' : 'rgba(0,0,0,0.06)'}`, cursor: 'pointer', textAlign: 'right', transition: 'all 0.15s' }}>
+                                                <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checklist[step.key] ? '#34C759' : '#C7C7CC'}`, background: checklist[step.key] ? '#34C759' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                                                    {checklist[step.key] && <Check size={11} color="#fff" />}
+                                                </div>
+                                                <span style={{ fontSize: 13, fontWeight: 600, color: checklist[step.key] ? '#34C759' : '#1D1D1F', textDecoration: checklist[step.key] ? 'line-through' : 'none', flex: 1 }}>{step.label}</span>
+                                                <span style={{ fontSize: 10, color: '#AEAEB2' }}>{i + 1}/6</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* #7 Shipped cascade notification (when status is shipped) */}
+                    {order.status === 'shipped' && order.customerOrderId && customerPhone && (
+                        <div style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.2)', borderRadius: 16, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                            <a href={buildWaLink(`שלום ${customerFirstName}, הזמנתך יצאה לדרך! צפי הגעה: ${order.eta || '—'}. מספר מעקב: ${order.trackingNumber || '—'}`)} target="_blank" rel="noreferrer"
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 99, background: 'rgba(37,211,102,0.15)', color: '#1DA851', fontSize: 12, fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(37,211,102,0.3)', cursor: 'pointer', flexShrink: 0 }}>
+                                <MessageSquare size={12} />
+                                שלח ללקוח WhatsApp
+                            </a>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#30D158', textAlign: 'right' }}>הזמנה סומנה כנשלחה — עדכן את הלקוח</p>
+                        </div>
+                    )}
+
+                    {/* #8 Supplier Rating */}
+                    {(order.status === 'shipped' || order.status === 'arrived') && supplier && (
+                        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                            <button onClick={() => setRatingOpen(v => !v)} className="w-full px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#007AFF]/[0.04] transition-all">
+                                <ChevronDown size={13} className="text-[#AEAEB2]" style={{ transform: ratingOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>דרג את הספק</p>
+                                    <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,149,0,0.10)' }}>
+                                        <Star size={13} style={{ color: '#FF9500' }} />
+                                    </div>
+                                </div>
+                            </button>
+                            <AnimatePresence>
+                                {ratingOpen && (
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                                        <div className="px-4 pb-4 space-y-3">
+                                            {[
+                                                { key: 'timing',        label: 'עמידה בזמנים',   Icon: Clock },
+                                                { key: 'accuracy',      label: 'דיוק ההזמנה',    Icon: Package },
+                                                { key: 'communication', label: 'תקשורת',          Icon: MessageSquare },
+                                                { key: 'pricing',       label: 'יציבות מחירים',  Icon: DollarSign },
+                                            ].map(({ key, label, Icon }) => (
+                                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        {[1,2,3,4,5].map(n => (
+                                                            <button key={n} onClick={() => setRatings(r => ({ ...r, [key]: n }))}
+                                                                style={{ width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: n <= ratings[key] ? '#FF9500' : 'rgba(0,0,0,0.06)', transition: 'all 0.12s' }}>
+                                                                <Star size={14} style={{ color: n <= ratings[key] ? '#fff' : '#C7C7CC' }} fill={n <= ratings[key] ? '#fff' : 'none'} />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F', textAlign: 'right', display: 'flex', alignItems: 'center', gap: 5 }}><Icon size={13} style={{ color: '#86868B', flexShrink: 0 }} />{label}</span>
+                                                </div>
+                                            ))}
+                                            {!ratingSaved ? (
+                                                <button onClick={submitRating}
+                                                    style={{ width: '100%', padding: '10px', borderRadius: 14, background: 'linear-gradient(135deg,#FF9500,#FF6B00)', color: '#fff', fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer', marginTop: 4 }}>
+                                                    שמור דירוג
+                                                </button>
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '10px', fontSize: 13, fontWeight: 700, color: '#34C759', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Check size={14} style={{ color: '#34C759' }} />דירוג נשמר — תודה!</div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
+
+                    {/* #9 Activity Timeline */}
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        <button onClick={() => setTimelineOpen(v => !v)} className="w-full px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#007AFF]/[0.04] transition-all">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B' }}>{(order.timeline || []).length} אירועים</span>
+                                <ChevronDown size={13} className="text-[#AEAEB2]" style={{ transform: timelineOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>היסטוריית פעולות</p>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(88,86,214,0.10)' }}>
+                                    <Activity size={13} style={{ color: '#5856D6' }} />
+                                </div>
+                            </div>
+                        </button>
+                        <AnimatePresence>
+                            {timelineOpen && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                                    <div className="px-4 pb-4">
+                                        {(!order.timeline || order.timeline.length === 0) ? (
+                                            <p style={{ fontSize: 12, color: '#AEAEB2', textAlign: 'center', padding: '12px 0' }}>אין אירועים עדיין</p>
+                                        ) : (
+                                            <div style={{ position: 'relative', paddingRight: 16 }}>
+                                                <div style={{ position: 'absolute', right: 7, top: 0, bottom: 0, width: 2, background: 'rgba(88,86,214,0.12)', borderRadius: 99 }} />
+                                                {[...order.timeline].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).map((evt, i) => (
+                                                    <div key={i} style={{ position: 'relative', paddingBottom: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                                        <div style={{ position: 'absolute', right: -9, top: 4, width: 10, height: 10, borderRadius: 99, background: '#5856D6', border: '2px solid #fff', flexShrink: 0 }} />
+                                                        <div style={{ flex: 1, textAlign: 'right' }}>
+                                                            <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F' }}>{evt.action}</p>
+                                                            <p style={{ fontSize: 10, color: '#AEAEB2', marginTop: 2 }}>
+                                                                {evt.timestamp ? new Date(evt.timestamp).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''} · {evt.by || 'admin'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Download PO button */}
+                    <button onClick={() => generatePO(order, customerOrder, supplier)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', borderRadius: 16, background: 'rgba(0,122,255,0.07)', color: '#007AFF', fontSize: 13, fontWeight: 800, border: '1px solid rgba(0,122,255,0.15)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                        <Printer size={15} />
+                        הורד / הדפס PO
+                    </button>
+
                     {/* Notes */}
-                    <div className="rounded-2xl overflow-hidden bg-white border border-black/[0.06]">
+                    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">הערות</p>
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(142,142,147,0.12)' }}>
@@ -398,9 +780,9 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                         <motion.div
                             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
                             transition={{ type: 'spring', stiffness: 400, damping: 36 }}
-                            className="shrink-0 p-4 border-t border-black/[0.06] bg-white flex gap-3">
+                            className="shrink-0 p-4 border-t border-black/[0.06] flex gap-3" style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}>
                             <button onClick={() => setEdits({})}
-                                className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-gray-50 transition-all cursor-pointer">
+                                className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-[#007AFF]/[0.04] transition-all cursor-pointer">
                                 בטל
                             </button>
                             <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
@@ -465,7 +847,7 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                     {needsAction.length === 0 ? (
                         <div className="py-10 text-center">
                             <CheckCircle size={28} className="mx-auto text-[#34C759] mb-2" />
-                            <p className="text-sm font-bold text-[#86868B]">כל ההזמנות טופלו ✓</p>
+                            <p className="text-sm font-bold text-[#86868B] flex items-center justify-center gap-1"><Check size={13} className="text-[#34C759]" />כל ההזמנות טופלו</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-black/[0.04]">
@@ -571,8 +953,8 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                         const count = sid === 'all' ? supplierOrders.length : supplierOrders.filter(o => o.status === sid).length;
                         return (
                             <button key={sid} onClick={() => setFilterStatus(sid)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${filterStatus === sid ? 'text-white' : 'bg-white text-[#86868B] border border-black/10 hover:border-[#007AFF]/30'}`}
-                                style={filterStatus === sid ? { background: s ? s.color : '#007AFF' } : {}}>
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${filterStatus === sid ? 'text-white' : 'text-[#86868B] border border-black/10 hover:border-[#007AFF]/30'}`}
+                                style={filterStatus === sid ? { background: s ? s.color : '#007AFF' } : { background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
                                 {s ? s.label : 'הכל'}
                                 {count > 0 && <span className="opacity-70">{count}</span>}
                             </button>
@@ -625,7 +1007,7 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                             <motion.button whileTap={{ scale: 0.95 }}
                                                 onClick={e => { e.stopPropagation(); setStatus(o.id, nextId, e); }}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black text-white cursor-pointer whitespace-nowrap"
-                                                style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)' }}>
+                                                style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
                                                 <ArrowRight size={11} />
                                                 {nextLabel}
                                             </motion.button>
@@ -640,10 +1022,10 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                     <div className="flex-1 text-right min-w-0">
                                         <p className="font-black text-[#1D1D1F] text-[15px] mb-1">{o.productTitle} × {o.qty}</p>
                                         <div className="flex items-center gap-3 justify-end flex-wrap">
-                                            <span className="text-[11px] text-[#86868B]">👤 {o.customerName}</span>
-                                            <span className="text-[11px] font-bold" style={{ color: '#5856D6' }}>🏭 {o.supplierName || '—'}</span>
-                                            {o.totalCost > 0 && <span className="text-[11px] text-[#86868B]">₪{o.totalCost}</span>}
-                                            {o.eta && <span className="text-[11px] text-[#86868B]">📅 {o.eta}</span>}
+                                            <span className="text-[11px] text-[#86868B] flex items-center gap-1"><User size={10} />{o.customerName}</span>
+                                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: '#5856D6' }}><Factory size={10} />{o.supplierName || '—'}</span>
+                                            {o.totalCost > 0 && <span className="text-[11px] text-[#86868B] flex items-center gap-1"><DollarSign size={10} />₪{o.totalCost}</span>}
+                                            {o.eta && <span className="text-[11px] text-[#86868B] flex items-center gap-1"><Clock size={10} />{o.eta}</span>}
                                         </div>
                                         {o.trackingNumber && (
                                             <p className="text-[10px] text-[#007AFF] font-bold mt-1.5 flex items-center gap-1 justify-end">
@@ -652,9 +1034,9 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                             </p>
                                         )}
                                         {o.notes && (
-                                            <p className="text-[11px] text-[#86868B] mt-1.5 bg-gray-50 rounded-xl px-3 py-1.5 text-right">{o.notes}</p>
+                                            <p className="text-[11px] text-[#86868B] mt-1.5 rounded-xl px-3 py-1.5 text-right" style={{ background: 'rgba(0,0,0,0.03)' }}>{o.notes}</p>
                                         )}
-                                        <p className="text-[10px] text-[#007AFF]/50 mt-2 text-left">← לחץ לפרטים מלאים</p>
+                                        <p className="text-[10px] text-[#007AFF]/50 mt-2 text-right">לחץ לפרטים מלאים ←</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -683,12 +1065,15 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
     const [notes, setNotes]             = useState('');
     const [cost, setCost]               = useState('');
     const [loading, setLoading]         = useState(false);
+    // #1 Success state with notification buttons
+    const [successData, setSuccessData] = useState(null); // { order, supplier, docId }
 
     useEffect(() => {
         if (isOpen) {
             setSelectedOrderId(preselectedOrder?.id || orders[0]?.id || '');
             setSupplierId(suppliers[0]?.id || '');
             setEta(''); setNotes(''); setCost('');
+            setSuccessData(null);
         }
     }, [isOpen, orders, suppliers, preselectedOrder]);
 
@@ -698,7 +1083,7 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
         const order    = orders.find(o => o.id === selectedOrderId);
         const supplier = suppliers.find(s => s.id === supplierId);
         try {
-            await addDoc(collection(db, 'supplier_orders'), {
+            const docRef = await addDoc(collection(db, 'supplier_orders'), {
                 customerOrderId: order.id,
                 customerName:    order.customer || '',
                 productTitle:    order.product  || '',
@@ -710,65 +1095,129 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
                 totalCost:       parseFloat(cost) || 0,
                 sentAt:          serverTimestamp(),
                 createdAt:       serverTimestamp(),
+                // #9 Timeline: first event
+                timeline: [{ action: 'הזמנה נוצרה', timestamp: Date.now(), by: 'admin' }],
             });
+            setSuccessData({ order, supplier, docId: docRef.id });
             showToast('הועבר לספק בהצלחה', 'success');
-            onClose();
         } catch { showToast('שגיאה', 'error'); }
         setLoading(false);
     };
 
+    // #1 Build WA/email notification content
+    const buildSupplierWa = (sd) => {
+        if (!sd?.supplier?.phone) return null;
+        const { order, supplier } = sd;
+        const supplierPhone = (supplier.phone || '').replace(/\D/g,'').replace(/^0/,'');
+        const waText = `הזמנת רכש — NextClass\n\nשלום ${supplier.name},\n\nמצורפת הזמנת רכש:\nמוצר: ${order.product}\nכמות: ${order.qty}\nעלות מוסכמת: ₪${cost}\nETA: ${eta || '—'}\n\nנא לאשר קבלת ההזמנה.`;
+        return `https://wa.me/972${supplierPhone}?text=${encodeURIComponent(waText)}`;
+    };
+
+    const buildSupplierEmail = (sd) => {
+        if (!sd?.supplier?.email || !sd?.order) return null;
+        const { order, supplier, docId } = sd;
+        const emailBody = `שלום ${supplier.name},\n\nמצורפת הזמנת רכש מ-NextClass:\n\nמוצר: ${order.product}\nכמות: ${order.qty}\nעלות מוסכמת: ₪${cost}\nETA: ${eta || '—'}\n\nהערות: ${notes || '—'}\n\nנא לאשר קבלת ההזמנה.\n\nבברכה,\nNextClass`;
+        return `mailto:${supplier.email}?subject=${encodeURIComponent(`הזמנת רכש - ${docId || order.id}`)}&body=${encodeURIComponent(emailBody)}`;
+    };
+
     return (
-        <AdminModal open={isOpen} onClose={onClose} title="העברה לספק" size="md">
+        <AdminModal open={isOpen} onClose={() => { setSuccessData(null); onClose(); }} title="העברה לספק" size="md">
             <div className="space-y-5 p-6" dir="rtl">
-                <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הזמנת לקוח</label>
-                    <select value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
-                        {orders.map(o => (
-                            <option key={o.id} value={o.id}>{o.customer} — {o.product} × {o.qty}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">ספק</label>
-                    <select value={supplierId} onChange={e => setSupplierId(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
-                        <option value="">בחר ספק...</option>
-                        {suppliers.filter(s => s.active !== false).map(s => (
-                            <option key={s.id} value={s.id}>{s.name} ({s.leadTimeDays || '?'} ימים)</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-[#86868B] tracking-widest block">עלות ספק (₪)</label>
-                        <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="0"
-                            className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right" />
+                {successData ? (
+                    /* #1 Success state */
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: 60, height: 60, borderRadius: 20, background: 'rgba(52,199,89,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <CheckCircle size={28} style={{ color: '#34C759' }} />
+                        </div>
+                        <h3 style={{ fontSize: 18, fontWeight: 900, color: '#1D1D1F', marginBottom: 6 }}>הועבר לספק בהצלחה!</h3>
+                        <p style={{ fontSize: 13, color: '#86868B', marginBottom: 24 }}>עכשיו שלח עדכון מהיר לספק:</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {/* WhatsApp supplier button */}
+                            {buildSupplierWa(successData) && (
+                                <a href={buildSupplierWa(successData)} target="_blank" rel="noreferrer"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '13px 20px', borderRadius: 16, background: 'linear-gradient(135deg,#25D366,#1DA851)', color: '#fff', fontSize: 14, fontWeight: 800, textDecoration: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,211,102,0.3)' }}>
+                                    <MessageSquare size={17} />
+                                    שלח WhatsApp לספק
+                                </a>
+                            )}
+                            {/* Email supplier button */}
+                            {buildSupplierEmail(successData) && (
+                                <a href={buildSupplierEmail(successData)}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '13px 20px', borderRadius: 16, background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, textDecoration: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                                    <Mail size={17} />
+                                    שלח מייל לספק
+                                </a>
+                            )}
+                            {/* #2 Generate PO button */}
+                            <button onClick={() => {
+                                const fakeOrder = { ...successData.order, id: successData.docId, productTitle: successData.order.product, totalCost: parseFloat(cost) || 0, eta, notes, qty: successData.order.qty };
+                                generatePO(fakeOrder, {}, successData.supplier);
+                            }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '13px 20px', borderRadius: 16, background: 'rgba(0,122,255,0.07)', color: '#007AFF', fontSize: 14, fontWeight: 800, border: '1px solid rgba(0,122,255,0.18)', cursor: 'pointer' }}>
+                                <Printer size={17} />
+                                הפק הזמנת רכש (PO)
+                            </button>
+                        </div>
+
+                        <button onClick={() => { setSuccessData(null); onClose(); }}
+                            style={{ marginTop: 18, display: 'block', width: '100%', padding: '11px', borderRadius: 14, border: '1px solid rgba(0,0,0,0.10)', background: 'transparent', color: '#86868B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                            סגור
+                        </button>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-[#86868B] tracking-widest block">תאריך ETA</label>
-                        <input type="date" value={eta} onChange={e => setEta(e.target.value)}
-                            className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הערות לספק</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                        placeholder="כתובת משלוח, דגם ספציפי, הוראות מיוחדות..."
-                        rows={3}
-                        className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 resize-none text-right" />
-                </div>
-                <div className="flex gap-3 pt-2">
-                    <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-gray-50 transition-all cursor-pointer">
-                        ביטול
-                    </button>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit} disabled={loading}
-                        className="flex-1 py-3 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 cursor-pointer"
-                        style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
-                        <Send size={15} />
-                        {loading ? 'שולח...' : 'שלח לספק'}
-                    </motion.button>
-                </div>
+                ) : (
+                    <>
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הזמנת לקוח</label>
+                            <select value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)}
+                                className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
+                                {orders.map(o => (
+                                    <option key={o.id} value={o.id}>{o.customer} — {o.product} × {o.qty}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-[#86868B] tracking-widest block">ספק</label>
+                            <select value={supplierId} onChange={e => setSupplierId(e.target.value)}
+                                className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right">
+                                <option value="">בחר ספק...</option>
+                                {suppliers.filter(s => s.active !== false).map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} ({s.leadTimeDays || '?'} ימים)</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-[#86868B] tracking-widest block">עלות ספק (₪)</label>
+                                <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="0"
+                                    className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 text-right" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black text-[#86868B] tracking-widest block">תאריך ETA</label>
+                                <input type="date" value={eta} onChange={e => setEta(e.target.value)}
+                                    className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-[#86868B] tracking-widest block">הערות לספק</label>
+                            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                                placeholder="כתובת משלוח, דגם ספציפי, הוראות מיוחדות..."
+                                rows={3}
+                                className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 resize-none text-right" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-[#007AFF]/[0.04] transition-all cursor-pointer">
+                                ביטול
+                            </button>
+                            <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit} disabled={loading}
+                                className="flex-1 py-3 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 cursor-pointer"
+                                style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                                <Send size={15} />
+                                {loading ? 'שולח...' : 'שלח לספק'}
+                            </motion.button>
+                        </div>
+                    </>
+                )}
             </div>
         </AdminModal>
     );
@@ -816,7 +1265,7 @@ function SuppliersTab({ suppliers, showToast }) {
             <div className="flex justify-end" dir="rtl">
                 <motion.button whileTap={{ scale: 0.97 }} onClick={openAdd}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black text-white cursor-pointer"
-                    style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                     <Plus size={15} />
                     הוסף ספק
                 </motion.button>
@@ -851,6 +1300,22 @@ function SuppliersTab({ suppliers, showToast }) {
                                     {s.contact && <p className="text-[12px] text-[#86868B]">{s.contact}</p>}
                                 </div>
                             </div>
+                            {/* #8 Average rating display */}
+                            {(s.ratings || []).length > 0 && (() => {
+                                const avgAll = (s.ratings || []).map(r => r.avg || 0);
+                                const avg    = avgAll.length ? (avgAll.reduce((a, b) => a + b, 0) / avgAll.length).toFixed(1) : null;
+                                return avg ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, justifyContent: 'flex-end' }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B' }}>{s.ratings.length} דירוגים</span>
+                                        <div style={{ display: 'flex', gap: 2 }}>
+                                            {[1,2,3,4,5].map(n => (
+                                                <Star key={n} size={12} style={{ color: n <= Math.round(parseFloat(avg)) ? '#FF9500' : '#E5E5EA' }} fill={n <= Math.round(parseFloat(avg)) ? '#FF9500' : 'none'} />
+                                            ))}
+                                        </div>
+                                        <span style={{ fontSize: 13, fontWeight: 900, color: '#FF9500' }}>{avg}</span>
+                                    </div>
+                                ) : null;
+                            })()}
                             <div className="grid grid-cols-2 gap-2 text-right">
                                 {s.phone && (
                                     <a href={`tel:${s.phone}`} className="flex items-center gap-1.5 justify-end text-[11px] text-[#34C759] hover:underline">
@@ -868,7 +1333,7 @@ function SuppliersTab({ suppliers, showToast }) {
                                 </div>
                                 {s.paymentTerms && <div className="text-[11px] text-[#86868B]">{s.paymentTerms}</div>}
                             </div>
-                            {s.notes && <p className="text-[11px] text-[#86868B] mt-2 bg-gray-50 rounded-xl px-3 py-2">{s.notes}</p>}
+                            {s.notes && <p className="text-[11px] text-[#86868B] mt-2 rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.03)' }}>{s.notes}</p>}
                         </motion.div>
                     ))}
                 </div>
@@ -887,12 +1352,12 @@ function SuppliersTab({ suppliers, showToast }) {
                         <div className="col-span-2"><AdminToggle label="ספק פעיל" value={form.active} onChange={v => f('active', v)} /></div>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-gray-50 transition-all cursor-pointer">
+                        <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-[#86868B] hover:bg-[#007AFF]/[0.04] transition-all cursor-pointer">
                             ביטול
                         </button>
                         <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={loading}
                             className="flex-1 py-3 rounded-2xl text-sm font-black text-white cursor-pointer"
-                            style={{ background: 'linear-gradient(135deg,#007AFF,#0063CC)', boxShadow: '0 4px 16px rgba(0,122,255,0.2)' }}>
+                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.2)' }}>
                             {loading ? 'שומר...' : editId ? 'עדכן ספק' : 'הוסף ספק'}
                         </motion.button>
                     </div>
@@ -962,8 +1427,8 @@ function ProductMappingTab({ suppliers, showToast }) {
                                     <div className="flex items-center gap-1 shrink-0">
                                         {FULFILLMENT_TYPES.map(t => (
                                             <button key={t.id} onClick={() => setField(p.id, 'fulfillmentType', t.id)}
-                                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer ${ftId === t.id ? 'text-white' : 'text-[#86868B] bg-gray-50 hover:bg-gray-100'}`}
-                                                style={ftId === t.id ? { background: t.color } : {}}>
+                                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer ${ftId === t.id ? 'text-white' : 'text-[#86868B] hover:bg-[#007AFF]/[0.06]'}`}
+                                                style={ftId === t.id ? { background: t.color } : { background: 'rgba(0,0,0,0.03)' }}>
                                                 {t.label}
                                             </button>
                                         ))}
@@ -996,7 +1461,7 @@ function ProductMappingTab({ suppliers, showToast }) {
                                             whileTap={{ scale: 0.97 }} onClick={() => saveProduct(p.id)} disabled={saving === p.id}
                                             className="px-3 py-2 rounded-xl text-[11px] font-black text-white cursor-pointer shrink-0"
                                             style={{ background: 'linear-gradient(135deg,#34C759,#2DB84B)' }}>
-                                            {saving === p.id ? '...' : '✓ שמור'}
+                                            {saving === p.id ? '...' : <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Check size={11} />שמור</span>}
                                         </motion.button>
                                     )}
                                 </div>
@@ -1064,7 +1529,8 @@ export default function AdminFulfillment() {
                 style={{ background: 'rgba(255,255,255,0.60)', border: '1px solid rgba(0,0,0,0.06)' }}>
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#86868B] hover:text-[#1D1D1F]'}`}>
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'text-[#1D1D1F]' : 'text-[#86868B] hover:text-[#1D1D1F]'}`}
+                        style={activeTab === tab.id ? { background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px) saturate(200%)', WebkitBackdropFilter: 'blur(16px) saturate(200%)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : {}}>
                         <tab.Icon size={14} />
                         {tab.label}
                         {tab.id === 'orders' && pendingCount > 0 && (

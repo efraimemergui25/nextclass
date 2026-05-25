@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Box, Upload, Loader2 } from 'lucide-react';
+import { ShoppingBag, Box, Upload, Loader2, LayoutGrid, List, AlertTriangle, Check, X, Plus } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
@@ -50,10 +50,13 @@ function ProductCard({ product, onEdit }) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(0,0,0,0.10)' }}
-            className="bg-white rounded-[20px] overflow-hidden cursor-pointer group relative"
+            className="rounded-[20px] overflow-hidden cursor-pointer group relative"
             style={{
-                border: '1px solid rgba(0,0,0,0.07)',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
                 opacity: isInactive ? 0.65 : 1,
             }}
             onClick={() => onEdit(product)}
@@ -104,7 +107,7 @@ function ProductCard({ product, onEdit }) {
                                 <span className="text-[#AEAEB2] text-xs line-through">₪{Number(product.price).toLocaleString()}</span>
                             </div>
                         ) : (
-                            <span className="text-[#007AFF] font-black text-base">₪{Number(product.price).toLocaleString()}</span>
+                            <span style={{ color: '#007AFF', fontWeight: 900 }} className="text-base">₪{Number(product.price).toLocaleString()}</span>
                         )}
                     </div>
                     <div className="text-right">
@@ -161,7 +164,7 @@ function ProductRow({ product, onEdit }) {
             <p className={`text-sm font-black w-16 text-center shrink-0 ${product.stock === 0 ? 'text-[#FF3B30]' : product.stock <= product.threshold ? 'text-[#FF9500]' : 'text-[#34C759]'}`}>
                 {product.stock} יח׳
             </p>
-            <div className="w-28 text-left shrink-0">
+            <div className="w-28 text-right shrink-0">
                 {product.salePrice ? (
                     <div>
                         <p className="text-[#FF3B30] font-black text-sm">₪{Number(product.salePrice).toLocaleString()}</p>
@@ -171,7 +174,7 @@ function ProductRow({ product, onEdit }) {
                     <p className="text-[#1D1D1F] font-black text-sm">₪{Number(product.price).toLocaleString()}</p>
                 )}
             </div>
-            <span className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors shrink-0">←</span>
+            <span className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors shrink-0" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</span>
         </motion.div>
     );
 }
@@ -180,7 +183,7 @@ function SpecRow({ spec, onChange, onRemove }) {
     return (
         <div className="flex gap-2 items-center">
             <button type="button" onClick={onRemove}
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors shrink-0 text-xs">✕</button>
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors shrink-0"><X size={12} /></button>
             <input value={spec.value} onChange={e => onChange({ ...spec, value: e.target.value })}
                 placeholder="ערך" dir="rtl"
                 className="flex-1 bg-white border border-black/10 rounded-lg px-3 py-1.5 text-[#1D1D1F] text-xs outline-none focus:border-[#007AFF]/50" />
@@ -325,14 +328,14 @@ export default function AdminProducts() {
                 action={
                     <div className="flex gap-2">
                         <div className="flex bg-black/05 rounded-xl p-1 gap-1">
-                            {[['grid','☰ גריד'],['list','≡ רשימה']].map(([m,l]) => (
+                            {[['grid', <LayoutGrid size={13} />, 'גריד'], ['list', <List size={13} />, 'רשימה']].map(([m, icon, l]) => (
                                 <button key={m} type="button" onClick={() => setViewMode(m)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${viewMode === m ? 'bg-white shadow-sm text-[#1D1D1F]' : 'text-[#6E6E73]'}`}>
-                                    {l}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${viewMode === m ? 'bg-white shadow-sm text-[#1D1D1F]' : 'text-[#6E6E73]'}`}>
+                                    {icon} {l}
                                 </button>
                             ))}
                         </div>
-                        <AdminButton onClick={handleNewProduct}>+ מוצר חדש</AdminButton>
+                        <AdminButton onClick={handleNewProduct}><span className="flex items-center gap-1"><Plus size={13} /> מוצר חדש</span></AdminButton>
                     </div>
                 }
             />
@@ -371,7 +374,7 @@ export default function AdminProducts() {
                             <p className="flex-1 text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] text-right">מוצר</p>
                             <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] shrink-0">סטטוס</p>
                             <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] w-16 text-center shrink-0">מלאי</p>
-                            <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] w-28 text-left shrink-0">מחיר</p>
+                            <p className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2] w-28 text-right shrink-0">מחיר</p>
                             <div className="w-4 shrink-0" />
                         </div>
                     )}
@@ -434,7 +437,7 @@ export default function AdminProducts() {
                                         setField('sku', `${catCode}-${titleCode}-${rand}`);
                                     }}
                                     className="px-2.5 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#007AFF]/10 text-[#007AFF] text-xs font-black transition-colors shrink-0">
-                                    ✦
+                                    SKU
                                 </button>
                             </div>
                         </div>
@@ -558,13 +561,13 @@ export default function AdminProducts() {
                                     background: confirmDelete ? '#FF3B30' : 'rgba(255,59,48,0.08)',
                                     color: confirmDelete ? 'white' : '#FF3B30',
                                 }}>
-                                {confirmDelete ? '⚠ אשר מחיקה' : 'מחק'}
+                                {confirmDelete ? <span className="flex items-center gap-1"><AlertTriangle size={12} /> אשר מחיקה</span> : 'מחק'}
                             </button>
                         )}
                         <div className="flex-1" />
                         <AdminButton variant="ghost" onClick={() => { setEditingProduct(null); setConfirmDelete(false); }}>ביטול</AdminButton>
                         <AdminButton onClick={handleSave}>
-                            {saved ? '✓ נשמר!' : isNew ? 'הוסף מוצר' : 'שמור שינויים'}
+                            {saved ? <span className="flex items-center gap-1"><Check size={13} /> נשמר!</span> : isNew ? 'הוסף מוצר' : 'שמור שינויים'}
                         </AdminButton>
                     </div>
                 </div>
