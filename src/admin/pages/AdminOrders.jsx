@@ -1147,6 +1147,7 @@ function ContactChips({ quote, onSwitchTab, waText }) {
 }
 
 function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToast, onSwitchTab, openEmailPreview }) {
+    const { inventory: liveProducts } = useAdminData();
     const [path, setPath] = useState(null); // null | 'instock' | 'supplier'
     const [suppliers, setSuppliers] = useState([]);
     const [selSupplierName, setSelSupplierName] = useState('');
@@ -1169,9 +1170,10 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
     }, [selSupplierName, suppliers]);
 
     const items = quote.items || [];
+    const productList = liveProducts?.length ? liveProducts : initialProducts;
     const itemsWithStock = items.map(item => {
         const title = (item.title || item.name || '').toLowerCase();
-        const product = initialProducts.find(p =>
+        const product = productList.find(p =>
             String(p.id) === String(item.id) ||
             (p.title || p.name || '').toLowerCase().includes(title) ||
             title.includes((p.title || p.name || '').toLowerCase().slice(0, 6))
