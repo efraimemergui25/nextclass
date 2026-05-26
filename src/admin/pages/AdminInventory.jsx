@@ -387,8 +387,12 @@ function ProductModal({ product, onClose, onSave }) {
                                 onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
                         </div>
                         <div>
-                            <h3 className="text-[17px] font-black text-[#1D1D1F] leading-tight">{product.title}</h3>
-                            <p className="text-[11px] text-[#AEAEB2] font-medium">{product.sku || product.id}</p>
+                            <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
+                                className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
+                                {product.title}
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
+                            </a>
+                            <p className="text-[11px] text-[#AEAEB2] font-medium">SKU:{product.sku || product.id}</p>
                         </div>
                     </div>
                     <button onClick={onClose}
