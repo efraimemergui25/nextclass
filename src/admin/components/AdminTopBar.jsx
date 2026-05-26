@@ -39,17 +39,91 @@ function Clock() {
   );
 }
 
-// ─── Search Modal ─────────────────────────────────────────────────────────────
+// ─── Command Palette (Search + Action Mode) ───────────────────────────────────
 function SearchModal({ onClose }) {
   const navigate = useNavigate();
-  const { products, orders, contacts } = useAdminData();
+  const { products, orders, contacts, quotes, updateQuoteStatus } = useAdminData();
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  // Detect action mode: query starts with ">"
+  const isActionMode = query.startsWith('>');
+  const actionQuery = isActionMode ? query.slice(1).trim().toLowerCase() : '';
+
+  // ── Action commands ────────────────────────────────────────────────────
+  const ACTIONS = useMemo(() => [
+    {
+      label: 'עבור לדשבורד', sub: 'ניווט', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+      color: '#007AFF', tags: ['dashboard','לוח','ניווט'],
+      action: () => { navigate('/admin/dashboard'); onClose(); },
+    },
+    {
+      label: 'עבור להצעות מחיר', sub: 'ניווט', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+      color: '#FF9500', tags: ['orders','הצעות','quotes','ניווט'],
+      action: () => { navigate('/admin/orders'); onClose(); },
+    },
+    {
+      label: 'עבור לאנליטיקס', sub: 'ניווט', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+      color: '#5856D6', tags: ['analytics','אנליטיקס','דוחות','ניווט'],
+      action: () => { navigate('/admin/analytics'); onClose(); },
+    },
+    {
+      label: 'עבור למלאי', sub: 'ניווט', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8',
+      color: '#34C759', tags: ['inventory','מלאי','ניווט'],
+      action: () => { navigate('/admin/inventory'); onClose(); },
+    },
+    {
+      label: 'עבור לספקים', sub: 'ניווט', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+      color: '#AF52DE', tags: ['suppliers','ספקים','ניווט'],
+      action: () => { navigate('/admin/suppliers'); onClose(); },
+    },
+    {
+      label: 'ייצא הצעות CSV', sub: 'פעולה', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+      color: '#34C759', tags: ['export','ייצא','csv','הורד'],
+      action: () => {
+        const rows = [['ID','לקוח','סטטוס','סכום','תאריך']];
+        quotes.forEach(q => {
+          const total = (q.items || []).reduce((s, i) => s + ((Number(i.salePrice)||Number(i.price)||0) * (Number(i.qty)||1)), 0) || q.subtotal || 0;
+          rows.push([q.id, q.contactName||q.institution||'', q.status||'', total, new Date(q.dateTs||0).toLocaleDateString('he-IL')]);
+        });
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = `quotes_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        onClose();
+      },
+    },
+    {
+      label: 'סמן הצעות חדשות כ"ביצירת קשר"', sub: 'פעולה קבוצתית', icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+      color: '#FF9500', tags: ['bulk','קבוצתי','status','סטטוס','ביצירת קשר'],
+      action: async () => {
+        const newQuotes = quotes.filter(q => q.status === 'חדש');
+        await Promise.all(newQuotes.map(q => updateQuoteStatus(q.id, 'ביצירת קשר')));
+        onClose();
+      },
+    },
+    {
+      label: 'פתח הגדרות', sub: 'ניווט', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      color: '#AEAEB2', tags: ['settings','הגדרות','ניווט'],
+      action: () => { navigate('/admin/settings'); onClose(); },
+    },
+  ], [navigate, quotes, updateQuoteStatus, onClose]);
+
+  const actionResults = useMemo(() => {
+    if (!isActionMode) return ACTIONS;
+    if (!actionQuery) return ACTIONS;
+    return ACTIONS.filter(a =>
+      a.label.toLowerCase().includes(actionQuery) ||
+      a.tags.some(t => t.includes(actionQuery))
+    );
+  }, [isActionMode, actionQuery, ACTIONS]);
+
+  // ── Search results ─────────────────────────────────────────────────────
   const results = useMemo(() => {
-    if (!query.trim()) return [];
+    if (!query.trim() || isActionMode) return [];
     const q = query.toLowerCase();
     const r = [];
     products.filter(p => p.title?.toLowerCase().includes(q) || p.category?.includes(q))
@@ -59,14 +133,15 @@ function SearchModal({ onClose }) {
     contacts.filter(c => c.name?.includes(q) || c.email?.includes(q) || c.subject?.includes(q))
       .slice(0, 2).forEach(c => r.push({ type: 'contact', label: c.name, sub: c.subject, action: () => { navigate('/admin/customers'); onClose(); } }));
     return r;
-  }, [query, products, orders, contacts, navigate, onClose]);
+  }, [query, isActionMode, products, orders, contacts, navigate, onClose]);
 
-  useEffect(() => { setActive(0); }, [results.length]);
+  const displayList = isActionMode ? actionResults : results;
+  useEffect(() => { setActive(0); }, [displayList.length, isActionMode]);
 
   const onKey = e => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, displayList.length - 1)); }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(a => Math.max(a - 1, 0)); }
-    if (e.key === 'Enter' && results[active]) results[active].action();
+    if (e.key === 'Enter' && displayList[active]) displayList[active].action();
   };
 
   const typeColor = { product: '#007AFF', order: '#FF9500', contact: '#5856D6' };
@@ -91,24 +166,74 @@ function SearchModal({ onClose }) {
         exit={{ opacity: 0, y: -16, scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 460, damping: 30 }}
         className="fixed top-[72px] right-2 left-2 sm:right-4 sm:left-4 max-w-2xl mx-auto z-[301] rounded-[24px] overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(60px) saturate(220%)', WebkitBackdropFilter: 'blur(60px) saturate(220%)', boxShadow: '0 48px 120px rgba(0,0,0,0.24), 0 0 0 0.5px rgba(0,0,0,0.10)', border: '1px solid rgba(255,255,255,0.8)' }}
+        style={{ background: isActionMode ? 'rgba(29,29,31,0.97)' : 'rgba(255,255,255,0.94)', backdropFilter: 'blur(60px) saturate(220%)', WebkitBackdropFilter: 'blur(60px) saturate(220%)', boxShadow: '0 48px 120px rgba(0,0,0,0.24), 0 0 0 0.5px rgba(0,0,0,0.10)', border: isActionMode ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(255,255,255,0.8)' }}
         onKeyDown={onKey}
       >
         {/* Input */}
-        <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.30)' }}>
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+        <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: `1px solid ${isActionMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+          <motion.div
+            animate={{ background: isActionMode ? 'linear-gradient(135deg,#FF9500,#FF3B30)' : 'linear-gradient(135deg,#007AFF,#5856D6)' }}
+            transition={{ duration: 0.3 }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ boxShadow: isActionMode ? '0 4px 12px rgba(255,149,0,0.35)' : '0 4px 12px rgba(0,122,255,0.30)' }}
+          >
+            {isActionMode ? (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </motion.div>
           <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="חפש מוצרים, הזמנות, לקוחות..." dir="rtl"
-            className="flex-1 text-[#1D1D1F] text-[15px] font-semibold outline-none placeholder-[#C7C7CC] bg-transparent" />
-          <kbd className="text-[10px] text-[#AEAEB2] font-bold px-2 py-1 rounded-lg border border-black/08 bg-[#F5F5F7]">ESC</kbd>
+            placeholder={isActionMode ? 'הקלד פקודה... (ניווט, ייצוא, פעולות)' : 'חפש מוצרים, הזמנות, לקוחות... או > לפקודות'}
+            dir="rtl"
+            className="flex-1 text-[15px] font-semibold outline-none placeholder-[#86868B] bg-transparent"
+            style={{ color: isActionMode ? '#F5F5F7' : '#1D1D1F' }} />
+          {isActionMode && (
+            <span className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: 'rgba(255,149,0,0.2)', color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)' }}>
+              מצב פקודה
+            </span>
+          )}
+          <kbd className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${isActionMode ? 'border-white/10 bg-white/08 text-[#86868B]' : 'border-black/08 bg-[#F5F5F7] text-[#AEAEB2]'}`}>ESC</kbd>
         </div>
 
-        {/* Quick actions when empty */}
-        {!query.trim() && (
+        {/* Action mode — command list */}
+        {isActionMode && (
+          <div className="max-h-80 overflow-y-auto py-2">
+            {actionResults.length === 0 && (
+              <div className="py-10 text-center text-[#86868B] text-sm">אין פקודות מתאימות</div>
+            )}
+            {actionResults.map((a, i) => (
+              <motion.button key={i} onClick={a.action}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="w-full flex items-center gap-4 px-5 py-3.5 text-right transition-colors"
+                style={{ background: active === i ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                onMouseEnter={() => setActive(i)}
+              >
+                <span className="shrink-0 w-8 h-8 rounded-[10px] flex items-center justify-center" style={{ background: `${a.color}22` }}>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d={a.icon} />
+                  </svg>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#F5F5F7] text-sm font-bold line-clamp-1">{a.label}</p>
+                  <p style={{ color: '#86868B' }} className="text-xs">{a.sub}</p>
+                </div>
+                {active === i && (
+                  <kbd className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/08 text-[#86868B] font-black">↵</kbd>
+                )}
+              </motion.button>
+            ))}
+          </div>
+        )}
+
+        {/* Search mode — quick actions when empty */}
+        {!isActionMode && !query.trim() && (
           <div className="p-4">
             <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-3 px-1">פעולות מהירות</p>
             <div className="grid grid-cols-2 gap-2">
@@ -124,11 +249,16 @@ function SearchModal({ onClose }) {
                 </motion.button>
               ))}
             </div>
+            {/* Action mode hint */}
+            <div className="mt-3 flex items-center gap-2 px-1">
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[#F0F0F5] border border-black/08 text-[#AEAEB2] font-black">&gt;</kbd>
+              <span className="text-[10px] text-[#C7C7CC] font-medium">הקלד &gt; לפתיחת מצב פקודות — ייצוא, ניווט, פעולות קבוצתיות</span>
+            </div>
           </div>
         )}
 
-        {/* Results */}
-        {query.trim() && (
+        {/* Search results */}
+        {!isActionMode && query.trim() && (
           <div className="max-h-80 overflow-y-auto py-2">
             {results.length === 0 && (
               <div className="py-10 text-center text-[#AEAEB2] text-sm">אין תוצאות עבור &ldquo;{query}&rdquo;</div>
@@ -157,15 +287,18 @@ function SearchModal({ onClose }) {
           </div>
         )}
 
-        <div className="px-5 py-3 flex items-center gap-4" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', background: 'rgba(248,248,252,0.6)' }}>
-          <span className="text-[10px] text-[#C7C7CC] font-medium flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-[#F0F0F5] border border-black/08 text-[9px] font-black">↑↓</kbd> ניווט
+        <div className="px-5 py-3 flex items-center gap-4" style={{ borderTop: `1px solid ${isActionMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`, background: isActionMode ? 'rgba(255,255,255,0.03)' : 'rgba(248,248,252,0.6)' }}>
+          <span className={`text-[10px] font-medium flex items-center gap-1 ${isActionMode ? 'text-[#86868B]' : 'text-[#C7C7CC]'}`}>
+            <kbd className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${isActionMode ? 'bg-white/08 border-white/10 text-[#86868B]' : 'bg-[#F0F0F5] border-black/08'}`}>↑↓</kbd> ניווט
           </span>
-          <span className="text-[10px] text-[#C7C7CC] font-medium flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-[#F0F0F5] border border-black/08 text-[9px] font-black">↵</kbd> פתח
+          <span className={`text-[10px] font-medium flex items-center gap-1 ${isActionMode ? 'text-[#86868B]' : 'text-[#C7C7CC]'}`}>
+            <kbd className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${isActionMode ? 'bg-white/08 border-white/10 text-[#86868B]' : 'bg-[#F0F0F5] border-black/08'}`}>↵</kbd> הפעל
           </span>
-          <span className="text-[10px] text-[#C7C7CC] font-medium flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-[#F0F0F5] border border-black/08 text-[9px] font-black">ESC</kbd> סגור
+          <span className={`text-[10px] font-medium flex items-center gap-1 ${isActionMode ? 'text-[#86868B]' : 'text-[#C7C7CC]'}`}>
+            <kbd className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${isActionMode ? 'bg-white/08 border-white/10 text-[#86868B]' : 'bg-[#F0F0F5] border-black/08'}`}>&gt;</kbd> פקודות
+          </span>
+          <span className={`text-[10px] font-medium flex items-center gap-1 ${isActionMode ? 'text-[#86868B]' : 'text-[#C7C7CC]'}`}>
+            <kbd className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${isActionMode ? 'bg-white/08 border-white/10 text-[#86868B]' : 'bg-[#F0F0F5] border-black/08'}`}>ESC</kbd> סגור
           </span>
         </div>
       </motion.div>

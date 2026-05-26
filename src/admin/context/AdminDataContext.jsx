@@ -280,7 +280,7 @@ export function AdminDataProvider({ children }) {
         const date = now.toLocaleDateString('he-IL');
         const time = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         const quote = quotes.find(q => q.id === quoteId);
-        const history = [...(quote?.history || []), { status: newStatus, date, time }];
+        const history = [...(quote?.history || []), { status: newStatus, date, time, ts: now.getTime() }];
 
         const batch = writeBatch(db);
 
@@ -546,6 +546,11 @@ export function AdminDataProvider({ children }) {
             // Pipeline-specific
             pipelineActive:  quotes.filter(q => !CLOSED_QUOTE_STATUSES.includes(q.status) && q.status !== 'אבד').length,
             pipelineRevenue: quoteRevenue,
+            // Due reminders (single reminderAt per quote, matches ReminderModal schema)
+            dueReminders: quotes
+                .filter(q => q.reminderAt && !q.reminderCleared && q.reminderAt <= Date.now())
+                .map(q => ({ quoteId: q.id, dueAt: q.reminderAt, note: q.reminderNote || '', quote: q }))
+                .sort((a, b) => a.dueAt - b.dueAt),
         };
     }, [orders, inventory, contacts, analytics, quotes, ordersSeenAt]);
 
@@ -555,6 +560,10 @@ export function AdminDataProvider({ children }) {
         setOrdersSeenAt(now);
     }, []);
 
+    const clearReminder = useCallback(async (quoteId) => {
+        await setDoc(doc(db, 'quotes', quoteId), { reminderAt: null, reminderNote: null, reminderCleared: true }, { merge: true });
+    }, []);
+
     const ctxValue = useMemo(() => ({
         orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
         updateOrderStatus, updateQuoteStatus, updateQuoteFields, addQuoteNote, setQuoteCustomerMessage,
@@ -562,7 +571,7 @@ export function AdminDataProvider({ children }) {
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
         addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
-        repairProductImages, reseedDatabase, markOrdersSeen,
+        repairProductImages, reseedDatabase, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,

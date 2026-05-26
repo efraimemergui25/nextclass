@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart2, Box } from 'lucide-react';
+import { BarChart2, Box, TrendingDown, Clock, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart } from '../components/AdminComponents';
@@ -65,6 +65,7 @@ const TABS = [
     { id: 'traffic',  label: 'תנועה' },
     { id: 'revenue',  label: 'הכנסות' },
     { id: 'products', label: 'מוצרים' },
+    { id: 'funnel',   label: 'משפך' },
 ];
 
 const RANGES = [
@@ -75,7 +76,7 @@ const RANGES = [
 ];
 
 export default function AdminAnalytics() {
-    const { analytics, orders, kpis, inventory } = useAdminData();
+    const { analytics, orders, kpis, inventory, quotes } = useAdminData();
     const navigate = useNavigate();
     const [tab, setTab] = useState('overview');
     const [range, setRange] = useState('30');
@@ -159,6 +160,63 @@ export default function AdminAnalytics() {
 
     // Donut data for categories
     const donutData = categoryRevenue.map(([label, value]) => ({ label, value }));
+
+    // Conversion funnel data from quotes pipeline
+    const funnelData = useMemo(() => {
+        const STAGES = [
+            { key: 'חדש',            label: 'ליד נכנס',         color: '#007AFF' },
+            { key: 'ביצירת קשר',    label: 'יצירת קשר',        color: '#5856D6' },
+            { key: 'בדיקת מלאי',    label: 'בדיקת מלאי',       color: '#AF52DE' },
+            { key: 'הוצע מחיר',     label: 'הצעת מחיר נשלחה',  color: '#FF9500' },
+            { key: 'ממתין לאישור',   label: 'ממתין לאישור',     color: '#FF6B00' },
+            { key: 'נסגר',          label: 'עסקה נסגרה',        color: '#34C759' },
+            { key: 'סופק',          label: 'סופק ללקוח',        color: '#30D158' },
+        ];
+
+        const CLOSED_STAGES = ['נסגר', 'סופק'];
+        const LOST_STAGES = ['אבד', 'בוטל'];
+
+        // Count quotes that ever reached each stage (cumulative from entry)
+        const stageCounts = {};
+        const avgTimeInStage = {};
+        const stageOrder = STAGES.map(s => s.key);
+
+        STAGES.forEach(s => { stageCounts[s.key] = 0; avgTimeInStage[s.key] = []; });
+
+        quotes.forEach(q => {
+            const hist = q.history || [];
+            const statusSet = new Set([q.status, ...hist.map(h => h.status)]);
+
+            // For each stage the quote passed through
+            STAGES.forEach(s => {
+                if (statusSet.has(s.key)) stageCounts[s.key]++;
+            });
+
+            // Compute time between consecutive history entries
+            for (let i = 1; i < hist.length; i++) {
+                const prev = hist[i - 1];
+                const curr = hist[i];
+                if (!prev.ts || !curr.ts) continue;
+                const stageKey = prev.status;
+                if (stageCounts[stageKey] !== undefined) {
+                    avgTimeInStage[stageKey] = avgTimeInStage[stageKey] || [];
+                    avgTimeInStage[stageKey].push((curr.ts - prev.ts) / (1000 * 60 * 60 * 24));
+                }
+            }
+        });
+
+        const totalEntered = stageCounts['חדש'] || quotes.length;
+
+        return STAGES.map((s, i) => {
+            const count = stageCounts[s.key] || 0;
+            const prevCount = i === 0 ? totalEntered : (stageCounts[STAGES[i - 1].key] || 1);
+            const dropPct = prevCount > 0 && i > 0 ? Math.round((1 - count / prevCount) * 100) : 0;
+            const times = avgTimeInStage[s.key] || [];
+            const avgDays = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
+            const widthPct = totalEntered > 0 ? Math.round((count / totalEntered) * 100) : 0;
+            return { ...s, count, dropPct, avgDays, widthPct };
+        });
+    }, [quotes]);
 
     return (
         <div dir="rtl" className="space-y-5">
@@ -460,6 +518,190 @@ export default function AdminAnalytics() {
                         </Card>
                     </motion.div>
                 )}
+                {/* ── Funnel Tab ───────────────────────────────────────────────── */}
+                {tab === 'funnel' && (
+                    <motion.div key="funnel"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="space-y-5"
+                    >
+                        {/* Summary KPIs */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                                { label: 'סה״כ לידים', value: funnelData[0]?.count || 0, color: '#007AFF' },
+                                { label: 'עסקאות נסגרו', value: (funnelData.find(s => s.key === 'נסגר')?.count || 0) + (funnelData.find(s => s.key === 'סופק')?.count || 0), color: '#34C759' },
+                                { label: 'יחס המרה', value: `${funnelData[0]?.count ? Math.round(((funnelData.find(s => s.key === 'נסגר')?.count || 0) + (funnelData.find(s => s.key === 'סופק')?.count || 0)) / funnelData[0].count * 100) : 0}%`, color: '#5856D6' },
+                                { label: 'ממתינות', value: quotes.filter(q => !['נסגר','סופק','אבד','בוטל'].includes(q.status)).length, color: '#FF9500' },
+                            ].map((s, i) => (
+                                <motion.div key={i}
+                                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                                    className="rounded-[16px] p-4 text-center"
+                                    style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}
+                                >
+                                    <p className="text-2xl font-black" style={{ color: s.color }}>{typeof s.value === 'string' ? s.value : s.value.toLocaleString()}</p>
+                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1">{s.label}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* Main Funnel */}
+                        <Card title="משפך המרה — מלידים לעסקה"
+                            subtitle="כל שלב במחזור המכירות · לייב"
+                            accent="linear-gradient(90deg,#007AFF,#34C759)">
+                            {quotes.length === 0 ? (
+                                <EmptyChart label="אין הצעות מחיר עדיין" />
+                            ) : (
+                                <div className="space-y-3 mt-2">
+                                    {funnelData.map((stage, i) => (
+                                        <motion.div
+                                            key={stage.key}
+                                            initial={{ opacity: 0, x: 16 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.07, type: 'spring', stiffness: 400, damping: 28 }}
+                                            className="relative"
+                                        >
+                                            {/* Drop-off arrow between stages */}
+                                            {i > 0 && stage.dropPct > 0 && (
+                                                <div className="flex items-center justify-end mb-1 gap-1 pr-1">
+                                                    <ArrowDown size={10} className="text-[#FF3B30]" />
+                                                    <span className="text-[9px] font-black text-[#FF3B30]">
+                                                        -{stage.dropPct}% נשירה
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-3">
+                                                {/* Stage label */}
+                                                <div className="w-28 text-right shrink-0">
+                                                    <p className="text-[11px] font-black text-[#1D1D1F] truncate">{stage.label}</p>
+                                                    <p className="text-[9px] font-medium text-[#AEAEB2]">{stage.count} הצעות</p>
+                                                </div>
+                                                {/* Bar */}
+                                                <div className="flex-1 h-9 rounded-[10px] overflow-hidden relative"
+                                                    style={{ background: 'rgba(0,0,0,0.04)' }}>
+                                                    <motion.div
+                                                        className="absolute right-0 top-0 h-full rounded-[10px] flex items-center justify-end pr-3"
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${Math.max(stage.widthPct, stage.count > 0 ? 6 : 0)}%` }}
+                                                        transition={{ delay: i * 0.07 + 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                                        style={{ background: `linear-gradient(90deg, ${stage.color}30, ${stage.color})` }}
+                                                    >
+                                                        {stage.widthPct >= 12 && (
+                                                            <span className="text-white text-[10px] font-black">{stage.widthPct}%</span>
+                                                        )}
+                                                    </motion.div>
+                                                </div>
+                                                {/* Avg days badge */}
+                                                <div className="w-16 text-left shrink-0 flex items-center gap-1">
+                                                    {stage.avgDays !== null ? (
+                                                        <>
+                                                            <Clock size={10} className="text-[#AEAEB2] shrink-0" />
+                                                            <span className="text-[10px] font-bold text-[#6E6E73]">{stage.avgDays}י׳</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-[10px] text-[#C7C7CC]">—</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </Card>
+
+                        {/* Bottleneck Analysis */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <Card title="ניתוח צווארי בקבוק"
+                                subtitle="שלבים עם שיעור נשירה גבוה"
+                                accent="linear-gradient(90deg,#FF3B30,#FF9500)">
+                                {(() => {
+                                    const bottlenecks = funnelData
+                                        .filter(s => s.dropPct >= 20)
+                                        .sort((a, b) => b.dropPct - a.dropPct)
+                                        .slice(0, 4);
+                                    if (bottlenecks.length === 0) return (
+                                        <div className="flex items-center gap-2 py-4">
+                                            <span className="w-2 h-2 rounded-full bg-[#34C759]" />
+                                            <p className="text-[#34C759] text-sm font-bold">אין צווארי בקבוק משמעותיים</p>
+                                        </div>
+                                    );
+                                    return (
+                                        <div className="space-y-3.5 mt-1">
+                                            {bottlenecks.map((s, i) => (
+                                                <motion.div key={s.key}
+                                                    initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+                                                    className="flex items-center gap-3"
+                                                >
+                                                    <div className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
+                                                        style={{ background: 'rgba(255,59,48,0.12)' }}>
+                                                        <TrendingDown size={14} className="text-[#FF3B30]" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[#1D1D1F] text-[12px] font-bold">{s.label}</p>
+                                                        <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${Math.min(s.dropPct, 100)}%` }}
+                                                                transition={{ delay: i * 0.08 + 0.3, duration: 0.7 }}
+                                                                className="h-full rounded-full"
+                                                                style={{ background: s.dropPct >= 50 ? '#FF3B30' : '#FF9500' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[12px] font-black shrink-0"
+                                                        style={{ color: s.dropPct >= 50 ? '#FF3B30' : '#FF9500' }}>
+                                                        -{s.dropPct}%
+                                                    </span>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </Card>
+
+                            <Card title="הצעות פעילות לפי שלב"
+                                subtitle="מצב עכשווי בפייפליין"
+                                accent="linear-gradient(90deg,#5856D6,#007AFF)">
+                                {(() => {
+                                    const active = funnelData.map(s => ({
+                                        ...s,
+                                        activeCount: quotes.filter(q => q.status === s.key).length,
+                                    })).filter(s => s.activeCount > 0);
+                                    const maxActive = Math.max(...active.map(s => s.activeCount), 1);
+                                    if (active.length === 0) return <EmptyChart label="אין הצעות פעילות" />;
+                                    return (
+                                        <div className="space-y-3 mt-1">
+                                            {active.map((s, i) => (
+                                                <motion.div key={s.key}
+                                                    initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.07 }}
+                                                    className="flex items-center gap-3"
+                                                >
+                                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between mb-1">
+                                                            <span className="text-[11px] font-black" style={{ color: s.color }}>{s.activeCount}</span>
+                                                            <span className="text-[11px] font-medium text-[#6E6E73]">{s.label}</span>
+                                                        </div>
+                                                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${(s.activeCount / maxActive) * 100}%` }}
+                                                                transition={{ delay: i * 0.07 + 0.2, duration: 0.7 }}
+                                                                className="h-full rounded-full"
+                                                                style={{ background: s.color }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </Card>
+                        </div>
+                    </motion.div>
+                )}
+
             </AnimatePresence>
         </div>
     );

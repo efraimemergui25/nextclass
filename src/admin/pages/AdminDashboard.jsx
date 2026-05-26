@@ -124,7 +124,7 @@ const computeTrend = (data) => {
 };
 
 export default function AdminDashboard() {
-    const { kpis, orders, analytics, inventory, activityLog, repairProductImages, reseedDatabase } = useAdminData();
+    const { kpis, orders, analytics, inventory, activityLog, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
     const navigate = useNavigate();
@@ -229,6 +229,72 @@ export default function AdminDashboard() {
                     <PeriodSelector value={period} onChange={setPeriod} />
                 </div>
             </motion.div>
+
+            {/* ── Due Reminders Priority Card ──────────────────────────────── */}
+            {kpis.dueReminders?.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="rounded-[20px] overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(255,59,48,0.08) 0%, rgba(255,149,0,0.06) 100%)',
+                        border: '1px solid rgba(255,59,48,0.22)',
+                        boxShadow: '0 4px 20px rgba(255,59,48,0.12)',
+                    }}
+                >
+                    <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#FF3B30,#FF9500)' }} />
+                    <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-black text-[#FF3B30] uppercase tracking-widest">
+                                {kpis.dueReminders.length} תזכורות לטיפול
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inset-0 rounded-full bg-[#FF3B30] opacity-60" />
+                                    <span className="relative w-2 h-2 rounded-full bg-[#FF3B30]" />
+                                </span>
+                                <span className="text-[10px] font-black text-[#FF3B30]">דחוף</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {kpis.dueReminders.slice(0, 4).map((r, i) => (
+                                <motion.div key={i}
+                                    initial={{ opacity: 0, x: 10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.04 }}
+                                    className="flex items-center gap-3"
+                                >
+                                    <div className="flex-1 min-w-0 text-right">
+                                        <p className="text-[#1D1D1F] text-[12px] font-bold truncate">
+                                            {r.quote?.contactName || r.quote?.institution || r.quoteId}
+                                        </p>
+                                        <p className="text-[#FF3B30] text-[10px] font-medium truncate">{r.note || 'מעקב נדרש'}</p>
+                                    </div>
+                                    <span className="text-[#FF9500] text-[10px] font-black shrink-0">
+                                        {new Date(r.dueAt).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                    <motion.button
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => clearReminder(r.quoteId)}
+                                        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                                        style={{ background: 'rgba(52,199,89,0.15)', color: '#34C759' }}
+                                        title="סמן כטופל"
+                                    >
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </motion.button>
+                                </motion.div>
+                            ))}
+                        </div>
+                        {kpis.dueReminders.length > 4 && (
+                            <button onClick={() => navigate('/admin/orders')} className="mt-3 text-[11px] font-black text-[#FF9500] hover:underline">
+                                + עוד {kpis.dueReminders.length - 4} תזכורות →
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
+            )}
 
             {/* ── Primary KPIs ───────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -652,18 +718,62 @@ export default function AdminDashboard() {
             {/* ── KPI Drilldown Modal ────────────────────────────────────────── */}
             {(() => {
                 const meta = {
-                    revenue:    { title: 'פירוט הכנסות', color: '#34C759', data: periodData?.revenue, labels: periodData?.labels },
-                    orders:     { title: 'פירוט עסקאות', color: '#007AFF', data: periodData?.sales,   labels: periodData?.labels },
-                    conversion: { title: 'פירוט תנועה',  color: '#5856D6', data: periodData?.visits,  labels: periodData?.labels },
-                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', data: null },
+                    revenue:    { title: 'פירוט הכנסות', color: '#34C759', accent: 'linear-gradient(90deg,#34C759,#30D158)', data: periodData?.revenue, labels: periodData?.labels, unit: '₪', analyticsTab: 'revenue', layer3Label: 'דוח הכנסות מלא' },
+                    orders:     { title: 'פירוט עסקאות', color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#5856D6)', data: periodData?.sales,   labels: periodData?.labels, unit: '',  analyticsTab: 'overview', layer3Label: 'אנליטיקס מכירות' },
+                    conversion: { title: 'פירוט תנועה',  color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#007AFF)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
+                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FF3B30)', data: null, analyticsTab: 'products', layer3Label: 'דוח מוצרים מלא' },
                 };
                 const m = drilldown ? meta[drilldown] : null;
+
+                const computeStats = (data) => {
+                    if (!data || data.length === 0) return null;
+                    const nonZero = data.filter(v => v > 0);
+                    const total = data.reduce((a, b) => a + b, 0);
+                    const avg = nonZero.length > 0 ? Math.round(total / nonZero.length) : 0;
+                    const peak = Math.max(...data);
+                    const peakIdx = data.lastIndexOf(peak);
+                    const half = Math.floor(data.length / 2);
+                    const firstHalf = data.slice(0, half).reduce((a, b) => a + b, 0);
+                    const secondHalf = data.slice(half).reduce((a, b) => a + b, 0);
+                    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : 0;
+                    return { total, avg, peak, peakIdx, trend, activeDays: nonZero.length };
+                };
+
                 return (
                     <AdminModal open={!!drilldown} onClose={() => setDrilldown(null)} title={m?.title || ''} size="lg">
                         {m && (
                             <div className="space-y-5" dir="rtl">
+                                {/* ── Layer 2: Stats summary row ── */}
+                                {drilldown !== 'avg' && m.data && (() => {
+                                    const stats = computeStats(m.data);
+                                    if (!stats) return null;
+                                    return (
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            {[
+                                                { label: 'סה״כ', value: `${m.unit}${stats.total.toLocaleString()}` },
+                                                { label: 'ממוצע יומי', value: `${m.unit}${stats.avg.toLocaleString()}` },
+                                                { label: 'שיא', value: `${m.unit}${stats.peak.toLocaleString()}` },
+                                                { label: 'מגמה', value: `${stats.trend >= 0 ? '+' : ''}${stats.trend}%`, up: stats.trend >= 0 },
+                                            ].map((s, i) => (
+                                                <motion.div key={i}
+                                                    initial={{ opacity: 0, y: 8 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: i * 0.05 }}
+                                                    className="rounded-[14px] p-3 text-center"
+                                                    style={{ background: `${m.color}0C`, border: `1px solid ${m.color}20` }}
+                                                >
+                                                    <p className="font-black text-[15px]" style={{ color: s.up === false ? '#FF3B30' : s.up === true ? '#34C759' : m.color }}>{s.value}</p>
+                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* ── Layer 2: Chart ── */}
                                 {drilldown === 'avg' ? (
                                     <div className="space-y-3">
+                                        <p className="text-[#AEAEB2] text-[11px] font-bold">הכנסות לפי מוצר — כל הזמנים</p>
                                         {topProducts.length === 0 && <p className="text-[#AEAEB2] text-sm text-center py-8">אין נתונים להצגה</p>}
                                         {topProducts.map((p, i) => (
                                             <div key={i} className="flex items-center gap-3">
@@ -688,12 +798,58 @@ export default function AdminDashboard() {
                                     </div>
                                 ) : m.data ? (
                                     <div>
-                                        <p className="text-[#86868B] text-[11px] font-bold mb-4">
-                                            {period === '1' ? 'היום' : `${period} ימים אחרונים`} · {m.icon} סה״כ: <span className="font-black text-[#1D1D1F]">{m.data.reduce((a,b) => a+b, 0).toLocaleString()}</span>
+                                        <p className="text-[#86868B] text-[11px] font-bold mb-3">
+                                            {period === '1' ? 'היום' : `${period} ימים אחרונים`} — לחץ על עמודה לפירוט
                                         </p>
                                         <BarChart data={m.data} color={m.color} labels={m.labels || []} height={140} />
                                     </div>
                                 ) : null}
+
+                                {/* ── Layer 2: Breakdown (revenue only) ── */}
+                                {drilldown === 'revenue' && topProducts.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2.5">פירוט לפי מוצר</p>
+                                        <div className="space-y-2.5">
+                                            {topProducts.slice(0, 4).map((p, i) => (
+                                                <div key={i} className="flex items-center gap-3">
+                                                    <span className="text-[#AEAEB2] text-[10px] w-4 text-center font-black">{i + 1}</span>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between mb-1">
+                                                            <span className="text-[11px] font-black text-[#34C759]">₪{p.revenue.toLocaleString()}</span>
+                                                            <span className="text-[11px] font-medium text-[#1D1D1F] truncate max-w-[140px]">{p.title}</span>
+                                                        </div>
+                                                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
+                                                                transition={{ delay: i * 0.06, duration: 0.7 }}
+                                                                className="h-full rounded-full"
+                                                                style={{ background: 'linear-gradient(90deg,#34C759,#30D158)' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Layer 3: Navigate to full analytics ── */}
+                                <div className="pt-3 border-t border-black/06 flex items-center justify-between">
+                                    <span className="text-[10px] text-[#AEAEB2] font-medium">שכבה 2 מתוך 3 · לוח בקרה</span>
+                                    <motion.button
+                                        whileHover={{ x: -3 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={() => { navigate(`/admin/analytics`); setDrilldown(null); }}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-[12px] font-black"
+                                        style={{ background: `${m.color}14`, color: m.color, border: `1px solid ${m.color}28` }}
+                                    >
+                                        <span>{m.layer3Label}</span>
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </motion.button>
+                                </div>
                             </div>
                         )}
                     </AdminModal>

@@ -1,0 +1,361 @@
+/* eslint-disable */
+import { useState, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const STAGES = ['חדש', 'ביצירת קשר', 'בדיקת מלאי', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
+const COLORS = {
+  'חדש':           '#FF3B30', 'ביצירת קשר':   '#FF9500', 'בדיקת מלאי':  '#F59E0B',
+  'הוצע מחיר':    '#007AFF', 'ממתין לאישור': '#5856D6',  'נסגר':         '#34C759',
+  'הועבר לספק':   '#0891B2', 'בדרך':          '#7C3AED',  'סופק':         '#1DB954',
+};
+const STAGE_ICONS = {
+  'חדש': '🆕', 'ביצירת קשר': '📞', 'בדיקת מלאי': '📦',
+  'הוצע מחיר': '💰', 'ממתין לאישור': '✍️', 'נסגר': '✅',
+  'הועבר לספק': '🚚', 'בדרך': '📍', 'סופק': '🎉',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const daysSince = (ts) => ts ? Math.floor((Date.now() - ts) / 86400000) : null;
+const quoteTotal = (q) => q.subtotal || (q.items || []).reduce((s, i) => s + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
+
+function stalledDays(q) {
+  // Try to get when it entered the current stage
+  const last = [...(q.history || [])].reverse().find(h => h.status === q.status);
+  return last?.ts ? daysSince(last.ts) : daysSince(q.dateTs);
+}
+
+function urgencyLevel(q) {
+  const d = stalledDays(q);
+  if (!d) return 'ok';
+  if (['חדש', 'ביצירת קשר'].includes(q.status) && d > 3) return 'critical';
+  if (['הוצע מחיר', 'ממתין לאישור'].includes(q.status) && d > 7) return 'critical';
+  if (d > 5) return 'warning';
+  return 'ok';
+}
+
+// ─── KanbanCard ───────────────────────────────────────────────────────────────
+function KanbanCard({ quote, color, onOpen, onDragStart, isDragging }) {
+  const urgency = urgencyLevel(quote);
+  const days    = stalledDays(quote);
+  const total   = quoteTotal(quote);
+  const initials = (quote.contactName || quote.institution || '?')[0].toUpperCase();
+
+  return (
+    <motion.div
+      layout
+      layoutId={`card-${quote.id}`}
+      initial={{ opacity: 0, y: 10, scale: 0.96 }}
+      animate={{ opacity: isDragging ? 0.4 : 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.94, y: -6 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+      draggable="true"
+      onDragStart={(e) => onDragStart(e, quote.id)}
+      onClick={() => onOpen(quote)}
+      className="group relative cursor-pointer select-none"
+      style={{
+        borderRadius: 16,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: `1px solid ${urgency === 'critical' ? 'rgba(255,59,48,0.35)' : 'rgba(255,255,255,0.7)'}`,
+        boxShadow: urgency === 'critical'
+          ? `0 4px 16px rgba(255,59,48,0.18), 0 0 0 1px rgba(255,59,48,0.12)`
+          : '0 2px 12px rgba(0,0,0,0.07)',
+        padding: '10px 11px 9px',
+        userSelect: 'none',
+      }}
+      whileHover={{ y: -2, boxShadow: `0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${color}30` }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* Top accent strip */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, borderRadius: '16px 16px 0 0', background: `linear-gradient(90deg, ${color}, ${color}60)` }} />
+
+      {/* Unread indicator */}
+      {quote.unreadAdmin && (
+        <div style={{ position: 'absolute', top: 8, left: 9, width: 7, height: 7, borderRadius: '50%', background: '#34C759', border: '1.5px solid #fff', boxShadow: '0 0 0 2px rgba(52,199,89,0.3)' }} />
+      )}
+
+      {/* Header: avatar + name */}
+      <div className="flex items-start justify-between gap-2 mt-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-black"
+            style={{ background: `linear-gradient(135deg,${color},${color}80)` }}>
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[12px] font-black text-[#1D1D1F] truncate leading-tight" style={{ maxWidth: 120 }}>
+              {quote.contactName || '—'}
+            </p>
+            {quote.institution && (
+              <p className="text-[9px] font-medium text-[#AEAEB2] truncate" style={{ maxWidth: 120 }}>
+                {quote.institution}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Urgency badge */}
+        {urgency !== 'ok' && days && (
+          <div className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full"
+            style={{
+              background: urgency === 'critical' ? 'rgba(255,59,48,0.12)' : 'rgba(255,149,0,0.12)',
+              color: urgency === 'critical' ? '#FF3B30' : '#FF9500',
+            }}>
+            {days}י׳
+          </div>
+        )}
+      </div>
+
+      {/* Total amount */}
+      {total > 0 && (
+        <div className="mt-2.5 flex items-center justify-between">
+          <span className="text-[11px] font-black" style={{ color }}>₪{total.toLocaleString()}</span>
+          <span className="text-[9px] text-[#C7C7CC] font-mono">{quote.id?.slice(-6)}</span>
+        </div>
+      )}
+
+      {/* Items count pill */}
+      {(quote.items?.length || 0) > 0 && (
+        <div className="mt-2 flex gap-1 flex-wrap">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+            style={{ background: `${color}12`, color }}>
+            {quote.items.length} פריטים
+          </span>
+          {quote.reminderAt && quote.reminderAt > Date.now() && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+              style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
+              ⏰ תזכורת
+            </span>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── KanbanColumn ─────────────────────────────────────────────────────────────
+function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDragOver, draggingId }) {
+  const total = quotes.reduce((s, q) => s + quoteTotal(q), 0);
+  const criticalCount = quotes.filter(q => urgencyLevel(q) === 'critical').length;
+
+  return (
+    <div
+      style={{ minWidth: 210, maxWidth: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0 }}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => onDrop(e, stage)}
+    >
+      {/* Column header */}
+      <motion.div
+        animate={isDragOver ? { scale: 1.02 } : { scale: 1 }}
+        style={{
+          padding: '8px 11px 9px',
+          borderRadius: 14,
+          background: isDragOver
+            ? `${color}18`
+            : 'rgba(255,255,255,0.65)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: isDragOver ? `1.5px dashed ${color}` : '1px solid rgba(255,255,255,0.6)',
+          boxShadow: isDragOver ? `0 0 0 3px ${color}20, 0 4px 16px rgba(0,0,0,0.08)` : '0 2px 8px rgba(0,0,0,0.05)',
+          marginBottom: 8,
+          transition: 'all 0.15s',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span style={{ fontSize: 12 }}>{STAGE_ICONS[stage]}</span>
+            <span className="text-[11px] font-black" style={{ color: isDragOver ? color : '#1D1D1F' }}>{stage}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {criticalCount > 0 && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,59,48,0.12)', color: '#FF3B30' }}>
+                {criticalCount}⚡
+              </span>
+            )}
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
+              style={{ background: `${color}18`, color }}>
+              {quotes.length}
+            </span>
+          </div>
+        </div>
+        {total > 0 && (
+          <p className="text-[10px] font-black mt-1" style={{ color: `${color}CC` }}>
+            ₪{total.toLocaleString()}
+          </p>
+        )}
+      </motion.div>
+
+      {/* Drop zone + cards */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 120,
+          padding: isDragOver ? '6px' : '0',
+          borderRadius: 14,
+          border: isDragOver ? `1.5px dashed ${color}80` : '1.5px dashed transparent',
+          background: isDragOver ? `${color}06` : 'transparent',
+          transition: 'all 0.15s',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 7,
+        }}
+      >
+        <AnimatePresence>
+          {quotes.map(q => (
+            <KanbanCard
+              key={q.id}
+              quote={q}
+              color={color}
+              onOpen={onOpen}
+              onDragStart={onDragStart}
+              isDragging={draggingId === q.id}
+            />
+          ))}
+        </AnimatePresence>
+
+        {quotes.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isDragOver ? 0 : 1 }}
+            style={{
+              padding: '18px 12px',
+              borderRadius: 12,
+              border: `1.5px dashed ${color}25`,
+              textAlign: 'center',
+              color: '#C7C7CC',
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            {isDragOver ? '' : 'ריק'}
+          </motion.div>
+        )}
+
+        {isDragOver && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              padding: '14px 12px',
+              borderRadius: 12,
+              border: `2px dashed ${color}60`,
+              textAlign: 'center',
+              color: color,
+              fontSize: 11,
+              fontWeight: 800,
+              background: `${color}08`,
+            }}
+          >
+            + הוסף לכאן
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main KanbanBoard ─────────────────────────────────────────────────────────
+export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showToast }) {
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
+  const dragIdRef = useRef(null);
+
+  const byStage = useMemo(() => {
+    const map = {};
+    STAGES.forEach(s => { map[s] = []; });
+    quotes.forEach(q => {
+      const s = q.status;
+      if (map[s]) map[s].push(q);
+      // else ignore non-kanban statuses
+    });
+    return map;
+  }, [quotes]);
+
+  const handleDragStart = useCallback((e, quoteId) => {
+    dragIdRef.current = quoteId;
+    setDraggingId(quoteId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', quoteId);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDragOverStage(null);
+    dragIdRef.current = null;
+  }, []);
+
+  const handleDrop = useCallback((e, targetStage) => {
+    e.preventDefault();
+    const id = dragIdRef.current || e.dataTransfer.getData('text/plain');
+    if (!id) return;
+    const quote = quotes.find(q => q.id === id);
+    if (!quote || quote.status === targetStage) {
+      setDraggingId(null);
+      setDragOverStage(null);
+      return;
+    }
+    onUpdateStatus(id, targetStage);
+    showToast(`"${quote.contactName || quote.id}" → ${targetStage}`, 'success');
+    setDraggingId(null);
+    setDragOverStage(null);
+  }, [quotes, onUpdateStatus, showToast]);
+
+  const totalPipeline = useMemo(() => quotes.reduce((s, q) => s + quoteTotal(q), 0), [quotes]);
+  const criticalAll   = useMemo(() => quotes.filter(q => urgencyLevel(q) === 'critical').length, [quotes]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} onDragEnd={handleDragEnd}>
+
+      {/* Pipeline summary bar */}
+      <div className="flex items-center gap-4 px-1 flex-wrap">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+          style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.18)' }}>
+          <span className="text-[11px] font-black text-[#007AFF]">Pipeline: ₪{totalPipeline.toLocaleString()}</span>
+        </div>
+        {criticalAll > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+            style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.2)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
+            <span className="text-[11px] font-black text-[#FF3B30]">{criticalAll} הצעות זקוקות לתשומת לב</span>
+          </div>
+        )}
+        <span className="text-[10px] text-[#AEAEB2] font-bold mr-auto">גרור כרטיס לעמודה אחרת לשינוי סטטוס</span>
+      </div>
+
+      {/* Board */}
+      <div
+        style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 16, paddingTop: 2, cursor: 'default' }}
+        className="custom-scrollbar"
+        dir="rtl"
+      >
+        {STAGES.map(stage => (
+          <KanbanColumn
+            key={stage}
+            stage={stage}
+            quotes={byStage[stage] || []}
+            color={COLORS[stage] || '#007AFF'}
+            onOpen={onOpen}
+            onDragStart={handleDragStart}
+            onDrop={handleDrop}
+            isDragOver={dragOverStage === stage && draggingId !== null}
+            draggingId={draggingId}
+          />
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 flex-wrap px-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#FF3B30]" />
+          <span className="text-[10px] text-[#AEAEB2] font-bold">ממתין יותר מדי — פעולה דחופה</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: '#34C759' }} />
+          <span className="text-[10px] text-[#AEAEB2] font-bold">הודעה חדשה מלקוח</span>
+        </div>
+      </div>
+    </div>
+  );
+}

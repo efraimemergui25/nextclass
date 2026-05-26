@@ -10,7 +10,8 @@ import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
 import { db } from '../../firebase';
-import { doc, updateDoc, arrayUnion, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, arrayUnion, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import AdminKanbanBoard from '../components/AdminKanbanBoard';
 
 // ─── AI reply templates & intent detection ────────────────────────────────────
 const EMOJI_RXNS = ['👍','✅','❓','⏰','😊'];
@@ -1679,6 +1680,238 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
 }
 
 // ─── Kanban View ─────────────────────────────────────────────────────────────
+// ─── Customer 360 Panel ───────────────────────────────────────────────────────
+function Customer360Panel({ quote, allQuotes, onOpen, navigate }) {
+    const email = quote.email || '';
+    const phone = quote.phone || '';
+    const related = useMemo(() => allQuotes.filter(q =>
+        q.id !== quote.id &&
+        ((email && (q.email === email || q.contactEmail === email)) ||
+         (phone && (q.phone === phone)))
+    ).sort((a, b) => b.dateTs - a.dateTs), [allQuotes, quote, email, phone]);
+
+    const ltv = useMemo(() => related.reduce((s, q) => {
+        const total = q.subtotal || (q.items || []).reduce((t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
+        return s + total;
+    }, 0), [related]);
+
+    const firstTs = useMemo(() => {
+        const all = [quote, ...related];
+        return all.reduce((min, q) => Math.min(min, q.dateTs || Date.now()), Date.now());
+    }, [quote, related]);
+
+    const daysSinceFirst = Math.floor((Date.now() - firstTs) / 86400000);
+    const closedDeals    = related.filter(q => ['נסגר', 'סופק'].includes(q.status)).length;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} dir="rtl">
+            {/* Summary cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                {[
+                    { label: 'LTV ₪', value: ltv > 0 ? `₪${ltv.toLocaleString()}` : '—', color: '#34C759', bg: 'rgba(52,199,89,0.08)' },
+                    { label: 'ימים לקוח', value: daysSinceFirst, color: '#007AFF', bg: 'rgba(0,122,255,0.08)' },
+                    { label: 'עסקאות', value: closedDeals, color: '#5856D6', bg: 'rgba(88,86,214,0.08)' },
+                ].map(s => (
+                    <div key={s.label} style={{ padding: '12px 10px', borderRadius: 14, background: s.bg, textAlign: 'center' }}>
+                        <p style={{ fontSize: 18, fontWeight: 900, color: s.color, margin: 0 }}>{s.value}</p>
+                        <p style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', margin: '3px 0 0', letterSpacing: '0.08em' }}>{s.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Contact info */}
+            <div style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.07)' }}>
+                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>פרטי לקוח</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {[
+                        ['שם', quote.contactName],
+                        ['מייל', quote.email],
+                        ['טלפון', quote.phone],
+                        ['מוסד', quote.institution],
+                        ['תפקיד', quote.contactRole],
+                    ].filter(([,v]) => v).map(([l, v]) => (
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F' }}>{v}</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.08em' }}>{l}</span>
+                        </div>
+                    ))}
+                </div>
+                {quote.email && (
+                    <motion.button whileTap={{ scale: 0.97 }}
+                        onClick={() => navigate(`/admin/users?email=${encodeURIComponent(quote.email)}`)}
+                        style={{ marginTop: 10, width: '100%', padding: '8px', borderRadius: 10, border: '1px solid rgba(0,122,255,0.22)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                        פתח פרופיל משתמש →
+                    </motion.button>
+                )}
+            </div>
+
+            {/* Historical quotes */}
+            <div>
+                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>
+                    היסטוריית הצעות ({related.length})
+                </p>
+                {related.length === 0 ? (
+                    <div style={{ padding: '16px', borderRadius: 14, border: '1.5px dashed rgba(0,0,0,0.08)', textAlign: 'center', color: '#AEAEB2', fontSize: 12, fontWeight: 700 }}>
+                        אין הצעות קודמות
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {related.map(q => {
+                            const color = QUOTE_STATUS_COLORS[q.status] || '#007AFF';
+                            const total = q.subtotal || (q.items || []).reduce((t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
+                            return (
+                                <motion.div key={q.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                                    onClick={() => onOpen(q)}
+                                    style={{ padding: '10px 12px', borderRadius: 12, background: '#fff', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {q.items?.map(i => i.title).join(', ') || q.id}
+                                        </p>
+                                        <p style={{ fontSize: 10, color: '#86868B', margin: '2px 0 0' }}>{q.date} · {q.id}</p>
+                                    </div>
+                                    <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                                        {total > 0 && <p style={{ fontSize: 12, fontWeight: 800, color, margin: 0 }}>₪{total.toLocaleString()}</p>}
+                                        <p style={{ fontSize: 9, fontWeight: 700, color, margin: '2px 0 0', background: `${color}12`, padding: '1px 6px', borderRadius: 99 }}>{q.status}</p>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Quote Versions Panel ─────────────────────────────────────────────────────
+function QuoteVersionsPanel({ quote, updateQuoteFields, showToast }) {
+    const versions = quote.versions || [];
+    const [diffIdx, setDiffIdx] = useState(null);
+
+    const currentSnapshot = {
+        savedAt: Date.now(),
+        savedAtStr: 'נוכחי',
+        versionLabel: 'גרסה נוכחית',
+        items: quote.items || [],
+        subtotal: quote.subtotal || 0,
+        notes: quote.notes || '',
+        status: quote.status,
+    };
+
+    const allVersions = [...versions, currentSnapshot];
+
+    const saveManualVersion = async () => {
+        const snapshot = {
+            savedAt: Date.now(),
+            savedAtStr: new Date().toLocaleString('he-IL'),
+            status: quote.status,
+            items: quote.items || [],
+            subtotal: quote.subtotal || 0,
+            notes: quote.notes || '',
+            versionLabel: `גרסה ${versions.length + 1} (ידנית)`,
+        };
+        await updateQuoteFields(quote.id, { versions: [...versions, snapshot] });
+        showToast('גרסה נשמרה', 'success');
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} dir="rtl">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: 0 }}>
+                    {allVersions.length} גרסאות
+                </p>
+                <motion.button whileTap={{ scale: 0.96 }} onClick={saveManualVersion}
+                    style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(88,86,214,0.3)', background: 'rgba(88,86,214,0.07)', color: '#5856D6', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                    + שמור גרסה עכשיו
+                </motion.button>
+            </div>
+
+            {allVersions.length === 1 ? (
+                <div style={{ padding: '20px', borderRadius: 14, border: '1.5px dashed rgba(0,0,0,0.08)', textAlign: 'center', color: '#AEAEB2', fontSize: 12, fontWeight: 700 }}>
+                    <p style={{ margin: '0 0 6px' }}>אין גרסאות שמורות עדיין</p>
+                    <p style={{ margin: 0, fontSize: 10 }}>גרסה נשמרת אוטומטית בכל שליחת הצעת מחיר</p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {allVersions.map((v, i) => {
+                        const isCurrent = i === allVersions.length - 1;
+                        const prevV = i > 0 ? allVersions[i - 1] : null;
+                        // Compute diff: items added/removed/changed
+                        const diffItems = prevV ? (() => {
+                            const changes = [];
+                            const pMap = Object.fromEntries((prevV.items || []).map(it => [it.id, it]));
+                            const cMap = Object.fromEntries((v.items || []).map(it => [it.id, it]));
+                            Object.keys(cMap).forEach(id => {
+                                if (!pMap[id]) changes.push({ type: 'added', item: cMap[id] });
+                                else if (cMap[id].qty !== pMap[id].qty || cMap[id].salePrice !== pMap[id].salePrice) changes.push({ type: 'changed', item: cMap[id], prev: pMap[id] });
+                            });
+                            Object.keys(pMap).forEach(id => { if (!cMap[id]) changes.push({ type: 'removed', item: pMap[id] }); });
+                            return changes;
+                        })() : [];
+
+                        const deltaPrice = prevV ? (v.subtotal || 0) - (prevV.subtotal || 0) : 0;
+
+                        return (
+                            <motion.div key={i}
+                                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.04 }}
+                                style={{
+                                    borderRadius: 14, overflow: 'hidden',
+                                    border: isCurrent ? '1.5px solid rgba(0,122,255,0.3)' : '1px solid rgba(0,0,0,0.07)',
+                                    background: isCurrent ? 'rgba(0,122,255,0.04)' : '#fff',
+                                }}>
+                                {/* Version header */}
+                                <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: diffIdx === i ? 'default' : 'pointer' }}
+                                    onClick={() => setDiffIdx(diffIdx === i ? null : i)}>
+                                    <div style={{ display: 'flex', items: 'center', gap: 8 }}>
+                                        {deltaPrice !== 0 && (
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: deltaPrice > 0 ? '#34C759' : '#FF3B30', background: deltaPrice > 0 ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)', padding: '1px 7px', borderRadius: 99, marginLeft: 6 }}>
+                                                {deltaPrice > 0 ? '+' : ''}₪{deltaPrice.toLocaleString()}
+                                            </span>
+                                        )}
+                                        {diffItems.length > 0 && (
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '1px 7px', borderRadius: 99 }}>
+                                                {diffItems.length} שינויים
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <p style={{ fontSize: 12, fontWeight: 800, color: isCurrent ? '#007AFF' : '#1D1D1F', margin: 0 }}>{v.versionLabel}</p>
+                                        <p style={{ fontSize: 10, color: '#AEAEB2', margin: '2px 0 0' }}>{v.savedAtStr} · ₪{(v.subtotal || 0).toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                {/* Diff expansion */}
+                                <AnimatePresence>
+                                    {diffIdx === i && diffItems.length > 0 && (
+                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                            style={{ overflow: 'hidden', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                            <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                {diffItems.map((d, di) => (
+                                                    <div key={di} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: d.type === 'added' ? 'rgba(52,199,89,0.07)' : d.type === 'removed' ? 'rgba(255,59,48,0.07)' : 'rgba(255,149,0,0.07)' }}>
+                                                        <span style={{ fontSize: 13 }}>{d.type === 'added' ? '✚' : d.type === 'removed' ? '✕' : '↻'}</span>
+                                                        <div style={{ flex: 1, textAlign: 'right' }}>
+                                                            <p style={{ fontSize: 11, fontWeight: 700, color: '#1D1D1F', margin: 0 }}>{d.item.title}</p>
+                                                            {d.type === 'changed' && <p style={{ fontSize: 10, color: '#86868B', margin: '2px 0 0' }}>
+                                                                כמות: {d.prev.qty}→{d.item.qty} · מחיר: {d.prev.salePrice}→{d.item.salePrice}
+                                                            </p>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function KanbanView({ quotes, onUpdateStatus, onOpen, showToast }) {
     const KANBAN_STAGES = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 
@@ -2050,8 +2283,22 @@ function QuotesPipeline() {
         setTimeout(() => setFlashId(null), 600);
     };
 
-    const handleStatusSave = () => {
+    const handleStatusSave = async () => {
         if (!newStatus || !selected) return;
+        // Save a version snapshot when sending a quote
+        if (newStatus === 'הוצע מחיר') {
+            const snapshot = {
+                savedAt: Date.now(),
+                savedAtStr: new Date().toLocaleString('he-IL'),
+                status: newStatus,
+                items: selected.items || [],
+                subtotal: selected.subtotal || 0,
+                notes: selected.notes || '',
+                versionLabel: `גרסה ${((selected.versions || []).length + 1)}`,
+            };
+            const prev = selected.versions || [];
+            await updateQuoteFields(selected.id, { versions: [...prev, snapshot] });
+        }
         updateQuoteStatus(selected.id, newStatus);
         setSelected(prev => ({ ...prev, status: newStatus }));
         setSaved(true);
@@ -2216,7 +2463,7 @@ function QuotesPipeline() {
 
             {/* Kanban View */}
             {viewMode === 'kanban' && (
-                <KanbanView
+                <AdminKanbanBoard
                     quotes={filtered}
                     onUpdateStatus={handleQuickStatus}
                     onOpen={(quote) => { setSelected(quote); setNewStatus(''); setSaved(false); setNoteText(''); }}
@@ -2226,36 +2473,80 @@ function QuotesPipeline() {
 
             {/* List */}
             <div className="space-y-3 mt-4" style={{ display: viewMode === 'kanban' ? 'none' : undefined }}>
-                {/* Bulk actions bar */}
+                {/* Floating Bulk Bar — portal-rendered at body level */}
                 <AnimatePresence>
-                    {bulkMode && selectedIds.size > 0 && (
-                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 14, background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.18)' }} dir="rtl">
-                            <span style={{ fontSize: 12, fontWeight: 800, color: '#007AFF' }}>{selectedIds.size} נבחרו</span>
-                            <motion.button whileTap={{ scale: 0.95 }}
+                    {bulkMode && selectedIds.size > 0 && createPortal(
+                        <motion.div
+                            initial={{ opacity: 0, y: 80, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 60, scale: 0.96 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            dir="rtl"
+                            style={{
+                                position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+                                zIndex: 99999, display: 'flex', alignItems: 'center', gap: 8,
+                                padding: '10px 14px', borderRadius: 22,
+                                background: 'rgba(29,29,31,0.94)',
+                                backdropFilter: 'blur(40px) saturate(200%)',
+                                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.12)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                minWidth: 320, flexWrap: 'wrap',
+                            }}
+                        >
+                            {/* Count badge */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 9, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#fff' }}>
+                                    {selectedIds.size}
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>נבחרו</span>
+                            </div>
+
+                            <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.14)', margin: '0 2px' }} />
+
+                            {/* Select all */}
+                            <motion.button whileTap={{ scale: 0.93 }}
                                 onClick={() => setSelectedIds(new Set(filtered.map(q => q.id)))}
-                                style={{ padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(0,122,255,0.2)', background: 'transparent', color: '#007AFF', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                style={{ padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', whiteSpace: 'nowrap' }}>
                                 בחר הכל
                             </motion.button>
-                            <div style={{ flex: 1 }} />
+
+                            {/* Status actions */}
                             {[
-                                { label: 'עבור ל"ביצירת קשר"', status: 'ביצירת קשר', color: '#FF9500' },
-                                { label: 'עבור ל"הוצע מחיר"', status: 'הוצע מחיר', color: '#007AFF' },
-                                { label: 'סמן כבוטל', status: 'בוטל', color: '#AEAEB2' },
+                                { label: 'ביצירת קשר', status: 'ביצירת קשר', color: '#FF9500' },
+                                { label: 'הוצע מחיר',  status: 'הוצע מחיר',  color: '#007AFF' },
+                                { label: 'נסגר',        status: 'נסגר',        color: '#34C759' },
+                                { label: 'בוטל',        status: 'בוטל',        color: '#FF3B30' },
                             ].map(a => (
-                                <motion.button key={a.status} whileTap={{ scale: 0.95 }}
+                                <motion.button key={a.status} whileTap={{ scale: 0.93 }}
                                     onClick={() => {
                                         selectedIds.forEach(id => updateQuoteStatus(id, a.status));
-                                        showToast(`${selectedIds.size} הצעות עודכנו`, 'success');
+                                        showToast(`${selectedIds.size} הצעות → "${a.status}"`, 'success');
                                         setSelectedIds(new Set()); setBulkMode(false);
                                     }}
-                                    style={{ padding: '6px 12px', borderRadius: 9, border: 'none', background: `${a.color}15`, color: a.color, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
-                                    {a.label}
+                                    style={{ padding: '6px 13px', borderRadius: 10, border: 'none', background: `${a.color}22`, color: a.color, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', whiteSpace: 'nowrap' }}>
+                                    → {a.label}
                                 </motion.button>
                             ))}
-                            <button onClick={() => { setSelectedIds(new Set()); setBulkMode(false); }}
-                                style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.09)', background: 'transparent', fontSize: 10, fontWeight: 800, color: '#86868B', cursor: 'pointer' }}>ביטול</button>
-                        </motion.div>
+
+                            {/* Export CSV */}
+                            <motion.button whileTap={{ scale: 0.93 }}
+                                onClick={() => {
+                                    exportQuotesToCsv(filtered.filter(q => selectedIds.has(q.id)));
+                                    showToast('CSV יוצא', 'success');
+                                }}
+                                style={{ padding: '6px 13px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', whiteSpace: 'nowrap' }}>
+                                ↓ CSV
+                            </motion.button>
+
+                            {/* Close */}
+                            <motion.button whileTap={{ scale: 0.90 }}
+                                onClick={() => { setSelectedIds(new Set()); setBulkMode(false); }}
+                                style={{ width: 28, height: 28, borderRadius: 9, border: 'none', background: 'rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 2 }}>
+                                ✕
+                            </motion.button>
+                        </motion.div>,
+                        document.body
                     )}
                 </AnimatePresence>
 
@@ -2499,9 +2790,11 @@ function QuotesPipeline() {
                                 { key: 'pipeline', label: 'תהליך' },
                                 { key: 'chat',     label: 'שיחה', badge: selected.unreadAdmin },
                                 { key: 'details',  label: 'פרטים' },
+                                { key: 'c360',     label: 'לקוח 360' },
+                                { key: 'versions', label: 'גרסאות' },
                             ].map(tab => (
                                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                                    style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'Heebo, sans-serif', transition: 'all 0.18s', position: 'relative',
+                                    style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 800, fontFamily: 'Heebo, sans-serif', transition: 'all 0.18s', position: 'relative',
                                         background: activeTab === tab.key ? '#fff' : 'transparent',
                                         color: activeTab === tab.key ? '#1D1D1F' : '#86868B',
                                         boxShadow: activeTab === tab.key ? '0 1px 8px rgba(0,0,0,0.09)' : 'none',
@@ -3014,6 +3307,16 @@ function QuotesPipeline() {
                                     </div>
                                 )}
                             </div>
+                        )}
+
+                        {/* ══ CUSTOMER 360 TAB ══ */}
+                        {activeTab === 'c360' && (
+                            <Customer360Panel quote={selected} allQuotes={quotes} onOpen={(q) => { setSelected(q); setNewStatus(''); setSaved(false); setNoteText(''); setActiveTab('pipeline'); }} navigate={navigate} />
+                        )}
+
+                        {/* ══ VERSIONS TAB ══ */}
+                        {activeTab === 'versions' && (
+                            <QuoteVersionsPanel quote={selected} updateQuoteFields={updateQuoteFields} showToast={showToast} />
                         )}
 
                         <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-start' }}>
