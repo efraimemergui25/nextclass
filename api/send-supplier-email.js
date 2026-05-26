@@ -36,7 +36,15 @@ function divider() {
     return `<div style="height:1px;background:#F0F4FF;margin:0 0 28px;"></div>`;
 }
 
-function buildSupplierOrderEmail(quote, supplier) {
+function customNoteBlock(note) {
+    if (!note) return '';
+    return `<div style="margin-bottom:24px;padding:16px 20px;background:linear-gradient(135deg,#FFF8F0,#FFFAF5);border-right:4px solid #FF9500;border-radius:0 14px 14px 0;">
+      <div style="font-size:11px;font-weight:800;color:#FF9500;margin-bottom:6px;letter-spacing:0.05em;">✏️ הערה אישית</div>
+      <div style="font-size:13px;color:#3D3D3D;line-height:1.65;white-space:pre-line;">${note}</div>
+    </div>`;
+}
+
+function buildSupplierOrderEmail(quote, supplier, customNote) {
     const supplierName = supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
     const contactPerson = supplier?.contactPerson || supplier?.agentName || supplier?.contact || '';
     const greeting = contactPerson ? `שלום ${contactPerson},` : `שלום ${supplierName},`;
@@ -110,6 +118,7 @@ function buildSupplierOrderEmail(quote, supplier) {
         אנא ציינו מחיר ליחידה, מחיר לכמות הנדרשת, וזמן אספקה צפוי.
       </p>
       ${divider()}
+      ${customNoteBlock(customNote)}
       ${itemsSection}
       ${totalSection}
       ${deliverySection}
@@ -202,7 +211,7 @@ function buildSupplierOrderEmail(quote, supplier) {
 </body></html>`;
 }
 
-function buildOrderConfirmationEmail(quote, supplier) {
+function buildOrderConfirmationEmail(quote, supplier, customNote) {
     const supplierName = supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
     const contactPerson = supplier?.contactPerson || supplier?.agentName || supplier?.contact || '';
     const greeting = contactPerson ? `שלום ${contactPerson},` : `שלום ${supplierName},`;
@@ -284,6 +293,7 @@ function buildOrderConfirmationEmail(quote, supplier) {
         אנא עיברו על הפירוט ואשרו בחזרה.
       </p>
       ${divider()}
+      ${customNoteBlock(customNote)}
       ${itemsSection}
       ${totalSection}
       ${deliverySection}
@@ -376,13 +386,13 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { quote, supplier, to, preview, type } = req.body ?? {};
+    const { quote, supplier, to, preview, type, customNote, subject: customSubject } = req.body ?? {};
     if (!quote) return res.status(400).json({ error: 'quote required' });
 
     try {
         const isOrder = type === 'order_confirmation';
-        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier) : buildSupplierOrderEmail(quote, supplier);
-        const subject = isOrder ? `אישור הזמנה ${quote.id} — NextClass` : `בקשת הצעת מחיר ${quote.id} — NextClass`;
+        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote) : buildSupplierOrderEmail(quote, supplier, customNote);
+        const subject = customSubject || (isOrder ? `אישור הזמנה ${quote.id} — NextClass` : `בקשת הצעת מחיר ${quote.id} — NextClass`);
 
         if (preview === true) {
             return res.status(200).json({ html, subject, preview: true });

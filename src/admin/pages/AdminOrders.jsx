@@ -524,22 +524,30 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
     ].join('\n');
 
     const handleSend = async (method) => {
+        if (method === 'email' && quote.email) {
+            const updatedQuote = { ...quote, items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })), subtotal: total };
+            const preAction = async () => {
+                await updateQuoteFields(quote.id, {
+                    items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })),
+                    subtotal: total, quoteMessage: message, quoteSentAt: Date.now(),
+                });
+                await onUpdateStatus(quote.id, 'הוצע מחיר');
+                showToast('הצעת מחיר נשלחה ✓', 'success');
+                setTimeout(() => onSwitchTab?.('chat'), 400);
+            };
+            openEmailPreview?.('quote_sent', updatedQuote, preAction);
+            return;
+        }
         setBusy(true);
         try {
             await updateQuoteFields(quote.id, {
                 items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })),
-                subtotal: total,
-                quoteMessage: message,
-                quoteSentAt: Date.now(),
+                subtotal: total, quoteMessage: message, quoteSentAt: Date.now(),
             });
             await onUpdateStatus(quote.id, 'הוצע מחיר');
             showToast('הצעת מחיר נשלחה ✓', 'success');
             if (method === 'wa' && quote.phone) {
                 window.open(`https://wa.me/972${quote.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(quoteText)}`, '_blank');
-                setTimeout(() => onSwitchTab?.('chat'), 400);
-            } else if (method === 'email' && quote.email) {
-                const updatedQuote = { ...quote, items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })), subtotal: total };
-                openEmailPreview?.('quote_sent', updatedQuote);
                 setTimeout(() => onSwitchTab?.('chat'), 400);
             } else {
                 onSwitchTab?.('chat');
@@ -1157,6 +1165,9 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
     const [prevOpen, setPrevOpen] = useState(false);
     const [prevHtml, setPrevHtml] = useState('');
     const [prevSubject, setPrevSubject] = useState('');
+    const [prevEditSubject, setPrevEditSubject] = useState('');
+    const [prevCustomNote, setPrevCustomNote] = useState('');
+    const [prevNoteOpen, setPrevNoteOpen] = useState(false);
     const [prevLoading, setPrevLoading] = useState(false);
     const [prevSending, setPrevSending] = useState(false);
 
@@ -1170,14 +1181,22 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
     }, [selSupplierName, suppliers]);
 
     const items = quote.items || [];
-    const productList = liveProducts?.length ? liveProducts : initialProducts;
+    const findInList = (list, item) => {
+        const iTitle = (item.title || item.name || '').toLowerCase();
+        return list.find(p => {
+            if (String(p.id) === String(item.id)) return true;
+            const pTitle = (p.title || p.name || '').toLowerCase();
+            if (pTitle.includes(iTitle) || iTitle.includes(pTitle)) return true;
+            if (iTitle.includes(pTitle.slice(0, 8))) return true;
+            const pWords = pTitle.split(/\s+/).filter(w => w.length > 2);
+            const iWords = iTitle.split(/\s+/).filter(w => w.length > 2);
+            return pWords.filter(w => iWords.includes(w)).length >= 2;
+        });
+    };
     const itemsWithStock = items.map(item => {
-        const title = (item.title || item.name || '').toLowerCase();
-        const product = productList.find(p =>
-            String(p.id) === String(item.id) ||
-            (p.title || p.name || '').toLowerCase().includes(title) ||
-            title.includes((p.title || p.name || '').toLowerCase().slice(0, 6))
-        );
+        const live = liveProducts?.length ? findInList(liveProducts, item) : null;
+        const fallback = live ?? findInList(initialProducts, item);
+        const product = live ?? fallback;
         return { ...item, stock: product?.stock ?? -1, threshold: product?.threshold ?? 5 };
     });
 
@@ -1191,13 +1210,13 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
     const openSupplierPreview = async () => {
         const emailTo = selSupplier?.agentEmail || selSupplier?.email;
         if (!emailTo) { showToast('אין כתובת מייל לספק', 'error'); return; }
-        setPrevOpen(true); setPrevHtml(''); setPrevSubject(''); setPrevLoading(true);
+        setPrevOpen(true); setPrevHtml(''); setPrevSubject(''); setPrevEditSubject(''); setPrevCustomNote(''); setPrevNoteOpen(false); setPrevLoading(true);
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ quote: { ...quote, supplierOrder: { ...(quote.supplierOrder || {}), notes: suppNote, estimatedDelivery: suppDelivery, supplierName: selSupplierName } }, supplier: selSupplier, preview: true }),
             });
-            if (res.ok) { const d = await res.json(); setPrevHtml(d.html || ''); setPrevSubject(d.subject || ''); }
+            if (res.ok) { const d = await res.json(); setPrevHtml(d.html || ''); setPrevSubject(d.subject || ''); setPrevEditSubject(d.subject || ''); }
             else { showToast('שגיאה בטעינת תצוגה', 'error'); setPrevOpen(false); }
         } catch { showToast('שגיאה', 'error'); setPrevOpen(false); }
         finally { setPrevLoading(false); }
@@ -1208,7 +1227,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote: { ...quote, supplierOrder: { ...(quote.supplierOrder || {}), notes: suppNote, estimatedDelivery: suppDelivery, supplierName: selSupplierName } }, supplier: selSupplier }),
+                body: JSON.stringify({ quote: { ...quote, supplierOrder: { ...(quote.supplierOrder || {}), notes: suppNote, estimatedDelivery: suppDelivery, supplierName: selSupplierName } }, supplier: selSupplier, customNote: prevCustomNote || null, subject: prevEditSubject !== prevSubject ? prevEditSubject : null }),
             });
             if (res.ok) {
                 showToast('מייל נשלח לספק ✓', 'success');
@@ -1277,10 +1296,16 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                         </select>
                     </div>
                     {selSupplier && (
-                        <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(8,145,178,0.08)' }}>
-                            {selSupplier.contactPerson && <p style={{ fontSize: 11, fontWeight: 700, color: '#0891B2', margin: '0 0 2px' }}>👤 {selSupplier.contactPerson}</p>}
-                            {(selSupplier.agentEmail || selSupplier.email) && <p style={{ fontSize: 10, color: '#6E6E73', margin: '1px 0' }}>✉️ {selSupplier.agentEmail || selSupplier.email}</p>}
-                            {(selSupplier.agentPhone || selSupplier.phone) && <p style={{ fontSize: 10, color: '#6E6E73', margin: '1px 0' }}>📞 {selSupplier.agentPhone || selSupplier.phone}</p>}
+                        <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 12, background: 'rgba(8,145,178,0.07)', border: '1px solid rgba(8,145,178,0.15)', direction: 'rtl' }}>
+                            <p style={{ fontSize: 10, fontWeight: 800, color: '#0891B2', margin: '0 0 8px', letterSpacing: '0.05em' }}>👤 איש קשר</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                                {selSupplier.contactPerson && <div style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', gridColumn: '1/-1' }}>{selSupplier.contactPerson}</div>}
+                                {selSupplier.agentName && selSupplier.agentName !== selSupplier.contactPerson && <div style={{ fontSize: 11, color: '#6E6E73' }}>סוכן: {selSupplier.agentName}</div>}
+                                {(selSupplier.agentEmail || selSupplier.email) && <a href={`mailto:${selSupplier.agentEmail || selSupplier.email}`} style={{ fontSize: 11, color: '#0891B2', textDecoration: 'none', fontWeight: 600 }}>✉️ {selSupplier.agentEmail || selSupplier.email}</a>}
+                                {(selSupplier.agentPhone || selSupplier.phone) && <a href={`tel:${selSupplier.agentPhone || selSupplier.phone}`} style={{ fontSize: 11, color: '#0891B2', textDecoration: 'none', fontWeight: 600 }}>📞 {selSupplier.agentPhone || selSupplier.phone}</a>}
+                                {selSupplier.website && <a href={selSupplier.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#5856D6', textDecoration: 'none', fontWeight: 600, gridColumn: '1/-1' }}>🌐 {selSupplier.website}</a>}
+                                {selSupplier.address && <div style={{ fontSize: 11, color: '#6E6E73', gridColumn: '1/-1' }}>📍 {selSupplier.address}{selSupplier.city ? `, ${selSupplier.city}` : ''}</div>}
+                            </div>
                         </div>
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
@@ -1308,21 +1333,33 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                 onClick={e => e.target === e.currentTarget && setPrevOpen(false)}>
                 <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                     style={{ width: '100%', maxWidth: 640, background: '#fff', borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 32px 80px rgba(0,0,0,0.3)' }}>
-                    <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg,#E8F8FF,#F0FAFF)' }} dir="rtl">
-                        <div>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(135deg,#E8F8FF,#F0FAFF)' }} dir="rtl">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                             <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>✉️ תצוגה מקדימה — מייל לספק</p>
-                            {prevSubject && <p style={{ fontSize: 11, color: '#0891B2', margin: '3px 0 0', fontWeight: 700 }}>נושא: {prevSubject}</p>}
-                            {selSupplier && <p style={{ fontSize: 10, color: '#AEAEB2', margin: '2px 0 0' }}>אל: {selSupplier.agentEmail || selSupplier.email}</p>}
+                            <button onClick={() => setPrevOpen(false)} style={{ border: 'none', background: 'rgba(0,0,0,0.07)', borderRadius: 99, width: 30, height: 30, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>✕</button>
                         </div>
-                        <button onClick={() => setPrevOpen(false)} style={{ border: 'none', background: 'rgba(0,0,0,0.07)', borderRadius: 99, width: 30, height: 30, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>✕</button>
+                        {selSupplier && <p style={{ fontSize: 10, color: '#AEAEB2', margin: '0 0 8px' }}>אל: {selSupplier.agentEmail || selSupplier.email}</p>}
+                        <input value={prevEditSubject} onChange={e => setPrevEditSubject(e.target.value)}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid rgba(8,145,178,0.3)', fontSize: 12, fontFamily: 'Heebo,sans-serif', direction: 'rtl', boxSizing: 'border-box', fontWeight: 600, background: 'rgba(255,255,255,0.8)' }} />
                     </div>
                     <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, background: '#F5F5F7' }}>
                         {prevLoading
                             ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 340 }}><div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #0891B2', borderTopColor: 'transparent', animation: 'emailSpin 0.75s linear infinite' }} /></div>
-                            : <iframe srcDoc={prevHtml} style={{ width: '100%', height: 420, border: 'none', display: 'block' }} sandbox="allow-same-origin" />
+                            : <iframe srcDoc={prevHtml} style={{ width: '100%', height: 380, border: 'none', display: 'block' }} sandbox="allow-same-origin" />
                         }
                     </div>
-                    <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, justifyContent: 'flex-end', background: '#fff' }} dir="rtl">
+                    <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }} dir="rtl">
+                        <button type="button" onClick={() => setPrevNoteOpen(o => !o)}
+                            style={{ fontSize: 11, fontWeight: 700, color: '#FF9500', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'Heebo,sans-serif' }}>
+                            ✏️ {prevNoteOpen ? 'הסתר הערה' : 'הוסף הערה אישית לספק'}
+                        </button>
+                        {prevNoteOpen && (
+                            <textarea value={prevCustomNote} onChange={e => setPrevCustomNote(e.target.value)} rows={3} dir="rtl"
+                                placeholder="הערה שתופיע בגוף המייל לספק..."
+                                style={{ width: '100%', marginTop: 6, padding: '8px 10px', borderRadius: 10, border: '1.5px solid rgba(255,149,0,0.35)', fontSize: 12, fontFamily: 'Heebo,sans-serif', resize: 'vertical', boxSizing: 'border-box', background: '#FFFAF5' }} />
+                        )}
+                    </div>
+                    <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, justifyContent: 'flex-end', background: '#fff' }} dir="rtl">
                         <button onClick={() => setPrevOpen(false)} style={{ padding: '10px 22px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.12)', background: '#fff', fontSize: 13, fontWeight: 800, color: '#1D1D1F', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>ביטול</button>
                         <motion.button whileTap={{ scale: 0.97 }} onClick={handleSupplierSend} disabled={prevLoading || prevSending}
                             style={{ padding: '10px 26px', borderRadius: 12, border: 'none', background: prevLoading || prevSending ? '#AEAEB2' : 'linear-gradient(135deg,#0891B2,#0284C7)', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 4px 14px rgba(8,145,178,0.35)' }}>
@@ -1791,9 +1828,9 @@ function QuotesPipeline() {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewSending, setPreviewSending] = useState(false);
 
-    const openEmailPreview = async (type, quote) => {
+    const openEmailPreview = async (type, quote, preAction = null) => {
         if (!quote?.email) { showToast('אין כתובת מייל ללקוח', 'error'); return; }
-        setEmailPreview({ type, quote });
+        setEmailPreview({ type, quote, preAction });
         setPreviewHtml('');
         setPreviewSubject('');
         setPreviewLoading(true);
@@ -1823,6 +1860,7 @@ function QuotesPipeline() {
         if (!emailPreview) return;
         setPreviewSending(true);
         try {
+            if (emailPreview.preAction) await emailPreview.preAction();
             const body = { type: emailPreview.type, quote: emailPreview.quote };
             if (customNote) body.customNote = customNote;
             if (customSubject) body.customSubject = customSubject;
