@@ -336,32 +336,48 @@ function buildInTransitEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const ti = quote.trackingInfo || {};
     const sd = quote.shippingDetails || {};
+    const so = quote.supplierOrder || {};
+    const deliveryDate = ti.estimatedDelivery || so.estimatedDelivery || '';
     const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הזמנה ${quote.id} — שאלה על המשלוח`)}`;
 
     const body = `
-      <p style="margin:0 0 28px;font-size:16px;color:#1D1D1F;line-height:1.8;">
+      <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.8;">
         שלום ${firstName},<br/>
         מעולה — ההזמנה שלך יצאה לדרך ובדרך אליך! 🎉<br/>
-        ${ti.estimatedDelivery ? `הגעה משוערת: <strong>${ti.estimatedDelivery}</strong>` : 'נעדכן אותך ברגע שיהיה תאריך מדויק.'}
+        ${deliveryDate ? `הגעה משוערת: <strong>${deliveryDate}</strong>` : 'נעדכן אותך עם תאריך מדויק בהקדם.'}
       </p>
       ${divider()}
 
-      ${ti.trackingNumber ? `
-      <div style="text-align:center;padding:28px 24px;background:linear-gradient(135deg,#F5F0FF,#EEF2FF);border-radius:22px;margin-bottom:28px;border:1.5px solid rgba(124,58,237,0.18);">
+      <!-- Tracking card -->
+      <div style="text-align:center;padding:28px 24px;background:linear-gradient(135deg,#F5F0FF,#EEF2FF);border-radius:22px;margin-bottom:24px;border:1.5px solid rgba(124,58,237,0.18);">
         <div style="font-size:30px;margin-bottom:12px;">🚚</div>
-        <div style="font-size:11px;font-weight:800;color:#7C3AED;letter-spacing:0.08em;margin-bottom:8px;">מספר מעקב</div>
-        <div style="font-size:30px;font-weight:900;color:#1D1D1F;letter-spacing:3px;margin-bottom:10px;">${ti.trackingNumber}</div>
-        ${ti.carrier ? `<div style="display:inline-block;background:rgba(124,58,237,0.08);color:#7C3AED;font-size:12px;font-weight:700;padding:4px 14px;border-radius:50px;margin-bottom:${ti.estimatedDelivery ? '10px' : '0'};">${ti.carrier}</div>` : ''}
-        ${ti.estimatedDelivery ? `<div style="margin-top:8px;display:inline-block;background:linear-gradient(135deg,#7C3AED,#5856D6);color:#fff;font-size:13px;font-weight:800;padding:8px 22px;border-radius:50px;">📅 הגעה: ${ti.estimatedDelivery}</div>` : ''}
-      </div>` : `
-      <div style="text-align:center;padding:24px;background:linear-gradient(135deg,#F5F0FF,#EEF2FF);border-radius:20px;margin-bottom:28px;border:1.5px solid rgba(124,58,237,0.15);">
-        <div style="font-size:32px;margin-bottom:10px;">🚚</div>
-        <div style="font-size:15px;font-weight:800;color:#1D1D1F;">המשלוח יצא!</div>
-        ${ti.estimatedDelivery ? `<div style="margin-top:10px;display:inline-block;background:linear-gradient(135deg,#7C3AED,#5856D6);color:#fff;font-size:13px;font-weight:800;padding:8px 22px;border-radius:50px;">📅 הגעה: ${ti.estimatedDelivery}</div>` : '<div style="font-size:13px;color:#6E6E73;margin-top:8px;">פרטי מעקב יישלחו בקרוב</div>'}
-      </div>`}
+        ${ti.trackingNumber ? `
+          <div style="font-size:11px;font-weight:800;color:#7C3AED;letter-spacing:0.08em;margin-bottom:8px;">מספר מעקב</div>
+          <div style="font-size:28px;font-weight:900;color:#1D1D1F;letter-spacing:3px;margin-bottom:10px;">${ti.trackingNumber}</div>
+          ${ti.carrier ? `<div style="display:inline-block;background:rgba(124,58,237,0.08);color:#7C3AED;font-size:12px;font-weight:700;padding:4px 14px;border-radius:50px;margin-bottom:8px;">${ti.carrier}</div>` : ''}
+        ` : `<div style="font-size:15px;font-weight:800;color:#1D1D1F;margin-bottom:8px;">המשלוח יצא לדרך!</div>`}
+        ${deliveryDate ? `<div style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5856D6);color:#fff;font-size:13px;font-weight:800;padding:8px 22px;border-radius:50px;">📅 הגעה: ${deliveryDate}</div>` : ''}
+      </div>
+
+      <!-- Order number + courier note -->
+      <div style="padding:16px 20px;background:#FAF9FF;border-radius:16px;border:1px solid rgba(124,58,237,0.12);margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding:5px 0;">
+              <span style="font-size:11px;color:#86868B;font-weight:600;">מספר הזמנה: </span>
+              <span style="font-size:12px;font-weight:800;color:#7C3AED;">${quote.id}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0 0;">
+              <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">📞 <strong>השליח יצור איתך קשר</strong> לתיאום שעת המסירה — אנא שמור על הטלפון פנוי.</div>
+            </td>
+          </tr>
+        </table>
+      </div>
 
       ${sd.address ? `
-      <div style="padding:16px 20px;background:#FAFCFF;border-radius:16px;border:1px solid #EEF2FF;margin-bottom:28px;">
+      <div style="padding:16px 20px;background:#FAFCFF;border-radius:16px;border:1px solid #EEF2FF;margin-bottom:24px;">
         <div style="font-size:11px;font-weight:800;color:#7C3AED;margin-bottom:10px;">📍 כתובת יעד</div>
         <div style="font-size:14px;font-weight:700;color:#1D1D1F;">${sd.deliveryName || firstName}</div>
         <div style="font-size:13px;color:#6E6E73;margin-top:3px;">${sd.address}${sd.city ? `, ${sd.city}` : ''}${sd.zip ? ` ${sd.zip}` : ''}</div>
