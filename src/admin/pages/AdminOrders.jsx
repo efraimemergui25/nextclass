@@ -476,11 +476,14 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
         (quote.items || []).map(item => ({ ...item, salePrice: item.salePrice ?? item.price ?? 0 }))
     );
     const [message, setMessage] = useState(quote.quoteMessage || '');
+    const [shippingFee, setShippingFee] = useState(Number(quote.shippingFee) || 0);
+    const [shippingIncluded, setShippingIncluded] = useState(quote.shippingIncluded ?? false);
     const [busy, setBusy] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
     const [pickerSearch, setPickerSearch] = useState('');
 
-    const total = items.reduce((s, it) => s + (Number(it.salePrice) || 0) * (Number(it.qty ?? it.quantity) || 1), 0);
+    const itemsTotal = items.reduce((s, it) => s + (Number(it.salePrice) || 0) * (Number(it.qty ?? it.quantity) || 1), 0);
+    const total = itemsTotal + (shippingIncluded && shippingFee > 0 ? 0 : (shippingFee > 0 ? shippingFee : 0));
 
     const removeItem = (idx) => setItems(prev => prev.filter((_, i) => i !== idx));
     const updateQty = (idx, qty) => setItems(prev => prev.map((it, i) => i === idx ? { ...it, qty: Math.max(1, Number(qty) || 1) } : it));
@@ -530,6 +533,7 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
                 await updateQuoteFields(quote.id, {
                     items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })),
                     subtotal: total, quoteMessage: message, quoteSentAt: Date.now(),
+                    shippingFee: Number(shippingFee) || 0, shippingIncluded,
                 });
                 await onUpdateStatus(quote.id, 'הוצע מחיר');
                 showToast('הצעת מחיר נשלחה ✓', 'success');
@@ -543,6 +547,7 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
             await updateQuoteFields(quote.id, {
                 items: items.map(it => ({ ...it, salePrice: Number(it.salePrice) || 0 })),
                 subtotal: total, quoteMessage: message, quoteSentAt: Date.now(),
+                shippingFee: Number(shippingFee) || 0, shippingIncluded,
             });
             await onUpdateStatus(quote.id, 'הוצע מחיר');
             showToast('הצעת מחיר נשלחה ✓', 'success');
@@ -633,9 +638,36 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
                     </div>
                 )}
                 {items.length > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.14)' }}>
-                        <span style={{ fontSize: 17, fontWeight: 900, color: '#007AFF' }}>₪{total.toLocaleString()}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73' }}>סה"כ הצעה</span>
+                    <div style={{ borderRadius: 12, background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.14)', overflow: 'hidden' }}>
+                        {/* Shipping row */}
+                        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(0,122,255,0.1)', display: 'flex', alignItems: 'center', gap: 10, direction: 'rtl' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0 }}>
+                                <input type="checkbox" checked={shippingFee > 0} onChange={e => { if (!e.target.checked) setShippingFee(0); else if (!shippingFee) setShippingFee(''); }}
+                                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#007AFF' }} />
+                                <span style={{ fontSize: 12, fontWeight: 700, color: '#007AFF' }}>🚚 עלות משלוח</span>
+                            </label>
+                            {shippingFee > 0 || shippingFee === '' ? (
+                                <>
+                                    <div style={{ position: 'relative', flex: 1, maxWidth: 100 }}>
+                                        <input type="number" value={shippingFee} onChange={e => setShippingFee(Number(e.target.value) || '')} placeholder="0"
+                                            style={{ width: '100%', padding: '5px 20px 5px 8px', borderRadius: 8, border: '1.5px solid rgba(0,122,255,0.3)', fontSize: 13, fontWeight: 700, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
+                                        <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+                                    </div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={shippingIncluded} onChange={e => setShippingIncluded(e.target.checked)}
+                                            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#34C759' }} />
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#34C759' }}>כלול במחיר</span>
+                                    </label>
+                                </>
+                            ) : <span style={{ fontSize: 11, color: '#86868B' }}>ללא משלוח</span>}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px' }}>
+                            <span style={{ fontSize: 17, fontWeight: 900, color: '#007AFF' }}>₪{(itemsTotal + (shippingFee > 0 && !shippingIncluded ? Number(shippingFee) : 0)).toLocaleString()}</span>
+                            <div style={{ textAlign: 'left' }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', display: 'block' }}>סה"כ הצעה</span>
+                                {shippingFee > 0 && <span style={{ fontSize: 10, color: shippingIncluded ? '#34C759' : '#FF9500', fontWeight: 700 }}>{shippingIncluded ? `משלוח כלול (₪${Number(shippingFee).toLocaleString()})` : `+ ₪${Number(shippingFee).toLocaleString()} משלוח`}</span>}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -702,25 +734,154 @@ function ShippingForm({ quote, updateQuoteFields, onUpdateStatus, showToast }) {
     );
 }
 
+// ── Profit Calculator ─────────────────────────────────────────────────────────
+function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
+    const items = quote.items || [];
+    const [costs, setCosts] = useState(() =>
+        Object.fromEntries(items.map(it => [it.id ?? it.title, '']))
+    );
+    const [shipping, setShipping] = useState('');
+    const [otherLabel, setOtherLabel] = useState('');
+    const [otherAmount, setOtherAmount] = useState('');
+
+    const totalRevenue = Number(quote.subtotal) || 0;
+    const totalSupplierCost = items.reduce((s, it) => {
+        const qty = it.qty ?? it.quantity ?? 1;
+        return s + (Number(costs[it.id ?? it.title]) || 0) * qty;
+    }, 0);
+    const totalAdditional = (Number(shipping) || 0) + (Number(otherAmount) || 0);
+    const netProfit = totalRevenue - totalSupplierCost - totalAdditional;
+    const profitPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const allFilled = items.every(it => Number(costs[it.id ?? it.title]) > 0);
+
+    const profitColor = netProfit >= 0 ? '#34C759' : '#FF3B30';
+
+    return (
+        <div style={{ padding: '16px 20px 20px', direction: 'rtl', overflowY: 'auto', maxHeight: 520 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <button onClick={onBack} style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, color: '#86868B', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>← חזור</button>
+                <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>💰 חישוב רווחיות</p>
+            </div>
+
+            {/* Items */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {items.map(it => {
+                    const key = it.id ?? it.title;
+                    const qty = it.qty ?? it.quantity ?? 1;
+                    const custPrice = Number(it.salePrice || it.price || 0);
+                    const suppPrice = Number(costs[key]) || 0;
+                    const itemProfit = (custPrice - suppPrice) * qty;
+                    const itemPct = custPrice > 0 ? ((custPrice - suppPrice) / custPrice * 100) : 0;
+                    const hasInput = suppPrice > 0;
+                    return (
+                        <div key={key} style={{ borderRadius: 14, border: '1.5px solid rgba(0,0,0,0.08)', background: '#FAFAFA', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: hasInput ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+                                {it.image && <img src={it.image} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} onError={e => e.target.style.display = 'none'} />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</p>
+                                    <p style={{ fontSize: 10, color: '#86868B', margin: '2px 0 0' }}>×{qty} · מחיר ללקוח: <strong style={{ color: '#007AFF' }}>₪{custPrice.toLocaleString()}</strong> ליח׳</p>
+                                </div>
+                                <div style={{ flexShrink: 0, textAlign: 'left', width: 120 }}>
+                                    <p style={{ fontSize: 9, fontWeight: 700, color: '#86868B', margin: '0 0 3px' }}>מחיר ספק ליח׳</p>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type="number" value={costs[key]} onChange={e => setCosts(p => ({ ...p, [key]: e.target.value }))}
+                                            placeholder="0"
+                                            style={{ width: '100%', padding: '6px 22px 6px 8px', borderRadius: 8, border: `1.5px solid ${hasInput ? 'rgba(52,199,89,0.4)' : 'rgba(0,0,0,0.15)'}`, fontSize: 12, fontWeight: 700, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left', background: hasInput ? 'rgba(52,199,89,0.04)' : '#fff' }} />
+                                        <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B', fontWeight: 700 }}>₪</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {hasInput && (
+                                <div style={{ padding: '7px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, color: '#86868B' }}>רווח מפריט זה</span>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <span style={{ fontSize: 12, fontWeight: 800, color: itemProfit >= 0 ? '#34C759' : '#FF3B30' }}>₪{itemProfit.toLocaleString()}</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: itemProfit >= 0 ? 'rgba(52,199,89,0.12)' : 'rgba(255,59,48,0.12)', color: itemProfit >= 0 ? '#34C759' : '#FF3B30' }}>{itemPct.toFixed(1)}%</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Additional costs */}
+            <div style={{ padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(0,0,0,0.08)', background: '#F5F5F7', marginBottom: 16 }}>
+                <p style={{ fontSize: 11, fontWeight: 800, color: '#86868B', margin: '0 0 10px', letterSpacing: '0.04em' }}>עלויות נוספות</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: '0 0 4px' }}>משלוח</p>
+                        <div style={{ position: 'relative' }}>
+                            <input type="number" value={shipping} onChange={e => setShipping(e.target.value)} placeholder="0"
+                                style={{ width: '100%', padding: '7px 22px 7px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
+                            <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: '0 0 4px' }}>אחר (תיאור)</p>
+                        <input value={otherLabel} onChange={e => setOtherLabel(e.target.value)} placeholder="עמלה, אריזה..." dir="rtl"
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box' }} />
+                    </div>
+                    <div style={{ gridColumn: '2', marginTop: -4 }}>
+                        <div style={{ position: 'relative' }}>
+                            <input type="number" value={otherAmount} onChange={e => setOtherAmount(e.target.value)} placeholder="0"
+                                style={{ width: '100%', padding: '7px 22px 7px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
+                            <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Summary */}
+            <div style={{ padding: '14px 16px', borderRadius: 16, border: `2px solid ${profitColor}30`, background: `${profitColor}08`, marginBottom: 16 }}>
+                <p style={{ fontSize: 11, fontWeight: 800, color: '#86868B', margin: '0 0 10px', letterSpacing: '0.04em' }}>📊 סיכום רווחיות</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {[['הכנסה מהלקוח', totalRevenue, '#1D1D1F'], ['עלות ספק', -totalSupplierCost, '#FF3B30'], ['עלויות נוספות', -totalAdditional, '#FF9500']].map(([label, val, color]) => (
+                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                            <span style={{ color: '#6E6E73', fontWeight: 600 }}>{label}</span>
+                            <span style={{ fontWeight: 800, color }}>{val >= 0 ? '' : '−'}₪{Math.abs(val).toLocaleString()}</span>
+                        </div>
+                    ))}
+                    <div style={{ height: 1, background: 'rgba(0,0,0,0.08)', margin: '4px 0' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>רווח נקי</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span style={{ fontSize: 16, fontWeight: 900, color: profitColor }}>{netProfit >= 0 ? '' : '−'}₪{Math.abs(netProfit).toLocaleString()}</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 50, background: `${profitColor}18`, color: profitColor }}>{Math.abs(profitPct).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => onContinue({ costs, shipping: Number(shipping) || 0, otherLabel, otherAmount: Number(otherAmount) || 0 })} disabled={!allFilled}
+                style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: allFilled ? 'linear-gradient(135deg,#5856D6,#007AFF)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, cursor: allFilled ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif', boxShadow: allFilled ? '0 4px 16px rgba(88,86,214,0.35)' : 'none' }}>
+                ✅ המשך לאישור הזמנה לספק
+            </motion.button>
+            {!allFilled && <p style={{ fontSize: 11, color: '#FF9500', textAlign: 'center', margin: '8px 0 0', fontWeight: 700 }}>יש להזין מחיר ספק לכל הפריטים</p>}
+        </div>
+    );
+}
+
 // ── Supplier Contact Modal ────────────────────────────────────────────────────
 function SupplierContactModal({ quote, supplier, onClose }) {
     const { showToast } = useAdminToast();
     const [tab, setTab] = useState('whatsapp');
+    const [showPricing, setShowPricing] = useState(false);
     const [supplierPreview, setSupplierPreview]     = useState(null);
     const [supplierPreviewHtml, setSupplierPreviewHtml]       = useState('');
     const [supplierPreviewSubject, setSupplierPreviewSubject] = useState('');
     const [supplierPreviewLoading, setSupplierPreviewLoading] = useState(false);
     const [supplierPreviewSending, setSupplierPreviewSending] = useState(false);
 
-    const openSupplierEmailPreview = async () => {
+    const openSupplierEmailPreview = async (pricingData = null) => {
         const emailTo = supplier?.agentEmail || supplier?.email;
         if (!emailTo) { showToast?.('אין כתובת מייל לספק', 'error'); return; }
-        setSupplierPreview({ emailTo });
+        setSupplierPreview({ emailTo, pricingData });
         setSupplierPreviewHtml(''); setSupplierPreviewSubject(''); setSupplierPreviewLoading(true);
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', preview: true }),
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData, preview: true }),
             });
             if (res.ok) { const d = await res.json(); setSupplierPreviewHtml(d.html || ''); setSupplierPreviewSubject(d.subject || ''); }
             else { showToast?.('שגיאה בטעינת תצוגה', 'error'); setSupplierPreview(null); }
@@ -733,7 +894,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier, type: 'order_confirmation' }),
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData: supplierPreview?.pricingData }),
             });
             if (res.ok) { showToast?.('מייל נשלח לספק ✓', 'success'); setSupplierPreview(null); onClose(); }
             else showToast?.('שגיאה בשליחת מייל', 'error');
@@ -862,14 +1023,14 @@ function SupplierContactModal({ quote, supplier, onClose }) {
                             </a>
                         </div>
                     )}
-                    {tab === 'email' && (
+                    {tab === 'email' && !showPricing && (
                         <div>
                             <div style={{ borderRadius: 16, background: 'linear-gradient(135deg,#E0F7FF,#F0FBFF)', border: '1.5px solid rgba(8,145,178,0.2)', padding: 16, marginBottom: 14, textAlign: 'right' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                                     <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#0891B2,#0E7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✉️</div>
                                     <div>
                                         <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>מייל הזמנה רשמי לספק</p>
-                                        <p style={{ fontSize: 11, color: '#6E6E73', margin: '2px 0 0' }}>תבנית HTML מקצועית עם פרטי ההזמנה</p>
+                                        <p style={{ fontSize: 11, color: '#6E6E73', margin: '2px 0 0' }}>לפני השליחה — הזן מחירי ספק וחשב רווחיות</p>
                                     </div>
                                 </div>
                                 {email
@@ -877,11 +1038,18 @@ function SupplierContactModal({ quote, supplier, onClose }) {
                                     : <p style={{ fontSize: 11, color: '#FF3B30', margin: 0, fontWeight: 700 }}>⚠️ אין כתובת מייל לספק — עדכן בניהול ספקים</p>
                                 }
                             </div>
-                            <motion.button whileTap={{ scale: 0.97 }} onClick={openSupplierEmailPreview} disabled={!email}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: email ? 'linear-gradient(135deg,#0891B2,#0E7490)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: email ? '0 4px 16px rgba(8,145,178,0.35)' : 'none', cursor: email ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif' }}>
-                                ✉️ תצוגה מקדימה ושליחה
+                            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowPricing(true)} disabled={!email}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: email ? 'linear-gradient(135deg,#5856D6,#007AFF)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: email ? '0 4px 16px rgba(88,86,214,0.35)' : 'none', cursor: email ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif' }}>
+                                💰 חשב רווחיות ושלח הזמנה
                             </motion.button>
                         </div>
+                    )}
+                    {tab === 'email' && showPricing && (
+                        <ProfitCalculatorPanel
+                            quote={quote}
+                            onBack={() => setShowPricing(false)}
+                            onContinue={(pricingData) => { setShowPricing(false); openSupplierEmailPreview(pricingData); }}
+                        />
                     )}
                     {tab === 'phone' && (
                         <div style={{ textAlign: 'center', padding: '12px 0' }}>

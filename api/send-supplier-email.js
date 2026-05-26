@@ -211,7 +211,7 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
 </body></html>`;
 }
 
-function buildOrderConfirmationEmail(quote, supplier, customNote) {
+function buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) {
     const supplierName = supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
     const contactPerson = supplier?.contactPerson || supplier?.agentName || supplier?.contact || '';
     const greeting = contactPerson ? `שלום ${contactPerson},` : `שלום ${supplierName},`;
@@ -220,7 +220,8 @@ function buildOrderConfirmationEmail(quote, supplier, customNote) {
 
     const itemRows = (quote.items || []).map(item => {
         const qty = item.qty ?? item.quantity ?? 1;
-        const unitPrice = item.unitPrice ?? item.price ?? 0;
+        const key = item.id ?? item.title;
+        const suppPrice = pricingData?.costs ? Number(pricingData.costs[key]) || 0 : 0;
         return `<tr>
           <td style="padding:0 0 10px 0;">
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFF;border-radius:12px;overflow:hidden;border:1px solid #E8EEFF;">
@@ -238,7 +239,7 @@ function buildOrderConfirmationEmail(quote, supplier, customNote) {
                 <td style="padding:10px 14px;vertical-align:middle;text-align:left;white-space:nowrap;">
                   <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:2px;">כמות</div>
                   <div style="font-size:22px;font-weight:900;color:#5856D6;">×${qty}</div>
-                  ${unitPrice ? `<div style="font-size:10px;color:#AEAEB2;font-weight:600;margin-top:2px;">₪${Number(unitPrice).toLocaleString()} ליח׳</div>` : ''}
+                  ${suppPrice ? `<div style="font-size:12px;font-weight:800;color:#1D1D1F;margin-top:3px;">₪${suppPrice.toLocaleString()} ליח׳</div>` : ''}
                 </td>
               </tr>
             </table>
@@ -386,12 +387,12 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { quote, supplier, to, preview, type, customNote, subject: customSubject } = req.body ?? {};
+    const { quote, supplier, to, preview, type, customNote, subject: customSubject, pricingData } = req.body ?? {};
     if (!quote) return res.status(400).json({ error: 'quote required' });
 
     try {
         const isOrder = type === 'order_confirmation';
-        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote) : buildSupplierOrderEmail(quote, supplier, customNote);
+        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) : buildSupplierOrderEmail(quote, supplier, customNote);
         const subject = customSubject || (isOrder ? `אישור הזמנה ${quote.id} — NextClass` : `בקשת הצעת מחיר ${quote.id} — NextClass`);
 
         if (preview === true) {
