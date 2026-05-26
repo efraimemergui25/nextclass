@@ -712,7 +712,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier, preview: true }),
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', preview: true }),
             });
             if (res.ok) { const d = await res.json(); setSupplierPreviewHtml(d.html || ''); setSupplierPreviewSubject(d.subject || ''); }
             else { showToast?.('שגיאה בטעינת תצוגה', 'error'); setSupplierPreview(null); }
@@ -725,7 +725,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         try {
             const res = await fetch('/api/send-supplier-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier }),
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation' }),
             });
             if (res.ok) { showToast?.('מייל נשלח לספק ✓', 'success'); setSupplierPreview(null); onClose(); }
             else showToast?.('שגיאה בשליחת מייל', 'error');

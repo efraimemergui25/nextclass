@@ -312,7 +312,7 @@ function buildConfirmedEmail(quote) {
       </div>` : ''}
       <div style="background:#F0F7FF;border-radius:16px;padding:18px 20px;margin-bottom:24px;">
         <div style="font-size:12px;font-weight:800;color:#007AFF;margin-bottom:10px;">⚙️ מה קורה עכשיו</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.7;">הצוות שלנו מעביר את ההזמנה לספק ומתאם אספקה. תקבל עדכון נוסף ברגע שיש מספר מעקב.</div>
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.7;">הצוות שלנו בטיפול מלא בהזמנה ומכין את המשלוח עבורך. תקבל עדכון נוסף ברגע שהמשלוח יוצא לדרך עם מספר מעקב.</div>
       </div>
       <div style="border-right:4px solid #34C759;background:#F0FBF4;border-radius:0 12px 12px 0;padding:14px 18px;">
         <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">שאלות? — <strong>${BIZ_PHONE}</strong> · <strong>nextclass.en@gmail.com</strong></div>
@@ -611,7 +611,7 @@ const TYPE_CONFIG = {
     reminder:         { build: buildReminderEmail,         subject: q => `תזכורת: הצעת מחיר ${q.id} ממתינה לאישור` },
     pending_approval: { build: buildPendingApprovalEmail,  subject: q => `ממתינים לאישורך — הצעה ${q.id} · NextClass` },
     confirmed:        { build: buildConfirmedEmail,        subject: q => `ההזמנה ${q.id} אושרה! ✅ — NextClass` },
-    processing:       { build: buildProcessingEmail,       subject: q => `ההזמנה ${q.id} בעיבוד אצל הספק — NextClass` },
+    processing:       { build: buildProcessingEmail,       subject: q => `ההזמנה ${q.id} בטיפול — בקרוב אצלך ✓ — NextClass` },
     in_transit:       { build: buildInTransitEmail,        subject: q => `ההזמנה ${q.id} בדרך אליך 🚚 — NextClass` },
     delivered:        { build: buildDeliveredEmail,        subject: q => `ההזמנה ${q.id} נמסרה בהצלחה 🎉 — NextClass` },
     cancelled:        { build: buildCancelledEmail,        subject: q => `עדכון לגבי בקשה ${q.id} — NextClass` },
