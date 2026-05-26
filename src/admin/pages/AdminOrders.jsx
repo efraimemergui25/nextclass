@@ -211,16 +211,16 @@ function QuickStatusBar({ currentStatus, onUpdateStatus, quoteId }) {
                     );
                 })}
                 <motion.button whileTap={{ scale: 0.93 }}
-                    onClick={() => currentStatus !== 'אבד' && onUpdateStatus(quoteId, 'אבד')}
+                    onClick={() => currentStatus !== 'בוטל' && onUpdateStatus(quoteId, 'בוטל')}
                     style={{
                         padding: '5px 11px', borderRadius: 99, fontFamily: 'Heebo,sans-serif',
-                        border: currentStatus === 'אבד' ? '1.5px solid #AEAEB2' : '1.5px solid rgba(174,174,178,0.3)',
-                        background: currentStatus === 'אבד' ? '#AEAEB2' : 'rgba(0,0,0,0.03)',
-                        color: currentStatus === 'אבד' ? '#fff' : '#AEAEB2',
-                        fontSize: 10, fontWeight: 800, cursor: currentStatus === 'אבד' ? 'default' : 'pointer',
+                        border: currentStatus === 'בוטל' ? '1.5px solid #AEAEB2' : '1.5px solid rgba(174,174,178,0.3)',
+                        background: currentStatus === 'בוטל' ? '#AEAEB2' : 'rgba(0,0,0,0.03)',
+                        color: currentStatus === 'בוטל' ? '#fff' : '#AEAEB2',
+                        fontSize: 10, fontWeight: 800, cursor: currentStatus === 'בוטל' ? 'default' : 'pointer',
                         transition: 'all 0.18s', whiteSpace: 'nowrap',
                     }}>
-                    אבד
+                    בוטל
                 </motion.button>
             </div>
         </div>
@@ -254,9 +254,9 @@ const QUOTE_STATUS_COLORS = {
     'הועבר לספק':   '#0891B2',
     'בדרך':          '#7C3AED',
     'סופק':          '#1DB954',
-    'אבד':           '#AEAEB2',
+    'בוטל':           '#AEAEB2',
 };
-const QUOTE_STATUSES = ['הכל', 'חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק', 'אבד'];
+const QUOTE_STATUSES = ['הכל', 'חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק', 'בוטל'];
 const QUOTE_STATUS_FLOW  = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 
 // ─── Mini KPI stat ────────────────────────────────────────────────────────────
@@ -2033,7 +2033,7 @@ function QuotesPipeline() {
                             {[
                                 { label: 'עבור ל"ביצירת קשר"', status: 'ביצירת קשר', color: '#FF9500' },
                                 { label: 'עבור ל"הוצע מחיר"', status: 'הוצע מחיר', color: '#007AFF' },
-                                { label: 'סמן כאבד', status: 'אבד', color: '#AEAEB2' },
+                                { label: 'סמן כבוטל', status: 'בוטל', color: '#AEAEB2' },
                             ].map(a => (
                                 <motion.button key={a.status} whileTap={{ scale: 0.95 }}
                                     onClick={() => {
@@ -2308,18 +2308,21 @@ function QuotesPipeline() {
                         <div style={{ display: splitView ? 'grid' : 'contents', gridTemplateColumns: splitView ? '1fr 1fr' : undefined, gap: splitView ? 16 : undefined }}>
                         {(activeTab === 'pipeline' || splitView) && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {selected.status !== 'אבד' ? (
+                                {selected.status !== 'בוטל' ? (
                                     <div style={{ borderRadius: 18, padding: '12px 16px', background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)' }}>
                                         <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', marginBottom: 8, textAlign: 'right' }}>מצב הצעה</p>
                                         <StatusTimeline status={selected.status} flow={QUOTE_STATUS_FLOW} colors={QUOTE_STATUS_COLORS} />
                                     </div>
                                 ) : (
-                                    <div style={{ borderRadius: 18, padding: 16, background: 'rgba(174,174,178,0.09)', border: '1.5px solid rgba(174,174,178,0.22)', textAlign: 'right' }}>
-                                        <p style={{ fontSize: 14, fontWeight: 800, color: '#6E6E73', margin: '0 0 4px' }}>🚫 הצעה זו סומנה כאבדה</p>
-                                        <p style={{ fontSize: 12, color: '#AEAEB2', margin: '0 0 12px' }}>ניתן להחזיר אותה לתהליך הרגיל</p>
+                                    <div style={{ borderRadius: 18, padding: 16, background: 'rgba(255,59,48,0.05)', border: '1.5px solid rgba(255,59,48,0.15)', textAlign: 'right' }} dir="rtl">
+                                        <p style={{ fontSize: 14, fontWeight: 800, color: '#FF3B30', margin: '0 0 4px' }}>🚫 הזמנה בוטלה</p>
+                                        <p style={{ fontSize: 12, color: '#AEAEB2', margin: '0 0 14px' }}>ניתן להחזיר אותה לתהליך הרגיל, או לשלוח ללקוח מייל ביטול מנומס</p>
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                            <StageBtn color="#FF9500" label="↩️ החזר לביצירת קשר" onClick={() => { updateQuoteStatus(selected.id, 'ביצירת קשר'); setSelected(s => ({ ...s, status: 'ביצירת קשר' })); showToast('הוחזר לתהליך', 'success'); }} />
-                                            <StageBtn color="#FF3B30" label="↩️ החזר לחדש" onClick={() => { updateQuoteStatus(selected.id, 'חדש'); setSelected(s => ({ ...s, status: 'חדש' })); showToast('הוחזר לחדש', 'success'); }} secondary />
+                                            {selected.email && (
+                                                <StageBtn color="#FF3B30" label="✉️ מייל ביטול ללקוח" onClick={() => openEmailPreview('cancelled', selected)} />
+                                            )}
+                                            <StageBtn color="#FF9500" label="↩️ החזר לביצירת קשר" onClick={() => { updateQuoteStatus(selected.id, 'ביצירת קשר'); setSelected(s => ({ ...s, status: 'ביצירת קשר' })); showToast('הוחזר לתהליך', 'success'); }} secondary />
+                                            <StageBtn color="#AEAEB2" label="↩️ החזר לחדש" onClick={() => { updateQuoteStatus(selected.id, 'חדש'); setSelected(s => ({ ...s, status: 'חדש' })); showToast('הוחזר לחדש', 'success'); }} secondary />
                                         </div>
                                     </div>
                                 )}
@@ -2333,7 +2336,7 @@ function QuotesPipeline() {
                                     </motion.div>
                                 )}
 
-                                {selected.status !== 'אבד' && (
+                                {selected.status !== 'בוטל' && (
                                     <StageActionPanel
                                         quote={selected}
                                         onUpdateStatus={(id, st) => { updateQuoteStatus(id, st); setSelected(s => ({ ...s, status: st })); }}

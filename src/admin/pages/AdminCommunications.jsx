@@ -25,7 +25,7 @@ const PIPELINE_STATUSES = {
     'במשא ומתן':     { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
     'ממתין לאישור':  { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
     'נסגר':          { color: '#34C759', bg: 'rgba(52,199,89,0.07)',    dot: '#34C759' },
-    'אבד':           { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',    dot: '#FF3B30' },
+    'בוטל':           { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',    dot: '#FF3B30' },
 };
 
 const CHANNELS = [
@@ -862,7 +862,7 @@ export default function AdminCommunications() {
 
                         {/* Top priority */}
                         {(() => {
-                            const top = [...leads].sort((a,b) => getLeadScore(b)-getLeadScore(a)).filter(l => !['נסגר','אבד'].includes(l.status)).slice(0,5);
+                            const top = [...leads].sort((a,b) => getLeadScore(b)-getLeadScore(a)).filter(l => !['נסגר','בוטל'].includes(l.status)).slice(0,5);
                             if (!top.length) return null;
                             return (
                                 <div style={{ marginBottom: 20 }}>

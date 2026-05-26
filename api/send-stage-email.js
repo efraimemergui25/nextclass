@@ -564,6 +564,46 @@ function buildProcessingEmail(quote) {
     });
 }
 
+function buildCancelledEmail(quote) {
+    const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום NextClass, אשמח לשמוע על אפשרויות לעתיד`)}`;
+
+    const body = `
+      <p style="margin:0 0 28px;font-size:16px;color:#1D1D1F;line-height:1.8;">
+        שלום ${firstName},<br/>
+        רצינו לעדכן אותך שהבקשה שלך עבור <strong>${quote.institution || 'המוסד שלך'}</strong> בוטלה בהתאם לפנייתך.<br/>
+        מקווים שנוכל לשרת אותך שוב בהזדמנות הבאה!
+      </p>
+      ${divider()}
+      <div style="text-align:center;padding:28px 24px;background:linear-gradient(135deg,#F5F5F7,#FAFAFA);border-radius:22px;margin-bottom:28px;border:1px solid #EBEBEB;">
+        <div style="font-size:36px;margin-bottom:12px;">🤝</div>
+        <div style="font-size:16px;font-weight:800;color:#1D1D1F;margin-bottom:6px;">תמיד נשמח לעזור</div>
+        <div style="font-size:13px;color:#6E6E73;line-height:1.65;max-width:360px;margin:0 auto;">כשתצטרכו ציוד טכנולוגי לחינוך — NextClass כאן עבורכם.<br/>ניתן לפנות בכל עת ונשמח לתת מענה מהיר.</div>
+      </div>
+      <div style="padding:18px 20px;background:#F0F7FF;border-radius:16px;margin-bottom:28px;border:1px solid rgba(0,122,255,0.1);">
+        <div style="font-size:12px;font-weight:800;color:#007AFF;margin-bottom:10px;">💡 מה אנחנו מציעים</div>
+        ${['ציוד STEM ורובוטיקה', 'מחשבים וטאבלטים לחינוך', 'תשתיות טכנולוגיות לכיתות', 'שירות והתקנה מקצועיים'].map(item =>
+          `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:#3D3D3D;">
+            <span style="color:#34C759;font-weight:900;">✓</span>${item}
+          </div>`).join('')}
+      </div>
+      ${ctaButton('💬 נדבר בעתיד?', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      <p style="text-align:center;font-size:12px;color:#AEAEB2;margin-top:14px;">או התקשרו: <a href="tel:${BIZ_PHONE.replace(/\D/g,'')}" style="color:#007AFF;text-decoration:none;font-weight:600;">${BIZ_PHONE}</a></p>
+    `;
+
+    return emailWrapper({
+        preheader: `${firstName}, הבקשה בוטלה — נשמח לשרת אותך שוב בעתיד`,
+        accentColor: '#AEAEB2',
+        heroIcon: '🤝',
+        heroIconBg: 'linear-gradient(135deg,#6E6E73,#AEAEB2)',
+        heroTitle: 'עד הפעם הבאה!',
+        heroSub: 'הבקשה בוטלה — נשמח לראות אותך שוב',
+        quoteId: quote.id,
+        body,
+        footerNote: `${quote.date || ''}`,
+    });
+}
+
 const TYPE_CONFIG = {
     contact:          { build: buildContactEmail,          subject: q => `קיבלנו את פנייתך — ${q.id} · NextClass` },
     initial_contact:  { build: buildInitialContactEmail,   subject: q => `אנחנו בעניין — בודקים הצעות עבורך · ${q.id}` },
@@ -574,6 +614,7 @@ const TYPE_CONFIG = {
     processing:       { build: buildProcessingEmail,       subject: q => `ההזמנה ${q.id} בעיבוד אצל הספק — NextClass` },
     in_transit:       { build: buildInTransitEmail,        subject: q => `ההזמנה ${q.id} בדרך אליך 🚚 — NextClass` },
     delivered:        { build: buildDeliveredEmail,        subject: q => `ההזמנה ${q.id} נמסרה בהצלחה 🎉 — NextClass` },
+    cancelled:        { build: buildCancelledEmail,        subject: q => `עדכון לגבי בקשה ${q.id} — NextClass` },
 };
 
 // ── Handler ────────────────────────────────────────────────────────────────────
