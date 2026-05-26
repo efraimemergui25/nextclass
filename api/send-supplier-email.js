@@ -44,10 +44,9 @@ function buildSupplierOrderEmail(quote, supplier) {
     const sd = quote.shippingDetails || {};
     const subtotal = priceNum(quote.subtotal);
 
-    // Items rows
+    // Items rows — quantities only, no prices shown to supplier
     const itemRows = (quote.items || []).map(item => {
         const qty = item.qty ?? item.quantity ?? 1;
-        const price = priceNum(item.salePrice ?? item.price ?? 0);
         return `<tr>
           <td style="padding:0 0 10px 0;">
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFF;border-radius:12px;overflow:hidden;border:1px solid #E8EEFF;">
@@ -63,8 +62,8 @@ function buildSupplierOrderEmail(quote, supplier) {
                   ${item.category ? `<div style="display:inline-block;font-size:10px;font-weight:700;color:#0891B2;background:#E0F7FF;padding:2px 7px;border-radius:50px;margin-top:2px;">${item.category}</div>` : ''}
                 </td>
                 <td style="padding:10px 14px;vertical-align:middle;text-align:left;white-space:nowrap;">
-                  <div style="font-size:18px;font-weight:900;color:#0891B2;">×${qty}</div>
-                  ${price ? `<div style="font-size:10px;color:#6E6E73;margin-top:2px;">₪${price.toLocaleString()} ליח׳</div>` : ''}
+                  <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:2px;">כמות נדרשת</div>
+                  <div style="font-size:22px;font-weight:900;color:#0891B2;">×${qty}</div>
                 </td>
               </tr>
             </table>
@@ -74,18 +73,11 @@ function buildSupplierOrderEmail(quote, supplier) {
 
     const itemsSection = quote.items?.length ? `
       <div style="margin-bottom:28px;">
-        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:10px;letter-spacing:0.05em;">פרטי ההזמנה</div>
+        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:10px;letter-spacing:0.05em;">פירוט הפריטים הנדרשים</div>
         <table width="100%" cellpadding="0" cellspacing="0">${itemRows}</table>
       </div>` : '';
 
-    const totalSection = subtotal > 0 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:linear-gradient(135deg,#E0F7FF,#F0FBFF);border-radius:14px;margin-bottom:28px;border:1.5px solid rgba(8,145,178,0.18);">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:2px;">סה״כ הזמנה (מחיר רכישה)</div>
-          <div style="font-size:11px;color:#AEAEB2;">כולל כל הפריטים</div>
-        </div>
-        <div style="font-size:26px;font-weight:900;color:#0891B2;letter-spacing:-0.5px;">₪${subtotal.toLocaleString()}</div>
-      </div>` : '';
+    const totalSection = '';
 
     const deliverySection = (sd.address || so.estimatedDelivery || so.notes) ? `
       <div style="padding:16px 18px;background:#FAFCFF;border-radius:14px;border:1px solid #E8EEFF;margin-bottom:28px;">
@@ -108,15 +100,23 @@ function buildSupplierOrderEmail(quote, supplier) {
       </div>`;
 
     const replySection = `
-      <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:0;">
-        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:5px;">לאישור ההזמנה</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">אנא ענו למייל זה עם אישור זמינות ומועד אספקה.<br/>לכל שאלה: <strong>${BIZ_PHONE}</strong> · <a href="mailto:${BIZ_EMAIL}" style="color:#0891B2;text-decoration:none;font-weight:700;">${BIZ_EMAIL}</a></div>
+      <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:18px 20px;margin-bottom:0;">
+        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:10px;">📩 נשמח לקבל בחזרה:</div>
+        <div style="margin-bottom:6px;display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:#0891B2;font-weight:900;flex-shrink:0;">1.</span>
+          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>הצעת מחיר</strong> לפריטים הנ"ל — לפי היחידה ולפי הכמות</span>
+        </div>
+        <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:#0891B2;font-weight:900;flex-shrink:0;">2.</span>
+          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>זמן אספקה</strong> צפוי${so.estimatedDelivery ? ` — נדרש עד: <strong style="color:#FF9500;">${so.estimatedDelivery}</strong>` : ''}</span>
+        </div>
+        <div style="font-size:12px;color:#6E6E73;border-top:1px solid rgba(8,145,178,0.1);padding-top:10px;">לכל שאלה: <strong>${BIZ_PHONE}</strong> · <a href="mailto:${BIZ_EMAIL}" style="color:#0891B2;text-decoration:none;font-weight:700;">${BIZ_EMAIL}</a></div>
       </div>`;
 
     const body = `
       <p style="margin:0 0 24px;font-size:15px;color:#1D1D1F;line-height:1.75;">${greeting}<br/><br/>
-        אנו שמחים להעביר אליכם הזמנה רשמית ממחסני NextClass.<br/>
-        נשמח לקבל אישורכם לביצוע ההזמנה.
+        אנו מעוניינים לרכוש את הפריטים הבאים ונשמח לקבל ממכם הצעת מחיר.<br/>
+        אנא ציינו מחיר ליחידה, מחיר לכמות הנדרשת, וזמן אספקה צפוי.
       </p>
       ${divider()}
       ${itemsSection}
@@ -127,7 +127,7 @@ function buildSupplierOrderEmail(quote, supplier) {
       ${replySection}
     `;
 
-    const preheader = `הזמנה ${quote.id} מ-NextClass — ${(quote.items || []).length} פריטים · ₪${subtotal.toLocaleString()}`;
+    const preheader = `בקשת הצעת מחיר ${quote.id} מ-NextClass — ${(quote.items || []).length} פריטים`;
 
     return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -158,7 +158,7 @@ function buildSupplierOrderEmail(quote, supplier) {
   <!-- Official badge -->
   <tr><td style="padding-bottom:16px;text-align:center;">
     <div style="display:inline-block;background:#0891B2;color:#fff;font-size:10px;font-weight:800;padding:5px 16px;border-radius:50px;letter-spacing:0.1em;">
-      📋 הזמנה רשמית
+      💬 בקשת הצעת מחיר
     </div>
   </td></tr>
 
@@ -176,8 +176,8 @@ function buildSupplierOrderEmail(quote, supplier) {
           </td>
         </tr>
       </table>
-      <div style="font-size:24px;font-weight:900;color:#1D1D1F;letter-spacing:-0.5px;margin-bottom:5px;">הזמנה חדשה מ-NextClass</div>
-      <div style="font-size:14px;color:#6E6E73;line-height:1.5;">נשמח לקבל אישורכם לביצוע</div>
+      <div style="font-size:24px;font-weight:900;color:#1D1D1F;letter-spacing:-0.5px;margin-bottom:5px;">בקשת הצעת מחיר — NextClass</div>
+      <div style="font-size:14px;color:#6E6E73;line-height:1.5;">נשמח לקבל הצעת מחיר וזמן אספקה</div>
       <!-- Order ID pill -->
       <div style="margin-top:18px;display:inline-block;background:#FFFFFF;border:1.5px solid #0891B2;border-radius:50px;padding:8px 24px;">
         <span style="font-size:12px;color:#6E6E73;font-weight:600;">מספר הזמנה</span>
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
 
     try {
         const html    = buildSupplierOrderEmail(quote, supplier);
-        const subject = `הזמנה ${quote.id} מ-NextClass — ${supplier?.name || quote.supplierOrder?.supplierName || 'ספק'}`;
+        const subject = `בקשת הצעת מחיר ${quote.id} — NextClass`;
 
         if (preview === true) {
             return res.status(200).json({ html, subject, preview: true });
