@@ -79,25 +79,16 @@ function buildSupplierOrderEmail(quote, supplier) {
 
     const totalSection = '';
 
-    const deliverySection = (sd.address || so.estimatedDelivery || so.notes) ? `
+    const deliverySection = (so.estimatedDelivery || so.notes) ? `
       <div style="padding:16px 18px;background:#FAFCFF;border-radius:14px;border:1px solid #E8EEFF;margin-bottom:28px;">
-        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:12px;letter-spacing:0.05em;">📍 פרטי אספקה</div>
+        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:12px;letter-spacing:0.05em;">📅 לוח זמנים</div>
         <table width="100%" cellpadding="0" cellspacing="0">
-          ${sd.deliveryName ? `<tr><td style="padding:3px 0;"><span style="font-size:11px;color:#6E6E73;font-weight:600;">נמען: </span><span style="font-size:12px;font-weight:700;color:#1D1D1F;">${sd.deliveryName}</span></td></tr>` : ''}
-          ${sd.address ? `<tr><td style="padding:3px 0;"><span style="font-size:11px;color:#6E6E73;font-weight:600;">כתובת: </span><span style="font-size:12px;font-weight:700;color:#1D1D1F;">${sd.address}${sd.city ? `, ${sd.city}` : ''}${sd.zip ? ` ${sd.zip}` : ''}</span></td></tr>` : ''}
-          ${sd.deliveryPhone ? `<tr><td style="padding:3px 0;"><span style="font-size:11px;color:#6E6E73;font-weight:600;">טלפון: </span><span style="font-size:12px;font-weight:700;color:#0891B2;">${sd.deliveryPhone}</span></td></tr>` : ''}
           ${so.estimatedDelivery ? `<tr><td style="padding:3px 0;"><span style="font-size:11px;color:#6E6E73;font-weight:600;">אספקה נדרשת עד: </span><span style="font-size:12px;font-weight:800;color:#FF9500;">${so.estimatedDelivery}</span></td></tr>` : ''}
           ${so.notes ? `<tr><td style="padding:8px 0 0;font-size:12px;color:#6E6E73;font-style:italic;">${so.notes}</td></tr>` : ''}
         </table>
       </div>` : '';
 
-    const customerSection = `
-      <div style="padding:14px 18px;background:#F5F5F7;border-radius:14px;margin-bottom:28px;">
-        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:8px;letter-spacing:0.05em;">👤 עבור לקוח</div>
-        <div style="font-size:13px;font-weight:800;color:#1D1D1F;">${quote.contactName || '—'}</div>
-        ${quote.institution ? `<div style="font-size:11px;color:#6E6E73;margin-top:2px;">${quote.institution}</div>` : ''}
-        ${quote.shippingDetails?.deliveryPhone || quote.phone ? `<div style="font-size:11px;color:#0891B2;font-weight:700;margin-top:3px;">${sd.deliveryPhone || quote.phone}</div>` : ''}
-      </div>`;
+    const customerSection = '';
 
     const replySection = `
       <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:18px 20px;margin-bottom:0;">
