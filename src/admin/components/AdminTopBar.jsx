@@ -323,7 +323,7 @@ function NotificationsPanel({ kpis, orders, onClose, onNavigate }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-      className="absolute top-full mt-2 left-0 w-80 rounded-[20px] overflow-hidden z-50"
+      className="absolute top-full mt-2 left-0 w-80 rounded-[20px] overflow-hidden z-[400]"
       style={{ background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', boxShadow: '0 32px 80px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.09)', border: '1px solid rgba(255,255,255,0.8)' }}
     >
       <div className="px-4 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -368,7 +368,7 @@ function QuickLaunchPanel({ onClose, onNavigate }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-      className="absolute top-full mt-2 left-0 w-64 rounded-[20px] overflow-hidden z-50 p-3"
+      className="absolute top-full mt-2 left-0 w-64 rounded-[20px] overflow-hidden z-[400] p-3"
       style={{ background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', boxShadow: '0 32px 80px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.09)', border: '1px solid rgba(255,255,255,0.8)' }}
     >
       <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2.5 px-1">ניווט מהיר</p>

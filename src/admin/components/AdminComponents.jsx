@@ -3,26 +3,34 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── Info Tooltip — Portal-based so overflow:hidden on parent cards never clips it
+// ─── Info Tooltip — always appears below the button, clamped to viewport
 export function InfoTooltip({ text }) {
-    const [open, setOpen]   = useState(false);
-    const [pos,  setPos]    = useState({ top: 0, left: 0 });
-    const btnRef            = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [pos,  setPos]  = useState({ top: 0, left: 0, arrowLeft: '50%' });
+    const btnRef          = useRef(null);
+    const TIP_W = 248;
 
     const reposition = useCallback(() => {
         if (!btnRef.current) return;
-        const r = btnRef.current.getBoundingClientRect();
-        const showBelow = r.top < 80;
-        const TIP_W = 260;
-        const margin = 10;
-        const rawLeft = r.left + r.width / 2;
-        // clamp so tooltip never exits viewport
-        const left = Math.max(TIP_W / 2 + margin, Math.min(rawLeft, window.innerWidth - TIP_W / 2 - margin));
+        const r   = btnRef.current.getBoundingClientRect();
+        const vw  = window.innerWidth;
+        const vh  = window.innerHeight;
+        const PAD = 12;
+
+        // Horizontal: center on button, clamped inside viewport
+        const rawLeft   = r.left + r.width / 2;
+        const clampedL  = Math.max(TIP_W / 2 + PAD, Math.min(rawLeft, vw - TIP_W / 2 - PAD));
+        const arrowLeft = `calc(50% + ${rawLeft - clampedL}px)`;
+
+        // Vertical: prefer below, flip above only when near bottom of viewport
+        const spaceBelow = vh - r.bottom;
+        const showBelow  = spaceBelow >= 80;
+
         setPos({
-            top:       showBelow ? r.bottom + 8 : r.top - 8,
-            left,
+            left:      clampedL,
+            top:       showBelow ? r.bottom + 6 : r.top - 6,
             showBelow,
-            arrowOffset: rawLeft - left, // shift arrow to point back at the button
+            arrowLeft,
         });
     }, []);
 
@@ -51,40 +59,57 @@ export function InfoTooltip({ text }) {
                 <AnimatePresence>
                     {open && (
                         <motion.div
-                            initial={{ opacity: 0, y: 4, scale: 0.94 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 4, scale: 0.94 }}
-                            transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                            key="tooltip"
+                            initial={{ opacity: 0, scale: 0.92 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.92 }}
+                            transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
                             style={{
                                 position: 'fixed',
-                                top: pos.top,
+                                top:  pos.top,
                                 left: pos.left,
-                                transform: `translate(-50%, ${pos.showBelow ? '0%' : '-100%'})`,
-                                zIndex: 99999,
-                                minWidth: 200,
-                                maxWidth: 260,
+                                transform: `translateX(-50%) translateY(${pos.showBelow ? '0%' : '-100%'})`,
+                                zIndex: 999999,
+                                width: TIP_W,
                                 pointerEvents: 'none',
+                                transformOrigin: pos.showBelow ? 'top center' : 'bottom center',
                             }}
                         >
+                            {/* Arrow pointing UP at the button (when showing below) */}
+                            {pos.showBelow && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: -5, left: pos.arrowLeft,
+                                    transform: 'translateX(-50%) rotate(45deg)',
+                                    width: 10, height: 10,
+                                    background: 'rgba(29,29,31,0.97)',
+                                    border: '1px solid rgba(255,255,255,0.10)',
+                                    borderRight: 'none', borderBottom: 'none',
+                                    borderRadius: '2px 0 0 0',
+                                }} />
+                            )}
                             <div style={{
                                 background: 'rgba(29,29,31,0.97)',
-                                borderRadius: 13,
-                                padding: '10px 14px',
-                                boxShadow: '0 16px 48px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.18)',
+                                borderRadius: 12,
+                                padding: '9px 13px',
+                                boxShadow: '0 12px 40px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.16)',
                                 border: '1px solid rgba(255,255,255,0.10)',
                             }}>
                                 <p style={{ color: '#F5F5F7', fontSize: 11.5, fontWeight: 500, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
                             </div>
-                            {/* Arrow — offset-corrected to always point at the i button */}
-                            <div style={{
-                                position: 'absolute',
-                                ...(pos.showBelow
-                                    ? { top: -5, left: `calc(50% + ${pos.arrowOffset || 0}px)`, transform: 'translateX(-50%) rotate(225deg)', borderRight: '1px solid rgba(255,255,255,0.12)', borderBottom: '1px solid rgba(255,255,255,0.12)' }
-                                    : { bottom: -5, left: `calc(50% + ${pos.arrowOffset || 0}px)`, transform: 'translateX(-50%) rotate(45deg)', borderRight: '1px solid rgba(255,255,255,0.12)', borderBottom: '1px solid rgba(255,255,255,0.12)' }
-                                ),
-                                width: 10, height: 10,
-                                background: 'rgba(29,29,31,0.95)',
-                            }} />
+                            {/* Arrow pointing DOWN at the button (when showing above) */}
+                            {!pos.showBelow && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: -5, left: pos.arrowLeft,
+                                    transform: 'translateX(-50%) rotate(45deg)',
+                                    width: 10, height: 10,
+                                    background: 'rgba(29,29,31,0.97)',
+                                    border: '1px solid rgba(255,255,255,0.10)',
+                                    borderLeft: 'none', borderTop: 'none',
+                                    borderRadius: '0 0 2px 0',
+                                }} />
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>,

@@ -311,14 +311,18 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
             {/* Brand header */}
             <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(255,255,255,0.4)' }}>
                 <motion.div
-                    whileHover={{ scale: 1.08, rotate: -5 }}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg"
-                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 20px rgba(0,122,255,0.45), 0 0 0 1px rgba(255,255,255,0.25) inset' }}
+                    whileHover={{ scale: 1.08 }}
+                    className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(145deg, #0055FF 0%, #00AAFF 50%, #7B61FF 100%)',
+                        boxShadow: '0 4px 18px rgba(0,100,255,0.50), 0 1px 0 rgba(255,255,255,0.30) inset',
+                    }}
                 >
-                    {/* NextClass monogram — NC stacked */}
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <text x="1" y="12" fontSize="9" fontWeight="900" fontFamily="system-ui,-apple-system" fill="white" letterSpacing="-0.5">N</text>
-                        <text x="10" y="19" fontSize="8" fontWeight="700" fontFamily="system-ui,-apple-system" fill="rgba(255,255,255,0.72)" letterSpacing="-0.3">C</text>
+                    {/* Shimmer overlay */}
+                    <div className="absolute inset-0 rounded-[13px]" style={{ background: 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.28) 0%, transparent 65%)' }} />
+                    {/* Geometric N mark — clean vector paths */}
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="relative z-10">
+                        <path d="M4 14V4L14 14V4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                 </motion.div>
                 <AnimatePresence>
@@ -582,11 +586,11 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                 >
                     {/* Mobile header */}
                     <div className="flex items-center gap-3 px-4 py-4 border-b border-black/06">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg"
-                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.30)' }}>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <text x="1" y="12" fontSize="9" fontWeight="900" fontFamily="system-ui,-apple-system" fill="white" letterSpacing="-0.5">N</text>
-                                <text x="10" y="19" fontSize="8" fontWeight="700" fontFamily="system-ui,-apple-system" fill="rgba(255,255,255,0.72)" letterSpacing="-0.3">C</text>
+                        <div className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
+                            style={{ background: 'linear-gradient(145deg,#0055FF 0%,#00AAFF 50%,#7B61FF 100%)', boxShadow: '0 4px 18px rgba(0,100,255,0.45), 0 1px 0 rgba(255,255,255,0.28) inset' }}>
+                            <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.26) 0%, transparent 65%)' }} />
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="relative z-10">
+                                <path d="M4 14V4L14 14V4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         </div>
                         <div className="flex-1">
