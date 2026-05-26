@@ -2354,7 +2354,7 @@ function QuotesPipeline() {
                             </div>
                             <div className="text-right min-w-0">
                                 <p className="text-[#1D1D1F] font-bold text-sm truncate hover:text-[#007AFF] hover:underline cursor-pointer transition-colors"
-                                    onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(quote.contactName || '')}`); }}>{quote.contactName}</p>
+                                    onClick={e => { e.stopPropagation(); navigate(`/admin/users?email=${encodeURIComponent(quote.email || quote.contactName || '')}`); }}>{quote.contactName}</p>
                                 <p className="text-[#AEAEB2] text-[10px] truncate">{quote.institution} · {quote.contactRole}</p>
                             </div>
                             <p className="text-[#1D1D1F] font-black text-sm">
@@ -2441,7 +2441,7 @@ function QuotesPipeline() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 9px', borderRadius: 99, background: `${QUOTE_STATUS_COLORS[selected.status] || '#007AFF'}18`, color: QUOTE_STATUS_COLORS[selected.status] || '#007AFF' }}>{selected.status}</span>
                                     {selected.institution && <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B' }}>{selected.institution}</span>}
-                                    <p style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: 0, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(selected.contactName || '')}`)}>{selected.contactName}</p>
+                                    <p style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: 0, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/users?email=${encodeURIComponent(selected.email || selected.contactName || '')}`)}>{selected.contactName}</p>
                                 </div>
                                 <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', justifyContent: 'flex-start', alignItems: 'center' }}>
                                     <span style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 700 }}>{selected.id}</span>
@@ -2666,7 +2666,7 @@ function QuotesPipeline() {
                                     <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                         <div>
                                             <p style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 800, margin: '0 0 2px', textAlign: 'right' }}>לקוח</p>
-                                            <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0, textAlign: 'right', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(selected.contactName || '')}`)}>{selected.contactName || '—'}</p>
+                                            <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0, textAlign: 'right', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/users?email=${encodeURIComponent(selected.email || selected.contactName || '')}`)}>{selected.contactName || '—'}</p>
                                             {selected.institution && <p style={{ fontSize: 11, color: '#6E6E73', margin: '1px 0 0', textAlign: 'right' }}>{selected.institution}</p>}
                                         </div>
                                         <div>
@@ -2893,7 +2893,7 @@ function QuotesPipeline() {
                                     <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', marginBottom: 8, textAlign: 'right' }}>פרטי קשר</p>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                         {[
-                                            ['שם איש קשר', selected.contactName, () => navigate(`/admin/customers?search=${encodeURIComponent(selected.contactName)}`)],
+                                            ['שם איש קשר', selected.contactName, () => navigate(`/admin/users?email=${encodeURIComponent(selected.email || selected.contactName || '')}`)],
                                             ['תפקיד', selected.contactRole, null],
                                             ['מוסד', selected.institution, null],
                                             ['סוג מוסד', selected.institutionType, null],
@@ -3518,7 +3518,7 @@ function FulfillmentTab() {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                                             <div style={{ padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'right' }}>
                                                 <p style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', margin: '0 0 4px', letterSpacing: '0.08em' }}>לקוח</p>
-                                                <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(q.contactName || '')}`)}>{q.contactName || '—'}</p>
+                                                <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'rgba(0,0,0,0.18)' }} onClick={() => navigate(`/admin/users?email=${encodeURIComponent(q.email || q.contactName || '')}`)}>{q.contactName || '—'}</p>
                                                 <p style={{ fontSize: 11, color: '#6E6E73', margin: '2px 0 0' }}>{q.institution || ''}</p>
                                                 {q.phone && <p style={{ fontSize: 11, color: '#007AFF', margin: '3px 0 0', fontWeight: 700 }}>{q.phone}</p>}
                                             </div>

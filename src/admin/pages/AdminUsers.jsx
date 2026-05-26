@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where, limit, getDocs } from 'firebase/firestore';
@@ -409,6 +410,7 @@ export default function AdminUsers() {
     const [filterTier, setFilterTier] = useState('all');
     const [filterProv, setFilterProv] = useState('all');
     const [selected, setSelected] = useState(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
@@ -424,6 +426,13 @@ export default function AdminUsers() {
         }, () => setLoading(false));
         return unsub;
     }, []);
+
+    useEffect(() => {
+        const emailParam = searchParams.get('email');
+        if (!emailParam || !users.length) return;
+        const match = users.find(u => (u.email || '').toLowerCase() === emailParam.toLowerCase());
+        if (match) setSelected(match);
+    }, [searchParams, users]);
 
     const handleTierChange = (uid, newTier) => {
         setUsers(prev => prev.map(u => u.uid === uid ? { ...u, memberTier: newTier } : u));
