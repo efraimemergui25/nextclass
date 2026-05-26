@@ -256,8 +256,8 @@ const QUOTE_STATUS_COLORS = {
     'סופק':          '#1DB954',
     'אבד':           '#AEAEB2',
 };
-const QUOTE_STATUSES = ['הכל', 'חדש', 'ביצירת קשר', 'בדיקת מלאי', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק', 'אבד'];
-const QUOTE_STATUS_FLOW  = ['חדש', 'ביצירת קשר', 'בדיקת מלאי', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
+const QUOTE_STATUSES = ['הכל', 'חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק', 'אבד'];
+const QUOTE_STATUS_FLOW  = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 
 // ─── Mini KPI stat ────────────────────────────────────────────────────────────
 function Stat({ label, value, color, Icon, tooltip }) {
@@ -1343,26 +1343,27 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
         : null;
 
     if (status === 'חדש') return (
-        <StagePanel color="#FF3B30" icon={<Bell size={18} color="#fff" />} title="בקשה חדשה הגיעה!" desc="צור קשר עם הלקוח להתחיל את התהליך" onSwitchTab={onSwitchTab} items={quote.items}>
+        <StagePanel color="#FF3B30" icon={<Bell size={18} color="#fff" />} title="בקשה חדשה הגיעה!" desc="מייל אוטומטי נשלח ללקוח — צור קשר ישיר להתחיל" onSwitchTab={onSwitchTab} items={quote.items}>
             <ContactChips quote={quote} onSwitchTab={onSwitchTab}
                 waText={`שלום ${quote.contactName || 'לקוח'}, קיבלנו את בקשת הצעת המחיר שלך (${quote.id}). אנחנו בודקים ונחזור אליך בהקדם.`} />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <StageBtn color="#FF3B30" label="📞 התחלתי יצירת קשר" onClick={() => { onUpdateStatus(quote.id, 'ביצירת קשר'); showToast('עבר ל"ביצירת קשר"', 'success'); }} />
-                {emailBtn('contact', 'שלח מייל קבלה ללקוח')}
-            </div>
+            <StageBtn color="#FF3B30" label="📞 יצרתי קשר — המשך לבדיקת מלאי" onClick={() => { onUpdateStatus(quote.id, 'ביצירת קשר'); showToast('עבר לבדיקת מלאי', 'success'); }} />
         </StagePanel>
     );
 
     if (status === 'ביצירת קשר') return (
-        <StagePanel color="#FF9500" icon={<Phone size={18} color="#fff" />} title="בקשר עם הלקוח — בדוק מלאי ספק" desc="עבור לאזור הספקים לבדיקת מחירים ומלאי" onSwitchTab={onSwitchTab} items={quote.items}>
-            <ContactChips quote={quote} onSwitchTab={onSwitchTab}
-                waText={`שלום ${quote.contactName || 'לקוח'}, אני בודק את הבקשה שלך (${quote.id}) ואחזור אליך בקרוב עם הצעת מחיר.`} />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <StageBtn color="#FF9500" label="📦 עברתי לבדיקת מלאי" onClick={() => { onUpdateStatus(quote.id, 'בדיקת מלאי'); showToast('עבר ל"בדיקת מלאי"', 'success'); }} />
-                <StageBtn color="#0891B2" label="🔍 הצעות ספקים" onClick={() => navigate('/admin/suppliers')} secondary />
-                {emailBtn('initial_contact', 'מייל אישור קבלה')}
+        <div>
+            <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid rgba(0,0,0,0.05)' }} dir="rtl">
+                <p style={{ fontSize: 11, fontWeight: 800, color: '#FF9500', margin: '0 0 8px' }}>📞 צור קשר + בדוק מלאי</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ margin: 0 }}>
+                        <ContactChips quote={quote} onSwitchTab={onSwitchTab}
+                            waText={`שלום ${quote.contactName || 'לקוח'}, אני בודק את הבקשה שלך (${quote.id}) ואחזור אליך בקרוב עם הצעת מחיר.`} />
+                    </div>
+                    {emailBtn('initial_contact', 'מייל — בטיפול')}
+                </div>
             </div>
-        </StagePanel>
+            <InventoryCheckPanel quote={quote} onUpdateStatus={onUpdateStatus} updateQuoteFields={updateQuoteFields} showToast={showToast} onSwitchTab={onSwitchTab} openEmailPreview={openEmailPreview} />
+        </div>
     );
 
     if (status === 'בדיקת מלאי') return (
@@ -1373,8 +1374,8 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
         const daysSinceSent = quote.quoteSentAt ? Math.floor((Date.now() - quote.quoteSentAt) / 86400000) : null;
         return (
             <StagePanel color="#007AFF" icon={<Send size={18} color="#fff" />}
-                title="הצעה נשלחה — ממתין לתשובת לקוח"
-                desc={`נשלחה ${quote.quoteSentAt ? new Date(quote.quoteSentAt).toLocaleDateString('he-IL') : (quote.date || '')} · ממתין לאישור`}
+                title="הצעה נשלחה — ממתין לאישור הלקוח"
+                desc={`נשלחה ${quote.quoteSentAt ? new Date(quote.quoteSentAt).toLocaleDateString('he-IL') : (quote.date || '')} · הצעה פתוחה`}
                 onSwitchTab={onSwitchTab} items={quote.items}>
                 {daysSinceSent >= 3 && (
                     <div style={{ marginBottom: 10, padding: '7px 12px', borderRadius: 10, background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.18)', fontSize: 12, fontWeight: 700, color: '#FF3B30', textAlign: 'right' }}>
@@ -1382,35 +1383,35 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
                     </div>
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <StageBtn color="#007AFF" label="✅ הלקוח אישר — המשך" onClick={() => { onUpdateStatus(quote.id, 'ממתין לאישור'); showToast('עבר ל"ממתין לאישור"', 'success'); }} />
-                    {quote.phone && <StageBtn color="#25D366" label="📱 תזכורת ללקוח"
+                    <StageBtn color="#007AFF" label="✅ הלקוח אישר — קדימה" onClick={() => { onUpdateStatus(quote.id, 'ממתין לאישור'); showToast('עבר ל"ממתין לאישור"', 'success'); }} />
+                    {quote.phone && <StageBtn color="#25D366" label="📱 תזכורת WhatsApp"
                         href={`https://wa.me/972${quote.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(`שלום ${quote.contactName || ''}, רציתי לבדוק שקיבלת את הצעת המחיר שלנו (${quote.id}). האם יש שאלות?`)}`}
                         target="_blank" secondary />}
-                    {emailBtn('reminder', 'תזכורת במייל')}
-                    {emailBtn('quote_sent', 'שלח הצעה שוב')}
+                    {emailBtn('reminder', 'תזכורת — מחיר ממתין')}
+                    {emailBtn('quote_sent', 'שלח הצעה מחדש')}
                 </div>
             </StagePanel>
         );
     }
 
     if (status === 'ממתין לאישור') return (
-        <StagePanel color="#5856D6" icon={<FileText size={18} color="#fff" />} title="הלקוח מאשר — הזן פרטי משלוח ותשלום" desc="ניתן להזין גם טלפונית. הפרטים יועברו לספק." onSwitchTab={onSwitchTab} items={quote.items}>
+        <StagePanel color="#5856D6" icon={<FileText size={18} color="#fff" />} title="הלקוח אישר — הזן פרטי משלוח" desc="מלא פרטי אספקה ואשר כדי לסגור את העסקה" onSwitchTab={onSwitchTab} items={quote.items}>
             <ShippingForm quote={quote} updateQuoteFields={updateQuoteFields} onUpdateStatus={onUpdateStatus} showToast={showToast} />
-            <div style={{ marginTop: 8 }}>{emailBtn('pending_approval', 'מייל אישור הזמנה ללקוח')}</div>
+            <div style={{ marginTop: 8 }}>{emailBtn('pending_approval', 'בקשת פרטי משלוח מהלקוח')}</div>
         </StagePanel>
     );
 
     if (status === 'נסגר') return (
-        <StagePanel color="#34C759" icon={<CheckCircle2 size={18} color="#fff" />} title="עסקה נסגרה — העבר לספק" desc="רשום פרטי הזמנה מהספק ושלח אישור" onSwitchTab={onSwitchTab} items={quote.items}>
+        <StagePanel color="#34C759" icon={<CheckCircle2 size={18} color="#fff" />} title="עסקה סגורה — שלח אישור רשמי + העבר לספק" desc="הזן פרטי ספק ושלח ללקוח אישור כתוב" onSwitchTab={onSwitchTab} items={quote.items}>
             <SupplierTransferForm quote={quote} updateQuoteFields={updateQuoteFields} onUpdateStatus={onUpdateStatus} showToast={showToast} />
-            <div style={{ marginTop: 8 }}>{emailBtn('confirmed', 'מייל אישור הזמנה ללקוח')}</div>
+            <div style={{ marginTop: 8 }}>{emailBtn('confirmed', 'אישור הזמנה רשמי ללקוח')}</div>
         </StagePanel>
     );
 
     if (status === 'הועבר לספק') return (
-        <StagePanel color="#0891B2" icon={<Truck size={18} color="#fff" />} title="הועבר לספק — הוסף מספר מעקב" desc="עדכן פרטי משלוח ושלח ללקוח עדכון" onSwitchTab={onSwitchTab} items={quote.items}>
+        <StagePanel color="#0891B2" icon={<Truck size={18} color="#fff" />} title="אצל הספק — עדכן מספר מעקב" desc="הזן פרטי מעקב ושלח ללקוח עדכון ETA" onSwitchTab={onSwitchTab} items={quote.items}>
             <TrackingForm quote={quote} updateQuoteFields={updateQuoteFields} onUpdateStatus={onUpdateStatus} showToast={showToast} openEmailPreview={openEmailPreview} />
-            <div style={{ marginTop: 8 }}>{emailBtn('processing', 'מייל עדכון ללקוח')}</div>
+            <div style={{ marginTop: 8 }}>{emailBtn('processing', 'עדכון ללקוח — ההזמנה אצל הספק')}</div>
         </StagePanel>
     );
 
@@ -1449,7 +1450,7 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <StageBtn color="#1DB954" label="🎉 סמן כסופק" onClick={() => { onUpdateStatus(quote.id, 'סופק'); showToast('סופק! ✓', 'success'); }} />
                     {waC && <StageBtn color="#25D366" label="📱 עדכן לקוח WA" href={waC} target="_blank" secondary />}
-                    {emailBtn('in_transit', 'מייל עדכון משלוח')}
+                    {emailBtn('in_transit', 'עדכון משלוח + מעקב ללקוח')}
                 </div>
             </StagePanel>
         );
@@ -1462,7 +1463,7 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
                     סה"כ עסקה: ₪{(quote.subtotal || 0).toLocaleString()}
                     {quote.supplierOrder?.supplierName ? ` · ספק: ${quote.supplierOrder.supplierName}` : ''}
                 </div>
-                {emailBtn('delivered', 'מייל אישור אספקה')}
+                {emailBtn('delivered', 'הגיע — שלח תודה + בקש משוב')}
             </div>
         </StagePanel>
     );
@@ -1472,7 +1473,7 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
 
 // ─── Kanban View ─────────────────────────────────────────────────────────────
 function KanbanView({ quotes, onUpdateStatus, onOpen, showToast }) {
-    const KANBAN_STAGES = ['חדש', 'ביצירת קשר', 'בדיקת מלאי', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
+    const KANBAN_STAGES = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 
     return (
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 12, minHeight: 400 }} dir="rtl">

@@ -157,6 +157,7 @@ function divider() {
 
 // ── Email type builders ────────────────────────────────────────────────────────
 
+// Sent automatically on form submission — admin does NOT resend this
 function buildContactEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! בקשה מספר ${quote.id} — אשמח לתיאום`)}`;
@@ -164,8 +165,8 @@ function buildContactEmail(quote) {
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        קיבלנו את פנייתך עבור <strong>${quote.institution || 'המוסד שלך'}</strong> ואנחנו כבר בעניין.<br/>
-        נציג מקצועי ייצור איתך קשר בהקדם האפשרי.
+        קיבלנו את פנייתך עבור <strong>${quote.institution || 'המוסד שלך'}</strong>.<br/>
+        נציג מקצועי ייצור איתך קשר תוך שעות ספורות.
       </p>
       ${divider()}
       <div style="margin-bottom:28px;">
@@ -184,16 +185,16 @@ function buildContactEmail(quote) {
         </div>`).join('')}
       </div>
       ${itemsTable(quote.items)}
-      ${ctaButton('שלחו לנו הודעה בוואטסאפ', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      ${ctaButton('שאלה? שלחו לנו הודעה', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, אנחנו בעניין ✓ — נציג יחזור אליך בהקדם`,
+        preheader: `${firstName}, קיבלנו את בקשתך — נחזור אליך בהקדם`,
         accentColor: '#007AFF',
         heroIcon: '👋',
         heroIconBg: 'linear-gradient(135deg,#007AFF,#5856D6)',
-        heroTitle: `שלום ${firstName}!`,
-        heroSub: 'בקשתך התקבלה — נציג יצור איתך קשר בהקדם',
+        heroTitle: `קיבלנו את בקשתך!`,
+        heroSub: 'נציג יצור איתך קשר תוך שעות ספורות',
         quoteId: quote.id,
         body,
         footerNote: `קיבלת מייל זה כי פנית ל-NextClass · ${quote.date || ''}`,
@@ -203,27 +204,27 @@ function buildContactEmail(quote) {
 function buildQuoteSentEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const subtotal = priceNum(quote.subtotal);
-    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! קיבלתי את הצעת המחיר ${quote.id} — יש לי שאלה`)}`;
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הצעת המחיר ${quote.id} — מאשר`)}`;
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        הכנו עבורך הצעת מחיר מותאמת אישית עבור <strong>${quote.institution || 'המוסד שלך'}</strong>.<br/>
-        הצעה זו בתוקף ל-7 ימים מיום שליחתה.
+        הכנו עבורך הצעת מחיר מפורטת עבור <strong>${quote.institution || 'המוסד שלך'}</strong>.<br/>
+        עברנו על כל הפריטים שביקשת ומצאנו עבורך את המחיר הטוב ביותר.
       </p>
       ${divider()}
       ${itemsTable(quote.items)}
       ${subtotal > 0 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#F0F7FF;border-radius:16px;margin-bottom:28px;border:1.5px solid rgba(0,122,255,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:linear-gradient(135deg,#F0F7FF,#F5F0FF);border-radius:18px;margin-bottom:28px;border:1.5px solid rgba(88,86,214,0.15);">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:2px;">סה״כ הצעה</div>
-          <div style="font-size:11px;color:#AEAEB2;">כולל כל הפריטים</div>
+          <div style="font-size:12px;font-weight:700;color:#5856D6;margin-bottom:3px;">סה״כ הצעה סופית</div>
+          <div style="font-size:11px;color:#AEAEB2;">כולל מע"מ · בתוקף ל-7 ימים</div>
         </div>
-        <div style="font-size:28px;font-weight:900;color:#007AFF;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
+        <div style="font-size:32px;font-weight:900;color:#5856D6;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
       </div>` : ''}
       <div style="border-right:4px solid #34C759;background:#F0FBF4;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:28px;">
         <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:4px;">כיצד לאשר?</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.6;">שלחו לנו הודעת "אישור" בוואטסאפ, ענו למייל זה, או התקשרו ל-${BIZ_PHONE}.</div>
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.6;">שלחו "אישור" בוואטסאפ, ענו למייל זה, או התקשרו ל-${BIZ_PHONE} — ונתחיל מיד.</div>
       </div>
       ${ctaButton('✅ אישור הצעה בוואטסאפ', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
       <div style="text-align:center;margin-top:10px;">
@@ -232,55 +233,56 @@ function buildQuoteSentEmail(quote) {
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, הצעת המחיר שלך מ-NextClass מוכנה — ₪${subtotal.toLocaleString()}`,
+        preheader: `${firstName}, הצעת המחיר מוכנה — ₪${subtotal.toLocaleString()} · ממתינה לאישורך`,
         accentColor: '#5856D6',
         heroIcon: '💰',
         heroIconBg: 'linear-gradient(135deg,#5856D6,#007AFF)',
         heroTitle: 'הצעת המחיר מוכנה!',
-        heroSub: 'הצעה מותאמת אישית עבורך',
+        heroSub: `הצעה אישית עבור ${quote.institution || 'המוסד שלך'}`,
         quoteId: quote.id,
         body,
         footerNote: `ההצעה בתוקף ל-7 ימים · ${quote.date || ''}`,
     });
 }
 
+// Short & urgent — no items table, just price + deadline + single CTA
 function buildReminderEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const subtotal = priceNum(quote.subtotal);
-    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הצעת מחיר ${quote.id} — יש לי שאלה`)}`;
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הצעת מחיר ${quote.id} — מאשר`)}`;
+    const daysLeft = quote.quoteSentAt
+        ? Math.max(0, 7 - Math.floor((Date.now() - quote.quoteSentAt) / 86400000))
+        : null;
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
-        שלום ${firstName},<br/>
-        שלחנו לך לפני מספר ימים הצעת מחיר עבור <strong>${quote.institution || 'המוסד שלך'}</strong>.<br/>
-        רצינו לבדוק שהכל ברור ואם יש שאלות נוספות.
+        שלום ${firstName}, תזכורת קצרה —<br/>
+        הצעת המחיר עבור <strong>${quote.institution || 'המוסד שלך'}</strong> עדיין פתוחה.
       </p>
-      ${divider()}
-      <div style="padding:20px 24px;background:#FFF8EE;border-radius:16px;border:1.5px solid rgba(255,149,0,0.25);margin-bottom:28px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#FF9500;margin-bottom:4px;">הצעה ממתינה לאישור</div>
-            <div style="font-size:13px;color:#6E6E73;">${(quote.items || []).length} פריטים · ${quote.institution || ''}</div>
-          </div>
-          ${subtotal > 0 ? `<div style="font-size:24px;font-weight:900;color:#1D1D1F;">₪${subtotal.toLocaleString()}</div>` : ''}
-        </div>
+      <div style="padding:24px 28px;background:linear-gradient(135deg,#FFF8EE,#FFFDF7);border-radius:20px;border:2px solid rgba(255,149,0,0.3);margin-bottom:28px;text-align:center;">
+        ${subtotal > 0 ? `<div style="font-size:36px;font-weight:900;color:#1D1D1F;letter-spacing:-1px;margin-bottom:6px;">₪${subtotal.toLocaleString()}</div>` : ''}
+        <div style="font-size:13px;color:#6E6E73;">${(quote.items || []).length} פריטים עבור ${quote.institution || ''}</div>
+        ${daysLeft !== null ? `<div style="margin-top:12px;display:inline-block;background:${daysLeft <= 2 ? '#FF3B30' : '#FF9500'};color:#fff;font-size:12px;font-weight:800;padding:6px 18px;border-radius:50px;">
+          ${daysLeft === 0 ? '⚠️ ההצעה פגה היום!' : daysLeft === 1 ? '⚠️ נותר יום אחד בלבד' : `⏰ נותרו ${daysLeft} ימים`}
+        </div>` : ''}
       </div>
-      ${ctaButton('💬 צרו קשר בוואטסאפ', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
-      <p style="text-align:center;font-size:13px;color:#AEAEB2;margin-top:14px;">אם ההצעה לא רלוונטית יותר — אין צורך לענות.</p>
+      ${ctaButton('✅ אישור ההצעה עכשיו', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      <p style="text-align:center;font-size:12px;color:#AEAEB2;margin-top:16px;">יש שאלות? נשמח לעזור — <a href="tel:${BIZ_PHONE.replace(/\D/g,'')}" style="color:#007AFF;text-decoration:none;font-weight:600;">${BIZ_PHONE}</a><br/>אם ההצעה לא רלוונטית — אין צורך לענות.</p>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, הצעת המחיר ${quote.id} ממתינה לאישורך`,
+        preheader: `${firstName}, הצעת המחיר ${quote.id} ${daysLeft === 0 ? 'פגה היום' : daysLeft === 1 ? 'פגה מחר' : `בתוקף עוד ${daysLeft} ימים`}`,
         accentColor: '#FF9500',
         heroIcon: '⏰',
         heroIconBg: 'linear-gradient(135deg,#FF9500,#FF6B00)',
-        heroTitle: 'תזכורת קצרה',
-        heroSub: 'הצעת המחיר שלנו עדיין ממתינה',
+        heroTitle: 'תזכורת: יש הצעה פתוחה',
+        heroSub: 'אישור מהיר — ונתחיל מיד',
         quoteId: quote.id,
         body,
     });
 }
 
+// Sent after customer verbally approves — confirms we got the approval and wraps up details
 function buildConfirmedEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const subtotal = priceNum(quote.subtotal);
@@ -289,40 +291,44 @@ function buildConfirmedEmail(quote) {
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        ההזמנה שלך אושרה ואנחנו מתחילים בעיבודה.<br/>
-        נשלח לך עדכון ברגע שהמוצרים יוצאים לדרך.
+        ההזמנה שלך לטובת <strong>${quote.institution || 'המוסד שלך'}</strong> <strong>אושרה רשמית</strong>.<br/>
+        זהו האישור הכתוב שלך — שמרו לעיון עתידי.
       </p>
       ${divider()}
-      ${itemsTable(quote.items)}
       ${subtotal > 0 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#F0FBF4;border-radius:16px;margin-bottom:28px;border:1.5px solid rgba(52,199,89,0.2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:linear-gradient(135deg,#F0FBF4,#FAFFF7);border-radius:18px;margin-bottom:24px;border:1.5px solid rgba(52,199,89,0.25);">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#34C759;margin-bottom:2px;">סה״כ הזמנה</div>
+          <div style="font-size:12px;font-weight:700;color:#34C759;margin-bottom:3px;">סכום הזמנה מאושר</div>
+          <div style="font-size:11px;color:#AEAEB2;">${(quote.items||[]).length} פריטים · ${quote.institution || ''}</div>
         </div>
-        <div style="font-size:28px;font-weight:900;color:#34C759;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
+        <div style="font-size:32px;font-weight:900;color:#34C759;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
       </div>` : ''}
       ${sd.address ? `
-      <div style="padding:16px 20px;background:#FAFCFF;border-radius:16px;border:1px solid #EEF2FF;margin-bottom:28px;">
+      <div style="padding:16px 20px;background:#FAFCFF;border-radius:16px;border:1px solid #EEF2FF;margin-bottom:24px;">
         <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:10px;">📍 כתובת למשלוח</div>
         <div style="font-size:14px;font-weight:700;color:#1D1D1F;">${sd.deliveryName || quote.contactName}</div>
         <div style="font-size:13px;color:#6E6E73;margin-top:3px;">${sd.address}${sd.city ? `, ${sd.city}` : ''}${sd.zip ? ` ${sd.zip}` : ''}</div>
         ${sd.deliveryPhone ? `<div style="font-size:13px;color:#007AFF;margin-top:3px;font-weight:600;">${sd.deliveryPhone}</div>` : ''}
       </div>` : ''}
-      <div style="border-right:4px solid #007AFF;background:#F0F7FF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:28px;">
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">לכל שאלה בנוגע להזמנה — <strong>${BIZ_PHONE}</strong> · <strong>nextclass.en@gmail.com</strong></div>
+      <div style="background:#F0F7FF;border-radius:16px;padding:18px 20px;margin-bottom:24px;">
+        <div style="font-size:12px;font-weight:800;color:#007AFF;margin-bottom:10px;">⚙️ מה קורה עכשיו</div>
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.7;">הצוות שלנו מעביר את ההזמנה לספק ומתאם אספקה. תקבל עדכון נוסף ברגע שיש מספר מעקב.</div>
+      </div>
+      <div style="border-right:4px solid #34C759;background:#F0FBF4;border-radius:0 12px 12px 0;padding:14px 18px;">
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">שאלות? — <strong>${BIZ_PHONE}</strong> · <strong>nextclass.en@gmail.com</strong></div>
       </div>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, ההזמנה ${quote.id} אושרה! אנחנו מתחילים בעיבוד`,
+        preheader: `${firstName}, ההזמנה ${quote.id} אושרה רשמית — שמרו את האישור הזה`,
         accentColor: '#34C759',
         heroIcon: '✅',
         heroIconBg: 'linear-gradient(135deg,#34C759,#28A745)',
-        heroTitle: 'ההזמנה אושרה!',
-        heroSub: 'אנחנו מתחילים בהכנה ונעדכן אותך בכל שלב',
+        heroTitle: 'ההזמנה אושרה רשמית',
+        heroSub: 'זהו האישור הכתוב שלך — תקבל עדכון משלוח בקרוב',
         quoteId: quote.id,
         body,
-        footerNote: `תאריך אישור: ${quote.date || new Date().toLocaleDateString('he-IL')}`,
+        footerNote: `תאריך אישור: ${new Date().toLocaleDateString('he-IL')}`,
     });
 }
 
@@ -406,118 +412,127 @@ function buildDeliveredEmail(quote) {
     });
 }
 
-// ── NEW: unique template per stage ────────────────────────────────────────────
-
+// Sent while actively working on finding the best price — tells customer WHAT we're checking
 function buildInitialContactEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
-    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! בקשה מספר ${quote.id}`)}`;
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! בקשה מספר ${quote.id} — יש לי תוספת/שינוי`)}`;
+    const itemCount = (quote.items || []).length;
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        אנחנו כבר בעניין ובודקים עבורך הצעות מחיר מספקינו עבור <strong>${quote.institution || 'המוסד שלך'}</strong>.<br/>
-        בקרוב נחזור אליך עם הצעה מותאמת אישית.
+        רכז ההזמנות שלנו עבר על הבקשה שלך ומשיג כעת מחירים מספקינו עבור <strong>${itemCount} פריט${itemCount !== 1 ? 'ים' : ''}</strong>.<br/>
+        צפי לקבלת הצעת מחיר: <strong>1–2 ימי עסקים</strong>.
       </p>
       ${divider()}
-      ${itemsTable(quote.items)}
-      <div style="padding:16px 20px;background:#FFF8EE;border-radius:16px;border:1.5px solid rgba(255,149,0,0.2);margin-bottom:28px;">
-        <div style="font-size:13px;font-weight:800;color:#FF9500;margin-bottom:6px;">⏳ מה קורה עכשיו</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.6;">הצוות שלנו סוקר כעת את דרישות ${quote.institution || 'המוסד'} ומכין עבורך הצעת מחיר מיטבית. נשלח ברגע שהיא מוכנה!</div>
+      <div style="margin-bottom:28px;">
+        <div style="font-size:12px;font-weight:700;color:#6E6E73;margin-bottom:12px;">הפריטים שאנחנו בודקים עבורך</div>
+        ${(quote.items || []).map(item => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F5F5F7;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#FF9500;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:#1D1D1F;">${item.title || '—'}</div>
+            <div style="font-size:11px;color:#AEAEB2;">×${item.qty ?? item.quantity ?? 1} יח׳${item.category ? ` · ${item.category}` : ''}</div>
+          </div>
+          <div style="font-size:11px;font-weight:800;color:#FF9500;">בבדיקה...</div>
+        </div>`).join('')}
       </div>
-      ${ctaButton('💬 שאלה? דברו איתנו', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      <div style="padding:14px 18px;background:#FFFBF0;border-right:4px solid #FF9500;border-radius:0 12px 12px 0;margin-bottom:28px;">
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">יש שינויים לבקשה? עכשיו הזמן לעדכן אותנו — לפני שסוגרים מחיר עם הספק.</div>
+      </div>
+      ${ctaButton('💬 עדכון לבקשה? כתבו לנו', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, אנחנו בודקים הצעות מחיר עבורך — ${quote.institution || ''}`,
+        preheader: `${firstName}, הצוות שלנו משיג מחירים עבורך — צפי: 1–2 ימי עסקים`,
         accentColor: '#FF9500',
         heroIcon: '🔍',
         heroIconBg: 'linear-gradient(135deg,#FF9500,#F59E0B)',
-        heroTitle: 'אנחנו בעניין!',
-        heroSub: 'בודקים עבורך הצעות מחיר מהספקים',
+        heroTitle: 'בשלב השגת המחירים',
+        heroSub: `בודקים ${itemCount} פריטים אצל הספקים — נחזור בקרוב`,
         quoteId: quote.id,
         body,
         footerNote: `${quote.date || ''}`,
     });
 }
 
+// Sent after customer verbally confirmed — asks for final shipping details
 function buildPendingApprovalEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
-    const subtotal = priceNum(quote.subtotal);
-    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הזמנה ${quote.id} — מאשר`)}`;
+    const sd = quote.shippingDetails || {};
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הזמנה ${quote.id} — פרטי משלוח:`)}`;
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        ההצעה עבור <strong>${quote.institution || 'המוסד שלך'}</strong> ממתינה לאישורך הסופי.<br/>
-        ברגע שתאשר — נתחיל מיד בעיבוד ההזמנה.
+        אישרת — תודה! 🎉<br/>
+        כדי לסגור את ההזמנה, נצטרך ממך <strong>פרטי משלוח</strong> למוסד.
       </p>
       ${divider()}
-      ${itemsTable(quote.items)}
-      ${subtotal > 0 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#F5F0FF;border-radius:16px;margin-bottom:28px;border:1.5px solid rgba(88,86,214,0.2);">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#5856D6;margin-bottom:2px;">סה״כ לאישור</div>
-          <div style="font-size:11px;color:#AEAEB2;">כולל כל הפריטים</div>
-        </div>
-        <div style="font-size:28px;font-weight:900;color:#5856D6;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
-      </div>` : ''}
-      <div style="border-right:4px solid #5856D6;background:#F5F0FF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:28px;">
-        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:4px;">לאישור — שלחו "אישור" בוואטסאפ</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.6;">או התקשרו: ${BIZ_PHONE}</div>
+      <div style="padding:20px 24px;background:#F0F7FF;border-radius:18px;margin-bottom:28px;border:1.5px solid rgba(0,122,255,0.15);">
+        <div style="font-size:12px;font-weight:800;color:#007AFF;margin-bottom:14px;">📋 הפרטים הנדרשים</div>
+        ${[
+            ['שם מלא למשלוח', sd.deliveryName || ''],
+            ['כתובת מדויקת', sd.address ? `${sd.address}${sd.city ? `, ${sd.city}` : ''}` : ''],
+            ['מיקוד', sd.zip || ''],
+            ['טלפון ליצירת קשר', sd.deliveryPhone || ''],
+        ].map(([label, val]) => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
+          <span style="font-size:12px;font-weight:700;color:#6E6E73;">${label}</span>
+          <span style="font-size:13px;font-weight:700;color:${val ? '#1D1D1F' : '#FF9500'};">${val || '⚠️ חסר'}</span>
+        </div>`).join('')}
       </div>
-      ${ctaButton('✅ אישור הזמנה', waLink, 'linear-gradient(135deg,#5856D6,#007AFF)', 'rgba(88,86,214,0.35)')}
+      ${ctaButton('📲 שלחו פרטי משלוח בוואטסאפ', waLink, 'linear-gradient(135deg,#007AFF,#5856D6)', 'rgba(0,122,255,0.35)')}
+      <p style="text-align:center;font-size:12px;color:#AEAEB2;margin-top:14px;">ניתן גם לענות ישירות למייל זה עם הפרטים.</p>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, ההצעה שלנו ממתינה לאישורך הסופי`,
-        accentColor: '#5856D6',
-        heroIcon: '✍️',
-        heroIconBg: 'linear-gradient(135deg,#5856D6,#007AFF)',
-        heroTitle: 'ממתינים לאישורך',
-        heroSub: 'אשר את ההצעה כדי שנתחיל בעיבוד',
+        preheader: `${firstName}, אישרת! נצטרך פרטי משלוח כדי לסגור`,
+        accentColor: '#007AFF',
+        heroIcon: '📋',
+        heroIconBg: 'linear-gradient(135deg,#007AFF,#5856D6)',
+        heroTitle: 'אישרת — נהדר!',
+        heroSub: 'נצטרך ממך פרטי משלוח כדי לסגור את ההזמנה',
         quoteId: quote.id,
         body,
         footerNote: `${quote.date || ''}`,
     });
 }
 
+// Sent after order transferred to supplier — focus entirely on ETA & supplier ref, NO items table
 function buildProcessingEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
-    const subtotal = priceNum(quote.subtotal);
     const so = quote.supplierOrder || {};
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        ההזמנה שלך עבור <strong>${quote.institution || 'המוסד שלך'}</strong> הועברה לספק ונמצאת בעיבוד.<br/>
-        ${so.estimatedDelivery ? `<strong>אספקה משוערת: ${so.estimatedDelivery}</strong>` : 'נעדכן אותך עם פרטי משלוח בקרוב.'}
+        הכל מסודר — ההזמנה הועברה לספק ונמצאת בייצור/הכנה.<br/>
+        ${so.estimatedDelivery ? `<strong>תאריך אספקה משוער: ${so.estimatedDelivery}</strong>` : 'נעדכן אותך עם תאריך אספקה ברגע שיש.'}
       </p>
       ${divider()}
-      ${itemsTable(quote.items)}
-      ${subtotal > 0 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#F0FBFF;border-radius:16px;margin-bottom:28px;border:1.5px solid rgba(8,145,178,0.18);">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#0891B2;margin-bottom:2px;">סה״כ הזמנה</div>
-        </div>
-        <div style="font-size:28px;font-weight:900;color:#0891B2;letter-spacing:-1px;">₪${subtotal.toLocaleString()}</div>
-      </div>` : ''}
-      ${so.orderNumber ? `
-      <div style="text-align:center;padding:16px;background:linear-gradient(135deg,#F0FBFF,#E0F7FF);border-radius:16px;margin-bottom:28px;border:1.5px solid rgba(8,145,178,0.15);">
-        <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:6px;">מספר הזמנה אצל ספק</div>
-        <div style="font-size:22px;font-weight:900;color:#0891B2;">${so.orderNumber}</div>
-      </div>` : ''}
-      <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:28px;">
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">לכל שאלה — <strong>${BIZ_PHONE}</strong> · nextclass.en@gmail.com</div>
+      <div style="text-align:center;padding:28px 24px;background:linear-gradient(135deg,#F0FBFF,#E8F8FF);border-radius:20px;margin-bottom:28px;border:1.5px solid rgba(8,145,178,0.2);">
+        ${so.supplierName ? `<div style="font-size:12px;font-weight:700;color:#6E6E73;margin-bottom:6px;">הספק</div>
+        <div style="font-size:20px;font-weight:900;color:#0891B2;margin-bottom:16px;">${so.supplierName}</div>` : ''}
+        ${so.orderNumber ? `<div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:6px;">מספר הזמנה אצל ספק</div>
+        <div style="font-size:26px;font-weight:900;color:#0891B2;letter-spacing:1px;margin-bottom:16px;">${so.orderNumber}</div>` : ''}
+        ${so.estimatedDelivery ? `<div style="display:inline-block;background:#0891B2;color:#fff;font-size:13px;font-weight:800;padding:8px 22px;border-radius:50px;">📅 אספקה: ${so.estimatedDelivery}</div>` : ''}
+        ${!so.orderNumber && !so.estimatedDelivery ? `<div style="font-size:14px;color:#6E6E73;">ההזמנה בטיפול — עדכון מסלול בקרוב</div>` : ''}
       </div>
+      <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:4px;">🔔 מה הלאה?</div>
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">ברגע שהמשלוח יצא — נשלח לך מייל נוסף עם מספר מעקב ותאריך הגעה מדויק.</div>
+      </div>
+      <div style="font-size:13px;color:#3D3D3D;text-align:center;">שאלות? — <strong>${BIZ_PHONE}</strong> · nextclass.en@gmail.com</div>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, ההזמנה ${quote.id} הועברה לספק — בעיבוד`,
+        preheader: `${firstName}, ההזמנה אצל הספק${so.estimatedDelivery ? ` — אספקה: ${so.estimatedDelivery}` : ' — בעיבוד'}`,
         accentColor: '#0891B2',
         heroIcon: '⚙️',
         heroIconBg: 'linear-gradient(135deg,#0891B2,#0E7490)',
-        heroTitle: 'ההזמנה בעיבוד!',
-        heroSub: 'הועברה לספק ובטיפול — נעדכן אותך בקרוב',
+        heroTitle: 'ההזמנה אצל הספק',
+        heroSub: so.estimatedDelivery ? `אספקה משוערת: ${so.estimatedDelivery}` : 'בייצור/הכנה — עדכון משלוח בקרוב',
         quoteId: quote.id,
         body,
         footerNote: `${quote.date || ''}`,
