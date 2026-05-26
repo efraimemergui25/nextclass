@@ -499,40 +499,56 @@ function buildPendingApprovalEmail(quote) {
     });
 }
 
-// Sent after order transferred to supplier — focus entirely on ETA & supplier ref, NO items table
+// Sent after order confirmed internally — reassuring update, no supplier details exposed
 function buildProcessingEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const so = quote.supplierOrder || {};
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום! לגבי הזמנה ${quote.id} — יש לי שאלה`)}`;
 
     const body = `
-      <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
+      <p style="margin:0 0 28px;font-size:16px;color:#1D1D1F;line-height:1.8;">
         שלום ${firstName},<br/>
-        הכל מסודר — ההזמנה הועברה לספק ונמצאת בייצור/הכנה.<br/>
-        ${so.estimatedDelivery ? `<strong>תאריך אספקה משוער: ${so.estimatedDelivery}</strong>` : 'נעדכן אותך עם תאריך אספקה ברגע שיש.'}
+        ההזמנה שלך בטיפול מלא — הצוות שלנו עובד על כך ומעדכן אותך בהקדם.<br/>
+        ${so.estimatedDelivery ? `<strong>תאריך אספקה משוער: ${so.estimatedDelivery}</strong>` : 'נעדכן אותך עם פרטי אספקה ברגע שיהיו זמינים.'}
       </p>
       ${divider()}
-      <div style="text-align:center;padding:28px 24px;background:linear-gradient(135deg,#F0FBFF,#E8F8FF);border-radius:20px;margin-bottom:28px;border:1.5px solid rgba(8,145,178,0.2);">
-        ${so.supplierName ? `<div style="font-size:12px;font-weight:700;color:#6E6E73;margin-bottom:6px;">הספק</div>
-        <div style="font-size:20px;font-weight:900;color:#0891B2;margin-bottom:16px;">${so.supplierName}</div>` : ''}
-        ${so.orderNumber ? `<div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:6px;">מספר הזמנה אצל ספק</div>
-        <div style="font-size:26px;font-weight:900;color:#0891B2;letter-spacing:1px;margin-bottom:16px;">${so.orderNumber}</div>` : ''}
-        ${so.estimatedDelivery ? `<div style="display:inline-block;background:#0891B2;color:#fff;font-size:13px;font-weight:800;padding:8px 22px;border-radius:50px;">📅 אספקה: ${so.estimatedDelivery}</div>` : ''}
-        ${!so.orderNumber && !so.estimatedDelivery ? `<div style="font-size:14px;color:#6E6E73;">ההזמנה בטיפול — עדכון מסלול בקרוב</div>` : ''}
+
+      <!-- Progress steps -->
+      <div style="margin-bottom:32px;">
+        ${[
+            ['#34C759', '✓', 'הזמנה התקבלה', 'הבקשה שלך אושרה ועוברת לטיפול', true],
+            ['#0891B2', '⚙️', 'בטיפול פעיל', 'הצוות שלנו מטפל בהזמנה ומתאם אספקה', true],
+            ['#AEAEB2', '🚚', 'משלוח', 'תקבל מספר מעקב ברגע שיצא', false],
+            ['#AEAEB2', '🎉', 'אספקה', so.estimatedDelivery ? so.estimatedDelivery : 'בקרוב', false],
+        ].map(([color, icon, title, desc, done]) => `
+        <div style="display:flex;align-items:flex-start;margin-bottom:16px;gap:0;">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-left:14px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:${done ? color : '#F5F5F7'};border:2px solid ${done ? color : '#E0E0E0'};display:flex;align-items:center;justify-content:center;font-size:${done ? 16 : 14}px;font-weight:900;color:${done ? '#fff' : '#AEAEB2'};">${icon}</div>
+          </div>
+          <div style="padding-top:6px;">
+            <div style="font-size:14px;font-weight:${done ? '800' : '600'};color:${done ? '#1D1D1F' : '#AEAEB2'};">${title}</div>
+            <div style="font-size:12px;color:${done ? '#6E6E73' : '#C7C7CC'};margin-top:2px;">${desc}</div>
+          </div>
+        </div>`).join('')}
       </div>
-      <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:24px;">
-        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:4px;">🔔 מה הלאה?</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">ברגע שהמשלוח יצא — נשלח לך מייל נוסף עם מספר מעקב ותאריך הגעה מדויק.</div>
-      </div>
-      <div style="font-size:13px;color:#3D3D3D;text-align:center;">שאלות? — <strong>${BIZ_PHONE}</strong> · nextclass.en@gmail.com</div>
+
+      ${so.estimatedDelivery ? `
+      <div style="text-align:center;padding:18px 24px;background:linear-gradient(135deg,#F0F7FF,#F5F0FF);border-radius:18px;margin-bottom:28px;border:1.5px solid rgba(88,86,214,0.15);">
+        <div style="font-size:11px;font-weight:700;color:#6E6E73;margin-bottom:6px;">📅 צפי אספקה</div>
+        <div style="font-size:22px;font-weight:900;color:#5856D6;">${so.estimatedDelivery}</div>
+      </div>` : ''}
+
+      ${ctaButton('💬 שאלה? נשמח לעזור', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      <p style="text-align:center;font-size:12px;color:#AEAEB2;margin-top:14px;">או התקשרו: <a href="tel:${BIZ_PHONE.replace(/\D/g,'')}" style="color:#0891B2;text-decoration:none;font-weight:600;">${BIZ_PHONE}</a></p>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, ההזמנה אצל הספק${so.estimatedDelivery ? ` — אספקה: ${so.estimatedDelivery}` : ' — בעיבוד'}`,
+        preheader: `${firstName}, ההזמנה שלך בטיפול פעיל${so.estimatedDelivery ? ` — אספקה: ${so.estimatedDelivery}` : ' — נעדכן בהקדם'}`,
         accentColor: '#0891B2',
         heroIcon: '⚙️',
-        heroIconBg: 'linear-gradient(135deg,#0891B2,#0E7490)',
-        heroTitle: 'ההזמנה אצל הספק',
-        heroSub: so.estimatedDelivery ? `אספקה משוערת: ${so.estimatedDelivery}` : 'בייצור/הכנה — עדכון משלוח בקרוב',
+        heroIconBg: 'linear-gradient(135deg,#0891B2,#5856D6)',
+        heroTitle: 'ההזמנה בטיפול!',
+        heroSub: 'הצוות שלנו על זה — נעדכן אותך בכל שלב',
         quoteId: quote.id,
         body,
         footerNote: `${quote.date || ''}`,
