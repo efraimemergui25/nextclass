@@ -13,13 +13,13 @@
 - [x] **Sidebar and Route Registration**
   - Integrated `/admin/ocr` route in `AdminApp.jsx`.
   - Added camera/OCR search button inside the Management group in the Sidebar.
-- [ ] **Document Vault Component (כספת מסמכים)** 🔄 *Current Task*
+- [x] **Document Vault Component (כספת מסמכים)**
   - Create `/admin/vault` page with Apple Liquid Glass aesthetic.
   - Folder structure ("הסכמי לקוחות", "הצעות מחיר", "חשבוניות וקבלות", "הצעות ספקים").
   - File upload, tag/status classification, and quick actions.
   - Details panel/sheet for document management.
   - Integration with `AdminSidebar` and `AdminApp`.
-- [ ] **Transactional Email Manual Approval Gate**
+- [x] **Transactional Email Manual Approval Gate**
   - Stop automatic emails from `api/send-stage-email.js` and `api/send-quote-email.js`.
   - Flag emails as "Pending Approval" in Firestore.
   - Add approval buttons/dashboard interface in Admin portal to release emails.

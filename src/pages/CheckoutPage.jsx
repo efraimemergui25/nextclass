@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
-import { doc, setDoc, writeBatch, increment } from 'firebase/firestore';
+import { doc, setDoc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import PageTransition from '../components/PageTransition';
 import { trackEvent } from '../App';
@@ -213,16 +213,44 @@ export default function CheckoutPage() {
 
  trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
 
- // Fire-and-forget: push to HubSpot CRM + send confirmation email
+ // Push to HubSpot CRM
  fetch('/api/crm', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },
    body: JSON.stringify({ quote }),
  }).catch(() => {});
+
+ // Instead of auto-sending confirmation, compile and save to pending_emails collection
+ if (quote.userEmail) {
+   try {
+     const emailRes = await fetch('/api/send-quote-email', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ quote, preview: true }),
+     });
+     if (emailRes.ok) {
+       const emailData = await emailRes.json();
+       await setDoc(doc(db, 'pending_emails', id), {
+         quoteId: id,
+         type: 'quote_confirmation',
+         to: quote.userEmail,
+         recipientName: quote.contactName || '',
+         subject: emailData.subject || '',
+         html: emailData.html || '',
+         status: 'pending',
+         createdAt: serverTimestamp(),
+       });
+     }
+   } catch (e) {
+     console.error('[checkout] failed to save pending customer email:', e);
+   }
+ }
+
+ // Send internal team notification only
  fetch('/api/send-quote-email', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ quote }),
+   body: JSON.stringify({ quote, teamOnly: true }),
  }).catch(() => {});
 
  setQuoteId(id);

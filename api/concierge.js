@@ -118,7 +118,10 @@ export default async function handler(req, res) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
     if (!geminiKey && !groqKey && !anthropicKey) {
-        return res.status(200).json({ text: 'העוזר החכם אינו מוגדר. פנו אלינו בוואטסאפ לסיוע מיידי.' });
+        return res.status(200).json({ 
+            text: 'העוזר החכם אינו מוגדר. פנו אלינו בוואטסאפ לסיוע מיידי.',
+            response: 'העוזר החכם אינו מוגדר. פנו אלינו בוואטסאפ לסיוע מיידי.'
+        });
     }
 
     try {
@@ -130,9 +133,12 @@ export default async function handler(req, res) {
         } else {
             text = await callAnthropic(anthropicKey, safeMessages, String(systemPrompt || '').slice(0, 6000));
         }
-        res.status(200).json({ text });
+        res.status(200).json({ text, response: text });
     } catch (err) {
         console.error('[Concierge]', err.message);
-        res.status(200).json({ text: 'שגיאה זמנית. נסו שוב בעוד רגע.' });
+        res.status(200).json({ 
+            text: 'שגיאה זמנית. נסו שוב בעוד רגע.',
+            response: 'שגיאה זמנית. נסו שוב בעוד רגע.'
+        });
     }
 }

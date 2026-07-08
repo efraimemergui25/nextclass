@@ -29,6 +29,31 @@ async function sendEmail(to, subject, html) {
     return data;
 }
 
+async function queuePendingEmail(to, subject, html, recipientName = '', leadId = '') {
+    const url = 'https://firestore.googleapis.com/v1/projects/nextclass-d2364/databases/(default)/documents/pending_emails';
+    const body = {
+        fields: {
+            to: { stringValue: to },
+            subject: { stringValue: subject },
+            html: { stringValue: html },
+            recipientName: { stringValue: recipientName },
+            leadId: { stringValue: leadId },
+            status: { stringValue: 'pending' },
+            createdAt: { doubleValue: Date.now() }
+        }
+    };
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Firestore REST API Error: ${text}`);
+    }
+    return res.json();
+}
+
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
 }
@@ -621,6 +646,7 @@ function buildCancelledEmail(quote) {
 }
 
 const TYPE_CONFIG = {
+    raw:              { build: q => q?.html || '',         subject: q => q?.subject || '' },
     contact:          { build: buildContactEmail,          subject: q => `קיבלנו את פנייתך — ${q.id} · NextClass` },
     initial_contact:  { build: buildInitialContactEmail,   subject: q => `אנחנו בעניין — בודקים הצעות עבורך · ${q.id}` },
     quote_sent:       { build: buildQuoteSentEmail,        subject: q => `הצעת מחיר ${q.id} מוכנה עבורך — NextClass` },
@@ -647,7 +673,7 @@ export default async function handler(req, res) {
     if (!type || !TYPE_CONFIG[type]) {
         return res.status(400).json({ error: `Unknown type: ${type}` });
     }
-    if (!quote) return res.status(400).json({ error: 'quote required' });
+    if (!quote && type !== 'raw') return res.status(400).json({ error: 'quote required' });
 
     try {
         const cfg  = TYPE_CONFIG[type];
@@ -669,16 +695,18 @@ export default async function handler(req, res) {
             return res.status(200).json({ html, subject: subj, preview: true });
         }
 
-        const recipient = to || quote.email;
+        const recipient = to || quote?.email;
         if (!recipient) return res.status(400).json({ error: 'No recipient email' });
 
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('[send-stage-email] RESEND_API_KEY not set');
-            return res.status(200).json({ skipped: true });
+        if (type === 'raw') {
+            await sendEmail(recipient, subj, html);
+            return res.status(200).json({ ok: true, sent: true });
+        } else {
+            const recipientName = quote?.contactName || quote?.institution || '';
+            const leadId = quote?.id || quote?._docId || '';
+            await queuePendingEmail(recipient, subj, html, recipientName, leadId);
+            return res.status(200).json({ ok: true, queued: true });
         }
-
-        const data = await sendEmail(recipient, subj, html);
-        return res.status(200).json({ ok: true, id: data?.id });
     } catch (err) {
         console.error('[send-stage-email]', err);
         return res.status(500).json({ error: String(err) });

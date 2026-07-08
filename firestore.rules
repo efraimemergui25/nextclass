@@ -84,6 +84,12 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // ── Pending Emails Queue ────────────────────────────────────────────────
+    match /pending_emails/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // ── Everything else: admin only (internal/admin collections) ───────────
     match /{document=**} {
       allow read, write: if request.auth != null;

@@ -30,6 +30,31 @@ async function sendEmail(to, subject, html, replyTo) {
     console.log('[Resend] Sent to:', to, '| id:', data.id);
 }
 
+async function queuePendingEmail(to, subject, html, recipientName = '', leadId = '') {
+    const url = 'https://firestore.googleapis.com/v1/projects/nextclass-d2364/databases/(default)/documents/pending_emails';
+    const body = {
+        fields: {
+            to: { stringValue: to },
+            subject: { stringValue: subject },
+            html: { stringValue: html },
+            recipientName: { stringValue: recipientName },
+            leadId: { stringValue: leadId },
+            status: { stringValue: 'pending' },
+            createdAt: { doubleValue: Date.now() }
+        }
+    };
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Firestore REST API Error: ${text}`);
+    }
+    return res.json();
+}
+
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
 }
@@ -454,26 +479,29 @@ export default async function handler(req, res) {
         return res.status(413).json({ error: 'Payload too large' });
     }
 
-    if (!process.env.RESEND_API_KEY) {
-        console.warn('[send-quote-email] RESEND_API_KEY not set');
-        return res.status(200).json({ skipped: true, reason: 'RESEND_API_KEY not set' });
-    }
-
-    const { quote } = req.body ?? {};
+    const { quote, preview, teamOnly } = req.body ?? {};
     if (!quote?.id) return res.status(400).json({ error: 'Missing quote' });
+
+    const firstName = (quote.contactName || '').split(' ')[0];
+    const subjectName = firstName ? `${firstName}, ` : '';
+    const customerSubject = `${subjectName}הבקשה מ-${quote.institution || 'המוסד שלך'} התקבלה ✓ | NextClass`;
+    const customerHtml = customerEmailHtml(quote);
+
+    if (preview === true) {
+        return res.status(200).json({ html: customerHtml, subject: customerSubject, preview: true });
+    }
 
     const errors = [];
 
     // 1. Customer confirmation
-    if (quote.email) {
+    if (quote.email && !teamOnly) {
         try {
-            const firstName = (quote.contactName || '').split(' ')[0];
-            const subjectName = firstName ? `${firstName}, ` : '';
-            await sendEmail(
+            await queuePendingEmail(
                 quote.email,
-                `${subjectName}הבקשה מ-${quote.institution || 'המוסד שלך'} התקבלה ✓ | NextClass`,
-                customerEmailHtml(quote),
-                `nextclass.en@gmail.com`
+                customerSubject,
+                customerHtml,
+                quote.contactName || '',
+                quote.id || ''
             );
         } catch (e) { errors.push({ to: 'customer', error: e.message }); }
     }
@@ -481,14 +509,19 @@ export default async function handler(req, res) {
     // 2. Internal team notification
     const teamEmail = process.env.NEXTCLASS_EMAIL;
     if (teamEmail) {
-        try {
-            await sendEmail(
-                teamEmail,
-                `הזמנה חדשה — ${quote.contactName} · ${quote.institution} · ${quote.id}`,
-                teamEmailHtml(quote),
-                quote.email
-            );
-        } catch (e) { errors.push({ to: 'team', error: e.message }); }
+        if (!process.env.RESEND_API_KEY) {
+            console.warn('[send-quote-email] RESEND_API_KEY not set, skipping team email');
+            errors.push({ to: 'team', error: 'RESEND_API_KEY not set' });
+        } else {
+            try {
+                await sendEmail(
+                    teamEmail,
+                    `הזמנה חדשה — ${quote.contactName} · ${quote.institution} · ${quote.id}`,
+                    teamEmailHtml(quote),
+                    quote.email
+                );
+            } catch (e) { errors.push({ to: 'team', error: e.message }); }
+        }
     }
 
     res.status(200).json({ ok: true, errors: errors.length ? errors : undefined });

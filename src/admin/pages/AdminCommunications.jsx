@@ -527,6 +527,107 @@ export default function AdminCommunications() {
     const [deletedLeads, setDeletedLeads] = useState([]);
     const [showTrash,    setShowTrash]    = useState(false);
 
+    // Approval Queue State
+    const [activeTab,          setActiveTab]          = useState('leads'); // 'leads' | 'emails'
+    const [pendingEmails,      setPendingEmails]      = useState([]);
+    const [emailLog,           setEmailLog]           = useState([]);
+    const [selectedEmail,      setSelectedEmail]      = useState(null);
+    const [emailEditSubject,   setEmailEditSubject]   = useState('');
+    const [emailEditHtml,      setEmailEditHtml]      = useState('');
+    const [isEditingEmail,     setIsEditingEmail]     = useState(false);
+    const [emailSendStatus,    setEmailSendStatus]    = useState('idle');
+    const [activeEmailFilter,  setActiveEmailFilter]  = useState('pending'); // 'pending' | 'log'
+
+    // Load pending emails & logs
+    useEffect(() => {
+        const q = query(collection(db, 'pending_emails'), orderBy('createdAt', 'desc'));
+        return onSnapshot(q, snap => {
+            const all = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+            const pending = all.filter(e => e.status === 'pending');
+            const log = all.filter(e => e.status === 'sent' || e.status === 'declined');
+            setPendingEmails(pending);
+            setEmailLog(log);
+        });
+    }, []);
+
+    const handleApproveEmail = async (emailItem) => {
+        if (!emailItem) return;
+        setEmailSendStatus('sending');
+        try {
+            const res = await fetch('/api/send-stage-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'raw',
+                    to: emailItem.to,
+                    customSubject: emailEditSubject || emailItem.subject,
+                    customHtml: emailEditHtml || emailItem.html,
+                }),
+            });
+            if (res.ok) {
+                await setDoc(doc(db, 'pending_emails', emailItem.id), {
+                    status: 'sent',
+                    sentAt: Date.now(),
+                    subject: emailEditSubject || emailItem.subject,
+                    html: emailEditHtml || emailItem.html,
+                }, { merge: true });
+                showToast('המייל נשלח בהצלחה! ✓', true);
+                setSelectedEmail(null);
+                setIsEditingEmail(false);
+            } else {
+                const errText = await res.text();
+                showToast(`שגיאה בשליחה: ${errText}`, false);
+            }
+        } catch (err) {
+            showToast(`שגיאת רשת: ${err.message}`, false);
+        } finally {
+            setEmailSendStatus('idle');
+        }
+    };
+
+    const handleDeclineEmail = async (emailItem) => {
+        if (!window.confirm('האם אתה בטוח שברצונך לדחות ולבטל מייל זה?')) return;
+        try {
+            await setDoc(doc(db, 'pending_emails', emailItem.id), {
+                status: 'declined',
+                declinedAt: Date.now(),
+            }, { merge: true });
+            showToast('המייל בוטל ונדחה', true);
+            setSelectedEmail(null);
+            setIsEditingEmail(false);
+        } catch (err) {
+            showToast(`שגיאה בעדכון: ${err.message}`, false);
+        }
+    };
+
+    const handleSaveEmailEdit = async (emailItem) => {
+        try {
+            await setDoc(doc(db, 'pending_emails', emailItem.id), {
+                subject: emailEditSubject,
+                html: emailEditHtml,
+            }, { merge: true });
+            showToast('השינויים נשמרו בהצלחה', true);
+            setIsEditingEmail(false);
+            setSelectedEmail(prev => ({
+                ...prev,
+                subject: emailEditSubject,
+                html: emailEditHtml,
+            }));
+        } catch (err) {
+            showToast(`שגיאה בשמירה: ${err.message}`, false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedEmail) {
+            setEmailEditSubject(selectedEmail.subject || '');
+            setEmailEditHtml(selectedEmail.html || '');
+        } else {
+            setEmailEditSubject('');
+            setEmailEditHtml('');
+        }
+    }, [selectedEmail]);
+
     // Load quotes
     useEffect(() => {
         const q = query(collection(db, 'quotes'), orderBy('dateTs', 'desc'));
@@ -692,41 +793,60 @@ export default function AdminCommunications() {
             {/* ── LEFT PANEL ─────────────────────────────────────────────────── */}
             <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', background: 'rgba(248,248,250,0.92)', borderLeft: '1px solid rgba(0,0,0,0.07)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
 
-                {/* Header */}
-                <div style={{ padding: '18px 14px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            {newCount > 0 && (
-                                <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(255,59,48,0.10)', color: '#FF3B30', fontFamily: SF }}>
-                                    {newCount} חדש
-                                </span>
-                            )}
-                            {unreadCount > 0 && (
-                                <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontFamily: SF }}>
-                                    {unreadCount} הודעה
-                                </span>
-                            )}
-                        </div>
-                        <p style={{ fontSize: 15, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: 0 }}>לידים</p>
-                    </div>
-
-                    {/* Search */}
-                    <div style={{ position: 'relative', marginBottom: 7 }}>
-                        <svg style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#AEAEB2', pointerEvents: 'none' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input placeholder="שם, מוסד..." value={search} onChange={e => setSearch(e.target.value)}
-                            style={{ width: '100%', paddingRight: 28, paddingLeft: 10, paddingTop: 7, paddingBottom: 7, fontSize: 12, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', color: '#1D1D1F', boxSizing: 'border-box' }} />
-                    </div>
-
-                    <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                        style={{ width: '100%', padding: '6px 10px', fontSize: 11, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', color: '#1D1D1F', boxSizing: 'border-box' }}>
-                        <option value="">כל הסטטוסים</option>
-                        {Object.keys(PIPELINE_STATUSES).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                {/* Tab Switcher */}
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 3, borderRadius: 12, margin: '14px 14px 6px' }}>
+                    <button onClick={() => { setActiveTab('leads'); setSelectedEmail(null); }}
+                        style={{ flex: 1, padding: '7px 0', border: 'none', background: activeTab === 'leads' ? '#fff' : 'transparent', borderRadius: 9, fontSize: 12, fontWeight: activeTab === 'leads' ? 800 : 600, color: activeTab === 'leads' ? '#1D1D1F' : '#86868B', cursor: 'pointer', boxShadow: activeTab === 'leads' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontFamily: SF }}>
+                        מרכז לידים
+                    </button>
+                    <button onClick={() => { setActiveTab('emails'); setSelected(null); }}
+                        style={{ flex: 1, padding: '7px 0', border: 'none', background: activeTab === 'emails' ? '#fff' : 'transparent', borderRadius: 9, fontSize: 12, fontWeight: activeTab === 'emails' ? 800 : 600, color: activeTab === 'emails' ? '#1D1D1F' : '#86868B', cursor: 'pointer', boxShadow: activeTab === 'emails' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontFamily: SF, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        אישור מיילים
+                        {pendingEmails.length > 0 && (
+                            <span style={{ fontSize: 9, fontWeight: 900, background: '#FF3B30', color: '#fff', padding: '1px 5px', borderRadius: 99 }}>
+                                {pendingEmails.length}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
-                {/* List */}
+                {activeTab === 'leads' ? (
+                    <>
+                        {/* Header */}
+                        <div style={{ padding: '12px 14px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    {newCount > 0 && (
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(255,59,48,0.10)', color: '#FF3B30', fontFamily: SF }}>
+                                            {newCount} חדש
+                                        </span>
+                                    )}
+                                    {unreadCount > 0 && (
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontFamily: SF }}>
+                                            {unreadCount} הודעה
+                                        </span>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: 15, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: 0 }}>לידים</p>
+                            </div>
+
+                            {/* Search */}
+                            <div style={{ position: 'relative', marginBottom: 7 }}>
+                                <svg style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#AEAEB2', pointerEvents: 'none' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input placeholder="שם, מוסד..." value={search} onChange={e => setSearch(e.target.value)}
+                                    style={{ width: '100%', paddingRight: 28, paddingLeft: 10, paddingTop: 7, paddingBottom: 7, fontSize: 12, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', color: '#1D1D1F', boxSizing: 'border-box' }} />
+                            </div>
+
+                            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px', fontSize: 11, fontFamily: SF, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.8)', color: '#1D1D1F', boxSizing: 'border-box' }}>
+                                <option value="">כל הסטטוסים</option>
+                                {Object.keys(PIPELINE_STATUSES).map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+
+                        {/* List */}
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     {sortedFiltered.length === 0 && (
                         <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>לא נמצאו לידים</div>
@@ -785,42 +905,109 @@ export default function AdminCommunications() {
                     })}
                 </div>
 
-                <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <button onClick={() => setShowTrash(v => !v)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 8, border: 'none', background: showTrash ? 'rgba(255,59,48,0.09)' : 'rgba(0,0,0,0.04)', color: showTrash ? '#FF3B30' : '#AEAEB2', cursor: 'pointer', fontSize: 10, fontWeight: 800, fontFamily: SF }}>
-                        <Trash2 size={10} />סל{deletedLeads.length > 0 ? ` (${deletedLeads.length})` : ''}
-                    </button>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', fontFamily: SF }}>
-                        {sortedFiltered.length} לידים · ממוינים לפי עדיפות
-                    </span>
-                </div>
+                        <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <button onClick={() => setShowTrash(v => !v)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 8, border: 'none', background: showTrash ? 'rgba(255,59,48,0.09)' : 'rgba(0,0,0,0.04)', color: showTrash ? '#FF3B30' : '#AEAEB2', cursor: 'pointer', fontSize: 10, fontWeight: 800, fontFamily: SF }}>
+                                <Trash2 size={10} />סל{deletedLeads.length > 0 ? ` (${deletedLeads.length})` : ''}
+                            </button>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', fontFamily: SF }}>
+                                {sortedFiltered.length} לידים · ממוינים לפי עדיפות
+                            </span>
+                        </div>
 
-                {/* Trash panel */}
-                {showTrash && (
-                    <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', background: 'rgba(255,59,48,0.02)' }}>
-                        {deletedLeads.length === 0 ? (
-                            <div style={{ padding: '14px', textAlign: 'center', fontSize: 11, color: '#AEAEB2', fontFamily: SF }}>הסל ריק</div>
-                        ) : deletedLeads.map(lead => (
-                            <div key={lead._docId} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 8 }} dir="rtl">
-                                <div style={{ flex: 1, textAlign: 'right' }}>
-                                    <div style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', fontFamily: SF }}>{lead.contactName || '—'}</div>
-                                    <div style={{ fontSize: 10, color: '#AEAEB2', fontFamily: SF }}>{lead.institution || ''}</div>
-                                </div>
-                                <button onClick={() => handleRestoreLead(lead)}
-                                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(52,199,89,0.1)', color: '#34C759', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>שחזר</button>
-                                <button onClick={() => handleHardDeleteLead(lead)}
-                                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>מחק</button>
+                        {/* Trash panel */}
+                        {showTrash && (
+                            <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', background: 'rgba(255,59,48,0.02)' }}>
+                                {deletedLeads.length === 0 ? (
+                                    <div style={{ padding: '14px', textAlign: 'center', fontSize: 11, color: '#AEAEB2', fontFamily: SF }}>הסל ריק</div>
+                                ) : deletedLeads.map(lead => (
+                                    <div key={lead._docId} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', gap: 8 }} dir="rtl">
+                                        <div style={{ flex: 1, textAlign: 'right' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', fontFamily: SF }}>{lead.contactName || '—'}</div>
+                                            <div style={{ fontSize: 10, color: '#AEAEB2', fontFamily: SF }}>{lead.institution || ''}</div>
+                                        </div>
+                                        <button onClick={() => handleRestoreLead(lead)}
+                                            style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(52,199,89,0.1)', color: '#34C759', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>שחזר</button>
+                                        <button onClick={() => handleHardDeleteLead(lead)}
+                                            style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF }}>מחק</button>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* Email Filter Tabs */}
+                        <div style={{ display: 'flex', gap: 8, padding: '10px 14px 8px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                            <button onClick={() => { setActiveEmailFilter('pending'); setSelectedEmail(null); }}
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'pending' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'pending' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                ממתינים ({pendingEmails.length})
+                            </button>
+                            <button onClick={() => { setActiveEmailFilter('log'); setSelectedEmail(null); }}
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'log' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'log' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                יומן שליחה ({emailLog.length})
+                            </button>
+                        </div>
+
+                        {/* Emails List */}
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            {activeEmailFilter === 'pending' ? (
+                                pendingEmails.length === 0 ? (
+                                    <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>אין מיילים הממתינים לאישור</div>
+                                ) : (
+                                    pendingEmails.map(email => {
+                                        const isActive = selectedEmail?.id === email.id;
+                                        const dateStr = email.createdAt?.seconds ? new Date(email.createdAt.seconds * 1000).toLocaleDateString('he-IL') : '';
+                                        return (
+                                            <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
+                                                style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                                    <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                                </div>
+                                                <div style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginBottom: 2, textAlign: 'right' }}>{email.to}</div>
+                                                <div style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{email.subject}</div>
+                                            </div>
+                                        );
+                                    })
+                                )
+                            ) : (
+                                emailLog.length === 0 ? (
+                                    <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>יומן השליחה ריק</div>
+                                ) : (
+                                    emailLog.map(email => {
+                                        const isActive = selectedEmail?.id === email.id;
+                                        const dateStr = email.sentAt ? new Date(email.sentAt).toLocaleDateString('he-IL') : email.declinedAt ? new Date(email.declinedAt).toLocaleDateString('he-IL') : '';
+                                        const isSent = email.status === 'sent';
+                                        return (
+                                            <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
+                                                style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                                    <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{email.subject}</span>
+                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: isSent ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)', color: isSent ? '#34C759' : '#FF3B30' }}>
+                                                        {isSent ? 'נשלח' : 'נדחה'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )
+                            )}
+                        </div>
+                    </>
                 )}
             </div>
 
             {/* ── RIGHT PANEL ──────────────────────────────────────────────── */}
             <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: 'rgba(245,245,247,0.6)' }}>
-                {!selected ? (
+                {activeTab === 'leads' ? (
+                    !selected ? (
 
-                    /* ── Dashboard ── */
+                        /* ── Dashboard ── */
                     <div style={{ maxWidth: 700, margin: '0 auto' }}>
                         <div style={{ marginBottom: 24 }}>
                             <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: '0 0 4px' }}>מרכז תקשורת</h2>
@@ -1122,6 +1309,148 @@ export default function AdminCommunications() {
                             </>
                         )}
                     </div>
+                    )
+                ) : (
+                    /* ── Emails Queue Tab ── */
+                    !selectedEmail ? (
+                        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', paddingTop: 60, fontFamily: SF }}>
+                            <div style={{ width: 80, height: 80, borderRadius: 99, background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#007AFF' }}>
+                                <Mail size={40} />
+                            </div>
+                            <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 8px' }}>תור אישור מיילים</h2>
+                            <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 450, margin: '0 auto 24px', lineHeight: 1.5 }}>
+                                כל המיילים האוטומטיים שנוצרים על ידי ה-AI ומערכת הלידים מגיעים לכאן לאישור מנהל ידני לפני שליחתם בפועל ללקוחות.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#FF3B30', margin: '0 0 2px' }}>{pendingEmails.length}</p>
+                                    <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>ממתינים לאישור</p>
+                                </div>
+                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#34C759', margin: '0 0 2px' }}>{emailLog.filter(e => e.status === 'sent').length}</p>
+                                    <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>נשלחו בהצלחה</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: SF }} dir="rtl">
+                            {/* Top header actions */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {selectedEmail.status === 'pending' && (
+                                        <>
+                                            <button onClick={() => {
+                                                if (isEditingEmail) {
+                                                    handleSaveEmailEdit(selectedEmail);
+                                                } else {
+                                                    setIsEditingEmail(true);
+                                                    setEmailEditSubject(selectedEmail.subject);
+                                                    setEmailEditHtml(selectedEmail.html);
+                                                }
+                                            }}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 13px', borderRadius: 10, border: '1px solid rgba(0,122,255,0.18)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                                                {isEditingEmail ? <Check size={13} /> : <Edit2 size={13} />}
+                                                {isEditingEmail ? 'שמור שינויים' : 'ערוך מייל'}
+                                            </button>
+                                            {isEditingEmail && (
+                                                <button onClick={() => setIsEditingEmail(false)}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 13px', borderRadius: 10, border: '1px solid rgba(142,142,147,0.18)', background: 'rgba(142,142,147,0.06)', color: '#86868B', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                                                    <X size={13} />
+                                                    ביטול
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                                <button onClick={() => setSelectedEmail(null)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#007AFF', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                                    כל המיילים
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+
+                            {/* Email Details Card */}
+                            <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 14 }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: '0 0 4px' }}>
+                                            אל: {selectedEmail.recipientName || 'לקוח'}
+                                        </h3>
+                                        <p style={{ fontSize: 13, color: '#007AFF', fontWeight: 600, margin: 0 }}>
+                                            {selectedEmail.to}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                                        <span style={{
+                                            fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99,
+                                            background: selectedEmail.status === 'pending' ? 'rgba(255,149,0,0.1)' : selectedEmail.status === 'sent' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)',
+                                            color: selectedEmail.status === 'pending' ? '#FF9500' : selectedEmail.status === 'sent' ? '#34C759' : '#FF3B30'
+                                        }}>
+                                            {selectedEmail.status === 'pending' ? 'ממתין לאישור' : selectedEmail.status === 'sent' ? 'נשלח' : 'נדחה'}
+                                        </span>
+                                        {selectedEmail.leadId && (
+                                            <button onClick={() => {
+                                                const lead = leads.find(l => l._docId === selectedEmail.leadId);
+                                                if (lead) {
+                                                    setSelected(lead);
+                                                    setActiveTab('leads');
+                                                    setSelectedEmail(null);
+                                                }
+                                            }}
+                                                style={{ border: 'none', background: 'none', color: '#007AFF', fontSize: 11, fontWeight: 700, padding: 0, cursor: 'pointer', textDecoration: 'underline' }}>
+                                                צפה בכרטיס ליד
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Subject Line */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B', textAlign: 'right' }}>נושא המייל</span>
+                                    {isEditingEmail ? (
+                                        <input value={emailEditSubject} onChange={e => setEmailEditSubject(e.target.value)}
+                                            style={{ width: '100%', padding: '10px 14px', fontSize: 13, borderRadius: 10, outline: 'none', border: '1px solid rgba(0,0,0,0.09)', background: 'rgba(0,0,0,0.015)', color: '#1D1D1F', boxSizing: 'border-box', textAlign: 'right' }} />
+                                    ) : (
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F', padding: '10px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.015)', textAlign: 'right' }}>
+                                            {selectedEmail.subject}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Body Content */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B', textAlign: 'right' }}>תוכן המייל</span>
+                                    {isEditingEmail ? (
+                                        <textarea value={emailEditHtml} onChange={e => setEmailEditHtml(e.target.value)} rows={12}
+                                            style={{ width: '100%', padding: '12px 14px', fontSize: 13, borderRadius: 12, outline: 'none', resize: 'vertical', border: '1px solid rgba(0,0,0,0.09)', background: 'rgba(0,0,0,0.015)', color: '#1D1D1F', lineHeight: 1.6, boxSizing: 'border-box', textAlign: 'right' }} />
+                                    ) : (
+                                        <div style={{
+                                            fontSize: 13, color: '#1D1D1F', padding: 18, borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#fff',
+                                            lineHeight: 1.6, textAlign: 'right', minHeight: 180
+                                        }} dangerouslySetInnerHTML={{ __html: selectedEmail.html }} />
+                                    )}
+                                </div>
+
+                                {/* Pending specific actions */}
+                                {selectedEmail.status === 'pending' && !isEditingEmail && (
+                                    <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
+                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                                            onClick={() => handleApproveEmail(selectedEmail)}
+                                            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', borderRadius: 99, fontSize: 14, fontWeight: 800, color: '#fff', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#34C759,#30B0C7)', boxShadow: '0 4px 16px rgba(52,199,89,0.3)' }}>
+                                            <Check size={16} strokeWidth={2.5} />
+                                            אשר ושלח מייל זה
+                                        </motion.button>
+                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                                            onClick={() => handleDeclineEmail(selectedEmail)}
+                                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0', borderRadius: 99, fontSize: 14, fontWeight: 800, color: '#FF3B30', border: '1px solid rgba(255,59,48,0.25)', background: 'rgba(255,59,48,0.06)', cursor: 'pointer' }}>
+                                            <X size={15} strokeWidth={2.5} />
+                                            דחה/מחק
+                                        </motion.button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )
                 )}
             </div>
         </div>
