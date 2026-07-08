@@ -1,10 +1,12 @@
 /* eslint-disable */
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where, limit, getDocs } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader } from '../components/AdminComponents';
 import {
     Users, Search, Download, Mail, Building2,
@@ -141,13 +143,17 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
 
     useEffect(() => {
         if (!user.email) { setLoadingQ(false); return; }
+        // No orderBy — avoids composite-index requirement; sort client-side instead
         getDocs(query(
             collection(db, 'quotes'),
             where('email', '==', user.email),
-            orderBy('dateTs', 'desc'),
-            limit(8)
+            limit(20)
         ))
-            .then(snap => setUserQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .then(snap => {
+                const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                docs.sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+                setUserQuotes(docs.slice(0, 8));
+            })
             .catch(() => {})
             .finally(() => setLoadingQ(false));
     }, [user.email]);
@@ -163,24 +169,26 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
     };
 
     return (
-        <>
-            <motion.div key="modal-bd"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={onClose}
-                style={{ position: 'fixed', inset: 0, zIndex: 9900, background: 'rgba(0,0,0,0.5)' }} />
+        // Single flex overlay — Framer Motion cannot override flex centering the way
+        // it overrides CSS transform, so this is the only reliable approach.
+        <motion.div key="modal-overlay"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            style={{ position: 'fixed', inset: 0, zIndex: 9900, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
             <motion.div key="modal"
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                initial={{ scale: 0.92, y: 16 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.96, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                onClick={e => e.stopPropagation()}
                 style={{
-                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-                    zIndex: 9901, width: 'min(580px, 95vw)',
+                    position: 'relative',
+                    width: 'min(580px, 100%)', maxHeight: '90vh', overflowY: 'auto',
                     background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                     border: '1px solid rgba(255,255,255,0.72)', borderRadius: 28, padding: 32,
                     fontFamily: 'Heebo, sans-serif', direction: 'rtl',
-                    boxShadow: '0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.95)',
-                    maxHeight: '90vh', overflowY: 'auto',
+                    boxShadow: '0 32px 80px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.95)',
                 }}>
                 <button onClick={onClose} style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 99, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E6E73' }}>
                     <X size={15} />
@@ -347,12 +355,59 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
                     </button>
                 </div>
             </motion.div>
-        </>
+        </motion.div>
     );
 }
 
 // ── User row ──────────────────────────────────────────────────────────────────
-function UserRow({ user, index, onClick }) {
+// ── RFM Segment Badge ─────────────────────────────────────────────────────────
+const RFM_SEGMENTS = {
+    champion: { label: 'VIP',      color: '#FF9500', bg: 'rgba(255,149,0,0.12)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg> },
+    loyal:    { label: 'נאמן',     color: '#007AFF', bg: 'rgba(0,122,255,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> },
+    active:   { label: 'פעיל',     color: '#34C759', bg: 'rgba(52,199,89,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5" fill="currentColor"/></svg> },
+    at_risk:  { label: 'בסיכון',   color: '#FF3B30', bg: 'rgba(255,59,48,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg> },
+    churned:  { label: 'לא פעיל',  color: '#8E8E93', bg: 'rgba(142,142,147,0.10)', icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> },
+    new_user: { label: 'חדש',      color: '#5856D6', bg: 'rgba(88,86,214,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> },
+};
+
+function getRFMSegment(email, orders, quotes) {
+    if (!email) return null;
+    const emailLow = email.toLowerCase();
+    const userOrders = orders.filter(o => (o.email || o.customerEmail || '').toLowerCase() === emailLow);
+    const userQuotes = quotes.filter(q => (q.email || '').toLowerCase() === emailLow);
+    const allActivity = [...userOrders, ...userQuotes];
+    if (allActivity.length === 0) return null;
+
+    const now = Date.now();
+    const lastActivity = Math.max(...allActivity.map(a => a.dateTs || 0));
+    const daysSinceLast = (now - lastActivity) / 86400000;
+    const frequency = allActivity.length;
+    const monetary = userOrders.reduce((s, o) => s + (o.total || 0), 0)
+                   + userQuotes.filter(q => ['נסגר','סופק'].includes(q.status))
+                               .reduce((s, q) => s + (Number(q.subtotal) || 0), 0);
+
+    if (frequency >= 5 && daysSinceLast < 60 && monetary > 5000) return 'champion';
+    if (frequency >= 3 && daysSinceLast < 90) return 'loyal';
+    if (frequency >= 1 && daysSinceLast < 30) return 'active';
+    if (daysSinceLast < 7) return 'new_user';
+    if (daysSinceLast > 180) return 'churned';
+    if (frequency >= 2 && daysSinceLast > 90) return 'at_risk';
+    return 'active';
+}
+
+function RFMBadge({ segment }) {
+    if (!segment) return null;
+    const cfg = RFM_SEGMENTS[segment];
+    if (!cfg) return null;
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{cfg.icon}</span>
+            {cfg.label}
+        </span>
+    );
+}
+
+function UserRow({ user, index, onClick, rfmSegment }) {
     const tier = TIER_CONFIG[user.memberTier] || TIER_CONFIG.free;
     return (
         <motion.tr
@@ -387,9 +442,12 @@ function UserRow({ user, index, onClick }) {
                 <ProviderBadge provider={user.provider} />
             </td>
             <td style={{ padding: '12px 16px' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: tier.bg, color: tier.color }}>
-                    {tier.label}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: tier.bg, color: tier.color, width: 'fit-content' }}>
+                        {tier.label}
+                    </span>
+                    <RFMBadge segment={rfmSegment} />
+                </div>
             </td>
             <td style={{ padding: '12px 16px', fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>
                 {fmtDate(user.createdAt)}
@@ -404,6 +462,7 @@ function UserRow({ user, index, onClick }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminUsers() {
     const { addToast } = useAdminToast();
+    const { orders, quotes } = useAdminData();
     const [users, setUsers]       = useState([]);
     const [loading, setLoading]   = useState(true);
     const [search, setSearch]     = useState('');
@@ -456,6 +515,15 @@ export default function AdminUsers() {
         }
         return list;
     }, [users, search, filterTier, filterProv]);
+
+    // ── Pre-compute RFM segments for all users ────────────────────────────────
+    const rfmMap = useMemo(() => {
+        const map = {};
+        users.forEach(u => {
+            if (u.email) map[u.email.toLowerCase()] = getRFMSegment(u.email, orders, quotes);
+        });
+        return map;
+    }, [users, orders, quotes]);
 
     const googleCount  = users.filter(u => u.provider === 'google.com').length;
     const memberCount  = users.filter(u => u.memberTier !== 'free').length;
@@ -539,7 +607,7 @@ export default function AdminUsers() {
                             </thead>
                             <tbody>
                                 {filtered.map((u, i) => (
-                                    <UserRow key={u.uid} user={u} index={i} onClick={() => setSelected(u)} />
+                                    <UserRow key={u.uid} user={u} index={i} onClick={() => setSelected(u)} rfmSegment={u.email ? rfmMap[u.email.toLowerCase()] : null} />
                                 ))}
                             </tbody>
                         </table>
@@ -547,11 +615,14 @@ export default function AdminUsers() {
                 )}
             </div>
 
-            <AnimatePresence>
-                {selected && (
-                    <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} onDelete={handleDeleteUser} />
-                )}
-            </AnimatePresence>
+            {createPortal(
+                <AnimatePresence>
+                    {selected && (
+                        <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} onDelete={handleDeleteUser} />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

@@ -11,6 +11,7 @@ import { useProducts } from '../context/ProductsContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
+import { usePersonalization } from '../context/PersonalizationContext';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
@@ -257,6 +258,7 @@ function getQuickReplies(messages, settings) {
 const SmartConcierge = () => {
  const { getSetting } = useSettings();
  const { firstName, timeGreeting } = useAuth();
+ const { aiContext } = usePersonalization();
  const whatsappNumber = getSetting('whatsapp_number', '972585856356');
  const location = useLocation();
  const navigate = useNavigate();
@@ -368,10 +370,14 @@ const SmartConcierge = () => {
  setIsTyping(true);
  try {
  const catalogInfo = buildCatalogContext();
- const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.
+ const userProfileSection = aiContext
+   ? `\n## פרופיל המשתמש:\n${aiContext}\n\nהשתמש בפרופיל זה להמלצות מותאמות אישית. כאשר המשתמש שואל שאלה כללית, הצע מוצרים מתאימים לפרופיל שלו ולתקציב שצוין.`
+   : '';
+ const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.${userProfileSection}
 
 ## אופן עבודה — ייעוץ בשלבים
 כשלקוח מבקש מוצר או פתרון, **אל תמליץ מיד**. קודם שאל שאלה אחת ממוקדת כדי להבין את הצורך (למשל: כמות, תקציב, מטרת שימוש, סוג מוסד).
+- אם יש פרופיל משתמש — השתמש בו לחיסכון בשאלות (כבר ידוע לך תקציב, מוסד וכו')
 - שאל **שאלה אחת בלבד** בכל הודעה — לא יותר
 - **אל תשאל את אותה שאלה פעמיים**
 - לאחר 2-3 תשובות — **המלץ על מוצרים ספציפיים מהקטלוג** עם נימוק אישי ומדויק

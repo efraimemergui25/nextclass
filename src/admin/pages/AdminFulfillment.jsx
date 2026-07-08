@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { useState, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
@@ -18,7 +19,7 @@ import {
     Mail, TrendingUp, ChevronDown, ArrowRight, Factory, Box,
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
     Copy, Check, Tag, ExternalLink, Star, MessageSquare,
-    DollarSign, ChevronRight, Activity, Printer
+    DollarSign, ChevronRight, Activity, Printer, Download
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -915,6 +916,226 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
 
 // ── Supplier Orders Tab ───────────────────────────────────────────────────────
 
+function exportSupplierOrdersXLSX(supplierOrders, suppliers) {
+    const STATUS_HE = {
+        pending: 'ממתין', forwarded: 'הועבר', confirmed: 'אושר',
+        in_transit: 'בדרך', arrived: 'הגיע', shipped: 'נשלח',
+    };
+    const OPEN_STATUSES = new Set(['pending','forwarded','confirmed','in_transit']);
+    const fmtDate = ts => {
+        if (!ts) return '';
+        const d = ts?.toDate ? ts.toDate() : new Date(typeof ts === 'number' ? ts : ts);
+        return isNaN(d) ? '' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    };
+    const n = v => ({ v: Number(v) || 0, t: 'n' });
+    const str = v => ({ v: String(v ?? ''), t: 's' });
+    const lnk = (text, url) => ({ v: String(text ?? ''), t: 's', l: { Target: url } });
+    const SITE = 'https://getnextclass.com';
+    const now = new Date();
+    const dateStr = fmtDate(now.getTime());
+
+    // helper: build a worksheet from a 2-D array (each cell may be a cell-object or plain value)
+    const buildSheet = (data, colWidths) => {
+        const normalized = data.map(row =>
+            row.map(c => (c && typeof c === 'object' && 'v' in c) ? c : str(c ?? ''))
+        );
+        const ws = XLSX.utils.aoa_to_sheet(normalized);
+        // re-apply link cells (aoa_to_sheet strips them)
+        data.forEach((row, ri) => row.forEach((c, ci) => {
+            if (c && typeof c === 'object' && c.l) {
+                ws[XLSX.utils.encode_cell({ r: ri, c: ci })] = { ...c };
+            }
+        }));
+        if (colWidths) ws['!cols'] = colWidths.map(w => ({ wch: w }));
+        return ws;
+    };
+
+    // ── Pre-compute per-supplier stats ──────────────────────────────────────
+    const supStats = {};
+    supplierOrders.forEach(o => {
+        const key = o.supplierId || o.supplierName || '—';
+        if (!supStats[key]) supStats[key] = { count: 0, total: 0, open: 0, name: o.supplierName || key };
+        supStats[key].count++;
+        supStats[key].total += Number(o.totalCost) || 0;
+        if (OPEN_STATUSES.has(o.status)) supStats[key].open += Number(o.totalCost) || 0;
+    });
+    const grandTotal  = supplierOrders.reduce((s, o) => s + (Number(o.totalCost)||0), 0);
+    const openTotal   = supplierOrders.filter(o => OPEN_STATUSES.has(o.status)).reduce((s,o) => s+(Number(o.totalCost)||0), 0);
+
+    const wb = XLSX.utils.book_new();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SHEET 1 — מעקב הזמנות (Master Tracker)
+    // ════════════════════════════════════════════════════════════════════════
+    const masterRows = [
+        [`הזמנות ספקים — NextClass | ייצוא: ${dateStr} | ${supplierOrders.length} הזמנות | סה״כ: ₪${grandTotal.toLocaleString()}`],
+        [],
+        // Column headers
+        ['PO מס׳','תאריך הזמנה','שם ספק','מוצר','קישור לקטלוג','שם לקוח','כמות','מחיר ליח׳ ₪','עלות כוללת ₪','מינימום ספק ₪','עמידה במינימום','סטטוס','ETA','מס׳ הפניה','תנאי תשלום','הערות'],
+    ];
+
+    const sortedOrders = [...supplierOrders].sort((a,b) =>
+        (a.supplierName||'').localeCompare(b.supplierName||'')
+    );
+
+    let prevSupplier = null;
+    sortedOrders.forEach(o => {
+        const sup = suppliers.find(s => s.id === o.supplierId || s.name === o.supplierName);
+        const minOrder = Number(sup?.minOrder) || 0;
+        const cost = Number(o.totalCost) || 0;
+        const unitPrice = o.qty ? cost / o.qty : cost;
+        const meetsMin = minOrder > 0 ? (cost >= minOrder ? 'כן ✓' : `לא — חסר ₪${(minOrder - cost).toLocaleString()}`) : '—';
+
+        // Supplier divider
+        if (o.supplierName !== prevSupplier) {
+            masterRows.push([`▶ ספק: ${o.supplierName || '—'}`]);
+            prevSupplier = o.supplierName;
+        }
+
+        masterRows.push([
+            str(o.id),
+            str(fmtDate(o.createdAt)),
+            str(o.supplierName || '—'),
+            str(o.productTitle || '—'),
+            lnk('פתח', `${SITE}/catalog/${o.customerOrderId||''}`),
+            str(o.customerName || '—'),
+            n(o.qty),
+            n(unitPrice.toFixed(2)),
+            n(cost),
+            n(minOrder),
+            str(meetsMin),
+            str(STATUS_HE[o.status] || o.status || '—'),
+            str(o.eta || '—'),
+            str(o.supplierRef || '—'),
+            str(sup?.paymentTerms || '—'),
+            str(o.notes || ''),
+        ]);
+    });
+
+    masterRows.push([]);
+    masterRows.push(['', '', '', '', '', '', '', 'סה״כ פתוח ₪', n(openTotal), '', '', '', '', '', '', '']);
+    masterRows.push(['', '', '', '', '', '', '', 'סה״כ כולל ₪', n(grandTotal), '', '', '', '', '', '', '']);
+
+    const wsMaster = buildSheet(masterRows, [22,13,18,30,10,16,7,13,13,14,20,10,12,14,14,28]);
+    XLSX.utils.book_append_sheet(wb, wsMaster, 'מעקב הזמנות');
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SHEET 2 — ספקים (Vendor Database)
+    // ════════════════════════════════════════════════════════════════════════
+    const vendorRows = [
+        [`בסיס ספקים — NextClass | ${suppliers.length} ספקים`],
+        [],
+        ['שם ספק','איש קשר','טלפון (WhatsApp)','אימייל','מ.ע.מ (ע.מ.)','מינימום הזמנה ₪','ימי אספקה','תנאי תשלום','מס׳ הזמנות','סה״כ הוזמן ₪','פתוח ₪'],
+    ];
+    suppliers.forEach(sup => {
+        const stats = supStats[sup.id] || { count: 0, total: 0, open: 0 };
+        vendorRows.push([
+            str(sup.name || '—'),
+            str(sup.contact || '—'),
+            sup.phone ? lnk(sup.phone, `https://wa.me/972${sup.phone.replace(/\D/g,'').replace(/^0/,'')}`) : str('—'),
+            sup.email ? lnk(sup.email, `mailto:${sup.email}`) : str('—'),
+            str(sup.vatNumber || '—'),
+            n(sup.minOrder ?? 0),
+            str(sup.leadTimeDays ? `${sup.leadTimeDays} ימים` : '—'),
+            str(sup.paymentTerms || '—'),
+            n(stats.count),
+            n(stats.total),
+            n(stats.open),
+        ]);
+    });
+    const wsVendors = buildSheet(vendorRows, [22,18,18,26,14,16,13,16,13,14,14]);
+    XLSX.utils.book_append_sheet(wb, wsVendors, 'ספקים');
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SHEET 3 — סיכום (KPI Dashboard)
+    // ════════════════════════════════════════════════════════════════════════
+    const byStatus = {};
+    STATUSES.forEach(s => { byStatus[s.id] = { count: 0, total: 0 }; });
+    supplierOrders.forEach(o => {
+        if (byStatus[o.status]) {
+            byStatus[o.status].count++;
+            byStatus[o.status].total += Number(o.totalCost) || 0;
+        }
+    });
+    const belowMin = supplierOrders.filter(o => {
+        const sup = suppliers.find(s => s.id === o.supplierId || s.name === o.supplierName);
+        const min = Number(sup?.minOrder) || 0;
+        return min > 0 && (Number(o.totalCost)||0) < min;
+    });
+
+    const kpiRows = [
+        [`סיכום וKPIs — NextClass | ${dateStr}`],
+        [],
+        ['📊 מדדים כלליים', ''],
+        ['סה״כ הזמנות', n(supplierOrders.length)],
+        ['סה״כ עלות כוללת ₪', n(grandTotal)],
+        ['עלות פתוחה (ממתין/בדרך) ₪', n(openTotal)],
+        ['הזמנות מתחת למינימום ₪', n(belowMin.length)],
+        [],
+        ['📦 לפי סטטוס', 'מספר הזמנות', 'סה״כ ₪'],
+        ...STATUSES.map(s => [str(s.label), n(byStatus[s.id]?.count||0), n(byStatus[s.id]?.total||0)]),
+        [],
+        ['🏭 לפי ספק', 'הזמנות', 'סה״כ ₪', 'פתוח ₪', 'מינימום ₪'],
+        ...Object.entries(supStats).map(([, stat]) => {
+            const sup = suppliers.find(s => s.name === stat.name);
+            return [str(stat.name), n(stat.count), n(stat.total), n(stat.open), n(sup?.minOrder||0)];
+        }),
+        [],
+        ['⚠️ הזמנות מתחת למינימום', 'ספק', 'מוצר', 'עלות ₪', 'מינימום ₪', 'חסר ₪'],
+        ...belowMin.map(o => {
+            const sup = suppliers.find(s => s.id === o.supplierId || s.name === o.supplierName);
+            const min = Number(sup?.minOrder)||0;
+            return [str(o.id), str(o.supplierName), str(o.productTitle), n(Number(o.totalCost)||0), n(min), n(min-(Number(o.totalCost)||0))];
+        }),
+    ];
+    const wsKPI = buildSheet(kpiRows, [30,18,16,16,16,16]);
+    XLSX.utils.book_append_sheet(wb, wsKPI, 'סיכום KPIs');
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SHEET 4 — לפי ספקים (Grouped view)
+    // ════════════════════════════════════════════════════════════════════════
+    const groupedRows = [`מבט לפי ספקים — NextClass | ${dateStr}`, []];
+    const grouped = {};
+    sortedOrders.forEach(o => {
+        const k = o.supplierName || '—';
+        if (!grouped[k]) grouped[k] = [];
+        grouped[k].push(o);
+    });
+    Object.entries(grouped).forEach(([supplierName, orders]) => {
+        const sup = suppliers.find(s => s.id === orders[0]?.supplierId || s.name === supplierName);
+        const supTotal = orders.reduce((s,o) => s+(Number(o.totalCost)||0), 0);
+        const minOrder = Number(sup?.minOrder)||0;
+
+        groupedRows.push([`🏭 ${supplierName}`, '', '', '', '', '', '', '', '', '']);
+        groupedRows.push([
+            `איש קשר: ${sup?.contact||'—'}`,`טלפון: ${sup?.phone||'—'}`,
+            `אימייל: ${sup?.email||'—'}`,`מינימום: ₪${minOrder||'—'}`,
+            `תנאי: ${sup?.paymentTerms||'—'}`,`אספקה: ${sup?.leadTimeDays||'—'} ימים`,
+            '','','','',
+        ]);
+        groupedRows.push(['PO מס׳','מוצר','לקוח','כמות','עלות ₪','עמידה מינימום','סטטוס','ETA','מס׳ הפניה','הערות']);
+
+        orders.forEach(o => {
+            const cost = Number(o.totalCost)||0;
+            const meetsMin = minOrder > 0 ? (cost >= minOrder ? 'כן ✓' : `לא (-₪${(minOrder-cost).toLocaleString()})`) : '—';
+            groupedRows.push([
+                str(o.id), str(o.productTitle||'—'), str(o.customerName||'—'),
+                n(o.qty), n(cost), str(meetsMin),
+                str(STATUS_HE[o.status]||o.status||'—'),
+                str(o.eta||'—'), str(o.supplierRef||'—'), str(o.notes||''),
+            ]);
+        });
+        groupedRows.push(['','','','',`סה״כ ${supplierName}`, n(supTotal),'','','','']);
+        groupedRows.push([]);
+    });
+
+    const wsGrouped = buildSheet(groupedRows.map(r => Array.isArray(r) ? r : [str(r)]),
+        [22,28,16,7,13,20,10,12,14,26]);
+    XLSX.utils.book_append_sheet(wb, wsGrouped, 'לפי ספקים');
+
+    XLSX.writeFile(wb, `NextClass-הצעות-ספקים-${now.toISOString().slice(0,10)}.xlsx`);
+}
+
 function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToast, selectedOrder, onSelectOrder }) {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showForwardModal, setShowForwardModal] = useState(false);
@@ -961,14 +1182,24 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                         );
                     })}
                 </div>
-                {unforwarded.length > 0 && (
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowForwardModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black text-white cursor-pointer"
-                        style={{ background: 'linear-gradient(135deg,#FF9500,#FF6B00)', boxShadow: '0 4px 16px rgba(255,149,0,0.3)' }}>
-                        <Send size={14} />
-                        העבר לספק ({unforwarded.length})
+                <div className="flex items-center gap-2">
+                    <motion.button whileTap={{ scale: 0.97 }}
+                        onClick={() => { exportSupplierOrdersXLSX(supplierOrders, suppliers); showToast('קובץ Excel הורד בהצלחה', 'success'); }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold cursor-pointer transition-all"
+                        style={{ background: 'rgba(52,199,89,0.10)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}
+                        title="ייצוא לאקסל (CSV)">
+                        <Download size={14} />
+                        ייצוא Excel
                     </motion.button>
-                )}
+                    {unforwarded.length > 0 && (
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowForwardModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black text-white cursor-pointer"
+                            style={{ background: 'linear-gradient(135deg,#FF9500,#FF6B00)', boxShadow: '0 4px 16px rgba(255,149,0,0.3)' }}>
+                            <Send size={14} />
+                            העבר לספק ({unforwarded.length})
+                        </motion.button>
+                    )}
+                </div>
             </div>
 
             {/* List */}
@@ -1227,7 +1458,36 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
 
 const BLANK_SUPPLIER = { name: '', contact: '', phone: '', email: '', leadTimeDays: 7, paymentTerms: 'שוטף + 30', notes: '', active: true };
 
-function SuppliersTab({ suppliers, showToast }) {
+function calcReliability(supplierId, supplierName, supplierOrders) {
+    const myOrders = supplierOrders.filter(o =>
+        o.supplierId === supplierId || o.supplierName === supplierName
+    );
+    if (myOrders.length === 0) return null;
+
+    const completed  = myOrders.filter(o => ['arrived','shipped'].includes(o.status));
+    const fulfillRate = completed.length > 0 ? Math.round(completed.length / myOrders.length * 100) : 0;
+
+    // On-time rate: only calculable when actualDelivery + eta are both set
+    const withDeliveryData = completed.filter(o => o.eta && o.actualDelivery);
+    const onTime = withDeliveryData.filter(o => new Date(o.actualDelivery) <= new Date(o.eta));
+    const onTimeRate = withDeliveryData.length > 0
+        ? Math.round(onTime.length / withDeliveryData.length * 100)
+        : null; // unknown — don't penalise or inflate
+
+    // Score: if we have on-time data use weighted; otherwise fulfillment-only
+    const score = onTimeRate !== null
+        ? Math.round(fulfillRate * 0.6 + onTimeRate * 0.4)
+        : fulfillRate;
+
+    // Need at least 2 orders for a meaningful score
+    if (myOrders.length < 2) return null;
+
+    const color = score >= 80 ? '#34C759' : score >= 60 ? '#FF9500' : '#FF3B30';
+    const label = score >= 80 ? 'אמין' : score >= 60 ? 'ממוצע' : 'בעייתי';
+    return { score, color, label, fulfillRate, onTimeRate, total: myOrders.length };
+}
+
+function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
     const [showForm, setShowForm] = useState(false);
     const [editId,   setEditId]   = useState(null);
     const [form,     setForm]     = useState(BLANK_SUPPLIER);
@@ -1281,6 +1541,20 @@ function SuppliersTab({ suppliers, showToast }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {suppliers.map(s => (
                         <motion.div key={s.id} layout className="p-5 rounded-[1.5rem] text-right" style={card}>
+                            {/* Reliability score badge */}
+                            {(() => {
+                                const rel = calcReliability(s.id, s.name, supplierOrders);
+                                if (!rel) return null;
+                                return (
+                                    <div className="flex items-center justify-end gap-1.5 mb-2">
+                                        <span style={{ fontSize: 9, fontWeight: 700, color: '#86868B' }}>{rel.total} הזמנות</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, background: `${rel.color}12`, border: `1px solid ${rel.color}28` }}>
+                                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={rel.color} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <span style={{ fontSize: 10, fontWeight: 900, color: rel.color }}>{rel.score} — {rel.label}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div className="flex items-start justify-between gap-3 mb-3">
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => openEdit(s)}
@@ -1566,7 +1840,7 @@ export default function AdminFulfillment() {
                             onSelectOrder={setSelectedOrder}
                         />
                     )}
-                    {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} showToast={showToast} />}
+                    {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} supplierOrders={supplierOrders} showToast={showToast} />}
                     {activeTab === 'mapping'   && <ProductMappingTab suppliers={suppliers} showToast={showToast} />}
                 </motion.div>
             </AnimatePresence>

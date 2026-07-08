@@ -1,18 +1,235 @@
 /* eslint-disable */
 
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { motion, useInView, useMotionValue, animate as animateMotion } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useMotionValue, animate as animateMotion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Wrench, Tag, Image, RefreshCw, Package, ExternalLink,
     ShoppingCart, BarChart2, Layers, AlertTriangle, Box,
-    Zap, TrendingUp, Users, MessageCircle, Mail, Activity, ChevronLeft
+    Zap, TrendingUp, Users, MessageCircle, Mail, Activity, ChevronLeft,
+    Target, Sparkles, ChevronDown, ChevronUp, CheckCircle2
 } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { AdminKPICard, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
 import initialProducts from '../../data/products';
+
+// ─── Stage weights for pipeline forecast ─────────────────────────────────────
+const STAGE_WEIGHTS = {
+    'חדש': 0.05, 'ביצירת קשר': 0.15, 'בדיקת מלאי': 0.25,
+    'הוצע מחיר': 0.40, 'ממתין לאישור': 0.70,
+    'הועבר לספק': 0.85, 'בדרך': 0.92,
+};
+const CLOSED_STAGES = new Set(['נסגר', 'סופק', 'אבד', 'בוטל']);
+
+// ─── Daily Briefing Card ──────────────────────────────────────────────────────
+function DailyBriefing({ kpis, pipelineForecast, liveVisitors, navigate }) {
+    const [open, setOpen] = useState(true);
+
+    const items = useMemo(() => {
+        const list = [];
+        if (kpis.allPendingOrders > 0)
+            list.push({ color: '#FF3B30', label: `${kpis.allPendingOrders} הזמנות ממתינות לאישור`, link: '/admin/orders' });
+        if (kpis.dueReminders?.length > 0)
+            list.push({ color: '#FF9500', label: `${kpis.dueReminders.length} תזכורות שפג תוקפן`, link: '/admin/orders' });
+        if (kpis.lowStockCount > 0)
+            list.push({ color: '#FF9500', label: `${kpis.lowStockCount} מוצרים במלאי נמוך`, link: '/admin/inventory' });
+        if (kpis.contactsNew > 0)
+            list.push({ color: '#007AFF', label: `${kpis.contactsNew} פניות חדשות מחכות לטיפול`, link: '/admin/communications' });
+        if (kpis.stalledLeads > 0)
+            list.push({ color: '#5856D6', label: `${kpis.stalledLeads} עסקאות מעוכבות בצינור`, link: '/admin/orders' });
+        return list;
+    }, [kpis]);
+
+    const allGood = items.length === 0;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            className="rounded-[22px] overflow-hidden"
+            style={{
+                background: 'linear-gradient(135deg, rgba(0,122,255,0.06) 0%, rgba(255,255,255,0.88) 60%, rgba(88,86,214,0.04) 100%)',
+                border: '1px solid rgba(0,122,255,0.15)',
+                boxShadow: '0 4px 24px rgba(0,122,255,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+            }}
+        >
+            <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)' }} />
+            <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <motion.div
+                            animate={{ rotate: [0, 5, -5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                            className="w-7 h-7 rounded-[9px] flex items-center justify-center"
+                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}
+                        >
+                            <Sparkles size={14} className="text-white" />
+                        </motion.div>
+                        <span className="text-[13px] font-black text-[#1D1D1F] tracking-tight">
+                            {allGood ? 'הכל תקין — עסק מעולה!' : `${items.length} פעולות מחכות לך`}
+                        </span>
+                        {liveVisitors > 0 && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black"
+                                style={{ background: 'rgba(52,199,89,0.12)', color: '#1A8C40', border: '1px solid rgba(52,199,89,0.22)' }}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
+                                {liveVisitors} גולשים עכשיו
+                            </span>
+                        )}
+                    </div>
+                    <button onClick={() => setOpen(p => !p)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                        style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>
+                        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    </button>
+                </div>
+
+                <AnimatePresence>
+                    {open && (
+                        <motion.div
+                            key="briefing-content"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                            style={{ overflow: 'hidden' }}
+                        >
+                            {allGood ? (
+                                <div className="flex items-center gap-2 py-2">
+                                    <CheckCircle2 size={14} className="text-[#34C759]" />
+                                    <span className="text-[12px] font-medium text-[#6E6E73]">אין פעולות דחופות. הצינור נקי.</span>
+                                    {pipelineForecast.count > 0 && (
+                                        <span className="text-[12px] font-bold text-[#007AFF]">
+                                            צפי: ₪{Math.round(pipelineForecast.weighted).toLocaleString()} מ-{pipelineForecast.count} עסקאות פתוחות
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-1">
+                                    {items.map((item, i) => (
+                                        <motion.button
+                                            key={i}
+                                            initial={{ opacity: 0, x: 8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.05 }}
+                                            onClick={() => navigate(item.link)}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-[12px] text-right cursor-pointer w-full transition-all active:scale-98"
+                                            style={{ background: `${item.color}0a`, border: `1px solid ${item.color}20` }}
+                                            whileHover={{ y: -1, boxShadow: `0 4px 12px ${item.color}18` }}
+                                        >
+                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                                            <span className="text-[11px] font-bold truncate" style={{ color: item.color }}>{item.label}</span>
+                                        </motion.button>
+                                    ))}
+                                    {pipelineForecast.weighted > 0 && (
+                                        <motion.button
+                                            initial={{ opacity: 0, x: 8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: items.length * 0.05 }}
+                                            onClick={() => navigate('/admin/orders')}
+                                            className="flex items-center gap-2 px-3 py-2 rounded-[12px] text-right cursor-pointer w-full"
+                                            style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.18)' }}
+                                            whileHover={{ y: -1, boxShadow: '0 4px 12px rgba(52,199,89,0.14)' }}
+                                        >
+                                            <Target size={12} className="text-[#34C759] flex-shrink-0" />
+                                            <span className="text-[11px] font-bold text-[#1A8C40]">
+                                                צפי 30י׳: ₪{Math.round(pipelineForecast.weighted).toLocaleString()}
+                                            </span>
+                                        </motion.button>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </motion.div>
+    );
+}
+
+// ─── Revenue Forecast Widget ──────────────────────────────────────────────────
+function RevenueForecastWidget({ forecast, navigate }) {
+    if (forecast.count === 0) return null;
+    const maxVal = Math.max(...forecast.byStage.map(s => s.value), 1);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: 'spring', stiffness: 360, damping: 28, delay: 0.1 }}
+            className="rounded-[22px] overflow-hidden cursor-pointer"
+            style={{
+                background: 'rgba(255,255,255,0.78)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(255,255,255,0.72)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+            }}
+            onClick={() => navigate('/admin/orders')}
+            whileHover={{ y: -3, boxShadow: '0 16px 48px rgba(52,199,89,0.14)' }}
+        >
+            <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#34C759,#30D158,#007AFF)' }} />
+            <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                            style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.22)' }}>
+                            <Target size={15} className="text-[#34C759]" />
+                        </div>
+                        <div>
+                            <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">תחזית צינור</p>
+                            <p className="text-[10px] font-medium text-[#AEAEB2]">{forecast.count} עסקאות פתוחות</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[22px] font-black tracking-tighter text-[#34C759] leading-none">
+                            ₪{Math.round(forecast.weighted).toLocaleString()}
+                        </p>
+                        <p className="text-[9px] font-bold text-[#AEAEB2] mt-0.5">צפי משוקלל</p>
+                    </div>
+                </div>
+
+                {/* Stage bars */}
+                <div className="space-y-1.5">
+                    {forecast.byStage.slice(0, 5).map(s => (
+                        <div key={s.stage} className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-[#6E6E73] w-24 text-right truncate flex-shrink-0">{s.stage}</span>
+                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(s.value / maxVal) * 100}%` }}
+                                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                    className="h-full rounded-full"
+                                    style={{ background: `hsl(${Math.round(s.weight * 120)}, 70%, 50%)` }}
+                                />
+                            </div>
+                            <span className="text-[9px] font-black text-[#1D1D1F] w-16 text-left">
+                                ₪{s.value.toLocaleString()}
+                            </span>
+                            <span className="text-[9px] font-bold text-[#AEAEB2] w-8">
+                                {Math.round(s.weight * 100)}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-black/05 flex items-center justify-between">
+                    <span className="text-[10px] text-[#AEAEB2]">
+                        צינור כולל: ₪{forecast.totalPipeline.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] font-black text-[#34C759]">
+                        יחס: {forecast.totalPipeline > 0 ? Math.round(forecast.weighted / forecast.totalPipeline * 100) : 0}%
+                    </span>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -46,7 +263,7 @@ const ACTIVITY_ICONS = {
 };
 
 // ─── Glass card wrapper ───────────────────────────────────────────────────────
-function Card({ title, subtitle, accent, action, children, className = '' }) {
+function Card({ title, subtitle, accent, action, children, className = '', titleTooltip }) {
     return (
         <motion.div
             className={`rounded-[22px] overflow-hidden ${className}`}
@@ -67,7 +284,10 @@ function Card({ title, subtitle, accent, action, children, className = '' }) {
                 {(title || action) && (
                     <div className="flex items-center justify-between mb-4">
                         <div className="text-right">
-                            <h3 className="font-black text-[#1D1D1F] text-[15px] tracking-tight">{title}</h3>
+                            <span className="flex items-center gap-0.5">
+                                <h3 className="font-black text-[#1D1D1F] text-[15px] tracking-tight">{title}</h3>
+                                {titleTooltip && (() => { const t = typeof titleTooltip === 'object' ? titleTooltip : { text: titleTooltip }; return <InfoTooltip text={t.text} source={t.source} link={t.link} linkLabel={t.linkLabel} />; })()}
+                            </span>
                             {subtitle && <p className="text-[#AEAEB2] text-[11px] mt-0.5">{subtitle}</p>}
                         </div>
                         {action}
@@ -124,7 +344,7 @@ const computeTrend = (data) => {
 };
 
 export default function AdminDashboard() {
-    const { kpis, orders, analytics, inventory, activityLog, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
+    const { kpis, orders, quotes, analytics, inventory, activityLog, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
     const navigate = useNavigate();
@@ -170,16 +390,19 @@ export default function AdminDashboard() {
     const trendSales   = useMemo(() => computeTrend(periodData?.sales),      [periodData]);
     const trendVisits  = useMemo(() => computeTrend(conversionSpark),        [conversionSpark]);
 
-    // Monthly goal: target = 1.5× last-month slice, min ₪5000
+    // Monthly goal — reads from settings if set, else auto-calculates 1.5× last month
     const monthlyGoal = useMemo(() => {
-        if (!analytics) return { current: 0, target: 5000 };
+        const current = kpis.thisMonthRevenue || 0;
+        const manualTarget = getSetting('monthly_revenue_target', 0);
+        if (manualTarget > 0) return { current, target: manualTarget, isManual: true };
+        if (!analytics) return { current, target: 5000, isManual: false };
         const dayOfMonth = new Date().getDate();
         const lastMonthRevenue = analytics.revenue
             .slice(0, Math.max(0, analytics.revenue.length - dayOfMonth))
             .reduce((a, b) => a + b, 0);
         const target = Math.max(Math.round(lastMonthRevenue * 1.5), 5000);
-        return { current: kpis.thisMonthRevenue || 0, target };
-    }, [analytics, kpis]);
+        return { current, target, isManual: false };
+    }, [analytics, kpis, getSetting]);
 
     const recentOrders = useMemo(() =>
         [...orders].sort((a, b) => b.dateTs - a.dateTs).slice(0, 7),
@@ -189,20 +412,64 @@ export default function AdminDashboard() {
     const topProducts = useMemo(() => {
         const map = {};
         orders.forEach(o => {
-            const pid = o.productId;
-            if (!pid) return;
-            if (!map[pid]) {
-                const inv = inventory.find(p => String(p.id) === String(pid));
-                const backup = initialProducts.find(p => String(p.id) === String(pid));
-                map[pid] = { id: pid, title: o.product, image: o.productImage || inv?.image || backup?.image, revenue: 0, count: 0 };
-            }
-            map[pid].revenue += o.total;
-            map[pid].count += o.qty || 1;
+            (o.items || []).forEach(item => {
+                const pid = String(item.id ?? '');
+                if (!pid) return;
+                if (!map[pid]) {
+                    const inv = inventory.find(p => String(p.id) === pid);
+                    const backup = initialProducts.find(p => String(p.id) === pid);
+                    map[pid] = {
+                        id: pid,
+                        title: item.title || inv?.title || inv?.name || backup?.title || backup?.name || pid,
+                        image: item.image || inv?.image || backup?.image,
+                        revenue: 0,
+                        count: 0,
+                    };
+                }
+                map[pid].revenue += (item.price || 0) * (item.qty || 1);
+                map[pid].count += item.qty || 1;
+            });
         });
         return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
     }, [orders, inventory]);
 
     const lowStock = inventory.filter(p => p.stock <= p.threshold).slice(0, 6);
+
+    // ── Live visitors (last 5 min from Firestore page_views) ─────────────────
+    const [liveVisitors, setLiveVisitors] = useState(0);
+    useEffect(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const q = query(collection(db, 'page_views'), where('date', '==', today));
+        const unsub = onSnapshot(q, snap => {
+            const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+            const active = new Set(
+                snap.docs
+                    .filter(d => {
+                        const ts = d.data().ts;
+                        const ms = ts?.toMillis ? ts.toMillis() : (ts?.seconds ? ts.seconds * 1000 : 0);
+                        return ms > fiveMinAgo;
+                    })
+                    .map(d => d.data().sessionId).filter(Boolean)
+            );
+            setLiveVisitors(active.size);
+        }, () => {});
+        return unsub;
+    }, []);
+
+    // ── Pipeline Revenue Forecast (stage-weighted) ────────────────────────────
+    const pipelineForecast = useMemo(() => {
+        const open = quotes.filter(q => q.status && !CLOSED_STAGES.has(q.status));
+        const getVal = q => Number(q.subtotal) || (q.items || []).reduce((s, it) =>
+            s + (Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1), 0);
+        const weighted = open.reduce((s, q) => s + getVal(q) * (STAGE_WEIGHTS[q.status] || 0.1), 0);
+        const total    = open.reduce((s, q) => s + getVal(q), 0);
+        const byStage  = Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => {
+            const sq = open.filter(q => q.status === stage);
+            const val = sq.reduce((s, q) => s + getVal(q), 0);
+            return { stage, weight, count: sq.length, value: val, expected: val * weight };
+        }).filter(s => s.count > 0);
+        return { weighted, totalPipeline: total, byStage, count: open.length };
+    }, [quotes]);
 
     const dateStr = new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -229,6 +496,9 @@ export default function AdminDashboard() {
                     <PeriodSelector value={period} onChange={setPeriod} />
                 </div>
             </motion.div>
+
+            {/* ── Daily Briefing ───────────────────────────────────────────── */}
+            <DailyBriefing kpis={kpis} pipelineForecast={pipelineForecast} liveVisitors={liveVisitors} navigate={navigate} />
 
             {/* ── Due Reminders Priority Card ──────────────────────────────── */}
             {kpis.dueReminders?.length > 0 && (
@@ -265,7 +535,11 @@ export default function AdminDashboard() {
                                     className="flex items-center gap-3"
                                 >
                                     <div className="flex-1 min-w-0 text-right">
-                                        <p className="text-[#1D1D1F] text-[12px] font-bold truncate">
+                                        <p
+                                            className="text-[12px] font-bold truncate cursor-pointer hover:underline"
+                                            style={{ color: '#007AFF' }}
+                                            onClick={() => navigate(`/admin/orders?quoteId=${r.quoteId}`)}
+                                        >
                                             {r.quote?.contactName || r.quote?.institution || r.quoteId}
                                         </p>
                                         <p className="text-[#FF3B30] text-[10px] font-medium truncate">{r.note || 'מעקב נדרש'}</p>
@@ -305,7 +579,7 @@ export default function AdminDashboard() {
                         subtitle: `₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`,
                         trend: trendRevenue.value, trendUp: trendRevenue.up,
                         sparkData: periodData && periodData.revenue.length >= 2 ? periodData.revenue : (analytics?.revenue?.slice(-7) || []),
-                        tooltip: 'סך כל ההכנסות מהזמנות שהושלמו. לחץ לפירוט לפי יום.',
+                        tooltip: { text: 'סך כל ההכנסות מהזמנות שנסגרו. מצטבר מכלל הזמנות שהושלמו.', source: 'Firestore · orders · total', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
                         onClick: () => setDrilldown('revenue'),
                     },
                     {
@@ -314,7 +588,7 @@ export default function AdminDashboard() {
                         subtitle: `${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`,
                         trend: trendSales.value, trendUp: trendSales.up,
                         sparkData: periodData && periodData.sales.length >= 2 ? periodData.sales : (analytics?.sales?.slice(-7) || []),
-                        tooltip: 'מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו. לחץ לפירוט.',
+                        tooltip: { text: 'מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו.', source: 'Firestore · orders', link: '/admin/orders', linkLabel: 'ניהול הזמנות' },
                         onClick: () => setDrilldown('orders'),
                     },
                     {
@@ -323,7 +597,7 @@ export default function AdminDashboard() {
                         subtitle: 'מכניסות ייחודיות',
                         trend: trendVisits.value, trendUp: trendVisits.up,
                         sparkData: conversionSpark.length >= 2 ? conversionSpark : (analytics ? analytics.visits.map((v, i) => v > 0 ? parseFloat(((analytics.sales[i] || 0) / v * 100).toFixed(2)) : 0).slice(-7) : []),
-                        tooltip: 'אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100.',
+                        tooltip: { text: 'אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100.', source: 'analytics.sales ÷ analytics.visits', link: '/admin/analytics', linkLabel: 'דוח אנליטיקה' },
                         onClick: () => setDrilldown('conversion'),
                     },
                     {
@@ -331,7 +605,7 @@ export default function AdminDashboard() {
                         value: `₪${kpis.avgOrderValue.toLocaleString()}`,
                         subtitle: `${kpis.completedOrders} הזמנות הושלמו`,
                         sparkData: avgOrderSpark.length >= 2 ? avgOrderSpark : (analytics?.revenue?.slice(-7) || []),
-                        tooltip: 'ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו.',
+                        tooltip: { text: 'ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
                         onClick: () => setDrilldown('avg'),
                     },
                 ].map((kpi, i) => (
@@ -352,25 +626,30 @@ export default function AdminDashboard() {
                         title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.2,
                         value: kpis.lowStockCount,
                         subtitle: 'מוצרים תחת סף',
-                        tooltip: 'מספר מוצרים שמלאיים נמוך מסף ההתרעה שהוגדר לכל מוצר.',
+                        tooltip: { text: 'מוצרים שמלאיהם נמוך מסף ההתרעה שהוגדר לכל מוצר בנפרד.', source: 'Firestore · inventory · stock ≤ threshold', link: '/admin/inventory', linkLabel: 'ניהול מלאי' },
+                        onClick: () => setDrilldown('lowStock'),
                     },
                     {
                         title: 'פניות חדשות', icon: 'empty', color: '#FF9500', delay: 0.25,
                         value: kpis.contactsNew,
                         subtitle: 'ממתינות לטיפול',
-                        tooltip: 'פניות דרך טופס יצירת קשר שטרם טופלו ועדיין פתוחות.',
+                        tooltip: { text: 'פניות שנשלחו דרך טופס יצירת קשר באתר ועדיין לא טופלו.', source: 'Firestore · contacts (status: חדש)', link: '/admin/communications', linkLabel: 'טיפול בפניות' },
+                        onClick: () => setDrilldown('contacts'),
                     },
                     {
                         title: 'כניסות', icon: 'traffic', color: '#007AFF', delay: 0.3,
                         value: periodVisits,
                         subtitle: period === '1' ? 'היום' : `${period} ימים`,
-                        tooltip: 'מספר כניסות לאתר בתקופה הנבחרת. מבוסס על נתוני localStorage המקומי.',
+                        tooltip: { text: 'ביקורים ייחודיים לאתר בתקופה הנבחרת. נרשם ב-Firestore בכל כניסת session.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' },
+                        sparkData: periodData && periodData.visits.length >= 2 ? periodData.visits : (analytics?.visits?.slice(-7) || []),
+                        onClick: () => setDrilldown('visits'),
                     },
                     {
                         title: 'קטלוג פעיל', icon: 'products', color: '#5856D6', delay: 0.35,
                         value: inventory.filter(p => p.isActive !== false).length,
                         subtitle: `מתוך ${inventory.length} מוצרים`,
-                        tooltip: 'מוצרים המוצגים כעת בחנות. מוצרים שהוסתרו ידנית אינם נספרים.',
+                        tooltip: { text: 'מוצרים המוצגים לגולשים בחנות. מוצרים שהוסתרו (isActive=false) אינם נספרים.', source: 'Firestore · inventory (isActive ≠ false)', link: '/admin/inventory', linkLabel: 'ניהול קטלוג' },
+                        onClick: () => setDrilldown('catalog'),
                     },
                 ].map((kpi, i) => (
                     <motion.div key={kpi.title}
@@ -392,6 +671,7 @@ export default function AdminDashboard() {
                     subtitle={period === '1' ? 'היום' : `${period} ימים אחרונים`}
                     accent="linear-gradient(90deg,#007AFF,#5856D6)"
                     className="lg:col-span-2"
+                    titleTooltip={{ text: 'מפת חום של כניסות ייחודיות לאתר לפי יום. כל תא = יום אחד. עוצמת הצבע = כמות הכניסות.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
                     action={
                         <span className="text-[#007AFF] text-xs font-black">
                             {periodVisits.toLocaleString()} כניסות
@@ -410,7 +690,8 @@ export default function AdminDashboard() {
 
                 {/* Top Products — 1/3 width */}
                 <Card title="מוצרים מובילים" subtitle="לפי הכנסות כוללות"
-                    accent="linear-gradient(90deg,#5856D6,#007AFF)">
+                    accent="linear-gradient(90deg,#5856D6,#007AFF)"
+                    titleTooltip={{ text: 'המוצרים שייצרו את ההכנסה הגבוהה ביותר. מחושב ממסד ההזמנות.', source: 'Firestore · orders · productId + total', link: '/admin/inventory', linkLabel: 'ניהול מוצרים' }}>
                     <div className="space-y-3.5">
                         {topProducts.length === 0 && (
                             <div className="py-8 text-center flex flex-col items-center gap-2">
@@ -453,6 +734,7 @@ export default function AdminDashboard() {
                     subtitle={`${period === '1' ? 'היום' : `${period} ימים`} · ₪ ביחידה`}
                     accent="linear-gradient(90deg,#34C759,#30D158)"
                     className="lg:col-span-2"
+                    titleTooltip={{ text: 'הכנסות כספיות לפי יום. כל תא מייצג יום אחד — עוצמת הצבע = סכום ההכנסות באותו יום.', source: 'Firestore · analytics · revenue[]', link: '/admin/orders', linkLabel: 'ראה הזמנות' }}
                     action={
                         <span className="text-xs font-black text-[#34C759]">
                             ₪{periodRevenue.toLocaleString()}
@@ -469,15 +751,24 @@ export default function AdminDashboard() {
                 </Card>
 
                 {/* Monthly Goal Ring */}
-                <Card title="יעד חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#34C759,#007AFF)">
+                <Card title="יעד חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#34C759,#007AFF)"
+                    titleTooltip={{ text: 'יעד חודשי ניתן לקביעה בהגדרות. אם לא הוגדר — מחושב אוטומטית ×1.5 מחודש קודם.', source: 'Firestore · cms_settings · monthly_revenue_target', link: '/admin/settings', linkLabel: 'הגדר יעד' }}>
                     <GoalRing
                         value={monthlyGoal.current}
                         target={monthlyGoal.target}
                         color="#34C759"
                         label="הכנסות החודש"
-                        subtitle={`יעד אוטומטי: ×1.5 מהחודש הקודם`}
+                        subtitle={monthlyGoal.isManual ? `יעד ידני: ₪${monthlyGoal.target.toLocaleString()}` : `אוטומטי: ×1.5 מהחודש הקודם`}
                         size={100}
                     />
+                    {!monthlyGoal.isManual && (
+                        <button
+                            onClick={() => navigate('/admin/settings')}
+                            className="mt-3 w-full text-center text-[10px] font-bold text-[#007AFF] hover:underline"
+                        >
+                            הגדר יעד ידני בהגדרות
+                        </button>
+                    )}
                 </Card>
             </div>
 
@@ -486,6 +777,7 @@ export default function AdminDashboard() {
                 title="מכירות יומיות"
                 subtitle="כמות עסקאות לפי יום"
                 accent="linear-gradient(90deg,#FF9500,#FF3B30)"
+                titleTooltip={{ text: 'כמות העסקאות שנסגרו בכל יום. כל עמודה = יום אחד. מקור: נתוני analytics מ-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}
                 action={<span className="text-xs font-black text-[#FF9500]">{periodSales} עסקאות</span>}
             >
                 {periodData && periodData.sales.some(v => v > 0) ? (
@@ -496,6 +788,11 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </Card>
+
+            {/* ── Pipeline Forecast ────────────────────────────────────────── */}
+            {pipelineForecast.count > 0 && (
+                <RevenueForecastWidget forecast={pipelineForecast} navigate={navigate} />
+            )}
 
             {/* ── Bottom Row ────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
@@ -717,11 +1014,21 @@ export default function AdminDashboard() {
 
             {/* ── KPI Drilldown Modal ────────────────────────────────────────── */}
             {(() => {
+                const lowStockItems = inventory.filter(p => {
+                    const stock = Number(p.stock ?? p.quantity ?? 0);
+                    const threshold = Number(p.stockThreshold ?? p.minStock ?? 3);
+                    return stock <= threshold;
+                }).sort((a, b) => (Number(a.stock ?? 0)) - (Number(b.stock ?? 0)));
+
                 const meta = {
-                    revenue:    { title: 'פירוט הכנסות', color: '#34C759', accent: 'linear-gradient(90deg,#34C759,#30D158)', data: periodData?.revenue, labels: periodData?.labels, unit: '₪', analyticsTab: 'revenue', layer3Label: 'דוח הכנסות מלא' },
-                    orders:     { title: 'פירוט עסקאות', color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#5856D6)', data: periodData?.sales,   labels: periodData?.labels, unit: '',  analyticsTab: 'overview', layer3Label: 'אנליטיקס מכירות' },
-                    conversion: { title: 'פירוט תנועה',  color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#007AFF)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
-                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FF3B30)', data: null, analyticsTab: 'products', layer3Label: 'דוח מוצרים מלא' },
+                    revenue:    { title: 'פירוט הכנסות',   color: '#34C759', accent: 'linear-gradient(90deg,#34C759,#30D158)', data: periodData?.revenue, labels: periodData?.labels, unit: '₪', analyticsTab: 'revenue',  layer3Label: 'דוח הכנסות מלא' },
+                    orders:     { title: 'פירוט עסקאות',   color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#5856D6)', data: periodData?.sales,   labels: periodData?.labels, unit: '',  analyticsTab: 'overview', layer3Label: 'אנליטיקס מכירות' },
+                    conversion: { title: 'פירוט תנועה',    color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#007AFF)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
+                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FF3B30)', data: null,                analyticsTab: 'products', layer3Label: 'דוח מוצרים מלא' },
+                    lowStock:   { title: 'מלאי נמוך',      color: '#FF3B30', accent: 'linear-gradient(90deg,#FF3B30,#FF6B35)', data: null,                analyticsTab: null,       layer3Label: 'ניהול מלאי' },
+                    contacts:   { title: 'פניות חדשות',    color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FFB340)', data: null,                analyticsTab: null,       layer3Label: 'לטיפול בפניות' },
+                    visits:     { title: 'פירוט כניסות',   color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#00C7BE)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
+                    catalog:    { title: 'קטלוג מוצרים',   color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#AF52DE)', data: null,                analyticsTab: null,       layer3Label: 'ניהול מוצרים' },
                 };
                 const m = drilldown ? meta[drilldown] : null;
 
@@ -735,7 +1042,7 @@ export default function AdminDashboard() {
                     const half = Math.floor(data.length / 2);
                     const firstHalf = data.slice(0, half).reduce((a, b) => a + b, 0);
                     const secondHalf = data.slice(half).reduce((a, b) => a + b, 0);
-                    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : 0;
+                    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : (secondHalf > 0 ? 100 : 0);
                     return { total, avg, peak, peakIdx, trend, activeDays: nonZero.length };
                 };
 
@@ -744,7 +1051,7 @@ export default function AdminDashboard() {
                         {m && (
                             <div className="space-y-5" dir="rtl">
                                 {/* ── Layer 2: Stats summary row ── */}
-                                {drilldown !== 'avg' && m.data && (() => {
+                                {drilldown !== 'avg' && drilldown !== 'visits' && m.data && (() => {
                                     const stats = computeStats(m.data);
                                     if (!stats) return null;
                                     return (
@@ -766,6 +1073,156 @@ export default function AdminDashboard() {
                                                     <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
                                                 </motion.div>
                                             ))}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* ── Secondary drilldowns ── */}
+                                {drilldown === 'lowStock' && (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'תחת סף', value: lowStockItems.length, color: '#FF3B30' },
+                                                { label: 'אפס מלאי', value: lowStockItems.filter(p => Number(p.stock ?? 0) === 0).length, color: '#FF3B30' },
+                                                { label: 'סה״כ מוצרים', value: inventory.length, color: '#8E8E93' },
+                                            ].map(s => (
+                                                <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
+                                                    <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
+                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {lowStockItems.length === 0 ? (
+                                            <div className="text-center py-8 text-[#AEAEB2] text-sm font-bold">כל המוצרים במלאי תקין 🎉</div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {lowStockItems.slice(0, 8).map((p, i) => {
+                                                    const stock = Number(p.stock ?? 0);
+                                                    const threshold = Number(p.stockThreshold ?? p.minStock ?? 3);
+                                                    const pct = threshold > 0 ? Math.min(stock / threshold, 1) : 0;
+                                                    return (
+                                                        <motion.div key={p.id || i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                                                            className="flex items-center gap-3 p-3 rounded-[12px]" style={{ background: 'rgba(255,59,48,0.04)', border: '1px solid rgba(255,59,48,0.12)' }}>
+                                                            <div className="flex-1 min-w-0 text-right">
+                                                                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{p.title || p.name || p.id}</p>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <div className="flex-1 h-1.5 rounded-full bg-black/06 overflow-hidden">
+                                                                        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: stock === 0 ? '#FF3B30' : '#FF9500' }} />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black shrink-0" style={{ color: stock === 0 ? '#FF3B30' : '#FF9500' }}>{stock}/{threshold}</span>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {drilldown === 'contacts' && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'חדשות', value: kpis.contactsNew, color: '#FF9500' },
+                                                { label: 'הזמנות סה״כ', value: kpis.totalOrders, color: '#007AFF' },
+                                                { label: 'ממתינות', value: kpis.pendingOrders, color: '#5856D6' },
+                                            ].map(s => (
+                                                <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
+                                                    <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
+                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="rounded-[16px] p-4 text-right" style={{ background: 'rgba(255,149,0,0.04)', border: '1px solid rgba(255,149,0,0.14)' }} dir="rtl">
+                                            <p className="text-[13px] font-bold text-[#1D1D1F]">יש <span style={{ color: '#FF9500', fontWeight: 900 }}>{kpis.contactsNew}</span> פניות שממתינות לטיפול</p>
+                                            <p className="text-[11px] text-[#86868B] mt-1">פניות חדשות שנשלחו דרך טופס יצירת קשר באתר ועוד לא טופלו.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {drilldown === 'catalog' && (() => {
+                                    const active = inventory.filter(p => p.isActive !== false);
+                                    const inactive = inventory.filter(p => p.isActive === false);
+                                    const byCategory = {};
+                                    active.forEach(p => { const c = p.category || 'כללי'; byCategory[c] = (byCategory[c] || 0) + 1; });
+                                    const cats = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                                    return (
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {[
+                                                    { label: 'פעילים', value: active.length, color: '#5856D6' },
+                                                    { label: 'מוסתרים', value: inactive.length, color: '#8E8E93' },
+                                                    { label: 'קטגוריות', value: Object.keys(byCategory).length, color: '#007AFF' },
+                                                ].map(s => (
+                                                    <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
+                                                        <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
+                                                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {cats.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי קטגוריה</p>
+                                                    {cats.map(([cat, count], i) => (
+                                                        <div key={cat} className="flex items-center gap-3">
+                                                            <div className="flex-1">
+                                                                <div className="flex justify-between mb-1">
+                                                                    <span className="text-[11px] font-black" style={{ color: '#5856D6' }}>{count}</span>
+                                                                    <span className="text-[11px] font-medium text-[#1D1D1F]">{cat}</span>
+                                                                </div>
+                                                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / (cats[0][1] || 1)) * 100}%` }}
+                                                                        transition={{ delay: i * 0.06, duration: 0.6 }}
+                                                                        className="h-full rounded-full" style={{ background: 'linear-gradient(90deg,#5856D6,#AF52DE)' }} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
+                                {drilldown === 'visits' && (() => {
+                                    const stats = (() => {
+                                        const d = periodData?.visits;
+                                        if (!d || d.length === 0) return null;
+                                        const total = d.reduce((a, b) => a + b, 0);
+                                        const nonZero = d.filter(v => v > 0);
+                                        const avg = nonZero.length ? Math.round(total / nonZero.length) : 0;
+                                        const peak = Math.max(...d);
+                                        const half = Math.floor(d.length / 2);
+                                        const firstH = d.slice(0, half).reduce((a, b) => a + b, 0);
+                                        const secondH = d.slice(half).reduce((a, b) => a + b, 0);
+                                        const trend = firstH > 0 ? Math.round((secondH - firstH) / firstH * 100) : (secondH > 0 ? 100 : 0);
+                                        return { total, avg, peak, trend };
+                                    })();
+                                    return (
+                                        <div className="space-y-4">
+                                            {stats && (
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                    {[
+                                                        { label: 'סה״כ', value: stats.total.toLocaleString() },
+                                                        { label: 'ממוצע יומי', value: stats.avg.toLocaleString() },
+                                                        { label: 'שיא', value: stats.peak.toLocaleString() },
+                                                        { label: 'מגמה', value: `${stats.trend >= 0 ? '+' : ''}${stats.trend}%`, up: stats.trend >= 0 },
+                                                    ].map((s, i) => (
+                                                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                                                            className="rounded-[14px] p-3 text-center" style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.14)' }}>
+                                                            <p className="font-black text-[15px]" style={{ color: s.up === false ? '#FF3B30' : s.up === true ? '#34C759' : '#007AFF' }}>{s.value}</p>
+                                                            <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {periodData?.visits && (
+                                                <div>
+                                                    <p className="text-[#86868B] text-[11px] font-bold mb-3">{period === '1' ? 'היום' : `${period} ימים אחרונים`}</p>
+                                                    <BarChart data={periodData.visits} color="#007AFF" labels={periodData.labels || []} height={140} />
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })()}
@@ -796,7 +1253,7 @@ export default function AdminDashboard() {
                                             </div>
                                         ))}
                                     </div>
-                                ) : m.data ? (
+                                ) : (m.data && drilldown !== 'visits') ? (
                                     <div>
                                         <p className="text-[#86868B] text-[11px] font-bold mb-3">
                                             {period === '1' ? 'היום' : `${period} ימים אחרונים`} — לחץ על עמודה לפירוט
@@ -834,13 +1291,18 @@ export default function AdminDashboard() {
                                     </div>
                                 )}
 
-                                {/* ── Layer 3: Navigate to full analytics ── */}
+                                {/* ── Layer 3: Navigate to full view ── */}
                                 <div className="pt-3 border-t border-black/06 flex items-center justify-between">
-                                    <span className="text-[10px] text-[#AEAEB2] font-medium">שכבה 2 מתוך 3 · לוח בקרה</span>
+                                    <span className="text-[10px] text-[#AEAEB2] font-medium">לחץ לצלילה עמוקה →</span>
                                     <motion.button
                                         whileHover={{ x: -3 }}
                                         whileTap={{ scale: 0.96 }}
-                                        onClick={() => { navigate(`/admin/analytics`); setDrilldown(null); }}
+                                        onClick={() => {
+                                            const routes = { lowStock: '/admin/inventory', contacts: '/admin/communications', catalog: '/admin/inventory' };
+                                            const route = routes[drilldown] || '/admin/analytics';
+                                            navigate(route);
+                                            setDrilldown(null);
+                                        }}
                                         className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-[12px] font-black"
                                         style={{ background: `${m.color}14`, color: m.color, border: `1px solid ${m.color}28` }}
                                     >

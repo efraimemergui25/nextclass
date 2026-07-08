@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, Sparkles, CheckCircle } from 'lucide-react';
+import { X, Star, Sparkles, CheckCircle, UserCircle2 } from 'lucide-react';
 import { useAuth, TIER_CONFIG } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLocation } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { usePersonalization } from '../context/PersonalizationContext';
+
+const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
 
 // ─── Shared glass style ───────────────────────────────────────────────────────
 const glass = {
@@ -510,11 +513,63 @@ export function QuoteStatusWatcher() {
     );
 }
 
+// ─── PersonaBar — smart greeting strip for users with a saved profile ─────────
+export function PersonaBar() {
+    const { user, firstName, timeGreeting, tierColor } = useAuth();
+    const { isOnboardingDone, greetingContext, setShowOnboarding } = usePersonalization();
+    const location = useLocation();
+
+    // Only show on landing / catalog — not on product detail or checkout
+    const show = user && isOnboardingDone && greetingContext &&
+        (location.pathname === '/' || location.pathname.startsWith('/catalog') || location.pathname === '/discover');
+
+    if (!show) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+                width: '100%',
+                background: `linear-gradient(90deg, ${tierColor}08 0%, ${tierColor}04 100%)`,
+                borderBottom: `1px solid ${tierColor}18`,
+                padding: '7px 20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                fontFamily: 'Heebo, sans-serif', direction: 'rtl',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Sparkles size={12} color={tierColor} strokeWidth={2.5} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: tierColor }}>
+                    {timeGreeting.word}, {firstName}
+                </span>
+                <span style={{ fontSize: 12, color: '#86868B', fontWeight: 500 }}>·</span>
+                <span style={{ fontSize: 12, color: '#86868B', fontWeight: 500 }}>{greetingContext}</span>
+            </div>
+            <button
+                onClick={() => setShowOnboarding(true)}
+                style={{ background: 'none', border: 'none', fontSize: 11, color: '#AEAEB2', cursor: 'pointer', fontFamily: 'Heebo, sans-serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+                <UserCircle2 size={11} />
+                ערוך פרופיל
+            </button>
+        </motion.div>
+    );
+}
+
 // ─── Default export — render all personalization layers ───────────────────────
 export default function PersonalizationLayer() {
+    const { showOnboarding } = usePersonalization();
     return (
         <>
             <QuoteStatusWatcher />
+            <AnimatePresence>
+                {showOnboarding && (
+                    <Suspense fallback={null}>
+                        <OnboardingWizard />
+                    </Suspense>
+                )}
+            </AnimatePresence>
         </>
     );
 }

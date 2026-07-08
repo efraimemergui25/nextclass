@@ -61,6 +61,9 @@ export default function AdminSettings() {
     const allowOrders     = getSetting('allow_orders', true);
     const setSiteSetting  = (key, value) => updateGlobalSettings({ [key]: value });
 
+    // ─── Monthly revenue target ─────────────────────────────────────────────────
+    const [revenueTarget, setRevenueTarget] = useState(() => getSetting('monthly_revenue_target', 0));
+
     // ─── Business info (Firestore) ──────────────────────────────────────────────
     const [bizName,      setBizName]      = useState(getSetting('biz_name',        'NextClass'));
     const [bizPhone,     setBizPhone]     = useState(getSetting('contact_phone',    '058-5856356'));
@@ -232,6 +235,32 @@ export default function AdminSettings() {
                             value={allowOrders}
                             onChange={v => setSiteSetting('allow_orders', v)}
                         />
+                    </div>
+                    {/* Monthly revenue target */}
+                    <div className="pt-4 border-t border-black/06">
+                        <p className="text-[13px] font-black text-[#1D1D1F] mb-1">יעד הכנסות חודשי</p>
+                        <p className="text-[11px] text-[#86868B] mb-3 font-medium">משמש ב-GoalRing בדשבורד. ריק = חישוב אוטומטי (×1.5 מהחודש הקודם).</p>
+                        <div className="flex items-center gap-3">
+                            <div className="relative flex-1">
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-black text-[#86868B]">₪</span>
+                                <input
+                                    type="number"
+                                    value={revenueTarget || ''}
+                                    onChange={e => setRevenueTarget(Number(e.target.value) || 0)}
+                                    placeholder="ריק = אוטומטי"
+                                    min="0"
+                                    dir="ltr"
+                                    className="w-full rounded-xl pr-8 pl-4 py-2.5 text-sm font-bold text-[#1D1D1F] outline-none transition-all"
+                                    style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.10)', fontFamily: 'Heebo, sans-serif' }}
+                                    onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.09)'; }}
+                                    onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.10)'; e.target.style.boxShadow = 'none'; }}
+                                />
+                            </div>
+                            <AdminButton onClick={() => {
+                                setSiteSetting('monthly_revenue_target', revenueTarget);
+                                showToast(revenueTarget > 0 ? `יעד עודכן: ₪${revenueTarget.toLocaleString()}` : 'יעד אוטומטי הופעל', 'success');
+                            }} size="sm">שמור יעד</AdminButton>
+                        </div>
                     </div>
                     <p className="text-[#AEAEB2] text-xs">שינויים נכנסים לתוקף מיידי דרך Firestore</p>
                 </SettingCard>

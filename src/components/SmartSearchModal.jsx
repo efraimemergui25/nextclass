@@ -22,16 +22,23 @@ const SmartSearchModal = ({ isOpen, onClose }) => {
  noResults: getSetting('search_no_results', 'לא נמצאו תוצאות עבור "{term}"')
  }), [getSetting]);
 
- // Spotlight-style Auto Focus
+ // Spotlight-style Auto Focus + ESC close
  useEffect(() => {
  if (isOpen) {
  setTimeout(() => inputRef.current?.focus(), 100);
  document.body.style.overflow = 'hidden';
  } else {
- document.body.style.overflow = 'unset';
+ document.body.style.overflow = '';
  setSearchTerm('');
  }
  }, [isOpen]);
+
+ useEffect(() => {
+ if (!isOpen) return;
+ const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+ document.addEventListener('keydown', handleKey);
+ return () => document.removeEventListener('keydown', handleKey);
+ }, [isOpen, onClose]);
 
  // Live Filtering Logic (Source of Truth: ProductsContext)
  const filteredProducts = useMemo(() => {

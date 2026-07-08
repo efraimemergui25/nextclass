@@ -206,6 +206,17 @@ export function AuthProvider({ children }) {
         await updateDoc(doc(db, 'users', user.uid), fields);
     }, [user]);
 
+    // ─── Personalization preferences ──────────────────────────────────────────
+    const updatePreferences = useCallback(async (prefs) => {
+        if (!user) return;
+        const updated = { ...prefs, onboardingCompleted: true };
+        await updateDoc(doc(db, 'users', user.uid), { preferences: updated });
+        setUserDoc(prev => ({ ...(prev || {}), preferences: updated }));
+    }, [user]);
+
+    const preferences    = userDoc?.preferences || null;
+    const isOnboardingDone = !!(userDoc?.preferences?.onboardingCompleted);
+
     return (
         <AuthContext.Provider value={{
             user, userDoc, loading,
@@ -217,6 +228,7 @@ export function AuthProvider({ children }) {
             signUp, signIn, signInGoogle, signInGoogleRedirect, signOut, resetPassword,
             authOpen, openAuthModal, closeAuthModal,
             fetchAllUsers, updateUserTier, updateUserProfile,
+            preferences, isOnboardingDone, updatePreferences,
         }}>
             {children}
         </AuthContext.Provider>

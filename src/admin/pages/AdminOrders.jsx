@@ -176,7 +176,7 @@ function EmailPreviewModal({ type, quote, html, subject, loading, sending, onClo
                         onClick={() => onSend(hasNote ? customNote : null, subjectChanged ? editSubject : null)}
                         disabled={loading || sending}
                         style={{ padding: '9px 24px', borderRadius: 12, border: 'none', background: loading || sending ? '#AEAEB2' : 'linear-gradient(135deg,#007AFF,#5856D6)', fontSize: 13, fontWeight: 800, color: '#fff', cursor: loading || sending ? 'not-allowed' : 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: loading || sending ? 'none' : '0 4px 14px rgba(0,122,255,0.35)' }}>
-                        {sending ? '⏳ שולח...' : hasNote ? '✉️ שלח עם הערה' : '✉️ שלח מייל'}
+                        {sending ? 'שולח...' : hasNote ? 'שלח עם הערה' : 'שלח מייל'}
                     </motion.button>
                 </div>
             </motion.div>
@@ -679,7 +679,7 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
                 onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.10)'} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {quote.phone && <StageBtn color="#25D366" label="📱 שלח WhatsApp" onClick={() => handleSend('wa')} />}
-                {quote.email && <StageBtn color="#007AFF" label="✉️ שלח מייל" onClick={() => handleSend('email')} />}
+                {quote.email && <StageBtn color="#007AFF" label="שלח מייל" onClick={() => handleSend('email')} />}
                 <StageBtn color="#34C759" label="✓ שמור כהצעה שנשלחה" onClick={() => handleSend('save')} secondary />
             </div>
         </div>
@@ -742,6 +742,9 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
         Object.fromEntries(items.map(it => [it.id ?? it.title, '']))
     );
     const [shipping, setShipping] = useState('');
+    const [shippingPayer, setShippingPayer] = useState('me');      // 'me' | 'customer'
+    const [supplierShipping, setSupplierShipping] = useState(''); // shown in supplier email
+    const [supplierShippingInQuote, setSupplierShippingInQuote] = useState(false);
     const [otherLabel, setOtherLabel] = useState('');
     const [otherAmount, setOtherAmount] = useState('');
 
@@ -750,7 +753,9 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
         const qty = it.qty ?? it.quantity ?? 1;
         return s + (Number(costs[it.id ?? it.title]) || 0) * qty;
     }, 0);
-    const totalAdditional = (Number(shipping) || 0) + (Number(otherAmount) || 0);
+    // Customer-paid shipping doesn't reduce my profitability
+    const myShippingCost = shippingPayer === 'me' ? (Number(shipping) || 0) : 0;
+    const totalAdditional = myShippingCost + (Number(otherAmount) || 0);
     const netProfit = totalRevenue - totalSupplierCost - totalAdditional;
     const profitPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
     const allFilled = items.every(it => Number(costs[it.id ?? it.title]) > 0);
@@ -761,7 +766,10 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
         <div style={{ padding: '16px 20px 20px', direction: 'rtl', overflowY: 'auto', maxHeight: 520 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <button onClick={onBack} style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, color: '#86868B', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>← חזור</button>
-                <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>💰 חישוב רווחיות</p>
+                <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5856D6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                    חישוב רווחיות
+                </p>
             </div>
 
             {/* Items */}
@@ -809,21 +817,55 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
             {/* Additional costs */}
             <div style={{ padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(0,0,0,0.08)', background: '#F5F5F7', marginBottom: 16 }}>
                 <p style={{ fontSize: 11, fontWeight: 800, color: '#86868B', margin: '0 0 10px', letterSpacing: '0.04em' }}>עלויות נוספות</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <div>
-                        <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: '0 0 4px' }}>משלוח</p>
-                        <div style={{ position: 'relative' }}>
-                            <input type="number" value={shipping} onChange={e => setShipping(e.target.value)} placeholder="0"
-                                style={{ width: '100%', padding: '7px 22px 7px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
-                            <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+
+                {/* Shipping row with payer toggle */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: 0 }}>🚚 משלוח — מי משלם?</p>
+                        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.10)' }}>
+                            {[['me', 'אני'], ['customer', 'הלקוח']].map(([v, label]) => (
+                                <button key={v} onClick={() => setShippingPayer(v)} style={{ padding: '4px 10px', fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer', fontFamily: 'Heebo,sans-serif', transition: 'all 0.15s', background: shippingPayer === v ? (v === 'me' ? '#FF9500' : '#34C759') : 'rgba(0,0,0,0.04)', color: shippingPayer === v ? '#fff' : '#86868B' }}>{label}</button>
+                            ))}
                         </div>
                     </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        <div>
+                            <p style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 700, margin: '0 0 3px' }}>עלות משלוח שלי</p>
+                            <div style={{ position: 'relative' }}>
+                                <input type="number" value={shipping} onChange={e => setShipping(e.target.value)} placeholder="0"
+                                    style={{ width: '100%', padding: '6px 22px 6px 8px', borderRadius: 7, border: `1.5px solid ${shippingPayer === 'me' ? 'rgba(255,149,0,0.35)' : 'rgba(52,199,89,0.35)'}`, fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left', background: shippingPayer === 'customer' ? 'rgba(52,199,89,0.05)' : '#fff' }} />
+                                <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+                            </div>
+                            {shippingPayer === 'customer' && Number(shipping) > 0 && (
+                                <p style={{ fontSize: 9, color: '#34C759', fontWeight: 700, margin: '3px 0 0' }}>✓ לא יורד מהרווחיות</p>
+                            )}
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 700, margin: '0 0 3px' }}>משלוח בהצעת ספק?</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                <input type="checkbox" checked={supplierShippingInQuote} onChange={e => setSupplierShippingInQuote(e.target.checked)} style={{ width: 13, height: 13, accentColor: '#007AFF', cursor: 'pointer' }} />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#6E6E73' }}>מופיע בהצעת הספק</span>
+                            </div>
+                            {supplierShippingInQuote && (
+                                <div style={{ position: 'relative' }}>
+                                    <input type="number" value={supplierShipping} onChange={e => setSupplierShipping(e.target.value)} placeholder="0"
+                                        style={{ width: '100%', padding: '6px 22px 6px 8px', borderRadius: 7, border: '1.5px solid rgba(0,122,255,0.3)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
+                                    <span style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#86868B' }}>₪</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Other cost */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
                         <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: '0 0 4px' }}>אחר (תיאור)</p>
                         <input value={otherLabel} onChange={e => setOtherLabel(e.target.value)} placeholder="עמלה, אריזה..." dir="rtl"
                             style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box' }} />
                     </div>
-                    <div style={{ gridColumn: '2', marginTop: -4 }}>
+                    <div>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#86868B', margin: '0 0 4px' }}>סכום</p>
                         <div style={{ position: 'relative' }}>
                             <input type="number" value={otherAmount} onChange={e => setOtherAmount(e.target.value)} placeholder="0"
                                 style={{ width: '100%', padding: '7px 22px 7px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12, fontFamily: 'Heebo,sans-serif', boxSizing: 'border-box', textAlign: 'left' }} />
@@ -854,9 +896,9 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
                 </div>
             </div>
 
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => onContinue({ costs, shipping: Number(shipping) || 0, otherLabel, otherAmount: Number(otherAmount) || 0 })} disabled={!allFilled}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => onContinue({ costs, shipping: Number(shipping) || 0, shippingPayer, supplierShippingInQuote, supplierShipping: supplierShippingInQuote ? (Number(supplierShipping) || 0) : 0, otherLabel, otherAmount: Number(otherAmount) || 0 })} disabled={!allFilled}
                 style={{ width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: allFilled ? 'linear-gradient(135deg,#5856D6,#007AFF)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, cursor: allFilled ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif', boxShadow: allFilled ? '0 4px 16px rgba(88,86,214,0.35)' : 'none' }}>
-                ✅ המשך לאישור הזמנה לספק
+                המשך לאישור הזמנה לספק
             </motion.button>
             {!allFilled && <p style={{ fontSize: 11, color: '#FF9500', textAlign: 'center', margin: '8px 0 0', fontWeight: 700 }}>יש להזין מחיר ספק לכל הפריטים</p>}
         </div>
@@ -866,47 +908,44 @@ function ProfitCalculatorPanel({ quote, onBack, onContinue }) {
 // ── Supplier Contact Modal ────────────────────────────────────────────────────
 function SupplierContactModal({ quote, supplier, onClose }) {
     const { showToast } = useAdminToast();
-    const [tab, setTab] = useState('whatsapp');
-    const [showPricing, setShowPricing] = useState(false);
+    // step: 'pricing' (mandatory first) → 'contact' (tabs)
+    const [step, setStep] = useState('pricing');
+    const [pricingData, setPricingData] = useState(null);
+    const [tab, setTab] = useState('email');
     const [supplierPreview, setSupplierPreview]     = useState(null);
     const [supplierPreviewHtml, setSupplierPreviewHtml]       = useState('');
     const [supplierPreviewSubject, setSupplierPreviewSubject] = useState('');
     const [supplierPreviewLoading, setSupplierPreviewLoading] = useState(false);
     const [supplierPreviewSending, setSupplierPreviewSending] = useState(false);
 
-    const openSupplierEmailPreview = async (pricingData = null) => {
-        const emailTo = supplier?.agentEmail || supplier?.email;
-        if (!emailTo) { showToast?.('אין כתובת מייל לספק', 'error'); return; }
-        setSupplierPreview({ emailTo, pricingData });
-        setSupplierPreviewHtml(''); setSupplierPreviewSubject(''); setSupplierPreviewLoading(true);
-        try {
-            const res = await fetch('/api/send-supplier-email', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData, preview: true }),
-            });
-            if (res.ok) { const d = await res.json(); setSupplierPreviewHtml(d.html || ''); setSupplierPreviewSubject(d.subject || ''); }
-            else { showToast?.('שגיאה בטעינת תצוגה', 'error'); setSupplierPreview(null); }
-        } catch { showToast?.('שגיאה', 'error'); setSupplierPreview(null); }
-        finally { setSupplierPreviewLoading(false); }
-    };
-
-    const handleSupplierSend = async () => {
-        setSupplierPreviewSending(true);
-        try {
-            const res = await fetch('/api/send-supplier-email', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData: supplierPreview?.pricingData }),
-            });
-            if (res.ok) { showToast?.('מייל נשלח לספק ✓', 'success'); setSupplierPreview(null); onClose(); }
-            else showToast?.('שגיאה בשליחת מייל', 'error');
-        } catch { showToast?.('שגיאה', 'error'); }
-        finally { setSupplierPreviewSending(false); }
-    };
-
-    const itemsText = (quote.items || []).map(i => `• ${i.title} × ${i.qty ?? i.quantity ?? 1}`).join('\n');
     const phone = (supplier?.agentPhone || supplier?.phone || '').replace(/\D/g, '').replace(/^0/, '972');
     const email = supplier?.agentEmail || supplier?.email || '';
     const supplierName = supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
+    const itemsText = (quote.items || []).map(i => `• ${i.title} × ${i.qty ?? i.quantity ?? 1}`).join('\n');
+
+    // Shipping line: use explicit supplierShipping when checkbox checked, otherwise fall back to the main shipping field
+    const _shippingAmt = pricingData?.supplierShippingInQuote && Number(pricingData?.supplierShipping) > 0
+        ? Number(pricingData.supplierShipping)
+        : Number(pricingData?.shipping) || 0;
+    const supplierShippingLine = _shippingAmt > 0
+        ? `🚚 משלוח: ₪${_shippingAmt.toLocaleString()}`
+        : null;
+
+    // Compute profit summary for the badge shown in step 2
+    const profitSummary = (() => {
+        if (!pricingData) return null;
+        const items = quote.items || [];
+        const costsMap = pricingData.costs || {};
+        const totalCost = items.reduce((s, it) => {
+            const key = it.id ?? it.title;
+            const qty = it.qty ?? it.quantity ?? 1;
+            return s + (Number(costsMap[key]) || 0) * qty;
+        }, 0);
+        const myShip = pricingData.shippingPayer === 'me' ? (Number(pricingData.shipping) || 0) : 0;
+        const net = (Number(quote.subtotal) || 0) - totalCost - myShip - (Number(pricingData.otherAmount) || 0);
+        const pct = (Number(quote.subtotal) || 0) > 0 ? (net / Number(quote.subtotal)) * 100 : 0;
+        return { net: Math.round(net), pct: Math.round(pct * 10) / 10 };
+    })();
 
     const waMsg = [
         `📦 *הזמנה ${quote.id} מ-NextClass*`,
@@ -916,6 +955,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         `אנחנו מבקשים להזמין את הפריטים הבאים עבור לקוחנו:`,
         ``,
         itemsText,
+        supplierShippingLine ? `\n💳 *עלויות נוספות בהצעה:*\n${supplierShippingLine}` : null,
         ``,
         `📍 *פרטי המשלוח:*`,
         quote.shippingDetails?.address ? `כתובת: ${quote.shippingDetails.address}, ${quote.shippingDetails.city || ''}` : '',
@@ -927,7 +967,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         ``,
         `תודה רבה,`,
         `צוות NextClass | 058-585-6356`,
-    ].filter(l => l !== null && l !== undefined && !(l === '' && false)).join('\n');
+    ].filter(l => l !== null && l !== undefined).join('\n');
 
     const emailSubject = `הזמנה ${quote.id} — NextClass`;
     const emailBody = [
@@ -942,6 +982,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         itemsText,
         ``,
         `סה"כ: ₪${(quote.subtotal || 0).toLocaleString()}`,
+        supplierShippingLine ? `\nעלויות נוספות בהצעה:\n${supplierShippingLine}` : null,
         ``,
         ...(quote.shippingDetails?.address ? [
             `פרטי משלוח:`,
@@ -953,16 +994,82 @@ function SupplierContactModal({ quote, supplier, onClose }) {
         `צוות NextClass`,
         `טל׳: 058-585-6356`,
         `מייל: nextclass.en@gmail.com`,
-    ].join('\n');
+    ].filter(l => l !== null).join('\n');
 
     const waLink = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}` : '';
     const emailLink = email ? `mailto:${email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}` : '';
     const callLink = phone ? `tel:+${phone}` : '';
 
-    const tabs = [
-        { id: 'whatsapp', label: '📱 WhatsApp', color: '#25D366' },
-        { id: 'email',    label: '✉️ מייל',     color: '#007AFF' },
-        { id: 'phone',    label: '📞 שיחה',     color: '#34C759' },
+    const handlePricingDone = (pd) => {
+        setPricingData(pd);
+        setStep('contact');
+        // Save profit to Firestore immediately so analytics always reflects it
+        if (pd && quote?.id) {
+            const items = quote.items || [];
+            const costsMap = pd.costs || {};
+            const totalSupplierCost = items.reduce((sum, it) => {
+                const key = it.id ?? it.title;
+                const qty = it.qty ?? it.quantity ?? 1;
+                return sum + (Number(costsMap[key]) || 0) * qty;
+            }, 0);
+            const myShipping = pd.shippingPayer === 'me' ? (Number(pd.shipping) || 0) : 0;
+            const netProfit = (Number(quote.subtotal) || 0) - totalSupplierCost - myShipping - (Number(pd.otherAmount) || 0);
+            const profitPct = (Number(quote.subtotal) || 0) > 0 ? (netProfit / (Number(quote.subtotal) || 1)) * 100 : 0;
+            updateDoc(doc(db, 'quotes', quote.id), {
+                pricingData: { ...pd, netProfit: Math.round(netProfit), profitPct: Math.round(profitPct * 10) / 10 },
+            }).catch(() => {});
+        }
+    };
+
+    const openSupplierEmailPreview = async (pd = null) => {
+        const emailTo = supplier?.agentEmail || supplier?.email;
+        if (!emailTo) { showToast?.('אין כתובת מייל לספק', 'error'); return; }
+        setSupplierPreview({ emailTo, pricingData: pd });
+        setSupplierPreviewHtml(''); setSupplierPreviewSubject(''); setSupplierPreviewLoading(true);
+        try {
+            const res = await fetch('/api/send-supplier-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData: pd, preview: true }),
+            });
+            if (res.ok) { const d = await res.json(); setSupplierPreviewHtml(d.html || ''); setSupplierPreviewSubject(d.subject || ''); }
+            else { showToast?.('שגיאה בטעינת תצוגה', 'error'); setSupplierPreview(null); }
+        } catch { showToast?.('שגיאה', 'error'); setSupplierPreview(null); }
+        finally { setSupplierPreviewLoading(false); }
+    };
+
+    const handleSupplierSend = async () => {
+        setSupplierPreviewSending(true);
+        try {
+            const res = await fetch('/api/send-supplier-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quote, supplier, type: 'order_confirmation', pricingData: supplierPreview?.pricingData }),
+            });
+            if (res.ok) {
+                const pd = supplierPreview?.pricingData;
+                if (pd && quote?.id) {
+                    const items = quote.items || [];
+                    const costsMap = pd.costs || {};
+                    const totalSupplierCost = items.reduce((sum, it) => {
+                        const key = it.id ?? it.title;
+                        const qty = it.qty ?? it.quantity ?? 1;
+                        return sum + (Number(costsMap[key]) || 0) * qty;
+                    }, 0);
+                    const myShipping = pd.shippingPayer === 'me' ? (Number(pd.shipping) || 0) : 0;
+                    const netProfit = (Number(quote.subtotal) || 0) - totalSupplierCost - myShipping - (Number(pd.otherAmount) || 0);
+                    const profitPct = (Number(quote.subtotal) || 0) > 0 ? (netProfit / (Number(quote.subtotal) || 1)) * 100 : 0;
+                    updateDoc(doc(db, 'quotes', quote.id), { pricingData: { ...pd, netProfit: Math.round(netProfit), profitPct: Math.round(profitPct * 10) / 10 } }).catch(() => {});
+                }
+                showToast?.('מייל נשלח לספק ✓', 'success'); setSupplierPreview(null); onClose();
+            }
+            else showToast?.('שגיאה בשליחת מייל', 'error');
+        } catch { showToast?.('שגיאה', 'error'); }
+        finally { setSupplierPreviewSending(false); }
+    };
+
+    const contactTabs = [
+        { id: 'email',    label: 'מייל',     color: '#007AFF' },
+        { id: 'whatsapp', label: 'WhatsApp', color: '#25D366' },
+        { id: 'phone',    label: 'שיחה',     color: '#34C759' },
     ];
 
     return (
@@ -972,101 +1079,136 @@ function SupplierContactModal({ quote, supplier, onClose }) {
             onClick={onClose}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
                 onClick={e => e.stopPropagation()}
-                style={{ width: '100%', maxWidth: 500, borderRadius: 24, background: '#fff', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden' }}
+                style={{ width: '100%', maxWidth: step === 'pricing' ? 460 : 500, maxHeight: '92vh', borderRadius: 24, background: '#fff', boxShadow: '0 32px 80px rgba(0,0,0,0.22)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
                 dir="rtl">
 
-                {/* Header */}
-                <div style={{ background: 'linear-gradient(135deg, #0891B2 0%, #0E7490 100%)', padding: '24px 24px 20px', position: 'relative' }}>
-                    <button onClick={onClose} style={{ position: 'absolute', top: 14, left: 14, width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🏭</div>
+                {/* Header — sticky */}
+                <div style={{ background: 'linear-gradient(135deg, #0891B2 0%, #0E7490 100%)', padding: '20px 20px 16px', position: 'relative', flexShrink: 0 }}>
+                    <button onClick={onClose} style={{ position: 'absolute', top: 12, left: 14, width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏭</div>
                         <div>
-                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', margin: '0 0 3px', fontWeight: 700 }}>יצירת קשר עם ספק</p>
-                            <p style={{ fontSize: 18, fontWeight: 900, color: '#fff', margin: 0 }}>{supplierName}</p>
-                            {supplier?.contactPerson && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', margin: '2px 0 0' }}>{supplier.contactPerson}</p>}
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', margin: '0 0 2px', fontWeight: 700 }}>הזמנה לספק</p>
+                            <p style={{ fontSize: 16, fontWeight: 900, color: '#fff', margin: 0 }}>{supplierName}</p>
                         </div>
                     </div>
-                    {/* Order summary pill */}
-                    <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', borderRadius: 50, padding: '6px 14px' }}>
-                        <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>הזמנה {quote.id}</span>
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />
-                        <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>{(quote.items || []).length} פריטים</span>
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />
-                        <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>₪{(quote.subtotal || 0).toLocaleString()}</span>
+                    {/* Order pill */}
+                    <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.15)', borderRadius: 50, padding: '5px 12px' }}>
+                        <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{quote.id}</span>
+                        <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.5)' }} />
+                        <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{(quote.items || []).length} פריטים · ₪{(quote.subtotal || 0).toLocaleString()}</span>
+                    </div>
+                    {/* Step indicator */}
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: step === 'pricing' ? 'rgba(255,255,255,0.25)' : 'rgba(52,199,89,0.3)', border: `1px solid ${step === 'pricing' ? 'rgba(255,255,255,0.4)' : 'rgba(52,199,89,0.5)'}` }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{step === 'pricing' ? '①' : '✓'}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>חישוב רווחיות</span>
+                        </div>
+                        <div style={{ height: 1, width: 16, background: 'rgba(255,255,255,0.3)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: step === 'contact' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', border: `1px solid ${step === 'contact' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)'}` }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: step === 'contact' ? '#fff' : 'rgba(255,255,255,0.5)' }}>②</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: step === 'contact' ? '#fff' : 'rgba(255,255,255,0.5)' }}>יצירת קשר</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Tab bar */}
-                <div style={{ display: 'flex', padding: '12px 16px 0', gap: 6 }}>
-                    {tabs.map(t => (
-                        <button key={t.id} onClick={() => setTab(t.id)}
-                            style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'Heebo,sans-serif', transition: 'all 0.18s',
-                                background: tab === t.id ? t.color : 'rgba(0,0,0,0.05)',
-                                color: tab === t.id ? '#fff' : '#6E6E73',
-                                boxShadow: tab === t.id ? `0 4px 14px ${t.color}40` : 'none',
-                            }}>
-                            {t.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Content */}
-                <div style={{ padding: '16px 20px 20px' }}>
-                    {tab === 'whatsapp' && (
-                        <div>
-                            <div style={{ borderRadius: 16, background: '#F0FBF4', border: '1px solid rgba(37,211,102,0.2)', padding: 14, marginBottom: 12, maxHeight: 220, overflowY: 'auto' }}>
-                                <pre style={{ fontSize: 12, lineHeight: 1.65, color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', margin: 0, whiteSpace: 'pre-wrap', direction: 'rtl', textAlign: 'right' }}>{waMsg}</pre>
-                            </div>
-                            {!phone && <p style={{ fontSize: 11, color: '#FF3B30', textAlign: 'right', margin: '0 0 10px', fontWeight: 700 }}>⚠️ אין מספר טלפון לספק — עדכן בניהול ספקים</p>}
-                            <a href={waLink || '#'} target="_blank" rel="noopener noreferrer"
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, background: phone ? 'linear-gradient(135deg,#25D366,#128C7E)' : '#AEAEB2', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: phone ? '0 4px 16px rgba(37,211,102,0.35)' : 'none', pointerEvents: phone ? 'auto' : 'none' }}>
-                                📱 פתח ב-WhatsApp
-                            </a>
+                {/* Scrollable content area */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                    {/* Step 1: Profit Calculator */}
+                    {step === 'pricing' && (
+                        <div style={{ padding: '16px 18px 20px' }}>
+                            <ProfitCalculatorPanel
+                                quote={quote}
+                                onBack={onClose}
+                                onContinue={handlePricingDone}
+                            />
                         </div>
                     )}
-                    {tab === 'email' && !showPricing && (
-                        <div>
-                            <div style={{ borderRadius: 16, background: 'linear-gradient(135deg,#E0F7FF,#F0FBFF)', border: '1.5px solid rgba(8,145,178,0.2)', padding: 16, marginBottom: 14, textAlign: 'right' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#0891B2,#0E7490)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✉️</div>
-                                    <div>
-                                        <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>מייל הזמנה רשמי לספק</p>
-                                        <p style={{ fontSize: 11, color: '#6E6E73', margin: '2px 0 0' }}>לפני השליחה — הזן מחירי ספק וחשב רווחיות</p>
+
+                    {/* Step 2: Contact tabs */}
+                    {step === 'contact' && (
+                        <>
+                            {/* Profit summary banner */}
+                            {profitSummary && (
+                                <div style={{ padding: '10px 18px', background: profitSummary.net >= 0 ? 'rgba(52,199,89,0.07)' : 'rgba(255,59,48,0.07)', borderBottom: `1px solid ${profitSummary.net >= 0 ? 'rgba(52,199,89,0.15)' : 'rgba(255,59,48,0.15)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <button onClick={() => setStep('pricing')} style={{ fontSize: 10, fontWeight: 700, color: '#6E6E73', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>✏️ ערוך</button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#6E6E73' }}>✓ רווחיות חושבה</span>
+                                        <span style={{ fontSize: 13, fontWeight: 900, color: profitSummary.net >= 0 ? '#34C759' : '#FF3B30' }}>
+                                            {profitSummary.net >= 0 ? '+' : ''}₪{Math.abs(profitSummary.net).toLocaleString()}
+                                        </span>
+                                        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 7px', borderRadius: 50, background: profitSummary.net >= 0 ? 'rgba(52,199,89,0.12)' : 'rgba(255,59,48,0.12)', color: profitSummary.net >= 0 ? '#34C759' : '#FF3B30' }}>
+                                            {profitSummary.pct >= 0 ? '+' : ''}{profitSummary.pct}%
+                                        </span>
                                     </div>
                                 </div>
-                                {email
-                                    ? <p style={{ fontSize: 11, fontWeight: 700, color: '#0891B2', margin: 0 }}>📧 אל: {email}</p>
-                                    : <p style={{ fontSize: 11, color: '#FF3B30', margin: 0, fontWeight: 700 }}>⚠️ אין כתובת מייל לספק — עדכן בניהול ספקים</p>
-                                }
+                            )}
+
+                            {/* Tab bar */}
+                            <div style={{ display: 'flex', padding: '12px 16px 0', gap: 6 }}>
+                                {contactTabs.map(t => (
+                                    <button key={t.id} onClick={() => setTab(t.id)}
+                                        style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'Heebo,sans-serif', transition: 'all 0.18s',
+                                            background: tab === t.id ? t.color : 'rgba(0,0,0,0.05)',
+                                            color: tab === t.id ? '#fff' : '#6E6E73',
+                                            boxShadow: tab === t.id ? `0 4px 14px ${t.color}40` : 'none',
+                                        }}>
+                                        {t.label}
+                                    </button>
+                                ))}
                             </div>
-                            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowPricing(true)} disabled={!email}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: email ? 'linear-gradient(135deg,#5856D6,#007AFF)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: email ? '0 4px 16px rgba(88,86,214,0.35)' : 'none', cursor: email ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif' }}>
-                                💰 חשב רווחיות ושלח הזמנה
-                            </motion.button>
-                        </div>
-                    )}
-                    {tab === 'email' && showPricing && (
-                        <ProfitCalculatorPanel
-                            quote={quote}
-                            onBack={() => setShowPricing(false)}
-                            onContinue={(pricingData) => { setShowPricing(false); openSupplierEmailPreview(pricingData); }}
-                        />
-                    )}
-                    {tab === 'phone' && (
-                        <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg,#34C759,#30D158)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: '0 8px 28px rgba(52,199,89,0.35)' }}>📞</div>
-                            <p style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 4px' }}>{supplier?.agentPhone || supplier?.phone || '—'}</p>
-                            <p style={{ fontSize: 13, color: '#6E6E73', margin: '0 0 20px' }}>{supplier?.contactPerson || supplierName}</p>
-                            <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.07)', marginBottom: 16, textAlign: 'right' }}>
-                                <p style={{ fontSize: 11, fontWeight: 800, color: '#AEAEB2', margin: '0 0 6px' }}>זכור להזכיר בשיחה:</p>
-                                <p style={{ fontSize: 12, color: '#1D1D1F', margin: 0, lineHeight: 1.6 }}>• הזמנה מספר {quote.id}<br />• {(quote.items || []).length} פריטים · ₪{(quote.subtotal || 0).toLocaleString()}<br />• לקוח: {quote.contactName || '—'}, {quote.institution || '—'}</p>
+
+                            {/* Tab content */}
+                            <div style={{ padding: '14px 18px 20px' }}>
+                                {tab === 'email' && (
+                                    <div>
+                                        <div style={{ borderRadius: 14, background: 'linear-gradient(135deg,#E0F7FF,#F0FBFF)', border: '1.5px solid rgba(8,145,178,0.2)', padding: 14, marginBottom: 12, textAlign: 'right' }}>
+                                            <p style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F', margin: '0 0 4px' }}>מייל הזמנה רשמי לספק</p>
+                                            {email
+                                                ? <p style={{ fontSize: 11, fontWeight: 700, color: '#0891B2', margin: 0 }}>📧 אל: {email}</p>
+                                                : <p style={{ fontSize: 11, color: '#FF3B30', margin: 0, fontWeight: 700 }}>⚠️ אין כתובת מייל לספק</p>
+                                            }
+                                            {supplierShippingLine && (
+                                                <p style={{ fontSize: 10, color: '#34C759', fontWeight: 700, margin: '5px 0 0' }}>✓ {supplierShippingLine} — ייכלל במייל</p>
+                                            )}
+                                        </div>
+                                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => openSupplierEmailPreview(pricingData)} disabled={!email}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', background: email ? 'linear-gradient(135deg,#5856D6,#007AFF)' : '#AEAEB2', color: '#fff', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: email ? '0 4px 16px rgba(88,86,214,0.35)' : 'none', cursor: email ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif' }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                                            תצוגה מקדימה ושלח מייל
+                                        </motion.button>
+                                        <a href={emailLink || '#'} target="_blank" rel="noopener noreferrer"
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '10px', borderRadius: 12, background: 'rgba(0,122,255,0.07)', color: '#007AFF', textDecoration: 'none', fontSize: 12, fontWeight: 700, boxSizing: 'border-box', marginTop: 8, pointerEvents: email ? 'auto' : 'none' }}>
+                                            פתח בתוכנת מייל
+                                        </a>
+                                    </div>
+                                )}
+                                {tab === 'whatsapp' && (
+                                    <div>
+                                        <div style={{ borderRadius: 14, background: '#F0FBF4', border: '1px solid rgba(37,211,102,0.2)', padding: 12, marginBottom: 10, maxHeight: 200, overflowY: 'auto' }}>
+                                            <pre style={{ fontSize: 12, lineHeight: 1.65, color: '#1D1D1F', fontFamily: 'Heebo, sans-serif', margin: 0, whiteSpace: 'pre-wrap', direction: 'rtl', textAlign: 'right' }}>{waMsg}</pre>
+                                        </div>
+                                        {!phone && <p style={{ fontSize: 11, color: '#FF3B30', textAlign: 'right', margin: '0 0 10px', fontWeight: 700 }}>⚠️ אין מספר טלפון לספק</p>}
+                                        <a href={waLink || '#'} target="_blank" rel="noopener noreferrer"
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, background: phone ? 'linear-gradient(135deg,#25D366,#128C7E)' : '#AEAEB2', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: phone ? '0 4px 16px rgba(37,211,102,0.35)' : 'none', pointerEvents: phone ? 'auto' : 'none' }}>
+                                            📱 פתח ב-WhatsApp
+                                        </a>
+                                    </div>
+                                )}
+                                {tab === 'phone' && (
+                                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#34C759,#30D158)', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, boxShadow: '0 8px 28px rgba(52,199,89,0.35)' }}>📞</div>
+                                        <p style={{ fontSize: 20, fontWeight: 900, color: '#1D1D1F', margin: '0 0 4px' }}>{supplier?.agentPhone || supplier?.phone || '—'}</p>
+                                        <p style={{ fontSize: 12, color: '#6E6E73', margin: '0 0 16px' }}>{supplier?.contactPerson || supplierName}</p>
+                                        {!phone && <p style={{ fontSize: 11, color: '#FF3B30', fontWeight: 700, marginBottom: 10 }}>⚠️ אין מספר טלפון לספק</p>}
+                                        <a href={callLink || '#'}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, background: phone ? 'linear-gradient(135deg,#34C759,#30D158)' : '#AEAEB2', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: phone ? '0 4px 16px rgba(52,199,89,0.35)' : 'none', pointerEvents: phone ? 'auto' : 'none' }}>
+                                            📞 התקשר עכשיו
+                                        </a>
+                                    </div>
+                                )}
                             </div>
-                            {!phone && <p style={{ fontSize: 11, color: '#FF3B30', fontWeight: 700, marginBottom: 10 }}>⚠️ אין מספר טלפון לספק</p>}
-                            <a href={callLink || '#'}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, background: phone ? 'linear-gradient(135deg,#34C759,#30D158)' : '#AEAEB2', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 800, boxSizing: 'border-box', boxShadow: phone ? '0 4px 16px rgba(52,199,89,0.35)' : 'none', pointerEvents: phone ? 'auto' : 'none' }}>
-                                📞 התקשר עכשיו
-                            </a>
-                        </div>
+                        </>
                     )}
                 </div>
             </motion.div>
@@ -1210,18 +1352,19 @@ function SupplierTransferForm({ quote, updateQuoteFields, onUpdateStatus, showTo
                             {(selectedSupplier.agentPhone || selectedSupplier.phone) && (
                                 <a href={`tel:${selectedSupplier.agentPhone || selectedSupplier.phone}`}
                                     style={{ flex: 1, minWidth: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '8px', borderRadius: 10, background: 'rgba(52,199,89,0.09)', color: '#34C759', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>
-                                    📞 שיחה
+                                    שיחה
                                 </a>
                             )}
                             {(selectedSupplier.agentEmail || selectedSupplier.email) && (
                                 <a href={`mailto:${selectedSupplier.agentEmail || selectedSupplier.email}`}
                                     style={{ flex: 1, minWidth: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '8px', borderRadius: 10, background: 'rgba(0,122,255,0.09)', color: '#007AFF', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>
-                                    ✉️ מייל
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> מייל
                                 </a>
                             )}
                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowContactModal(true)}
-                                style={{ flex: 2, minWidth: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 800, fontFamily: 'Heebo,sans-serif', background: 'linear-gradient(135deg,#0891B2,#0E7490)', color: '#fff', boxShadow: '0 3px 10px rgba(8,145,178,0.25)' }}>
-                                📋 תבניות הודעה
+                                style={{ flex: 2, minWidth: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 800, fontFamily: 'Heebo,sans-serif', background: 'linear-gradient(135deg,#5856D6,#007AFF)', color: '#fff', boxShadow: '0 3px 10px rgba(88,86,214,0.3)' }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                חשב רווחיות ושלח
                             </motion.button>
                         </div>
                     </div>
@@ -1283,14 +1426,14 @@ function TrackingForm({ quote, updateQuoteFields, onUpdateStatus, showToast, ope
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <StageBtn color="#7C3AED" label="✓ עדכן ועבור לבדרך" onClick={handleSave} />
                 {waCustomer && <StageBtn color="#25D366" label="📱 WA ללקוח" href={waCustomer} target="_blank" />}
-                {quote.email && <StageBtn color="#007AFF" label="✉️ מייל עדכון ללקוח" onClick={() => openEmailPreview?.('in_transit', { ...quote, trackingInfo: form })} />}
+                {quote.email && <StageBtn color="#007AFF" label="מייל עדכון ללקוח" onClick={() => openEmailPreview?.('in_transit', { ...quote, trackingInfo: form })} />}
             </div>
             {emailNudge && (
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                     style={{ gridColumn: 'span 2', borderRadius: 12, background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.2)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#5856D6' }}>🚚 שלח מייל עדכון ללקוח?</span>
                     <div style={{ display: 'flex', gap: 6 }}>
-                        <StageBtn color="#007AFF" label="שלח מייל ✉️" onClick={() => { openEmailPreview?.('in_transit', { ...quote, trackingInfo: form }); setEmailNudge(false); }} />
+                        <StageBtn color="#007AFF" label="שלח מייל" onClick={() => { openEmailPreview?.('in_transit', { ...quote, trackingInfo: form }); setEmailNudge(false); }} />
                         <StageBtn color="#AEAEB2" label="לא עכשיו" onClick={() => setEmailNudge(false)} secondary />
                     </div>
                 </motion.div>
@@ -1310,13 +1453,13 @@ function ContactChips({ quote, onSwitchTab, waText }) {
                 <a href={waHref} target="_blank" rel="noopener noreferrer"
                     onClick={() => onSwitchTab?.('chat')}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: 'rgba(37,211,102,0.10)', border: '1px solid rgba(37,211,102,0.2)', color: '#15803D', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
-                    📱 {quote.phone}
+                    {quote.phone}
                 </a>
             )}
             {quote.email && (
                 <a href={`mailto:${quote.email}`}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: 'rgba(0,122,255,0.07)', border: '1px solid rgba(0,122,255,0.15)', color: '#007AFF', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-                    ✉️ {quote.email}
+                    {quote.email}
                 </a>
             )}
         </div>
@@ -1448,8 +1591,8 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
 
             {path === null && (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <StageBtn color="#34C759" label="✅ יש במלאי — בנה הצעה" onClick={() => setPath('instock')} />
-                    <StageBtn color="#F59E0B" label="📦 אין במלאי — פנה לספק" onClick={() => setPath('supplier')} secondary />
+                    <StageBtn color="#34C759" label="יש במלאי — בנה הצעה" onClick={() => setPath('instock')} />
+                    <StageBtn color="#F59E0B" label="אין במלאי — פנה לספק" onClick={() => setPath('supplier')} secondary />
                 </div>
             )}
 
@@ -1470,7 +1613,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                                 {selSupplier.contactPerson && <div style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', gridColumn: '1/-1' }}>{selSupplier.contactPerson}</div>}
                                 {selSupplier.agentName && selSupplier.agentName !== selSupplier.contactPerson && <div style={{ fontSize: 11, color: '#6E6E73' }}>סוכן: {selSupplier.agentName}</div>}
-                                {(selSupplier.agentEmail || selSupplier.email) && <a href={`mailto:${selSupplier.agentEmail || selSupplier.email}`} style={{ fontSize: 11, color: '#0891B2', textDecoration: 'none', fontWeight: 600 }}>✉️ {selSupplier.agentEmail || selSupplier.email}</a>}
+                                {(selSupplier.agentEmail || selSupplier.email) && <a href={`mailto:${selSupplier.agentEmail || selSupplier.email}`} style={{ fontSize: 11, color: '#0891B2', textDecoration: 'none', fontWeight: 600 }}>{selSupplier.agentEmail || selSupplier.email}</a>}
                                 {(selSupplier.agentPhone || selSupplier.phone) && <a href={`tel:${selSupplier.agentPhone || selSupplier.phone}`} style={{ fontSize: 11, color: '#0891B2', textDecoration: 'none', fontWeight: 600 }}>📞 {selSupplier.agentPhone || selSupplier.phone}</a>}
                                 {selSupplier.website && <a href={selSupplier.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#5856D6', textDecoration: 'none', fontWeight: 600, gridColumn: '1/-1' }}>🌐 {selSupplier.website}</a>}
                                 {selSupplier.address && <div style={{ fontSize: 11, color: '#6E6E73', gridColumn: '1/-1' }}>📍 {selSupplier.address}{selSupplier.city ? `, ${selSupplier.city}` : ''}</div>}
@@ -1490,7 +1633,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <StageBtn color="#0891B2" label="✉️ תצוגה ושליחה לספק" onClick={openSupplierPreview} disabled={!selSupplierName} />
+                        <StageBtn color="#0891B2" label="תצוגה ושליחה לספק" onClick={openSupplierPreview} disabled={!selSupplierName} />
                         <button type="button" onClick={() => setPath(null)} style={{ fontSize: 11, fontWeight: 700, color: '#86868B', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 10, padding: '7px 12px', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>← חזור</button>
                     </div>
                 </div>
@@ -1504,7 +1647,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                     style={{ width: '100%', maxWidth: 640, background: '#fff', borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 32px 80px rgba(0,0,0,0.3)' }}>
                     <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(135deg,#E8F8FF,#F0FAFF)' }} dir="rtl">
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>✉️ תצוגה מקדימה — מייל לספק</p>
+                            <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>תצוגה מקדימה — מייל לספק</p>
                             <button onClick={() => setPrevOpen(false)} style={{ border: 'none', background: 'rgba(0,0,0,0.07)', borderRadius: 99, width: 30, height: 30, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>✕</button>
                         </div>
                         {selSupplier && <p style={{ fontSize: 10, color: '#AEAEB2', margin: '0 0 8px' }}>אל: {selSupplier.agentEmail || selSupplier.email}</p>}
@@ -1532,7 +1675,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                         <button onClick={() => setPrevOpen(false)} style={{ padding: '10px 22px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.12)', background: '#fff', fontSize: 13, fontWeight: 800, color: '#1D1D1F', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>ביטול</button>
                         <motion.button whileTap={{ scale: 0.97 }} onClick={handleSupplierSend} disabled={prevLoading || prevSending}
                             style={{ padding: '10px 26px', borderRadius: 12, border: 'none', background: prevLoading || prevSending ? '#AEAEB2' : 'linear-gradient(135deg,#0891B2,#0284C7)', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 4px 14px rgba(8,145,178,0.35)' }}>
-                            {prevSending ? '⏳ שולח...' : '✉️ שלח לספק'}
+                            {prevSending ? 'שולח...' : 'שלח לספק'}
                         </motion.button>
                     </div>
                 </motion.div>
@@ -1547,7 +1690,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
 function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast, navigate, onSwitchTab, openEmailPreview }) {
     const { status } = quote;
     const emailBtn = (type, label) => quote.email
-        ? <StageBtn color="#007AFF" label={`✉️ ${label}`} onClick={() => openEmailPreview(type, quote)} secondary />
+        ? <StageBtn color="#007AFF" label={label} onClick={() => openEmailPreview(type, quote)} secondary />
         : null;
 
     if (status === 'חדש') return (
@@ -1591,7 +1734,7 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
                     </div>
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <StageBtn color="#007AFF" label="✅ הלקוח אישר — קדימה" onClick={() => { onUpdateStatus(quote.id, 'ממתין לאישור'); showToast('עבר ל"ממתין לאישור"', 'success'); }} />
+                    <StageBtn color="#007AFF" label="הלקוח אישר — קדימה" onClick={() => { onUpdateStatus(quote.id, 'ממתין לאישור'); showToast('עבר ל"ממתין לאישור"', 'success'); }} />
                     {quote.phone && <StageBtn color="#25D366" label="📱 תזכורת WhatsApp"
                         href={`https://wa.me/972${quote.phone.replace(/^0/, '').replace(/-/g, '')}?text=${encodeURIComponent(`שלום ${quote.contactName || ''}, רציתי לבדוק שקיבלת את הצעת המחיר שלנו (${quote.id}). האם יש שאלות?`)}`}
                         target="_blank" secondary />}
@@ -1684,100 +1827,199 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
 function Customer360Panel({ quote, allQuotes, onOpen, navigate }) {
     const email = quote.email || '';
     const phone = quote.phone || '';
+    const [copied, setCopied] = useState('');
+
     const related = useMemo(() => allQuotes.filter(q =>
         q.id !== quote.id &&
         ((email && (q.email === email || q.contactEmail === email)) ||
          (phone && (q.phone === phone)))
     ).sort((a, b) => b.dateTs - a.dateTs), [allQuotes, quote, email, phone]);
 
-    const ltv = useMemo(() => related.reduce((s, q) => {
-        const total = q.subtotal || (q.items || []).reduce((t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
-        return s + total;
-    }, 0), [related]);
+    const allCustomerQuotes = useMemo(() => [quote, ...related].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0)), [quote, related]);
 
-    const firstTs = useMemo(() => {
-        const all = [quote, ...related];
-        return all.reduce((min, q) => Math.min(min, q.dateTs || Date.now()), Date.now());
-    }, [quote, related]);
+    const quoteValue = (q) => q.subtotal || (q.items || []).reduce((t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
 
-    const daysSinceFirst = Math.floor((Date.now() - firstTs) / 86400000);
-    const closedDeals    = related.filter(q => ['נסגר', 'סופק'].includes(q.status)).length;
+    const ltv = useMemo(() => allCustomerQuotes.reduce((s, q) => s + quoteValue(q), 0), [allCustomerQuotes]);
+    const closedDeals = useMemo(() => allCustomerQuotes.filter(q => ['נסגר', 'סופק'].includes(q.status)).length, [allCustomerQuotes]);
+
+    const firstTs = useMemo(() => allCustomerQuotes.reduce((min, q) => Math.min(min, q.dateTs || Date.now()), Date.now()), [allCustomerQuotes]);
+    const daysSinceFirst = Math.max(0, Math.floor((Date.now() - firstTs) / 86400000));
+
+    // Product interest map
+    const productFreq = useMemo(() => {
+        const map = {};
+        allCustomerQuotes.forEach(q => (q.items || []).forEach(i => {
+            const k = i.title || i.name || i.id;
+            if (k) map[k] = (map[k] || 0) + (Number(i.qty) || 1);
+        }));
+        return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    }, [allCustomerQuotes]);
+
+    // Value score 0-100
+    const valueScore = useMemo(() => {
+        let score = 0;
+        if (closedDeals >= 3) score += 40; else score += closedDeals * 13;
+        if (ltv >= 50000) score += 35; else score += Math.floor((ltv / 50000) * 35);
+        if (daysSinceFirst >= 180) score += 15; else score += Math.floor((daysSinceFirst / 180) * 15);
+        if (allCustomerQuotes.length >= 4) score += 10; else score += allCustomerQuotes.length * 2.5;
+        return Math.min(100, Math.round(score));
+    }, [closedDeals, ltv, daysSinceFirst, allCustomerQuotes]);
+
+    const scoreColor = valueScore >= 70 ? '#34C759' : valueScore >= 40 ? '#FF9500' : '#007AFF';
+    const scoreLabel = valueScore >= 70 ? 'לקוח VIP' : valueScore >= 40 ? 'לקוח פעיל' : 'לקוח חדש';
+
+    const copyToClipboard = (text, key) => {
+        navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(''), 1500); });
+    };
+
+    const circumference = 2 * Math.PI * 20;
+    const dashOffset = circumference - (valueScore / 100) * circumference;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} dir="rtl">
-            {/* Summary cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+
+            {/* Hero — value score + identity */}
+            <div style={{ padding: '16px', borderRadius: 18, background: 'linear-gradient(135deg, rgba(0,122,255,0.06) 0%, rgba(88,86,214,0.06) 100%)', border: '1px solid rgba(0,122,255,0.12)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                {/* Score ring */}
+                <div style={{ flexShrink: 0, position: 'relative', width: 56, height: 56 }}>
+                    <svg width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="28" cy="28" r="20" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="4" />
+                        <circle cx="28" cy="28" r="20" fill="none" stroke={scoreColor} strokeWidth="4"
+                            strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                            strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{valueScore}</span>
+                    </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <p style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {quote.contactName || quote.institution || '—'}
+                        </p>
+                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: `${scoreColor}18`, color: scoreColor, flexShrink: 0 }}>{scoreLabel}</span>
+                    </div>
+                    {quote.institution && quote.contactName && (
+                        <p style={{ fontSize: 11, color: '#86868B', margin: '0 0 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quote.institution}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {quote.email && (
+                            <motion.button whileTap={{ scale: 0.95 }}
+                                onClick={() => copyToClipboard(quote.email, 'email')}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', background: copied === 'email' ? 'rgba(52,199,89,0.12)' : 'rgba(255,255,255,0.8)', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={copied === 'email' ? '#34C759' : '#8E8E93'} strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: copied === 'email' ? '#34C759' : '#1D1D1F', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{copied === 'email' ? 'הועתק!' : quote.email}</span>
+                            </motion.button>
+                        )}
+                        {quote.phone && (
+                            <motion.button whileTap={{ scale: 0.95 }}
+                                onClick={() => copyToClipboard(quote.phone, 'phone')}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', background: copied === 'phone' ? 'rgba(52,199,89,0.12)' : 'rgba(255,255,255,0.8)', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={copied === 'phone' ? '#34C759' : '#8E8E93'} strokeWidth="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.1 1.18 2 2 0 012.1 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.19 7.9a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: copied === 'phone' ? '#34C759' : '#1D1D1F' }}>{copied === 'phone' ? 'הועתק!' : quote.phone}</span>
+                            </motion.button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* KPI row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 7 }}>
                 {[
-                    { label: 'LTV ₪', value: ltv > 0 ? `₪${ltv.toLocaleString()}` : '—', color: '#34C759', bg: 'rgba(52,199,89,0.08)' },
-                    { label: 'ימים לקוח', value: daysSinceFirst, color: '#007AFF', bg: 'rgba(0,122,255,0.08)' },
-                    { label: 'עסקאות', value: closedDeals, color: '#5856D6', bg: 'rgba(88,86,214,0.08)' },
+                    { label: 'LTV', value: ltv > 0 ? `₪${ltv >= 1000 ? (ltv/1000).toFixed(1)+'K' : ltv.toLocaleString()}` : '—', color: '#34C759', bg: 'rgba(52,199,89,0.08)' },
+                    { label: 'הצעות', value: allCustomerQuotes.length, color: '#007AFF', bg: 'rgba(0,122,255,0.08)' },
+                    { label: 'נסגרו', value: closedDeals, color: '#5856D6', bg: 'rgba(88,86,214,0.08)' },
+                    { label: 'ימים', value: daysSinceFirst, color: '#FF9500', bg: 'rgba(255,149,0,0.08)' },
                 ].map(s => (
-                    <div key={s.label} style={{ padding: '12px 10px', borderRadius: 14, background: s.bg, textAlign: 'center' }}>
-                        <p style={{ fontSize: 18, fontWeight: 900, color: s.color, margin: 0 }}>{s.value}</p>
-                        <p style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', margin: '3px 0 0', letterSpacing: '0.08em' }}>{s.label}</p>
+                    <div key={s.label} style={{ padding: '10px 6px', borderRadius: 12, background: s.bg, textAlign: 'center' }}>
+                        <p style={{ fontSize: 16, fontWeight: 900, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
+                        <p style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', margin: '4px 0 0', letterSpacing: '0.08em' }}>{s.label}</p>
                     </div>
                 ))}
             </div>
 
-            {/* Contact info */}
-            <div style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.07)' }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>פרטי לקוח</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {[
-                        ['שם', quote.contactName],
-                        ['מייל', quote.email],
-                        ['טלפון', quote.phone],
-                        ['מוסד', quote.institution],
-                        ['תפקיד', quote.contactRole],
-                    ].filter(([,v]) => v).map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F' }}>{v}</span>
-                            <span style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.08em' }}>{l}</span>
-                        </div>
-                    ))}
-                </div>
-                {quote.email && (
-                    <motion.button whileTap={{ scale: 0.97 }}
-                        onClick={() => navigate(`/admin/users?email=${encodeURIComponent(quote.email)}`)}
-                        style={{ marginTop: 10, width: '100%', padding: '8px', borderRadius: 10, border: '1px solid rgba(0,122,255,0.22)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
-                        פתח פרופיל משתמש →
-                    </motion.button>
-                )}
-            </div>
-
-            {/* Historical quotes */}
-            <div>
-                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>
-                    היסטוריית הצעות ({related.length})
-                </p>
-                {related.length === 0 ? (
-                    <div style={{ padding: '16px', borderRadius: 14, border: '1.5px dashed rgba(0,0,0,0.08)', textAlign: 'center', color: '#AEAEB2', fontSize: 12, fontWeight: 700 }}>
-                        אין הצעות קודמות
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {related.map(q => {
-                            const color = QUOTE_STATUS_COLORS[q.status] || '#007AFF';
-                            const total = q.subtotal || (q.items || []).reduce((t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || 1)), 0);
+            {/* Product interests */}
+            {productFreq.length > 0 && (
+                <div>
+                    <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>עניין במוצרים</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {productFreq.map(([name, qty], idx) => {
+                            const maxQty = productFreq[0][1];
+                            const pct = Math.round((qty / maxQty) * 100);
+                            const barColor = idx === 0 ? '#007AFF' : idx === 1 ? '#5856D6' : idx === 2 ? '#FF9500' : '#34C759';
                             return (
-                                <motion.div key={q.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                                    onClick={() => onOpen(q)}
-                                    style={{ padding: '10px 12px', borderRadius: 12, background: '#fff', border: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {q.items?.map(i => i.title).join(', ') || q.id}
-                                        </p>
-                                        <p style={{ fontSize: 10, color: '#86868B', margin: '2px 0 0' }}>{q.date} · {q.id}</p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>{name}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: barColor }}>×{qty}</span>
+                                        </div>
+                                        <div style={{ height: 4, borderRadius: 99, background: 'rgba(0,0,0,0.05)' }}>
+                                            <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: idx * 0.05, duration: 0.5, ease: 'easeOut' }}
+                                                style={{ height: '100%', borderRadius: 99, background: barColor }} />
+                                        </div>
                                     </div>
-                                    <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                                        {total > 0 && <p style={{ fontSize: 12, fontWeight: 800, color, margin: 0 }}>₪{total.toLocaleString()}</p>}
-                                        <p style={{ fontSize: 9, fontWeight: 700, color, margin: '2px 0 0', background: `${color}12`, padding: '1px 6px', borderRadius: 99 }}>{q.status}</p>
-                                    </div>
-                                </motion.div>
+                                </div>
                             );
                         })}
                     </div>
+                </div>
+            )}
+
+            {/* Full quote timeline */}
+            <div>
+                <p style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.09em', margin: '0 0 8px' }}>
+                    ציר זמן הצעות ({allCustomerQuotes.length})
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {allCustomerQuotes.map(q => {
+                        const isCurrent = q.id === quote.id;
+                        const color = QUOTE_STATUS_COLORS[q.status] || '#007AFF';
+                        const total = quoteValue(q);
+                        return (
+                            <motion.div key={q.id}
+                                initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                                whileHover={{ scale: isCurrent ? 1 : 1.01 }} whileTap={{ scale: isCurrent ? 1 : 0.99 }}
+                                onClick={() => !isCurrent && onOpen(q)}
+                                style={{ padding: '10px 12px', borderRadius: 12, background: isCurrent ? 'rgba(0,122,255,0.06)' : '#fff', border: isCurrent ? '1.5px solid rgba(0,122,255,0.25)' : '1px solid rgba(0,0,0,0.07)', cursor: isCurrent ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: isCurrent ? 'none' : '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div style={{ position: 'relative', flexShrink: 0 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                                    {isCurrent && <div style={{ position: 'absolute', inset: -3, borderRadius: '50%', border: `1.5px solid ${color}`, opacity: 0.4 }} />}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {q.items?.map(i => i.title).join(', ') || q.id}
+                                        </p>
+                                        {isCurrent && <span style={{ fontSize: 8, fontWeight: 900, padding: '1px 5px', borderRadius: 99, background: 'rgba(0,122,255,0.12)', color: '#007AFF', flexShrink: 0 }}>נוכחי</span>}
+                                    </div>
+                                    <p style={{ fontSize: 10, color: '#86868B', margin: '2px 0 0' }}>{q.date}</p>
+                                </div>
+                                <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                                    {total > 0 && <p style={{ fontSize: 12, fontWeight: 800, color, margin: 0 }}>₪{total.toLocaleString()}</p>}
+                                    <p style={{ fontSize: 9, fontWeight: 700, color, margin: '2px 0 0', background: `${color}12`, padding: '1px 6px', borderRadius: 99, textAlign: 'center' }}>{q.status}</p>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Quick actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+                {quote.email && (
+                    <motion.a whileTap={{ scale: 0.96 }}
+                        href={`mailto:${quote.email}`}
+                        style={{ flex: 1, padding: '9px', borderRadius: 11, border: '1px solid rgba(0,122,255,0.22)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+                        שלח מייל
+                    </motion.a>
+                )}
+                {quote.email && (
+                    <motion.button whileTap={{ scale: 0.96 }}
+                        onClick={() => navigate(`/admin/users?email=${encodeURIComponent(quote.email)}`)}
+                        style={{ flex: 1, padding: '9px', borderRadius: 11, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1D1D1F', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                        פרופיל מלא
+                    </motion.button>
                 )}
             </div>
         </div>
@@ -2384,11 +2626,29 @@ function QuotesPipeline() {
         }).length;
     }, [quotes]);
 
+    // ── Duplicate institution detection ──────────────────────────────────────
+    const duplicateGroups = useMemo(() => {
+        const OPEN = new Set(['חדש','ביצירת קשר','בדיקת מלאי','הוצע מחיר','ממתין לאישור','הועבר לספק','בדרך']);
+        const openQ = quotes.filter(q => OPEN.has(q.status));
+        const byInst = {};
+        openQ.forEach(q => {
+            const key = (q.institution || q.email || '').trim().toLowerCase();
+            if (!key) return;
+            if (!byInst[key]) byInst[key] = [];
+            byInst[key].push(q);
+        });
+        return Object.values(byInst).filter(g => g.length >= 2)
+            .sort((a, b) => b.length - a.length)
+            .slice(0, 3);
+    }, [quotes]);
+
+    const shownReminderToast = useRef(false);
     useEffect(() => {
-        if (todayReminders > 0) {
-            setTimeout(() => showToast(`⏰ ${todayReminders} תזכורות להיום`, 'success'), 1200);
+        if (todayReminders > 0 && !shownReminderToast.current) {
+            shownReminderToast.current = true;
+            setTimeout(() => showToast(`${todayReminders} תזכורות להיום`, 'success'), 1200);
         }
-    }, []); // eslint-disable-line
+    }, [todayReminders]); // fires once when count first becomes non-zero
 
     const suggestions = useMemo(() => {
         if (!selected) return [];
@@ -2420,6 +2680,28 @@ function QuotesPipeline() {
                     <Stat label="דורשות טיפול" value={staleQuotes} color="#FF3B30" Icon={AlertCircle} tooltip="הצעות שלא התקדמו מעבר לזמן הצפוי לשלב." />
                 )}
             </div>
+
+            {/* ── Duplicate Institution Alert ─────────────────────────────── */}
+            {duplicateGroups.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    style={{ borderRadius: 16, background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.22)', padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <AlertCircle size={13} style={{ color: '#FF9500', flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#B86A00' }}>
+                            {duplicateGroups.length} מוסדות עם מספר הצעות פתוחות — שקול איחוד
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {duplicateGroups.map((g, i) => (
+                            <button key={i}
+                                onClick={() => setSearch(g[0].institution || g[0].email || '')}
+                                style={{ padding: '4px 10px', borderRadius: 99, background: 'rgba(255,149,0,0.12)', border: '1px solid rgba(255,149,0,0.28)', cursor: 'pointer', fontSize: 10, fontWeight: 800, color: '#B86A00', fontFamily: 'Heebo, sans-serif' }}>
+                                {g[0].institution || g[0].email || '—'} ({g.length})
+                            </button>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
 
             {/* Activity Feed */}
             {quotes.some(q => q.history?.length > 0) && (
@@ -2468,6 +2750,7 @@ function QuotesPipeline() {
                     onUpdateStatus={handleQuickStatus}
                     onOpen={(quote) => { setSelected(quote); setNewStatus(''); setSaved(false); setNoteText(''); }}
                     showToast={showToast}
+                    onNameClick={(quote) => navigate(`/admin/users?email=${encodeURIComponent(quote.email || '')}`)}
                 />
             )}
 
@@ -2769,23 +3052,8 @@ function QuotesPipeline() {
                             </div>
                         </div>
 
-                        {/* ―― Quick status bar ―― */}
-                        <QuickStatusBar
-                            currentStatus={selected.status}
-                            quoteId={selected.id}
-                            onUpdateStatus={(id, st) => { updateQuoteStatus(id, st); setSelected(s => ({ ...s, status: st })); showToast(`עודכן ל"${st}"`, 'success'); }}
-                        />
-
-                        {/* ―― Split view toggle — desktop only ―― */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }} className="hidden lg:flex">
-                            <button onClick={() => setSplitView(v => !v)}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(0,0,0,0.09)', background: splitView ? 'rgba(0,122,255,0.09)' : 'rgba(0,0,0,0.03)', color: splitView ? '#007AFF' : '#86868B', fontSize: 10, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', transition: 'all 0.18s' }}>
-                                {splitView ? '⬛ תצוגה יחידה' : '⬜⬜ פצל מסך'}
-                            </button>
-                        </div>
-
                         {/* ―― Tab bar ―― */}
-                        <div style={{ display: 'flex', gap: 3, marginBottom: 20, padding: 4, borderRadius: 16, background: 'rgba(0,0,0,0.04)' }}>
+                        <div style={{ display: 'flex', gap: 3, marginBottom: 12, padding: 4, borderRadius: 16, background: 'rgba(0,0,0,0.04)' }}>
                             {[
                                 { key: 'pipeline', label: 'תהליך' },
                                 { key: 'chat',     label: 'שיחה', badge: selected.unreadAdmin },
@@ -2805,6 +3073,21 @@ function QuotesPipeline() {
                             ))}
                         </div>
 
+                        {/* ―― Quick status bar ―― */}
+                        <QuickStatusBar
+                            currentStatus={selected.status}
+                            quoteId={selected.id}
+                            onUpdateStatus={(id, st) => { updateQuoteStatus(id, st); setSelected(s => ({ ...s, status: st })); showToast(`עודכן ל"${st}"`, 'success'); }}
+                        />
+
+                        {/* ―― Split view toggle — desktop only ―― */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }} className="hidden lg:flex">
+                            <button onClick={() => setSplitView(v => !v)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 99, border: '1px solid rgba(0,0,0,0.09)', background: splitView ? 'rgba(0,122,255,0.09)' : 'rgba(0,0,0,0.03)', color: splitView ? '#007AFF' : '#86868B', fontSize: 10, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', transition: 'all 0.18s' }}>
+                                {splitView ? '⬛ תצוגה יחידה' : '⬜⬜ פצל מסך'}
+                            </button>
+                        </div>
+
                         {/* ══ PIPELINE TAB ══ */}
                         <div style={{ display: splitView ? 'grid' : 'contents', gridTemplateColumns: splitView ? '1fr 1fr' : undefined, gap: splitView ? 16 : undefined }}>
                         {(activeTab === 'pipeline' || splitView) && (
@@ -2820,7 +3103,7 @@ function QuotesPipeline() {
                                         <p style={{ fontSize: 12, color: '#AEAEB2', margin: '0 0 14px' }}>ניתן להחזיר אותה לתהליך הרגיל, או לשלוח ללקוח מייל ביטול מנומס</p>
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                             {selected.email && (
-                                                <StageBtn color="#FF3B30" label="✉️ מייל ביטול ללקוח" onClick={() => openEmailPreview('cancelled', selected)} />
+                                                <StageBtn color="#FF3B30" label="מייל ביטול ללקוח" onClick={() => openEmailPreview('cancelled', selected)} />
                                             )}
                                             <StageBtn color="#FF9500" label="↩️ החזר לביצירת קשר" onClick={() => { updateQuoteStatus(selected.id, 'ביצירת קשר'); setSelected(s => ({ ...s, status: 'ביצירת קשר' })); showToast('הוחזר לתהליך', 'success'); }} secondary />
                                             <StageBtn color="#AEAEB2" label="↩️ החזר לחדש" onClick={() => { updateQuoteStatus(selected.id, 'חדש'); setSelected(s => ({ ...s, status: 'חדש' })); showToast('הוחזר לחדש', 'success'); }} secondary />
@@ -2997,7 +3280,7 @@ function QuotesPipeline() {
                                         {selected.email && (
                                             <a href={`mailto:${selected.email}`}
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 11px', borderRadius: 9, background: 'rgba(0,122,255,0.08)', color: '#007AFF', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>
-                                                ✉️ מייל
+                                                מייל
                                             </a>
                                         )}
                                         {selected.phone && (
@@ -3894,7 +4177,7 @@ function FulfillmentTab() {
                                                                     <>
                                                                         <button onClick={() => openFtEmailPreview('in_transit', q)}
                                                                             style={{ padding: '6px 12px', borderRadius: 10, background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 800, textDecoration: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
-                                                                            ✉️ מייל משלוח
+                                                                            מייל משלוח
                                                                         </button>
                                                                         {q.status === 'סופק' && (
                                                                             <button onClick={() => openFtEmailPreview('delivered', q)}

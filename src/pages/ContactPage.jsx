@@ -124,6 +124,9 @@ const ContactPage = () => {
  const handleSubmit = async (e) => {
  e.preventDefault();
 
+ if (!formData.name.trim()) { setSubmitError('נא להזין שם מלא'); return; }
+ if (!formData.email.trim() || !formData.email.includes('@')) { setSubmitError('נא להזין כתובת אימייל תקינה'); return; }
+
  const id = `CNT-${Date.now()}`;
  const contact = {
  id,

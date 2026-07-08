@@ -2,50 +2,66 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 // ─── Info Tooltip — always appears below the button, clamped to viewport
-export function InfoTooltip({ text }) {
+// Lazily create/reuse a position:fixed inset-0 overlay — position:absolute children
+// inside it always map 1:1 to getBoundingClientRect viewport coordinates, bypassing
+// any will-change:transform containing-block override from Framer Motion parents.
+function getTipOverlay() {
+    let el = document.getElementById('_ncTipOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = '_ncTipOverlay';
+        el.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999999;';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+export function InfoTooltip({ text, source, link, linkLabel = 'פתח נתונים' }) {
     const [open, setOpen] = useState(false);
-    const [pos,  setPos]  = useState({ top: 0, left: 0, arrowLeft: '50%' });
+    const [pos,  setPos]  = useState({ tipLeft: 0, tipTop: 0, arrowX: 0, showBelow: true });
     const btnRef          = useRef(null);
-    const TIP_W = 248;
+    const hideTimer       = useRef(null);
+    const TIP_W           = source ? 268 : 248;
+
+    let navigate;
+    try { navigate = useNavigate(); } catch (_) {}
+
+    useEffect(() => () => clearTimeout(hideTimer.current), []);
 
     const reposition = useCallback(() => {
         if (!btnRef.current) return;
         const r   = btnRef.current.getBoundingClientRect();
         const vw  = window.innerWidth;
         const vh  = window.innerHeight;
-        const PAD = 12;
+        const PAD = 10;
+        const btnCX = r.left + r.width / 2;
+        let tipLeft = btnCX - TIP_W / 2;
+        if (tipLeft < PAD)               tipLeft = PAD;
+        if (tipLeft + TIP_W > vw - PAD)  tipLeft = vw - TIP_W - PAD;
+        const arrowX   = Math.max(10, Math.min(btnCX - tipLeft, TIP_W - 10));
+        const showBelow = vh - r.bottom >= 100;
+        const tipTop    = showBelow ? r.bottom + 7 : r.top - 7;
+        setPos({ tipLeft, tipTop, arrowX, showBelow });
+    }, [TIP_W]);
 
-        // Horizontal: center on button, clamped inside viewport
-        const rawLeft   = r.left + r.width / 2;
-        const clampedL  = Math.max(TIP_W / 2 + PAD, Math.min(rawLeft, vw - TIP_W / 2 - PAD));
-        const arrowLeft = `calc(50% + ${rawLeft - clampedL}px)`;
+    const show = useCallback(() => { clearTimeout(hideTimer.current); reposition(); setOpen(true); }, [reposition]);
+    const hide = useCallback((delay = 160) => { hideTimer.current = setTimeout(() => setOpen(false), delay); }, []);
+    const cancelHide = useCallback(() => clearTimeout(hideTimer.current), []);
 
-        // Vertical: prefer below, flip above only when near bottom of viewport
-        const spaceBelow = vh - r.bottom;
-        const showBelow  = spaceBelow >= 80;
-
-        setPos({
-            left:      clampedL,
-            top:       showBelow ? r.bottom + 6 : r.top - 6,
-            showBelow,
-            arrowLeft,
-        });
-    }, []);
-
-    const show = useCallback(() => { reposition(); setOpen(true);  }, [reposition]);
-    const hide = useCallback(() => { setOpen(false); }, []);
+    const overlay = typeof document !== 'undefined' ? getTipOverlay() : null;
 
     return (
         <span className="inline-flex items-center" style={{ verticalAlign: 'middle' }}>
             <motion.button
                 ref={btnRef}
                 onMouseEnter={show}
-                onMouseLeave={hide}
+                onMouseLeave={() => hide()}
                 onFocus={show}
-                onBlur={hide}
-                onClick={e => { e.stopPropagation(); open ? hide() : show(); }}
+                onBlur={() => hide()}
+                onClick={e => { e.stopPropagation(); open ? hide(0) : show(); }}
                 className="w-[15px] h-[15px] rounded-full flex items-center justify-center ml-1 shrink-0"
                 style={{ background: 'rgba(0,0,0,0.08)', border: 'none', padding: 0, lineHeight: 1, cursor: 'pointer' }}
                 whileHover={{ scale: 1.25 }}
@@ -55,31 +71,30 @@ export function InfoTooltip({ text }) {
                 <span style={{ fontSize: 9, fontWeight: 900, color: '#6E6E73', userSelect: 'none' }}>i</span>
             </motion.button>
 
-            {createPortal(
+            {overlay && createPortal(
                 <AnimatePresence>
                     {open && (
                         <motion.div
                             key="tooltip"
-                            initial={{ opacity: 0, scale: 0.92 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.92 }}
-                            transition={{ duration: 0.13, ease: [0.22, 1, 0.36, 1] }}
+                            initial={{ opacity: 0, scale: 0.94, y: pos.showBelow ? -4 : 4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.94 }}
+                            transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                            onMouseEnter={cancelHide}
+                            onMouseLeave={() => hide()}
                             style={{
-                                position: 'fixed',
-                                top:  pos.top,
-                                left: pos.left,
-                                transform: `translateX(-50%) translateY(${pos.showBelow ? '0%' : '-100%'})`,
-                                zIndex: 999999,
-                                width: TIP_W,
-                                pointerEvents: 'none',
+                                position: 'absolute',
+                                top:    pos.showBelow ? pos.tipTop : undefined,
+                                bottom: !pos.showBelow ? `calc(100vh - ${pos.tipTop}px)` : undefined,
+                                left:   pos.tipLeft,
+                                width:  TIP_W,
                                 transformOrigin: pos.showBelow ? 'top center' : 'bottom center',
+                                pointerEvents: 'auto',
                             }}
                         >
-                            {/* Arrow pointing UP at the button (when showing below) */}
                             {pos.showBelow && (
                                 <div style={{
-                                    position: 'absolute',
-                                    top: -5, left: pos.arrowLeft,
+                                    position: 'absolute', top: -5, left: pos.arrowX,
                                     transform: 'translateX(-50%) rotate(45deg)',
                                     width: 10, height: 10,
                                     background: 'rgba(29,29,31,0.97)',
@@ -91,17 +106,38 @@ export function InfoTooltip({ text }) {
                             <div style={{
                                 background: 'rgba(29,29,31,0.97)',
                                 borderRadius: 12,
-                                padding: '9px 13px',
+                                padding: '10px 13px',
                                 boxShadow: '0 12px 40px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.16)',
                                 border: '1px solid rgba(255,255,255,0.10)',
                             }}>
                                 <p style={{ color: '#F5F5F7', fontSize: 11.5, fontWeight: 500, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', margin: 0 }}>{text}</p>
+                                {source && (
+                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 8, paddingTop: 8, direction: 'rtl' }}>
+                                        <button
+                                            onClick={e => { e.stopPropagation(); if (link) { navigate?.(link); setOpen(false); } }}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: 5,
+                                                background: 'none', border: 'none', padding: 0, cursor: link ? 'pointer' : 'default',
+                                                textDecoration: 'none',
+                                            }}
+                                            title={link ? linkLabel : undefined}
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={link ? '#007AFF' : '#6E6E73'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.657 4.03 3 9 3s9-1.343 9-3V5"/><path d="M3 12c0 1.657 4.03 3 9 3s9-1.343 9-3"/></svg>
+                                            <span style={{
+                                                color: link ? '#007AFF' : '#8E8E93',
+                                                fontSize: 10, fontWeight: 600,
+                                                textDecoration: link ? 'underline' : 'none',
+                                                textDecorationColor: 'rgba(0,122,255,0.4)',
+                                                textUnderlineOffset: 2,
+                                            }}>{source}</span>
+                                            {link && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#007AFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            {/* Arrow pointing DOWN at the button (when showing above) */}
                             {!pos.showBelow && (
                                 <div style={{
-                                    position: 'absolute',
-                                    bottom: -5, left: pos.arrowLeft,
+                                    position: 'absolute', bottom: -5, left: pos.arrowX,
                                     transform: 'translateX(-50%) rotate(45deg)',
                                     width: 10, height: 10,
                                     background: 'rgba(29,29,31,0.97)',
@@ -113,7 +149,7 @@ export function InfoTooltip({ text }) {
                         </motion.div>
                     )}
                 </AnimatePresence>,
-                document.body
+                overlay
             )}
         </span>
     );
@@ -179,15 +215,19 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
             transition={{ delay, type: 'spring', stiffness: 340, damping: 28 }}
             whileHover={{ y: -4, scale: 1.018, boxShadow: `0 20px 48px ${color}30, 0 0 0 1px ${color}15, inset 0 1px 0 rgba(255,255,255,0.95)` }}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-[26px] p-5 transition-shadow ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            className={`relative overflow-hidden rounded-[26px] transition-shadow flex flex-col h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
             style={{
                 background: `linear-gradient(145deg, ${color}12 0%, rgba(255,255,255,0.97) 45%, #fff 100%)`,
                 border: `1px solid ${color}24`,
                 boxShadow: `0 4px 24px ${color}12, 0 1px 0 rgba(255,255,255,0.95) inset, 0 -1px 0 rgba(0,0,0,0.025) inset`,
             }}
         >
+            {/* Colored top accent bar */}
+            <div className="h-[3px] w-full rounded-t-[26px] pointer-events-none"
+                style={{ background: `linear-gradient(90deg, ${color}, ${color}99)` }} />
+            <div className="p-5 flex flex-col flex-1">
             {/* Top specular edge */}
-            <div className="absolute top-0 left-[10%] right-[10%] h-px pointer-events-none"
+            <div className="absolute top-[3px] left-[10%] right-[10%] h-px pointer-events-none"
                 style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
             {/* Ambient radial glow */}
             <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
@@ -197,7 +237,10 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                 <div className="flex flex-col">
                     <span className="flex items-center gap-0.5 mb-1.5">
                         <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em]">{title}</p>
-                        {tooltip && <InfoTooltip text={tooltip} />}
+                        {tooltip && (() => {
+                            const t = typeof tooltip === 'object' && tooltip !== null ? tooltip : { text: tooltip };
+                            return <InfoTooltip text={t.text} source={t.source} link={t.link} linkLabel={t.linkLabel} />;
+                        })()}
                     </span>
                     <CountUp value={value} color={color} />
                 </div>
@@ -218,6 +261,9 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                 </div>
             )}
 
+            {/* Push bottom row to card bottom */}
+            <div className="flex-1" />
+
             <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${color}12` }}>
                 {subtitle ? (
                     <p className="text-[#86868B] text-[11px] font-medium">{subtitle}</p>
@@ -234,6 +280,7 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                     </div>
                 )}
             </div>
+            </div>{/* end inner padding div */}
         </motion.div>
     );
 }
@@ -289,9 +336,19 @@ const STATUS_MAP = {
 export function StatusBadge({ status, pulse }) {
     const s = STATUS_MAP[status] || { bg: '#F5F5F7', border: '#E5E5EA', text: '#1D1D1F', dot: '#6E6E73' };
     return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap"
-            style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.text, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pulse ? 'animate-pulse' : ''}`} style={{ background: s.dot }} />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all"
+            style={{
+                background: s.bg,
+                border: `1px solid ${s.border}`,
+                color: s.text,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: pulse ? `0 0 0 2px ${s.dot}20` : 'none',
+            }}>
+            <span className="relative flex items-center justify-center w-1.5 h-1.5 shrink-0">
+                {pulse && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: s.dot, opacity: 0.5 }} />}
+                <span className="relative w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
+            </span>
             {status}
         </span>
     );
@@ -321,9 +378,12 @@ export function AdminTable({ columns, data, onRowClick, emptyMessage, emptyIcon,
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.012, type: 'spring', stiffness: 320, damping: 28 }}
                             onClick={() => onRowClick?.(row)}
-                            whileHover={onRowClick ? { backgroundColor: 'rgba(0,122,255,0.04)' } : {}}
+                            whileHover={onRowClick ? { backgroundColor: 'rgba(0,122,255,0.045)' } : {}}
                             className={`transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
-                            style={{ borderBottom: i < data.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none' }}
+                            style={{
+                                borderBottom: i < data.length - 1 ? '1px solid rgba(0,0,0,0.03)' : 'none',
+                                background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.012)',
+                            }}
                         >
                             {columns.map(col => (
                                 <td key={col.key} className="px-6 py-4 text-sm text-[#1D1D1F]">
@@ -356,37 +416,48 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
                 placeholder={placeholder || 'חיפוש...'} dir="rtl"
                 className="w-full rounded-xl pr-10 pl-4 py-2.5 text-sm text-[#1D1D1F] placeholder-[#AEAEB2] outline-none transition-all"
                 style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', borderRadius: 13 }}
-                onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.50)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.08)'; }}
-                onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.07)'; e.target.style.boxShadow = 'none'; }}
+                onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.50)'; e.target.style.boxShadow = '0 0 0 4px rgba(0,122,255,0.10), 0 2px 8px rgba(0,0,0,0.06)'; }}
+                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.7)'; e.target.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}
             />
         </div>
     );
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-export function AdminSectionHeader({ title, subtitle, action }) {
+export function AdminSectionHeader({ title, subtitle, action, icon: Icon }) {
     return (
-        <div className="flex items-end justify-between mb-8 pb-5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-            <div className="text-right">
-                <motion.h1
-                    initial={{ opacity: 0, x: 12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                    className="text-[22px] sm:text-[32px] font-[800] tracking-tight leading-none"
-                    style={{ background: 'linear-gradient(135deg, #1D1D1F 0%, #3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-                >
-                    {title}
-                </motion.h1>
-                {subtitle && (
-                    <motion.p
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.08, duration: 0.35 }}
-                        className="text-[#86868B] text-[15px] font-medium mt-2"
-                    >
-                        {subtitle}
-                    </motion.p>
+        <div className="flex items-end justify-between mb-8 pb-5 relative" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            {/* Gradient underline accent */}
+            <div className="absolute bottom-0 right-0 h-[2px] w-16 rounded-full"
+                style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
+            <div className="text-right flex items-center gap-3">
+                {Icon && (
+                    <div className="w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0"
+                        style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.1),rgba(88,86,214,0.08))', border: '1px solid rgba(0,122,255,0.14)' }}>
+                        <Icon size={18} style={{ color: '#007AFF' }} />
+                    </div>
                 )}
+                <div>
+                    <motion.h1
+                        initial={{ opacity: 0, x: 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                        className="text-[22px] sm:text-[32px] font-[800] tracking-tight leading-none"
+                        style={{ background: 'linear-gradient(135deg, #1D1D1F 0%, #3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+                    >
+                        {title}
+                    </motion.h1>
+                    {subtitle && (
+                        <motion.p
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.08, duration: 0.35 }}
+                            className="text-[#86868B] text-[15px] font-medium mt-2"
+                        >
+                            {subtitle}
+                        </motion.p>
+                    )}
+                </div>
             </div>
             {action && <div className="flex gap-3 shrink-0">{action}</div>}
         </div>
@@ -394,7 +465,7 @@ export function AdminSectionHeader({ title, subtitle, action }) {
 }
 
 // ─── Button ───────────────────────────────────────────────────────────────────
-export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button' }) {
+export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', loading }) {
     const [ripple, setRipple] = useState(null);
     const styles = {
         primary: {
@@ -452,7 +523,14 @@ export function AdminButton({ children, onClick, variant = 'primary', size = 'md
                     }}
                 />
             )}
-            <span className="relative">{children}</span>
+            <span className="relative flex items-center gap-2">
+                {loading && (
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 60" />
+                    </svg>
+                )}
+                {children}
+            </span>
         </motion.button>
     );
 }
@@ -476,28 +554,30 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
                         style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
                     />
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.93, y: 24 }}
+                        initial={{ opacity: 0, scale: 0.9, y: 32 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.93, y: 24 }}
-                        transition={{ type: 'spring', stiffness: 440, damping: 32 }}
+                        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+                        transition={{ type: 'spring', stiffness: 460, damping: 34 }}
                         className={`fixed inset-x-4 top-1/2 -translate-y-1/2 ${widths[size]} mx-auto z-[201] rounded-[28px] overflow-hidden`}
                         style={{
-                            background: 'rgba(255,255,255,0.92)',
-                            backdropFilter: 'blur(40px) saturate(200%)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                            border: '1px solid rgba(255,255,255,0.80)',
-                            boxShadow: '0 48px 120px rgba(0,0,0,0.24), 0 0 0 1px rgba(255,255,255,0.5), inset 0 1px 0 rgba(255,255,255,0.95)',
+                            background: 'rgba(255,255,255,0.94)',
+                            backdropFilter: 'blur(48px) saturate(220%)',
+                            WebkitBackdropFilter: 'blur(48px) saturate(220%)',
+                            border: '1px solid rgba(255,255,255,0.85)',
+                            boxShadow: '0 48px 120px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.98)',
                         }}
                     >
+                        {/* Accent top strip */}
+                        <div className="h-[2px]" style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)' }} />
                         <div className="flex items-center justify-between px-6 py-4"
-                            style={{ background: 'rgba(248,248,252,0.90)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                            <motion.button onClick={onClose} whileTap={{ scale: 0.88 }}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-[#AEAEB2] hover:text-[#1D1D1F] hover:bg-black/06 transition-all">
+                            style={{ background: 'rgba(248,248,252,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                            <motion.button onClick={onClose} whileTap={{ scale: 0.88 }} whileHover={{ background: 'rgba(0,0,0,0.08)' }}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-[#AEAEB2] hover:text-[#1D1D1F] transition-all">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </motion.button>
-                            <h3 className="font-black text-[#1D1D1F] text-base">{title}</h3>
+                            <h3 className="font-black text-[#1D1D1F] text-base tracking-tight">{title}</h3>
                         </div>
                         <div className="p-4 sm:p-6 max-h-[60vh] sm:max-h-[72vh] overflow-y-auto custom-scrollbar">{children}</div>
                     </motion.div>
@@ -861,7 +941,13 @@ export function AreaChart({ data = [], color, height = 120, labels = [], formatY
     const xStep = Math.max(1, Math.floor((data.length - 1) / 4));
     const xIdxs = [];
     for (let i = 0; i < data.length; i += xStep) xIdxs.push(i);
-    if (xIdxs[xIdxs.length - 1] !== data.length - 1) xIdxs.push(data.length - 1);
+    const aLast = data.length - 1;
+    if (xIdxs[xIdxs.length - 1] !== aLast) {
+        if (aLast - xIdxs[xIdxs.length - 1] < Math.ceil(xStep / 2))
+            xIdxs[xIdxs.length - 1] = aLast;
+        else
+            xIdxs.push(aLast);
+    }
 
     return (
         <div style={{ direction: 'ltr' }}>
@@ -946,7 +1032,14 @@ export function BarChart({ data = [], color, labels = [], height = 80 }) {
     const xStep = Math.max(1, Math.floor((data.length - 1) / 6));
     const xIdxs = [];
     for (let i = 0; i < data.length; i += xStep) xIdxs.push(i);
-    if (xIdxs[xIdxs.length - 1] !== data.length - 1) xIdxs.push(data.length - 1);
+    // Only append the last index if it's at least half a step away from the second-to-last
+    const last = data.length - 1;
+    if (xIdxs[xIdxs.length - 1] !== last) {
+        if (last - xIdxs[xIdxs.length - 1] < Math.ceil(xStep / 2))
+            xIdxs[xIdxs.length - 1] = last;   // replace (too close — just slide it)
+        else
+            xIdxs.push(last);
+    }
 
     const fmt = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
 
@@ -1170,15 +1263,27 @@ export function AdminEmpty({ icon, title, subtitle, action }) {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-12 sm:py-24 text-center px-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.10) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.15)', color: '#007AFF' }}>
-                {typeof icon === 'string' && ICONS[icon] ? (
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS[icon]}</svg>
-                ) : (
-                    <span className="text-3xl">{icon || <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS.empty}</svg>}</span>
-                )}
+            {/* Animated concentric rings */}
+            <div className="relative w-20 h-20 flex items-center justify-center mb-6">
+                {[1, 2, 3].map(i => (
+                    <motion.div key={i}
+                        className="absolute rounded-full border"
+                        style={{ inset: -(i * 10), borderColor: `rgba(0,122,255,${0.06 - i * 0.015})` }}
+                        animate={{ scale: [1, 1.04, 1], opacity: [0.6, 0.3, 0.6] }}
+                        transition={{ duration: 2.5 + i * 0.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
+                    />
+                ))}
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center relative z-10"
+                    style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.09) 100%)', border: '1px solid rgba(0,122,255,0.18)', color: '#007AFF', boxShadow: '0 8px 24px rgba(0,122,255,0.12)' }}>
+                    {typeof icon === 'string' && ICONS[icon] ? (
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS[icon]}</svg>
+                    ) : (
+                        <span className="text-3xl">{icon || <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS.empty}</svg>}</span>
+                    )}
+                </div>
             </div>
-            <p className="text-[#1D1D1F] font-bold text-lg mb-1.5">{title || 'אין נתונים להצגה'}</p>
-            {subtitle && <p className="text-[#86868B] text-sm max-w-sm">{subtitle}</p>}
+            <p className="text-[#1D1D1F] font-black text-[16px] mb-1.5 tracking-tight">{title || 'אין נתונים להצגה'}</p>
+            {subtitle && <p className="text-[#86868B] text-sm max-w-sm font-medium">{subtitle}</p>}
             {action && (
                 <div className="mt-6">
                     <AdminButton onClick={action.onClick}>{action.label}</AdminButton>
@@ -1201,7 +1306,8 @@ export function AdminFAB({ actions = [] }) {
                         exit={{ opacity: 0, scale: 0.9, y: 10 }}
                         transition={{ delay: i * 0.04, duration: 0.2 }}
                         onClick={() => { a.onClick(); setOpen(false); }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-[#1D1D1F] whitespace-nowrap shadow-xl bg-white border border-black/05 hover:bg-[#F5F5F7] transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-bold text-[#1D1D1F] whitespace-nowrap shadow-xl transition-all"
+                        style={{ background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
                         >
                         {typeof a.icon === 'string' && ICONS[a.icon] ? (
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>{ICONS[a.icon]}</svg>
@@ -1229,14 +1335,30 @@ export function AdminSkeleton({ rows = 5 }) {
     return (
         <div className="rounded-[22px] overflow-hidden" style={glassStyle}>
             {Array.from({ length: rows }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-black/04 last:border-0">
-                    <div className="w-10 h-10 rounded-xl bg-black/05 animate-pulse shrink-0" />
+                <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-black/04 last:border-0"
+                    style={{ opacity: 1 - i * 0.12 }}>
+                    <motion.div className="w-10 h-10 rounded-xl shrink-0"
+                        animate={{ opacity: [0.4, 0.8, 0.4] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 }}
+                        style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.09) 50%, rgba(0,0,0,0.05) 100%)' }} />
                     <div className="flex-1 space-y-2">
-                        <div className="h-3 bg-black/05 rounded-full animate-pulse" style={{ width: `${55 + (i * 13) % 35}%` }} />
-                        <div className="h-2.5 bg-black/05 rounded-full animate-pulse" style={{ width: `${30 + (i * 7) % 25}%` }} />
+                        <motion.div className="h-3 rounded-full"
+                            animate={{ opacity: [0.4, 0.8, 0.4] }}
+                            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 + 0.1 }}
+                            style={{ width: `${55 + (i * 13) % 35}%`, background: 'linear-gradient(90deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.09) 50%, rgba(0,0,0,0.05) 100%)' }} />
+                        <motion.div className="h-2.5 rounded-full"
+                            animate={{ opacity: [0.4, 0.7, 0.4] }}
+                            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 + 0.2 }}
+                            style={{ width: `${30 + (i * 7) % 25}%`, background: 'linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.07) 50%, rgba(0,0,0,0.04) 100%)' }} />
                     </div>
-                    <div className="w-16 h-6 bg-black/05 rounded-full animate-pulse shrink-0" />
-                    <div className="w-20 h-6 bg-black/05 rounded-full animate-pulse shrink-0" />
+                    <motion.div className="w-16 h-6 rounded-full shrink-0"
+                        animate={{ opacity: [0.4, 0.8, 0.4] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 + 0.05 }}
+                        style={{ background: 'rgba(0,0,0,0.05)' }} />
+                    <motion.div className="w-20 h-6 rounded-full shrink-0"
+                        animate={{ opacity: [0.4, 0.8, 0.4] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 + 0.15 }}
+                        style={{ background: 'rgba(0,0,0,0.05)' }} />
                 </div>
             ))}
         </div>

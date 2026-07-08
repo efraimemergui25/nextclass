@@ -249,16 +249,28 @@ export function AdminDataProvider({ children }) {
     };
 
     const updateStock = async (productId, newStock) => {
-        await setDoc(doc(db, 'products', productId.toString()), { stock: newStock }, { merge: true });
-        addActivity(`מלאי מוצר עודכן ל-${newStock} יח׳`, 'inventory');
+        try {
+            await setDoc(doc(db, 'products', productId.toString()), { stock: newStock }, { merge: true });
+            addActivity(`מלאי מוצר עודכן ל-${newStock} יח׳`, 'inventory');
+            return true;
+        } catch (err) {
+            console.error('[updateStock]', err);
+            return false;
+        }
     };
 
     const updateProductDetails = async (productId, updates) => {
-        await setDoc(doc(db, 'products', productId.toString()), updates, { merge: true });
-        if (updates.isActive !== undefined) {
-            addActivity(`מוצר ${updates.isActive ? 'הופעל' : 'הושבת'}`, 'product');
-        } else {
-            addActivity(`פרטי מוצר עודכנו`, 'product');
+        try {
+            await setDoc(doc(db, 'products', productId.toString()), updates, { merge: true });
+            if (updates.isActive !== undefined) {
+                addActivity(`מוצר ${updates.isActive ? 'הופעל' : 'הושבת'}`, 'product');
+            } else {
+                addActivity(`פרטי מוצר עודכנו`, 'product');
+            }
+            return true;
+        } catch (err) {
+            console.error('[updateProductDetails]', err);
+            return false;
         }
     };
 
@@ -302,8 +314,10 @@ export function AdminDataProvider({ children }) {
                 batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'closed' }, { merge: true });
                 addActivity(`מלאי עודכן אוטומטית — עסקה נסגרה (${quoteId})`, 'inventory');
             } else if (newStatus === 'סופק') {
-                // Supplied → if inventory not yet settled (skipped נסגר), decrement now
-                if (!quote.inventorySettled) {
+                // Supplied → only settle inventory if it hasn't been settled by a previous נסגר/סופק
+                // Guard: 'closed' and 'supplied' are both settled states — never double-decrement
+                const alreadySettled = quote.inventorySettled === 'closed' || quote.inventorySettled === 'supplied';
+                if (!alreadySettled) {
                     quote.items.forEach(item => {
                         const qty = Number(item.qty) || 1;
                         batch.update(doc(db, 'products', String(item.id)), {
@@ -312,11 +326,9 @@ export function AdminDataProvider({ children }) {
                             sold:     increment(qty),
                         });
                     });
-                    batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'supplied' }, { merge: true });
-                } else {
-                    batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'supplied' }, { merge: true });
                 }
-                // Record sale in orders collection for analytics (status=נמסר counts as revenue)
+                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'supplied' }, { merge: true });
+                // Record sale in orders collection for analytics
                 const saleTotal = quote.items.reduce((s, item) => s + ((Number(item.salePrice) || Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
                 const saleRecord = {
                     source: 'quote', quoteId, status: 'נמסר',
@@ -327,7 +339,7 @@ export function AdminDataProvider({ children }) {
                     institution: quote.institution || '',
                 };
                 batch.set(doc(db, 'orders', `sale_${quoteId}`), saleRecord, { merge: true });
-                addActivity(`🎉 עסקה סופקה — רווח ₪${saleTotal.toLocaleString()} נרשם (${quoteId})`, 'order');
+                addActivity(`עסקה סופקה — הכנסה ₪${saleTotal.toLocaleString()} נרשמה (${quoteId})`, 'order');
             } else if (newStatus === 'אבד' && !quote.inventorySettled) {
                 // Deal lost → release reservation only, no stock change
                 quote.items.forEach(item => {
@@ -516,14 +528,11 @@ export function AdminDataProvider({ children }) {
             thisMonthOrders.filter(o => o.status === 'נמסר' && o.source !== 'quote').reduce((s, o) => s + (o.total || 0), 0);
 
         // Conversion: closed deals / total quotes entered pipeline
+        // Never fall back to web-visitor analytics — those are completely different metrics
         const totalPipelineQuotes = quotes.filter(q => q.status !== undefined).length;
         const conversionRate = totalPipelineQuotes > 0
             ? (closedQuotes.length / totalPipelineQuotes * 100).toFixed(1)
-            : (() => {
-                const v = analytics.visits.reduce((a, b) => a + b, 0);
-                const s = analytics.sales.reduce((a, b) => a + b, 0);
-                return v > 0 ? (s / v * 100).toFixed(1) : '0.0';
-            })();
+            : '0.0';
 
         const lowStock = inventory.filter(p => p.stock <= p.threshold);
 

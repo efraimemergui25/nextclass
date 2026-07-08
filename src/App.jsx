@@ -1,23 +1,4 @@
 import { useEffect, useMemo, Component, lazy, Suspense } from 'react';
-
-class AppErrorBoundary extends Component {
-    state = { crashed: false, error: null };
-    static getDerivedStateFromError(error) { return { crashed: true, error }; }
-    componentDidCatch(error, info) { console.error('[AppErrorBoundary]', error, info); }
-    render() {
-        if (!this.state.crashed) return this.props.children;
-        return (
-            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F5F5F7', padding: '2rem', textAlign: 'center' }}>
-                <div style={{ width: 64, height: 64, borderRadius: 16, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 24 }}>N</span>
-                </div>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1D1D1F', marginBottom: 8 }}>אירעה שגיאה</h1>
-                <pre style={{ color: '#FF3B30', fontSize: 11, background: 'rgba(255,59,48,0.08)', padding: '8px 16px', borderRadius: 8, maxWidth: 600, overflow: 'auto', marginBottom: 16, textAlign: 'left', whiteSpace: 'pre-wrap' }}>{this.state.error?.message}</pre>
-                <button onClick={() => window.location.reload()} style={{ padding: '10px 24px', borderRadius: 12, background: '#007AFF', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>רענן</button>
-            </div>
-        );
-    }
-}
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -32,8 +13,34 @@ import { ProductsProvider } from './context/ProductsContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
+import { PersonalizationProvider } from './context/PersonalizationContext';
 import MemberBar from './components/MemberBar';
+import { PersonaBar } from './components/PersonalizationLayer';
+import useIsMobile from './hooks/useIsMobile';
+import { db } from './firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
+// ─── Global app error boundary ────────────────────────────────────────────────
+class AppErrorBoundary extends Component {
+    state = { crashed: false, error: null };
+    static getDerivedStateFromError(error) { return { crashed: true, error }; }
+    componentDidCatch(error, info) { console.error('[AppErrorBoundary]', error, info); }
+    render() {
+        if (!this.state.crashed) return this.props.children;
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F5F5F7', padding: '2rem', textAlign: 'center', direction: 'rtl', fontFamily: 'Heebo, sans-serif' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 12px 40px rgba(0,0,0,0.18)' }}>
+                    <span style={{ color: '#fff', fontWeight: 900, fontSize: 24 }}>N</span>
+                </div>
+                <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', marginBottom: 8, letterSpacing: '-0.02em' }}>אירעה שגיאה</h1>
+                <pre style={{ color: '#FF3B30', fontSize: 11, background: 'rgba(255,59,48,0.08)', padding: '8px 16px', borderRadius: 10, maxWidth: 600, overflow: 'auto', marginBottom: 20, textAlign: 'left', whiteSpace: 'pre-wrap' }}>{this.state.error?.message}</pre>
+                <button onClick={() => window.location.reload()} style={{ padding: '10px 26px', borderRadius: 12, background: '#007AFF', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: 'Heebo, sans-serif' }}>רענן</button>
+            </div>
+        );
+    }
+}
+
+// ─── Lazy pages ───────────────────────────────────────────────────────────────
 const DynamicIsland        = lazy(() => import('./components/DynamicIsland'));
 const SmartConcierge       = lazy(() => import('./components/SmartConcierge'));
 const CompareTray          = lazy(() => import('./components/CompareTray'));
@@ -44,13 +51,14 @@ const PersonalizationLayer = lazy(() => import('./components/PersonalizationLaye
 const LiveChatWidget       = lazy(() => import('./components/LiveChatWidget'));
 
 const AdminApp          = lazy(() => import('./admin/AdminApp'));
+const MobileApp         = lazy(() => import('./mobile/MobileApp'));
 const LandingPage       = lazy(() => import('./pages/LandingPage'));
 const CatalogPage       = lazy(() => import('./pages/CatalogPage'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
 const CartPage          = lazy(() => import('./pages/CartPage'));
 const CheckoutPage      = lazy(() => import('./pages/CheckoutPage'));
 const AboutPage         = lazy(() => import('./pages/AboutPage'));
-const SuccessStoriesPage = lazy(() => import('./pages/SuccessStoriesPage'));
+const SuccessStoriesPage  = lazy(() => import('./pages/SuccessStoriesPage'));
 const ContactPage       = lazy(() => import('./pages/ContactPage'));
 const VODCenterPage     = lazy(() => import('./pages/VODCenterPage'));
 const MagazinePage      = lazy(() => import('./pages/MagazinePage'));
@@ -60,15 +68,10 @@ const WishlistPage      = lazy(() => import('./pages/WishlistPage'));
 const PrivacyPage       = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage         = lazy(() => import('./pages/TermsPage'));
 const MembershipPage    = lazy(() => import('./pages/MembershipPage'));
-const MobileApp           = lazy(() => import('./mobile/MobileApp'));
-const OrderTrackingPage   = lazy(() => import('./pages/OrderTrackingPage'));
-const MyOrdersPage        = lazy(() => import('./pages/MyOrdersPage'));
-import { db } from './firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import useIsMobile from './hooks/useIsMobile';
+const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
+const MyOrdersPage      = lazy(() => import('./pages/MyOrdersPage'));
 
-
-// ─── Analytics helpers ───────────────────────────────────────────────────────
+// ─── Analytics ────────────────────────────────────────────────────────────────
 export function trackEvent(name, params = {}) {
     if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
         window.gtag('event', name, params);
@@ -77,138 +80,78 @@ export function trackEvent(name, params = {}) {
 
 function AnalyticsTracker() {
     const location = useLocation();
-
     useEffect(() => {
-        if (location.pathname.startsWith('/admin')) return;
-
         const today = new Date().toISOString().split('T')[0];
-
-        // Session ID — one per browser tab, resets on tab close
         let sid = sessionStorage.getItem('nc_sid');
         if (!sid) {
             sid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             sessionStorage.setItem('nc_sid', sid);
         }
-
-        // Write one doc per session per day to Firestore (merge:true = idempotent)
         setDoc(doc(db, 'page_views', `${today}_${sid}`), {
-            date: today,
-            sessionId: sid,
-            path: location.pathname,
-            platform: 'desktop',
-            ts: serverTimestamp(),
+            date: today, sessionId: sid, path: location.pathname, platform: 'desktop', ts: serverTimestamp(),
         }, { merge: true }).catch(() => {});
-
-        // GA4
         if (typeof window.gtag === 'function') {
-            window.gtag('event', 'page_view', {
-                page_path: location.pathname + location.search,
-                page_title: document.title,
-            });
+            window.gtag('event', 'page_view', { page_path: location.pathname + location.search, page_title: document.title });
         }
     }, [location]);
-
     return null;
 }
 
-
-// Preserve manual scroll restoration for smooth route transitions
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
     window.history.scrollRestoration = 'manual';
 }
 
-function AnimatedRoutes() {
+// ─── Desktop routes ───────────────────────────────────────────────────────────
+function DesktopRoutes() {
     const location = useLocation();
     const { isVisible } = useSettings();
     return (
         <AnimatePresence mode="popLayout">
             <Routes location={location} key={location.pathname}>
-                <Route path="/"           element={<LandingPage />} />
-                <Route path="/catalog"    element={<CatalogPage />} />
-                <Route path="/catalog/:id" element={<ProductDetailPage />} />
-                <Route path="/cart"       element={<CartPage />} />
-                <Route path="/checkout"   element={<CheckoutPage />} />
-                <Route path="/story"      element={<AboutPage />} />
-                <Route path="/innovation" element={<SuccessStoriesPage />} />
-                <Route path="/help"       element={<Navigate to="/vod" replace />} />
-                <Route path="/contact"    element={<ContactPage />} />
-                <Route path="/vod"        element={<VODCenterPage />} />
-                <Route path="/magazine"   element={<MagazinePage />} />
-                <Route path="/compare"    element={<ComparePage />} />
-                <Route path="/discover"   element={<DiscoverPage />} />
-                <Route path="/favorites"  element={<WishlistPage />} />
-                <Route path="/privacy"    element={<PrivacyPage />} />
-                <Route path="/terms"      element={<TermsPage />} />
-                <Route path="/membership" element={isVisible('vis_membership_page') ? <MembershipPage /> : <Navigate to="/" replace />} />
-                <Route path="/orders"     element={<Navigate to="/my-orders" replace />} />
-                <Route path="/my-orders"  element={<MyOrdersPage />} />
+                <Route path="/"               element={<LandingPage />} />
+                <Route path="/catalog"        element={<CatalogPage />} />
+                <Route path="/catalog/:id"    element={<ProductDetailPage />} />
+                <Route path="/cart"           element={<CartPage />} />
+                <Route path="/checkout"       element={<CheckoutPage />} />
+                <Route path="/story"          element={<AboutPage />} />
+                <Route path="/innovation"     element={<SuccessStoriesPage />} />
+                <Route path="/help"           element={<Navigate to="/vod" replace />} />
+                <Route path="/contact"        element={<ContactPage />} />
+                <Route path="/vod"            element={<VODCenterPage />} />
+                <Route path="/magazine"       element={<MagazinePage />} />
+                <Route path="/compare"        element={<ComparePage />} />
+                <Route path="/discover"       element={<DiscoverPage />} />
+                <Route path="/favorites"      element={<WishlistPage />} />
+                <Route path="/privacy"        element={<PrivacyPage />} />
+                <Route path="/terms"          element={<TermsPage />} />
+                <Route path="/membership"     element={isVisible('vis_membership_page') ? <MembershipPage /> : <Navigate to="/" replace />} />
+                <Route path="/orders"         element={<Navigate to="/my-orders" replace />} />
+                <Route path="/my-orders"      element={<MyOrdersPage />} />
                 <Route path="/track/:orderId" element={<OrderTrackingPage />} />
-                <Route path="*"           element={<LandingPage />} />
+                <Route path="*"              element={<LandingPage />} />
             </Routes>
         </AnimatePresence>
     );
 }
 
-function App() {
-    return (
-        <AppErrorBoundary>
-            <SettingsProvider>
-                <AuthProvider>
-                    <CartProvider>
-                        <ProductsProvider>
-                            <WishlistProvider>
-                                <CompareProvider>
-                                    <Router>
-                                        <AppContent />
-                                    </Router>
-                                </CompareProvider>
-                            </WishlistProvider>
-                        </ProductsProvider>
-                    </CartProvider>
-                </AuthProvider>
-            </SettingsProvider>
-        </AppErrorBoundary>
-    );
-}
-
-function AppContent() {
-    const location  = useLocation();
+// ─── Desktop app shell ────────────────────────────────────────────────────────
+function DesktopApp() {
+    const location = useLocation();
     const { getSetting } = useSettings();
     const maintenance = getSetting('maintenance_mode', false);
-    const isMobile  = useIsMobile();
 
-    // ─── Adaptive Mood — must stay before all early returns (Rules of Hooks) ──
     const mood = useMemo(() => {
-        const path = location.pathname;
-        if (path === '/')                              return { primary: '#007AFF', secondary: '#5856D6' };
-        if (path.startsWith('/catalog/'))              return { primary: '#FF9500', secondary: '#FF2D55' };
-        if (path.startsWith('/catalog'))               return { primary: '#34C759', secondary: '#007AFF' };
-        if (path === '/cart' || path === '/checkout')  return { primary: '#FF3B30', secondary: '#FF9500' };
-        if (path === '/story')                         return { primary: '#5856D6', secondary: '#007AFF' };
-        if (path === '/discover')                      return { primary: '#007AFF', secondary: '#30D158' };
-        if (path === '/innovation')                    return { primary: '#FF9F0A', secondary: '#FF375F' };
+        const p = location.pathname;
+        if (p === '/')                             return { primary: '#007AFF', secondary: '#5856D6' };
+        if (p.startsWith('/catalog/'))             return { primary: '#FF9500', secondary: '#FF2D55' };
+        if (p.startsWith('/catalog'))              return { primary: '#34C759', secondary: '#007AFF' };
+        if (p === '/cart' || p === '/checkout')    return { primary: '#FF3B30', secondary: '#FF9500' };
+        if (p === '/story')                        return { primary: '#5856D6', secondary: '#007AFF' };
+        if (p === '/discover')                     return { primary: '#007AFF', secondary: '#30D158' };
+        if (p === '/innovation')                   return { primary: '#FF9F0A', secondary: '#FF375F' };
         return { primary: '#007AFF', secondary: '#5856D6' };
     }, [location.pathname]);
 
-    // ─── Admin Route Isolation (desktop only) ─────────────────────────────────
-    if (location.pathname.startsWith('/admin')) {
-        return (
-            <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F5F5F7' }} />}>
-                <AdminApp />
-            </Suspense>
-        );
-    }
-
-    // ─── Mobile App — completely separate codebase ─────────────────────────────
-    if (isMobile) {
-        return (
-            <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F2F2F7' }} />}>
-                <MobileApp />
-            </Suspense>
-        );
-    }
-
-    // ─── Maintenance Mode ──────────────────────────────────────────────────────
     if (maintenance) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F7] text-center px-6">
@@ -226,35 +169,29 @@ function AppContent() {
     }
 
     return (
-        <div
-            dir="rtl"
-            className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased pt-[73px]"
-            style={{ WebkitFontSmoothing: 'antialiased' }}
-        >
+        <div dir="rtl" className="min-h-screen flex flex-col font-heebo text-[#1D1D1F] antialiased pt-[73px]"
+            style={{ WebkitFontSmoothing: 'antialiased' }}>
             <AnalyticsTracker />
-            {/* ── Living Aurora Atmosphere — deferred, non-blocking ── */}
             <Suspense fallback={null}>
                 <GlassCanvas mood={mood} />
             </Suspense>
-
             <PageErrorBoundary>
                 <AnnouncementBar />
                 <MemberBar />
+                <PersonaBar />
                 <Header />
             </PageErrorBoundary>
             <main className="flex-1 w-full flex flex-col relative z-0 min-h-[60vh]">
                 <PageErrorBoundary>
                     <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
-                        <AnimatedRoutes />
+                        <DesktopRoutes />
                     </Suspense>
                 </PageErrorBoundary>
             </main>
             <PageErrorBoundary>
                 <Footer />
             </PageErrorBoundary>
-
             <RouteProgressBar />
-            {/* ── Global Floating UI Layer — all lazy-loaded after paint ── */}
             <Suspense fallback={null}>
                 <DynamicIsland />
                 <SmartConcierge />
@@ -268,4 +205,74 @@ function AppContent() {
     );
 }
 
-export default App;
+// ─── Root router — splits into three completely isolated areas ────────────────
+function AppRouter() {
+    const location = useLocation();
+    const isMobile = useIsMobile();
+
+    // ── AREA 1: Admin — no main-site providers ────────────────────────────────
+    if (location.pathname.startsWith('/admin')) {
+        return (
+            <Suspense fallback={
+                <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 60%, #F5F0FF 100%)' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.18)', animation: 'pulse 1.5s ease-in-out infinite' }}>
+                        <span style={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>N</span>
+                    </div>
+                </div>
+            }>
+                <AdminApp />
+            </Suspense>
+        );
+    }
+
+    // ── AREA 2: Mobile — auth + cart but no desktop UI ────────────────────────
+    if (isMobile) {
+        return (
+            <AuthProvider>
+                <PersonalizationProvider>
+                    <CartProvider>
+                        <ProductsProvider>
+                            <WishlistProvider>
+                                <CompareProvider>
+                                    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#F2F2F7' }} />}>
+                                        <MobileApp />
+                                    </Suspense>
+                                </CompareProvider>
+                            </WishlistProvider>
+                        </ProductsProvider>
+                    </CartProvider>
+                </PersonalizationProvider>
+            </AuthProvider>
+        );
+    }
+
+    // ── AREA 3: Desktop — full provider stack ─────────────────────────────────
+    return (
+        <AuthProvider>
+            <PersonalizationProvider>
+                <CartProvider>
+                    <ProductsProvider>
+                        <WishlistProvider>
+                            <CompareProvider>
+                                <DesktopApp />
+                            </CompareProvider>
+                        </WishlistProvider>
+                    </ProductsProvider>
+                </CartProvider>
+            </PersonalizationProvider>
+        </AuthProvider>
+    );
+}
+
+// ─── Entry point ──────────────────────────────────────────────────────────────
+export default function App() {
+    return (
+        <AppErrorBoundary>
+            <SettingsProvider>
+                <Router>
+                    <AppRouter />
+                </Router>
+            </SettingsProvider>
+        </AppErrorBoundary>
+    );
+}

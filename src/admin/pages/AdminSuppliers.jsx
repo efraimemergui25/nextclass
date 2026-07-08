@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
@@ -17,7 +18,7 @@ import {
     Globe, User, Hash, Truck, Box, CreditCard,
     BarChart3, ArrowUpDown, Edit2, ChevronRight, Layers, Briefcase,
     Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
-    Zap, Rocket, Crown, ClipboardList, MessageSquare,
+    Zap, Rocket, Crown, ClipboardList, MessageSquare, Download,
 } from 'lucide-react';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
@@ -349,12 +350,30 @@ function LBL({ children }) {
 
 // ─── ProductLookupRow ──────────────────────────────────────────────────────────
 function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, onGoToProducts, allCategories }) {
-    const [busy,     setBusy]     = useState(false);
-    const [imgErr,   setImgErr]   = useState(false);
-    const [usdRate,  setUsdRate]  = useState(_fxCache.usdToIls);
-    const [catInput, setCatInput] = useState(false);
-    const [catVal,   setCatVal]   = useState('');
+    const [busy,       setBusy]      = useState(false);
+    const [imgErr,     setImgErr]    = useState(false);
+    const [usdRate,    setUsdRate]   = useState(_fxCache.usdToIls);
+    const [catInput,   setCatInput]  = useState(false);
+    const [catVal,     setCatVal]    = useState('');
+    const [showTiers,  setShowTiers] = useState((p.tiers || []).length > 0);
     const isUsd = p.currency === 'USD';
+
+    const addTier = () => {
+        const tiers = [...(p.tiers || [])];
+        const lastQty = tiers.length > 0 ? Math.max(...tiers.map(t => Number(t.minQty) || 0)) : (Number(p.quantity) || 1);
+        tiers.push({ minQty: lastQty + 10, pricePerUnit: effectivePrice });
+        onChange({ ...p, tiers });
+    };
+    const updTier = (i, key, val) => {
+        const tiers = [...(p.tiers || [])];
+        tiers[i] = { ...tiers[i], [key]: val === '' ? '' : Number(val) };
+        onChange({ ...p, tiers });
+    };
+    const remTier = i => {
+        const tiers = [...(p.tiers || [])];
+        tiers.splice(i, 1);
+        onChange({ ...p, tiers });
+    };
 
     useEffect(() => {
         if (!isUsd) return;
@@ -406,7 +425,14 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
     const effectivePrice = (isUsd && usdRate && parseFloat(p.priceInUsd) > 0)
         ? Math.round(parseFloat(p.priceInUsd) * usdRate * 100) / 100
         : Number(p.pricePerUnit) || 0;
-    const subtotal = effectivePrice * (Number(p.quantity) || 1) * (1 - (Number(p.discount) || 0) / 100);
+    const qty = Number(p.quantity) || 1;
+    const applicableTierPrice = (() => {
+        const tiers = p.tiers || [];
+        if (!tiers.length) return effectivePrice;
+        const sorted = [...tiers].filter(t => Number(t.minQty) <= qty).sort((a, b) => Number(b.minQty) - Number(a.minQty));
+        return sorted.length > 0 ? Number(sorted[0].pricePerUnit) || effectivePrice : effectivePrice;
+    })();
+    const subtotal = applicableTierPrice * qty * (1 - (Number(p.discount) || 0) / 100);
 
     return (
         <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
@@ -548,6 +574,65 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                         {subtotal > 0 ? fmt(subtotal) : '—'}
                     </div>
                 </div>
+            </div>
+
+            {/* Pricing tiers */}
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                        onClick={() => setShowTiers(t => !t)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: `1px solid ${(p.tiers || []).length > 0 ? 'rgba(88,86,214,0.25)' : 'rgba(0,0,0,0.10)'}`, background: (p.tiers || []).length > 0 ? 'rgba(88,86,214,0.06)' : 'rgba(0,0,0,0.02)', cursor: 'pointer', color: (p.tiers || []).length > 0 ? '#5856D6' : '#8E8E93', fontSize: 10, fontWeight: 700 }}>
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14v3H1V2zm0 4.5h10v3H1v-3zm0 4.5h6v3H1v-3z"/></svg>
+                        מדרגות מחיר{(p.tiers || []).length > 0 ? ` (${p.tiers.length})` : ''}
+                        <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" style={{ transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M8 10L2 4h12L8 10z"/></svg>
+                    </button>
+                    {showTiers && (
+                        <button onClick={addTier}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 9px', borderRadius: 8, border: '1px solid rgba(0,122,255,0.20)', background: 'rgba(0,122,255,0.06)', cursor: 'pointer', color: '#007AFF', fontSize: 10, fontWeight: 700 }}>
+                            <Plus size={9} />הוסף מדרגה
+                        </button>
+                    )}
+                </div>
+                {showTiers && (
+                    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(88,86,214,0.12)', overflow: 'hidden', background: 'rgba(88,86,214,0.02)' }}>
+                        {/* header */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, background: 'rgba(88,86,214,0.06)', borderBottom: '1px solid rgba(88,86,214,0.10)', padding: '5px 10px', direction: 'rtl' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>כמות מינ׳</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>מחיר ליח׳ (₪)</span>
+                            <span style={{ width: 22 }} />
+                        </div>
+                        {/* base tier */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, padding: '6px 10px', borderBottom: (p.tiers || []).length > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none', direction: 'rtl', alignItems: 'center' }}>
+                            <span style={{ fontSize: 11, color: '#6E6E73', fontWeight: 600 }}>ברירת מחדל</span>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>{effectivePrice > 0 ? fmt(effectivePrice) : '—'}</span>
+                            <span style={{ width: 22 }} />
+                        </div>
+                        {(p.tiers || []).sort((a, b) => Number(a.minQty) - Number(b.minQty)).map((tier, ti) => {
+                            const isActive = qty >= Number(tier.minQty) && (ti === (p.tiers || []).length - 1 || qty < Number((p.tiers || [])[ti + 1]?.minQty));
+                            return (
+                                <div key={ti} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6, padding: '6px 10px', borderBottom: ti < (p.tiers || []).length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', direction: 'rtl', alignItems: 'center', background: isActive ? 'rgba(52,199,89,0.05)' : 'transparent' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        {isActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34C759', flexShrink: 0 }} />}
+                                        <input
+                                            type="number" value={tier.minQty ?? ''} min="1"
+                                            onChange={e => updTier(ti, 'minQty', e.target.value)}
+                                            style={{ width: '100%', padding: '4px 7px', borderRadius: 7, border: '1px solid rgba(0,0,0,0.10)', background: '#fff', fontSize: 12, fontWeight: 700, outline: 'none', textAlign: 'center', color: '#1D1D1F' }}
+                                            placeholder="כמות" />
+                                    </div>
+                                    <input
+                                        type="number" value={tier.pricePerUnit ?? ''} min="0" step="0.01"
+                                        onChange={e => updTier(ti, 'pricePerUnit', e.target.value)}
+                                        style={{ width: '100%', padding: '4px 7px', borderRadius: 7, border: `1px solid ${isActive ? 'rgba(52,199,89,0.30)' : 'rgba(0,0,0,0.10)'}`, background: isActive ? 'rgba(52,199,89,0.06)' : '#fff', fontSize: 12, fontWeight: 800, outline: 'none', textAlign: 'center', color: isActive ? '#34C759' : '#1D1D1F' }}
+                                        placeholder="מחיר ₪" />
+                                    <button onClick={() => remTier(ti)}
+                                        style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid rgba(255,59,48,0.15)', background: 'rgba(255,59,48,0.05)', cursor: 'pointer', color: '#FF3B30', flexShrink: 0 }}>
+                                        <X size={9} />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* Row 3: product page link */}
@@ -2914,6 +2999,752 @@ function AddQuoteModal({ supplier, onClose, onCreated }) {
     );
 }
 
+// ─── Excel Export ─────────────────────────────────────────────────────────────
+function exportQuotesXLSX(suppliers, quotes) {
+    Promise.all([import('xlsx-js-style'), fetchUsdToIls()]).then(([mod, fxRate]) => {
+        const XS = mod.default || mod;
+
+        // Resolve correct ILS unit price for a product (handles USD products)
+        const getILSPrice = p => {
+            let price = Number(p.pricePerUnit) || 0;
+            if (!price && p.currency === 'USD' && p.priceInUsd && fxRate) {
+                price = Math.round(parseFloat(p.priceInUsd) * fxRate * 100) / 100;
+            }
+            return price;
+        };
+        // Tier-aware price: pick the best applicable tier given quantity
+        const getTierAwarePrice = p => {
+            const base = getILSPrice(p);
+            const tiers = p.tiers || [];
+            if (!tiers.length) return base;
+            const qty = Number(p.quantity) || 1;
+            const applicable = [...tiers].filter(t => Number(t.minQty) <= qty).sort((a, b) => Number(b.minQty) - Number(a.minQty));
+            return applicable.length > 0 ? (Number(applicable[0].pricePerUnit) || base) : base;
+        };
+        // Format tiers for display in Excel
+        const formatTiers = p => {
+            const tiers = p.tiers || [];
+            if (!tiers.length) return '—';
+            return tiers.sort((a, b) => Number(a.minQty) - Number(b.minQty))
+                .map(t => `מ-${t.minQty} יח׳: ₪${Number(t.pricePerUnit).toFixed(2)}`)
+                .join('  |  ');
+        };
+        // Unit price after discount (what you actually pay per unit, in ILS), tier-aware
+        const unitNet = p => getTierAwarePrice(p) * (1 - (Number(p.discount) || 0) / 100);
+        // Line total (unit price × qty × discount)
+        const lineTotal = p => unitNet(p) * (Number(p.quantity) || 1);
+        // Quote total
+        const quoteTotal = prods => (prods || []).reduce((s, p) => s + lineTotal(p), 0);
+
+        // ── Design tokens ─────────────────────────────────────────────────────
+        const C = {
+            // Primary
+            navy:       '1E3A5F',   // title rows bg
+            blue:       '2563EB',   // section headers bg
+            accentBg:   'DBEAFE',   // column header bg
+            accentFg:   '1E3A5F',   // column header text
+            // Status
+            greenTxt:   '065F46', greenBg:  'D1FAE5',
+            redTxt:     '991B1B', redBg:    'FEE2E2',
+            amberTxt:   '92400E', amberBg:  'FEF3C7',
+            // Data rows
+            rowA:       'FFFFFF', rowB: 'F8FAFC',
+            // Totals
+            totBg:      '1E3A5F', totFg: 'FFFFFF',
+            // Dividers
+            divBg:      'F1F5F9',
+            // Typography
+            dark:       '1E293B', mid: '64748B', light: 'CBD5E1',
+            // Supplier accent (per-supplier tint, fallback)
+            supBg:      'EFF6FF', supFg: '1E3A5F',
+        };
+
+        const THIN_BORDER = (rgb = 'E2E8F0') => ({ style: 'thin', color: { rgb } });
+        const CELL_BORDER = {
+            bottom: THIN_BORDER(),
+            top:    THIN_BORDER(),
+            left:   THIN_BORDER(),
+            right:  THIN_BORDER(),
+        };
+
+        const STAGE_LABEL = {};
+        const STAGE_COLOR = {};
+        NEG_STAGES.forEach(s => { STAGE_LABEL[s.id] = s.label; STAGE_COLOR[s.id] = s.color.replace('#',''); });
+
+        const DEL_LABEL   = {};
+        DELIVERY_OPTS.forEach(o => { DEL_LABEL[o.id] = o.label; });
+
+        const STOCK_LABEL = {};
+        STOCK_OPTS.forEach(o => { STOCK_LABEL[o.id] = o.label; });
+
+        const now = new Date();
+        const todayStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+
+        const fmtDate = ts => {
+            if (!ts) return '';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            if (isNaN(d)) return '';
+            return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+        };
+
+        const fmtNum = n => Number(n).toLocaleString('he-IL', { maximumFractionDigits: 2 });
+
+        // Strip '#' from hex colors coming from catColor()
+        const hex = c => (c || '').replace('#', '');
+
+        // ── Cell constructors ─────────────────────────────────────────────────
+        const sc = (v, s = {}) => ({
+            v: v ?? '',
+            t: typeof v === 'number' ? 'n' : 's',
+            s: { font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'right', vertical: 'center' }, border: CELL_BORDER, ...s },
+        });
+        const nc = (v, s = {}) => ({
+            v: Number(v) || 0,
+            t: 'n',
+            s: { font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: CELL_BORDER, ...s },
+        });
+        const lc = (v, url, s = {}) => ({
+            v: v ?? '',
+            t: 's',
+            l: { Target: url },
+            s: { font: { name: 'Calibri', sz: 10 }, alignment: { horizontal: 'right', vertical: 'center' }, border: CELL_BORDER, ...s },
+        });
+
+        // ── Style factories ───────────────────────────────────────────────────
+
+        // Title bar cell (navy bg, white, 13pt bold, right-aligned)
+        const titleSt = (extra = {}) => ({
+            font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: C.navy }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: { bottom: THIN_BORDER('2563EB') },
+            ...extra,
+        });
+
+        // Section header (blue bg, white, 11pt bold)
+        const secHdrSt = (extra = {}) => ({
+            font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: C.blue }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: { bottom: THIN_BORDER() },
+            ...extra,
+        });
+
+        // Column header (accent blue bg, navy text, 10pt bold)
+        const colHdrSt = (extra = {}) => ({
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: C.accentFg } },
+            fill: { fgColor: { rgb: C.accentBg }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center', wrapText: false },
+            border: { bottom: THIN_BORDER('93C5FD'), top: THIN_BORDER('93C5FD'), left: THIN_BORDER('93C5FD'), right: THIN_BORDER('93C5FD') },
+            ...extra,
+        });
+
+        // Data row cell (alternating, right-aligned)
+        const dataSt = (even, extra = {}) => ({
+            font: { name: 'Calibri', sz: 10 },
+            fill: { fgColor: { rgb: even ? C.rowA : C.rowB }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: CELL_BORDER,
+            ...extra,
+        });
+
+        // Numeric data cell (center-aligned)
+        const numSt = (even, extra = {}) => ({
+            ...dataSt(even),
+            alignment: { horizontal: 'center', vertical: 'center' },
+            ...extra,
+        });
+
+        // Grand / sub total row
+        const totSt = (extra = {}) => ({
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: C.totFg } },
+            fill: { fgColor: { rgb: C.totBg }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: { top: THIN_BORDER('93C5FD'), bottom: THIN_BORDER('93C5FD'), left: THIN_BORDER(), right: THIN_BORDER() },
+            ...extra,
+        });
+
+        // Full-width section divider (light gray bg)
+        const divSt = (extra = {}) => ({
+            font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: C.dark } },
+            fill: { fgColor: { rgb: C.divBg }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: { bottom: THIN_BORDER('CBD5E1') },
+            ...extra,
+        });
+
+        // Supplier name divider (uses supplier color tint)
+        const supDivSt = (supColorHex, extra = {}) => ({
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: supColorHex || C.navy } },
+            fill: { fgColor: { rgb: 'EFF6FF' }, patternType: 'solid' },
+            alignment: { horizontal: 'right', vertical: 'center' },
+            border: { bottom: THIN_BORDER('BFDBFE'), top: THIN_BORDER('BFDBFE'), left: THIN_BORDER('BFDBFE'), right: THIN_BORDER('BFDBFE') },
+            ...extra,
+        });
+
+        // KPI chip style
+        const kpiSt = (bgRgb, fgRgb, extra = {}) => ({
+            font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: fgRgb } },
+            fill: { fgColor: { rgb: bgRgb }, patternType: 'solid' },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: { top: THIN_BORDER(), bottom: THIN_BORDER(), left: THIN_BORDER(), right: THIN_BORDER() },
+            ...extra,
+        });
+
+        // Green (cheapest) highlight
+        const greenSt = (even, extra = {}) => ({
+            ...numSt(even),
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: C.greenTxt } },
+            fill: { fgColor: { rgb: C.greenBg }, patternType: 'solid' },
+            ...extra,
+        });
+
+        // Red (most expensive) highlight
+        const redSt = (even, extra = {}) => ({
+            ...numSt(even),
+            font: { name: 'Calibri', sz: 10, color: { rgb: C.redTxt } },
+            fill: { fgColor: { rgb: C.redBg }, patternType: 'solid' },
+            ...extra,
+        });
+
+        // ── Worksheet helpers ─────────────────────────────────────────────────
+
+        // Set a single cell and keep !ref updated
+        const setCell = (ws, r, c, cellObj) => {
+            const addr = XS.utils.encode_cell({ r, c });
+            ws[addr] = cellObj;
+            const ref = ws['!ref'];
+            const rng = ref ? XS.utils.decode_range(ref) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+            rng.e.r = Math.max(rng.e.r, r);
+            rng.e.c = Math.max(rng.e.c, c);
+            ws['!ref'] = XS.utils.encode_range(rng);
+        };
+
+        const putRow = (ws, ri, cells, ncols) => {
+            cells.forEach((cell, ci) => { if (cell != null) setCell(ws, ri, ci, cell); });
+            // Ensure ref covers full width even for sparse rows
+            if (ncols) setCell(ws, ri, ncols - 1, ws[XS.utils.encode_cell({ r: ri, c: ncols - 1 })] || sc(''));
+        };
+
+        const makeWS = widths => ({
+            '!ref': 'A1:A1',
+            '!cols': widths.map(w => ({ wch: w })),
+            '!rows': [],
+            '!merges': [],
+        });
+
+        const setRowHeight = (ws, ri, hpt) => {
+            while (ws['!rows'].length <= ri) ws['!rows'].push({});
+            ws['!rows'][ri] = { hpt };
+        };
+
+        const merge = (ws, r1, c1, r2, c2) => {
+            ws['!merges'].push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
+        };
+
+        // Fill a merged range with copies of the same cell object
+        const fillMerge = (ws, r1, c1, r2, c2, cellObj) => {
+            setCell(ws, r1, c1, cellObj);
+            merge(ws, r1, c1, r2, c2);
+            // Fill remaining cells in merge with blank so xlsx-js-style renders correctly
+            for (let r = r1; r <= r2; r++) {
+                for (let c = c1; c <= c2; c++) {
+                    if (r === r1 && c === c1) continue;
+                    setCell(ws, r, c, sc(''));
+                }
+            }
+        };
+
+        const emptyRow = (ws, ri, ncols, bgRgb = C.rowA) => {
+            const blankSt = { font: { name: 'Calibri', sz: 6 }, fill: { fgColor: { rgb: bgRgb }, patternType: 'solid' }, alignment: {}, border: {} };
+            for (let c = 0; c < ncols; c++) setCell(ws, ri, c, { v: '', t: 's', s: blankSt });
+        };
+
+        // ── Pre-compute grand totals ───────────────────────────────────────────
+        const grandTotal = quotes.reduce((s, q) => s + quoteTotal(q.products), 0);
+        const totalProducts = quotes.reduce((s, q) => s + (q.products || []).length, 0);
+        const sortedSuppliers = [...suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SHEET 1 — "📋 סקירה" Dashboard
+        // ════════════════════════════════════════════════════════════════════════
+        // Columns: ספק | מס׳ הצעה | שלב | מוצרים | ערך ₪ | שיטת הספקה | MOQ | תנאי תשלום | תוקף עד | תאריך
+        //          22    14          14    10        14      15            8     16            12        13
+        const WS1_COLS = [22, 14, 14, 10, 14, 15, 8, 16, 12, 13];
+        const WS1_NC   = WS1_COLS.length;
+        const ws1      = makeWS(WS1_COLS);
+        const HDRS1    = ['ספק','מס׳ הצעה','שלב','מוצרים','ערך ₪','שיטת הספקה','MOQ','תנאי תשלום','תוקף עד','תאריך'];
+
+        // Row 0: Title (merged full width, navy)
+        fillMerge(ws1, 0, 0, 0, WS1_NC - 1, {
+            v: `הצעות מחיר מספקים — NextClass    |    ${todayStr}`,
+            t: 's',
+            s: titleSt(),
+        });
+        setRowHeight(ws1, 0, 36);
+
+        // Row 1: Spacer (navy bg)
+        emptyRow(ws1, 1, WS1_NC, C.navy);
+        setRowHeight(ws1, 1, 8);
+
+        // Row 2: KPI chips (4 KPIs × 2-3 cols each across 10 cols)
+        // Layout: cols 0-2 | 3-5 | 6-7 | 8-9
+        const KPIs = [
+            { label: `${suppliers.length} ספקים`,   bg: '1E3A5F', fg: 'FFFFFF', c1: 0, c2: 2 },
+            { label: `${quotes.length} הצעות`,       bg: '2563EB', fg: 'FFFFFF', c1: 3, c2: 5 },
+            { label: `₪${fmtNum(grandTotal)} ערך כולל`, bg: '065F46', fg: 'FFFFFF', c1: 6, c2: 7 },
+            { label: `${totalProducts} מוצרים`,     bg: '7C3AED', fg: 'FFFFFF', c1: 8, c2: 9 },
+        ];
+        KPIs.forEach(kpi => {
+            fillMerge(ws1, 2, kpi.c1, 2, kpi.c2, { v: kpi.label, t: 's', s: kpiSt(kpi.bg, kpi.fg) });
+        });
+        setRowHeight(ws1, 2, 28);
+
+        // Row 3: spacer
+        emptyRow(ws1, 3, WS1_NC, C.divBg);
+        setRowHeight(ws1, 3, 8);
+
+        // Row 4: Column headers
+        HDRS1.forEach((h, ci) => setCell(ws1, 4, ci, { v: h, t: 's', s: colHdrSt() }));
+        setRowHeight(ws1, 4, 22);
+
+        // Rows 5+: Quote rows grouped by supplier
+        let r1 = 5;
+
+        sortedSuppliers.forEach(sup => {
+            const supQuotes = quotes.filter(q => q.supplierId === sup.id);
+            if (!supQuotes.length) return;
+
+            const supTotal = supQuotes.reduce((s, q) => s + quoteTotal(q.products), 0);
+            const supColor = hex(sup.color) || C.navy;
+
+            // Supplier divider row (full-width, tinted)
+            const supDivLabel = `${sup.name}   —   ${supQuotes.length} הצעות   |   ₪${fmtNum(supTotal)}`;
+            fillMerge(ws1, r1, 0, r1, WS1_NC - 1, { v: supDivLabel, t: 's', s: supDivSt(supColor) });
+            setRowHeight(ws1, r1, 18);
+            r1++;
+
+            supQuotes.forEach((q, qi) => {
+                const even = qi % 2 === 0;
+                const stageLabel = STAGE_LABEL[q.status] || q.status || '—';
+                const stageColor = STAGE_COLOR[q.status] || C.blue;
+                const qTotal     = quoteTotal(q.products);
+                const numProds   = (q.products || []).length;
+                const delivLabel = DEL_LABEL[q.deliveryMethod] || q.deliveryMethod || '—';
+
+                // Stage pill style
+                const stageCellSt = {
+                    ...dataSt(even),
+                    font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: stageColor } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                };
+
+                const row1Cells = [
+                    { v: sup.name || '—',             t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: supColor } } } },
+                    { v: q.quoteNumber || q.id?.slice(-6) || '—', t: 's', s: dataSt(even) },
+                    { v: stageLabel,                  t: 's', s: stageCellSt },
+                    { v: numProds,                    t: 'n', s: numSt(even) },
+                    { v: qTotal,                      t: 'n', s: { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
+                    { v: delivLabel,                  t: 's', s: dataSt(even) },
+                    { v: Number(q.moq) || 0,          t: 'n', s: numSt(even) },
+                    { v: q.paymentTerms || '—',       t: 's', s: dataSt(even) },
+                    { v: q.validUntil || '—',         t: 's', s: dataSt(even) },
+                    { v: fmtDate(q.createdAt),        t: 's', s: dataSt(even) },
+                ];
+                putRow(ws1, r1, row1Cells, WS1_NC);
+                setRowHeight(ws1, r1, 18);
+                r1++;
+            });
+        });
+
+        // Grand total row
+        const totRow = Array(WS1_NC).fill(null).map((_, ci) => ({ v: '', t: 's', s: totSt() }));
+        totRow[0] = { v: 'סה״כ כולל', t: 's', s: totSt() };
+        totRow[4] = { v: grandTotal, t: 'n', s: totSt({ alignment: { horizontal: 'center', vertical: 'center' } }) };
+        putRow(ws1, r1, totRow, WS1_NC);
+        setRowHeight(ws1, r1, 22);
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SHEET 2 — "🔍 השוואה" Price Comparison Matrix
+        // ════════════════════════════════════════════════════════════════════════
+        // Gather all unique products (by lowercase name), sorted by category then name
+        const productMap = new Map(); // key: lowerName -> { name, modelNumber, category, pricesBySup: Map<supId, {price, qty}> }
+        quotes.forEach(q => {
+            (q.products || []).forEach(p => {
+                const key = (p.name || '').toLowerCase().trim();
+                if (!key) return;
+                if (!productMap.has(key)) {
+                    productMap.set(key, {
+                        name: p.name,
+                        modelNumber: p.modelNumber || '',
+                        category: p.category || 'ללא קטגוריה',
+                        pricesBySup: new Map(),
+                    });
+                }
+                const entry = productMap.get(key);
+                // Store cheapest price per supplier
+                const existing = entry.pricesBySup.get(q.supplierId);
+                const price = unitNet(p); // ILS unit price after discount
+                const qty   = Number(p.quantity) || 1;
+                if (!existing || price < existing.price) {
+                    entry.pricesBySup.set(q.supplierId, { price, qty });
+                }
+                // Update category / model if more complete
+                if (!entry.category || entry.category === 'ללא קטגוריה') entry.category = p.category || 'ללא קטגוריה';
+                if (!entry.modelNumber && p.modelNumber) entry.modelNumber = p.modelNumber;
+            });
+        });
+
+        // Suppliers that appear in at least one quote
+        const activeSups = sortedSuppliers.filter(s => quotes.some(q => q.supplierId === s.id));
+        const WS2_FIXED  = 3; // category | product name | model
+        const WS2_NC     = WS2_FIXED + activeSups.length;
+        const WS2_COLS   = [20, 28, 16, ...activeSups.map(() => 14)];
+        const ws2        = makeWS(WS2_COLS);
+
+        // Row 0: Title
+        fillMerge(ws2, 0, 0, 0, WS2_NC - 1, {
+            v: `השוואת מחירים לפי מוצר — NextClass    |    ${todayStr}`,
+            t: 's', s: titleSt(),
+        });
+        setRowHeight(ws2, 0, 36);
+
+        // Row 1: spacer
+        emptyRow(ws2, 1, WS2_NC, C.navy);
+        setRowHeight(ws2, 1, 8);
+
+        // Row 2: Column headers
+        const matrixHdrs = ['קטגוריה', 'שם מוצר', 'מק"ט', ...activeSups.map(s => s.name)];
+        matrixHdrs.forEach((h, ci) => {
+            const isSup = ci >= WS2_FIXED;
+            const supColor = isSup ? hex(activeSups[ci - WS2_FIXED].color) : null;
+            setCell(ws2, 2, ci, {
+                v: h, t: 's',
+                s: colHdrSt(isSup && supColor ? { font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: supColor || C.accentFg } } } : {}),
+            });
+        });
+        setRowHeight(ws2, 2, 22);
+
+        // Group products by category
+        const catGroups = new Map();
+        for (const [, prod] of productMap) {
+            const cat = prod.category;
+            if (!catGroups.has(cat)) catGroups.set(cat, []);
+            catGroups.get(cat).push(prod);
+        }
+        // Sort categories, then products within
+        const sortedCats = [...catGroups.keys()].sort((a, b) => a.localeCompare(b, 'he'));
+
+        let r2 = 3;
+        sortedCats.forEach(cat => {
+            const prods = catGroups.get(cat).sort((a, b) => a.name.localeCompare(b.name, 'he'));
+
+            // Category divider row
+            const catColor2 = hex(catColor(cat));
+            const catDivSt = {
+                font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: catColor2 || C.navy } },
+                fill: { fgColor: { rgb: 'F0F9FF' }, patternType: 'solid' },
+                alignment: { horizontal: 'right', vertical: 'center' },
+                border: { bottom: THIN_BORDER('BAE6FD'), top: THIN_BORDER('BAE6FD'), left: THIN_BORDER('BAE6FD'), right: THIN_BORDER('BAE6FD') },
+            };
+            fillMerge(ws2, r2, 0, r2, WS2_NC - 1, { v: cat, t: 's', s: catDivSt });
+            setRowHeight(ws2, r2, 18);
+            r2++;
+
+            prods.forEach((prod, pi) => {
+                const even = pi % 2 === 0;
+
+                // Collect non-null prices for this product row to find min/max
+                const prices = activeSups.map(s => {
+                    const entry = prod.pricesBySup.get(s.id);
+                    return entry ? entry.price : null;
+                });
+                const nonNull = prices.filter(p => p !== null && p > 0);
+                const minP = nonNull.length ? Math.min(...nonNull) : null;
+                const maxP = nonNull.length ? Math.max(...nonNull) : null;
+                const hasMultiple = nonNull.length > 1;
+
+                setCell(ws2, r2, 0, { v: prod.category, t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: catColor2 || C.mid } } } });
+                setCell(ws2, r2, 1, { v: prod.name, t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true } } });
+                setCell(ws2, r2, 2, { v: prod.modelNumber || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: C.mid } } } });
+
+                activeSups.forEach((sup, si) => {
+                    const ci = WS2_FIXED + si;
+                    const entry = prod.pricesBySup.get(sup.id);
+                    if (!entry || !entry.price) {
+                        setCell(ws2, r2, ci, { v: '—', t: 's', s: { ...numSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: C.light } } } });
+                    } else {
+                        const p = entry.price;
+                        const isMin = hasMultiple && p === minP;
+                        const isMax = hasMultiple && p === maxP;
+                        const priceSt = isMin ? greenSt(even) : isMax ? redSt(even) : numSt(even);
+                        const label = entry.qty > 1 ? `${fmtNum(p)} (×${entry.qty})` : fmtNum(p);
+                        setCell(ws2, r2, ci, { v: label, t: 's', s: priceSt });
+                    }
+                });
+
+                setRowHeight(ws2, r2, 18);
+                r2++;
+            });
+
+            // Category subtotal row
+            const catTotSt = {
+                font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: C.totFg } },
+                fill: { fgColor: { rgb: C.navy }, patternType: 'solid' },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: CELL_BORDER,
+            };
+            for (let ci = 0; ci < WS2_NC; ci++) {
+                if (ci === 0) {
+                    setCell(ws2, r2, ci, { v: `סה״כ — ${cat}`, t: 's', s: { ...catTotSt, alignment: { horizontal: 'right', vertical: 'center' } } });
+                } else if (ci >= WS2_FIXED) {
+                    const supId = activeSups[ci - WS2_FIXED]?.id;
+                    const catTotal = prods.reduce((sum, prod) => {
+                        const entry = prod.pricesBySup.get(supId);
+                        return sum + (entry ? entry.price * entry.qty : 0);
+                    }, 0);
+                    setCell(ws2, r2, ci, { v: catTotal > 0 ? `₪${fmtNum(catTotal)}` : '—', t: 's', s: catTotSt });
+                } else {
+                    setCell(ws2, r2, ci, { v: '', t: 's', s: catTotSt });
+                }
+            }
+            setRowHeight(ws2, r2, 16);
+            r2++;
+
+            // Blank spacer after category
+            emptyRow(ws2, r2, WS2_NC, C.divBg);
+            setRowHeight(ws2, r2, 6);
+            r2++;
+        });
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SHEET 3 — "📦 מוצרים" Product Catalog
+        // ════════════════════════════════════════════════════════════════════════
+        // קטגוריה | שם מוצר | מק"ט | ספק | שלב | כמות | מחיר ליח׳ ₪ | הנחה % | עלות ₪ | פורסם | מדרגות מחיר
+        //   22       30        18    20    13     8     13             9       13       10       40
+        const WS3_COLS = [22, 30, 18, 20, 13, 8, 13, 9, 13, 10, 40];
+        const WS3_NC   = WS3_COLS.length;
+        const ws3      = makeWS(WS3_COLS);
+        const HDRS3    = ['קטגוריה','שם מוצר','מק"ט','ספק','שלב','כמות','מחיר ליח׳ ₪','הנחה %','עלות ₪','פורסם','מדרגות מחיר'];
+
+        // Title
+        fillMerge(ws3, 0, 0, 0, WS3_NC - 1, {
+            v: `קטלוג מוצרים — NextClass    |    ${todayStr}`,
+            t: 's', s: titleSt(),
+        });
+        setRowHeight(ws3, 0, 36);
+
+        // Spacer
+        emptyRow(ws3, 1, WS3_NC, C.navy);
+        setRowHeight(ws3, 1, 8);
+
+        // Column headers
+        HDRS3.forEach((h, ci) => setCell(ws3, 2, ci, { v: h, t: 's', s: colHdrSt() }));
+        setRowHeight(ws3, 2, 22);
+
+        // Build flat list of products, sorted by category then name
+        const allProducts = [];
+        quotes.forEach(q => {
+            const sup = suppliers.find(s => s.id === q.supplierId);
+            (q.products || []).forEach(p => {
+                allProducts.push({ p, q, sup });
+            });
+        });
+        allProducts.sort((a, b) => {
+            const catCmp = (a.p.category || 'ללא').localeCompare(b.p.category || 'ללא', 'he');
+            if (catCmp !== 0) return catCmp;
+            return (a.p.name || '').localeCompare(b.p.name || '', 'he');
+        });
+
+        let r3 = 3;
+        let lastCat3 = null;
+        let rowInCat  = 0;
+        let catGrandTotal = 0;
+        const grandTotal3 = allProducts.reduce((s, { p }) => s + lineTotal(p), 0);
+
+        // Helper: emit category subtotal + divider
+        const emitCatSubtotal3 = (catName, total) => {
+            const st = { font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: C.totFg } }, fill: { fgColor: { rgb: '334155' }, patternType: 'solid' }, alignment: { horizontal: 'right', vertical: 'center' }, border: CELL_BORDER };
+            for (let ci = 0; ci < WS3_NC; ci++) {
+                if (ci === 0) setCell(ws3, r3, ci, { v: `סה״כ — ${catName}`, t: 's', s: st });
+                else if (ci === 8) setCell(ws3, r3, ci, { v: total, t: 'n', s: { ...st, alignment: { horizontal: 'center', vertical: 'center' } } });
+                else setCell(ws3, r3, ci, { v: '', t: 's', s: st });
+            }
+            setRowHeight(ws3, r3, 16);
+            r3++;
+        };
+
+        allProducts.forEach(({ p, q, sup }) => {
+            const cat = p.category || 'ללא קטגוריה';
+            const lt = lineTotal(p); // use ILS-corrected line total
+
+            if (cat !== lastCat3) {
+                // Close previous category
+                if (lastCat3 !== null) {
+                    emitCatSubtotal3(lastCat3, catGrandTotal);
+                    emptyRow(ws3, r3, WS3_NC, C.divBg);
+                    setRowHeight(ws3, r3, 6);
+                    r3++;
+                }
+                // Category divider
+                const cColor = hex(catColor(cat));
+                const cdSt = {
+                    font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: cColor || C.navy } },
+                    fill: { fgColor: { rgb: 'F8FAFC' }, patternType: 'solid' },
+                    alignment: { horizontal: 'right', vertical: 'center' },
+                    border: { bottom: THIN_BORDER('CBD5E1'), top: THIN_BORDER('CBD5E1'), left: THIN_BORDER('CBD5E1'), right: THIN_BORDER('CBD5E1') },
+                };
+                fillMerge(ws3, r3, 0, r3, WS3_NC - 1, { v: cat, t: 's', s: cdSt });
+                setRowHeight(ws3, r3, 18);
+                r3++;
+                lastCat3 = cat;
+                rowInCat = 0;
+                catGrandTotal = 0;
+            }
+
+            const even = rowInCat % 2 === 0;
+            const stageLabel = STAGE_LABEL[q.status] || q.status || '—';
+            const stageColor = STAGE_COLOR[q.status] || C.blue;
+            const stageSt3 = { ...dataSt(even), font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: stageColor } }, alignment: { horizontal: 'center', vertical: 'center' } };
+            const publishedSt = { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: p.publishedProductId ? C.greenTxt : C.light } } };
+
+            const tiersSt = { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: (p.tiers || []).length > 0 ? '5856D6' : C.light } }, alignment: { horizontal: 'right', vertical: 'center', wrapText: false } };
+            const prodRow = [
+                { v: cat, t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: hex(catColor(cat)) || C.mid } } } },
+                { v: p.name || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
+                { v: p.modelNumber || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: C.mid } } } },
+                { v: sup?.name || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: hex(sup?.color) || C.blue } } } },
+                { v: stageLabel, t: 's', s: stageSt3 },
+                { v: Number(p.quantity) || 1, t: 'n', s: numSt(even) },
+                { v: getTierAwarePrice(p), t: 'n', s: numSt(even) },
+                { v: Number(p.discount) || 0, t: 'n', s: numSt(even) },
+                { v: lt, t: 'n', s: { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
+                { v: p.publishedProductId ? 'פורסם' : '—', t: 's', s: publishedSt },
+                { v: formatTiers(p), t: 's', s: tiersSt },
+            ];
+            putRow(ws3, r3, prodRow, WS3_NC);
+            setRowHeight(ws3, r3, 18);
+            r3++;
+            rowInCat++;
+            catGrandTotal += lt;
+        });
+
+        // Close last category
+        if (lastCat3 !== null) {
+            emitCatSubtotal3(lastCat3, catGrandTotal);
+        }
+
+        // Grand total
+        const gt3St = totSt({ alignment: { horizontal: 'center', vertical: 'center' } });
+        const gt3Row = Array(WS3_NC).fill(null).map((_, ci) => ({ v: '', t: 's', s: totSt() }));
+        gt3Row[0] = { v: 'סה״כ כולל', t: 's', s: totSt() };
+        gt3Row[8] = { v: grandTotal3, t: 'n', s: gt3St };
+        putRow(ws3, r3, gt3Row, WS3_NC);
+        setRowHeight(ws3, r3, 22);
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SHEET 4 — "🏭 ספקים" Vendor Directory
+        // ════════════════════════════════════════════════════════════════════════
+        // שם ספק | שם סוכן | טלפון | אימייל | אתר | מינימום הזמנה ₪ | תנאי תשלום | ימי אספקה | הצעות פעילות | ערך כולל ₪
+        //  24      18        18      26       22     15                 16           12          13             14
+        const WS4_COLS = [24, 18, 18, 26, 22, 15, 16, 12, 13, 14];
+        const WS4_NC   = WS4_COLS.length;
+        const ws4      = makeWS(WS4_COLS);
+        const HDRS4    = ['שם ספק','שם סוכן','טלפון','אימייל','אתר','מינימום הזמנה ₪','תנאי תשלום','ימי אספקה','הצעות פעילות','ערך כולל ₪'];
+
+        // Title
+        fillMerge(ws4, 0, 0, 0, WS4_NC - 1, {
+            v: `ספריית ספקים — NextClass    |    ${suppliers.length} ספקים    |    ${todayStr}`,
+            t: 's', s: titleSt(),
+        });
+        setRowHeight(ws4, 0, 36);
+
+        // Spacer
+        emptyRow(ws4, 1, WS4_NC, C.navy);
+        setRowHeight(ws4, 1, 8);
+
+        // Column headers
+        HDRS4.forEach((h, ci) => setCell(ws4, 2, ci, { v: h, t: 's', s: colHdrSt() }));
+        setRowHeight(ws4, 2, 22);
+
+        let r4 = 3;
+        let grandTotal4 = 0;
+
+        sortedSuppliers.forEach((sup, si) => {
+            const supQuotes  = quotes.filter(q => q.supplierId === sup.id);
+            const totalVal   = supQuotes.reduce((s, q) => s + quoteTotal(q.products), 0);
+            const activeCount = supQuotes.length;
+            const even = si % 2 === 0;
+            const supColor4 = hex(sup.color) || C.blue;
+            grandTotal4 += totalVal;
+
+            // Phone with WhatsApp hyperlink
+            const rawPhone = (sup.agentPhone || sup.phone || '').replace(/\D/g, '').replace(/^0/, '');
+            const phonecell = rawPhone
+                ? lc(
+                    sup.agentPhone || sup.phone,
+                    `https://wa.me/972${rawPhone}`,
+                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '16A34A' }, underline: true } },
+                )
+                : { v: '—', t: 's', s: dataSt(even) };
+
+            // Email hyperlink
+            const emailAddr = sup.agentEmail || sup.email || '';
+            const emailcell = emailAddr
+                ? lc(
+                    emailAddr,
+                    `mailto:${emailAddr}`,
+                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: C.blue }, underline: true } },
+                )
+                : { v: '—', t: 's', s: dataSt(even) };
+
+            // Website hyperlink
+            const domainRaw = (sup.domain || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0].trim();
+            const domainFull = domainRaw ? `https://${domainRaw}` : '';
+            const webcell = domainRaw
+                ? lc(
+                    domainRaw,
+                    domainFull,
+                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '7C3AED' }, underline: true } },
+                )
+                : { v: '—', t: 's', s: dataSt(even) };
+
+            const supRow = [
+                { v: sup.name || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: supColor4 } } } },
+                { v: sup.agentName || sup.contact || '—', t: 's', s: dataSt(even) },
+                phonecell,
+                emailcell,
+                webcell,
+                { v: Number(sup.minOrder) || 0, t: 'n', s: numSt(even) },
+                { v: sup.paymentTerms || '—', t: 's', s: dataSt(even) },
+                { v: sup.leadTimeDays ? `${sup.leadTimeDays}` : '—', t: 's', s: numSt(even) },
+                { v: activeCount, t: 'n', s: numSt(even) },
+                { v: totalVal, t: 'n', s: { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
+            ];
+            putRow(ws4, r4, supRow, WS4_NC);
+            setRowHeight(ws4, r4, 20);
+            r4++;
+        });
+
+        // Grand total row
+        const gt4Row = Array(WS4_NC).fill(null).map((_, ci) => ({ v: '', t: 's', s: totSt() }));
+        gt4Row[0] = { v: 'סה״כ כולל', t: 's', s: totSt() };
+        gt4Row[8] = { v: quotes.length, t: 'n', s: totSt({ alignment: { horizontal: 'center', vertical: 'center' } }) };
+        gt4Row[9] = { v: grandTotal4, t: 'n', s: totSt({ alignment: { horizontal: 'center', vertical: 'center' } }) };
+        putRow(ws4, r4, gt4Row, WS4_NC);
+        setRowHeight(ws4, r4, 22);
+
+        // ── Assemble & write workbook ─────────────────────────────────────────
+        const wb = XS.utils.book_new();
+        XS.utils.book_append_sheet(wb, ws1, 'סקירה');
+        XS.utils.book_append_sheet(wb, ws2, 'השוואה');
+        XS.utils.book_append_sheet(wb, ws3, 'מוצרים');
+        XS.utils.book_append_sheet(wb, ws4, 'ספקים');
+
+        XS.writeFile(wb, `NextClass-הצעות-ספקים-${now.toISOString().slice(0, 10)}.xlsx`);
+    });
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminSuppliers() {
     const { showToast } = useAdminToast();
@@ -2991,10 +3822,20 @@ export default function AdminSuppliers() {
                     <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>הצעות מחיר מספקים</h1>
                     <p style={{ fontSize: 13, color: '#AEAEB2', margin: '3px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
                 </div>
-                <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 18px rgba(0,122,255,0.28)' }}>
-                    <Plus size={15} />ספק חדש
-                </motion.button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    {quotes.length > 0 && (
+                        <motion.button
+                            onClick={() => { exportQuotesXLSX(suppliers, quotes); showToast('מייצא קובץ Excel...', 'info'); }}
+                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 14, border: '1.5px solid rgba(52,199,89,0.35)', background: 'rgba(52,199,89,0.08)', color: '#34C759', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                            <Download size={15} />ייצוא Excel
+                        </motion.button>
+                    )}
+                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 18px rgba(0,122,255,0.28)' }}>
+                        <Plus size={15} />ספק חדש
+                    </motion.button>
+                </div>
             </div>
 
             {/* Tab bar */}

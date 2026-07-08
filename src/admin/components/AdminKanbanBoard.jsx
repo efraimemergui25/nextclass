@@ -9,10 +9,17 @@ const COLORS = {
   'הוצע מחיר':    '#007AFF', 'ממתין לאישור': '#5856D6',  'נסגר':         '#34C759',
   'הועבר לספק':   '#0891B2', 'בדרך':          '#7C3AED',  'סופק':         '#1DB954',
 };
-const STAGE_ICONS = {
-  'חדש': '🆕', 'ביצירת קשר': '📞', 'בדיקת מלאי': '📦',
-  'הוצע מחיר': '💰', 'ממתין לאישור': '✍️', 'נסגר': '✅',
-  'הועבר לספק': '🚚', 'בדרך': '📍', 'סופק': '🎉',
+// SVG paths for stage icons (24×24 viewBox, stroke-based)
+const STAGE_ICON_PATHS = {
+  'חדש':          'M12 4v16m8-8H4',
+  'ביצירת קשר':   'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498A1 1 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z',
+  'בדיקת מלאי':   'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+  'הוצע מחיר':    'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+  'ממתין לאישור': 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  'נסגר':          'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  'הועבר לספק':   'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+  'בדרך':          'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
+  'סופק':          'M5 13l4 4L19 7',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -35,7 +42,7 @@ function urgencyLevel(q) {
 }
 
 // ─── KanbanCard ───────────────────────────────────────────────────────────────
-function KanbanCard({ quote, color, onOpen, onDragStart, isDragging }) {
+function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick }) {
   const urgency = urgencyLevel(quote);
   const days    = stalledDays(quote);
   const total   = quoteTotal(quote);
@@ -84,7 +91,11 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging }) {
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-black text-[#1D1D1F] truncate leading-tight" style={{ maxWidth: 120 }}>
+            <p
+              className="text-[12px] font-black truncate leading-tight transition-colors"
+              style={{ maxWidth: 120, color: onNameClick ? '#007AFF' : '#1D1D1F', cursor: onNameClick ? 'pointer' : 'default' }}
+              onClick={onNameClick ? (e) => { e.stopPropagation(); onNameClick(quote); } : undefined}
+            >
               {quote.contactName || '—'}
             </p>
             {quote.institution && (
@@ -135,7 +146,7 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging }) {
 }
 
 // ─── KanbanColumn ─────────────────────────────────────────────────────────────
-function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDragOver, draggingId }) {
+function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDragOver, draggingId, onNameClick }) {
   const total = quotes.reduce((s, q) => s + quoteTotal(q), 0);
   const criticalCount = quotes.filter(q => urgencyLevel(q) === 'critical').length;
 
@@ -164,7 +175,11 @@ function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDra
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span style={{ fontSize: 12 }}>{STAGE_ICONS[stage]}</span>
+            {STAGE_ICON_PATHS[stage] && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d={STAGE_ICON_PATHS[stage]} />
+              </svg>
+            )}
             <span className="text-[11px] font-black" style={{ color: isDragOver ? color : '#1D1D1F' }}>{stage}</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -211,6 +226,7 @@ function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDra
               onOpen={onOpen}
               onDragStart={onDragStart}
               isDragging={draggingId === q.id}
+              onNameClick={onNameClick}
             />
           ))}
         </AnimatePresence>
@@ -257,7 +273,7 @@ function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDra
 }
 
 // ─── Main KanbanBoard ─────────────────────────────────────────────────────────
-export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showToast }) {
+export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showToast, onNameClick }) {
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
   const dragIdRef = useRef(null);
@@ -341,6 +357,7 @@ export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showT
             onDrop={handleDrop}
             isDragOver={dragOverStage === stage && draggingId !== null}
             draggingId={draggingId}
+            onNameClick={onNameClick}
           />
         ))}
       </div>

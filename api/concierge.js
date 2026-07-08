@@ -99,9 +99,9 @@ export default async function handler(req, res) {
     try {
         let text;
         if (groqKey) {
-            text = await callGroq(groqKey, safeMessages, String(systemPrompt || '').slice(0, 1000));
+            text = await callGroq(groqKey, safeMessages, String(systemPrompt || '').slice(0, 6000));
         } else {
-            text = await callAnthropic(anthropicKey, safeMessages, String(systemPrompt || '').slice(0, 1000));
+            text = await callAnthropic(anthropicKey, safeMessages, String(systemPrompt || '').slice(0, 6000));
         }
         res.status(200).json({ text });
     } catch (err) {
