@@ -2,17 +2,41 @@
  * Vercel Serverless Function — AI Concierge proxy
  * POST /api/concierge
  *
- * Uses Groq (free tier, no credit card needed) or Anthropic as fallback.
- * Set GROQ_API_KEY in Vercel → Environment Variables (free at groq.com)
+ * Uses Google Gemini (gemini-2.5-flash) via OpenAI compatibility layer.
+ * Falls back to Groq or Anthropic if configured.
  */
 
 import { logSecurityEvent } from './_logEvent.js';
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
+
+async function callGemini(apiKey, messages, systemPrompt) {
+    const res = await fetch(GEMINI_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: GEMINI_MODEL,
+            max_tokens: 600,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...messages,
+            ],
+        }),
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? '';
+}
 
 async function callGroq(apiKey, messages, systemPrompt) {
     const res = await fetch(GROQ_URL, {
@@ -89,16 +113,19 @@ export default async function handler(req, res) {
         content: String(m.content || '').slice(0, 2000),
     }));
 
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     const groqKey = process.env.GROQ_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!groqKey && !anthropicKey) {
+    if (!geminiKey && !groqKey && !anthropicKey) {
         return res.status(200).json({ text: 'העוזר החכם אינו מוגדר. פנו אלינו בוואטסאפ לסיוע מיידי.' });
     }
 
     try {
         let text;
-        if (groqKey) {
+        if (geminiKey) {
+            text = await callGemini(geminiKey, safeMessages, String(systemPrompt || '').slice(0, 6000));
+        } else if (groqKey) {
             text = await callGroq(groqKey, safeMessages, String(systemPrompt || '').slice(0, 6000));
         } else {
             text = await callAnthropic(anthropicKey, safeMessages, String(systemPrompt || '').slice(0, 6000));

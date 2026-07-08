@@ -36,6 +36,7 @@ const AdminMagazine       = lazy(() => import('./pages/AdminMagazine'));
 const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
 const AdminSuppliers      = lazy(() => import('./pages/AdminSuppliers'));
 const AdminOCR            = lazy(() => import('./pages/AdminOCR'));
+const AdminVault          = lazy(() => import('./pages/AdminVault'));
 
 // ─── Page-level skeleton ──────────────────────────────────────────────────────
 function AdminPageSkeleton() {
@@ -231,6 +232,7 @@ function AdminShell() {
                                                 <Route path="/admin/security"       element={<AdminSecurity />} />
                                                 <Route path="/admin/magazine"       element={<AdminMagazine />} />
                                                 <Route path="/admin/ocr"            element={<AdminOCR />} />
+                                                <Route path="/admin/vault"          element={<AdminVault />} />
                                                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                                             </Routes>
                                         </Suspense>
