@@ -6,19 +6,17 @@ import { BarChart2, Box, TrendingDown, Clock, ArrowDown, TrendingUp, AlertTriang
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, InfoTooltip } from '../components/AdminComponents';
+import { GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
 import initialProducts from '../../data/products';
+
+// ─── Analytics domain accent (Heaven · emerald) ───────────────────────────────
+const ACCENT = '#30D158';
 
 // ─── Glass card ───────────────────────────────────────────────────────────────
 function Card({ title, subtitle, accent, action, children, className = '', titleTooltip }) {
     return (
         <div className={`rounded-[22px] overflow-hidden ${className}`}
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
             {accent && <div className="h-[3px]" style={{ background: accent }} />}
             <div className="p-5">
@@ -462,25 +460,31 @@ export default function AdminAnalytics() {
     return (
         <div dir="rtl" className="space-y-5">
 
-            {/* ── Header ──────────────────────────────────────────────────────── */}
+            {/* ── Header — emerald accent icon box + gradient ink title ── */}
             <div className="flex items-start justify-between flex-wrap gap-3">
-                <div className="text-right">
-                    <h1 className="text-3xl font-black text-[#1D1D1F] tracking-tighter">דוחות ואנליטיקה</h1>
-                    <p className="text-[#86868B] text-sm mt-1 font-medium">
-                        תובנות עסקיות מבוססות נתוני פעילות אמת · {new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}
-                    </p>
+                <div className="flex items-center gap-3.5">
+                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.24)}`, boxShadow: `${glow(ACCENT, 0.2, 20)}, ${SHADOW.specular}` }}>
+                        <BarChart2 size={22} color={ACCENT} />
+                    </div>
+                    <div className="text-right">
+                        <h1 className="text-3xl font-black tracking-tighter"
+                            style={{ background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>דוחות ואנליטיקה</h1>
+                        <p className="text-[#86868B] text-sm mt-1 font-medium">
+                            תובנות עסקיות מבוססות נתוני פעילות אמת · {new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}
+                        </p>
+                    </div>
                 </div>
                 <div className="flex flex-col items-end gap-2.5">
                     <AdminTabs tabs={TABS} active={tab} onChange={setTab} />
-                    {/* Range selector */}
+                    {/* Range selector — emerald page accent */}
                     <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(0,0,0,0.06)' }}>
                         {RANGES.map(r => (
-                            <motion.button key={r.id} onClick={() => setRange(r.id)}
+                            <motion.button key={r.id} onClick={() => setRange(r.id)} whileTap={{ scale: 0.96 }}
                                 className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap"
-                                style={{ color: range === r.id ? '#007AFF' : '#86868B' }}>
+                                style={{ color: range === r.id ? '#1A8C40' : '#86868B' }}>
                                 {range === r.id && (
                                     <motion.div layoutId="range-pill" className="absolute inset-0 rounded-xl"
-                                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
+                                        style={{ background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)} 0%, ${hexA(ACCENT, 0.08)} 100%)`, border: `1px solid ${hexA(ACCENT, 0.28)}`, boxShadow: `0 2px 8px ${hexA(ACCENT, 0.18)}` }}
                                         transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                                 )}
                                 <span className="relative z-10">{r.label}</span>

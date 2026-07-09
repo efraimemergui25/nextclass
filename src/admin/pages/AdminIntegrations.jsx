@@ -8,20 +8,19 @@ import {
     Server, Building2, Clock, Info, ChevronLeft, ShieldCheck,
 } from 'lucide-react';
 import { AdminSectionHeader } from '../components/AdminComponents';
+import {
+    GLASS as GLASS_TOKENS, RADIUS, SHADOW, SPRING, hexA, glow, accentSurface,
+} from '../theme/tokens';
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const GLASS = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    borderRadius: 22,
-};
+// ── Integrations domain accent (deep indigo ★) ─────────────────────────────────
+const INDIGO = '#5856D6';
+
+// ── Token-driven liquid-glass surfaces (one system everywhere) ─────────────────
+const GLASS = { ...GLASS_TOKENS.base, borderRadius: RADIUS.cardLg };
 const GLASS_INSET = {
     background: 'rgba(0,0,0,0.025)',
     border: '1px solid rgba(0,0,0,0.06)',
-    borderRadius: 14,
+    borderRadius: RADIUS.sm,
 };
 
 // ── Analytics platform links ───────────────────────────────────────────────────
@@ -405,6 +404,35 @@ function GeneralInfo() {
     );
 }
 
+// ── StatTile — oversized colored numbers (real counts only) ────────────────────
+function StatTile({ label, value, color, Icon, delay }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ y: -3, boxShadow: `0 18px 44px ${hexA(color, 0.2)}, ${SHADOW.specular}` }}
+            className="relative overflow-hidden p-5 flex flex-col min-h-[118px] transition-shadow"
+            style={accentSurface(color, { radius: RADIUS.kpi })}
+        >
+            <div className="h-[3px] w-full absolute top-0 left-0 pointer-events-none"
+                style={{ background: `linear-gradient(90deg, ${color}, ${hexA(color, 0.6)})`, borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
+            <div className="absolute -top-12 -left-10 w-40 h-40 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${hexA(color, 0.22)} 0%, transparent 66%)`, filter: 'blur(6px)' }} />
+            <div className="flex items-start justify-between relative z-10">
+                <p className="text-[40px] font-black tracking-tighter leading-none"
+                    style={{ background: `linear-gradient(160deg, ${color} 0%, ${hexA(color, 0.7)} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                    {value}
+                </p>
+                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0"
+                    style={{ background: hexA(color, 0.14), border: `1px solid ${hexA(color, 0.28)}` }}>
+                    <Icon className="w-4 h-4" style={{ color }} strokeWidth={2} />
+                </div>
+            </div>
+            <p className="text-[12px] text-[#6E6E73] font-bold mt-auto pt-3 relative z-10">{label}</p>
+        </motion.div>
+    );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminIntegrations() {
     const { data: crmData, loading: crmLoading, refetch } = useCRMStats();
@@ -423,19 +451,28 @@ export default function AdminIntegrations() {
             <AdminSectionHeader
                 title="אינטגרציות ושירותים"
                 subtitle="ניהול וניטור כל הפלטפורמות החיצוניות של NextClass"
+                icon={Link2}
                 action={
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                        style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.22)' }}>
+                        style={{ background: hexA(INDIGO, 0.1), border: `1px solid ${hexA(INDIGO, 0.24)}`, boxShadow: glow(INDIGO, 0.1, 14) }}>
                         <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
                         <span className="text-[12px] font-black text-[#1D1D1F]">{activeCount} / {SERVICES.length} שירותים פעילים</span>
                     </div>
                 }
             />
 
+            {/* ── Real-data KPI band ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatTile label="שירותים מחוברים" value={activeCount}                       color={INDIGO}     Icon={CheckCircle} delay={0} />
+                <StatTile label="לא מחוברים"        value={SERVICES.length - activeCount}     color="#8E8E93"    Icon={XCircle}     delay={0.06} />
+                <StatTile label="כלי אנליטיקס"      value={ANALYTICS_LINKS.length}            color="#007AFF"    Icon={BarChart2}   delay={0.12} />
+                <StatTile label="לידים ב-CRM"       value={crmData?.configured ? (crmData?.contacts?.total || 0) : '—'} color="#FF7A59" Icon={Users} delay={0.18} />
+            </div>
+
             {/* ── Services grid ─────────────────────────────────────────────── */}
             <div style={GLASS} className="p-5">
                 <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#FF7A59)' }} />
+                    style={{ background: `linear-gradient(90deg,${INDIGO},#007AFF)` }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">סטטוס שירותים</h3>

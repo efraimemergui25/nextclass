@@ -7,20 +7,43 @@ import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where, limit, getDocs } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { AdminKPICard, AdminEmpty, AdminSkeleton } from '../components/AdminComponents';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 import {
     Users, Search, Download, Mail, Building2,
     Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2
 } from 'lucide-react';
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const glass = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ── Users domain accent (Heaven · cyan) ───────────────────────────────────────
+const ACCENT      = '#32ADE6';
+const ACCENT_DARK = '#1B7BB0';
+
+// ── Liquid-glass surface (token-driven — one system everywhere) ────────────────
+const glass = { ...GLASS.base };
+
+// ── Accent segmented control (per-page accent pill group) ──────────────────────
+function Segmented({ options, value, onChange, accent = ACCENT }) {
+    return (
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: RADIUS.chip + 4, background: 'rgba(0,0,0,0.05)', flexWrap: 'wrap' }}>
+            {options.map(o => {
+                const active = value === o.value;
+                return (
+                    <motion.button key={o.value} type="button" onClick={() => onChange(o.value)} whileTap={{ scale: 0.96 }}
+                        style={{
+                            position: 'relative', padding: '6px 13px', borderRadius: RADIUS.chip, border: 'none',
+                            background: active ? hexA(accent, 0.12) : 'transparent',
+                            color: active ? accent : '#86868B', fontSize: 12, fontWeight: active ? 800 : 600,
+                            cursor: 'pointer', fontFamily: 'Heebo, sans-serif', whiteSpace: 'nowrap',
+                            boxShadow: active ? `0 2px 8px ${hexA(accent, 0.18)}, inset 0 0 0 1px ${hexA(accent, 0.22)}` : 'none',
+                            transition: 'color 0.15s, background 0.15s',
+                        }}>
+                        {o.label}
+                    </motion.button>
+                );
+            })}
+        </div>
+    );
+}
 
 const TIER_CONFIG = {
     free:    { label: 'פרטי',   color: '#8E8E93', bg: 'rgba(142,142,147,0.12)' },
@@ -99,27 +122,6 @@ function ProviderBadge({ provider }) {
             {isGoogle ? <Chrome size={10} /> : <Lock size={10} />}
             {isGoogle ? 'Google' : 'מייל'}
         </span>
-    );
-}
-
-// ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, color, icon: Icon, sub, index }) {
-    return (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, type: 'spring', stiffness: 300, damping: 28 }}
-            className="relative overflow-hidden rounded-[20px] p-5" style={glass}>
-            <div className="absolute inset-0 pointer-events-none rounded-[20px]"
-                style={{ background: `radial-gradient(ellipse at top right, ${color}0D, transparent 65%)` }} />
-            <div className="flex items-start justify-between mb-2">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${color}15` }}>
-                    <Icon size={18} color={color} strokeWidth={2} />
-                </div>
-            </div>
-            <p className="text-2xl font-black tracking-tighter" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[11px] font-bold mt-0.5">{label}</p>
-            {sub && <p className="text-[#AEAEB2] text-[10px] font-medium mt-0.5">{sub}</p>}
-        </motion.div>
     );
 }
 
@@ -415,7 +417,7 @@ function UserRow({ user, index, onClick, rfmSegment }) {
             transition={{ delay: index * 0.03 }}
             onClick={onClick}
             style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="hover:bg-[#007AFF]/[0.04] transition-colors"
+            className="hover:bg-[#32ADE6]/[0.05] transition-colors"
         >
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -534,72 +536,73 @@ export default function AdminUsers() {
 
     return (
         <div className="p-6 space-y-6 font-heebo" dir="rtl">
-            <AdminSectionHeader
-                title="משתמשים רשומים"
-                subtitle={`${users.length} משתמשים רשומים באתר`}
-                icon={Users}
-                actions={
-                    <button onClick={() => exportCSV(filtered)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors">
-                        <Download size={15} /> ייצוא CSV
-                    </button>
-                }
-            />
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard index={0} icon={Users}      color="#007AFF" label="סה״כ משתמשים"  value={users.length} />
-                <StatCard index={1} icon={Chrome}     color="#4285F4" label="נרשמו דרך Google" value={googleCount} sub={`${Math.round(googleCount / (users.length || 1) * 100)}% מהסך הכל`} />
-                <StatCard index={2} icon={Star}       color="#FF9500" label="מנויים פעילים" value={memberCount} />
-                <StatCard index={3} icon={Clock}      color="#30D158" label="נרשמו היום"    value={todayCount} />
-            </div>
-
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: '1 1 220px' }}>
-                    <Search size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#8E8E93', pointerEvents: 'none' }} />
-                    <input value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder="חיפוש לפי שם, מייל, מוסד..."
-                        style={{
-                            width: '100%', height: 38, paddingRight: 34, paddingLeft: 12,
-                            borderRadius: 12, border: '1px solid rgba(255,255,255,0.72)',
-                            background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                            fontFamily: 'Heebo, sans-serif',
-                            fontSize: 13, color: '#1D1D1F', outline: 'none', direction: 'rtl',
-                        }} />
+            {/* ── Header — cyan accent icon box + gradient ink title ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.22)}`, boxShadow: `${glow(ACCENT, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <Users size={22} color={ACCENT} />
                 </div>
-                {[
-                    { key: 'filterTier', value: filterTier, set: setFilterTier,
-                      opts: [['all','כל הדרגות'], ['free','פרטי'], ['member','חבר'], ['premium','Premium']] },
-                    { key: 'filterProv', value: filterProv, set: setFilterProv,
-                      opts: [['all','כל הספקים'], ['google','Google'], ['email','מייל/סיסמה']] },
-                ].map(({ key, value, set, opts }) => (
-                    <select key={key} value={value} onChange={e => set(e.target.value)}
-                        style={{
-                            height: 38, padding: '0 12px', borderRadius: 12,
-                            border: '1px solid rgba(255,255,255,0.72)', background: 'rgba(255,255,255,0.78)',
-                            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                            fontFamily: 'Heebo, sans-serif', fontSize: 13,
-                            color: '#1D1D1F', cursor: 'pointer', outline: 'none',
-                        }}>
-                        {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                ))}
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>משתמשים רשומים</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{users.length} משתמשים רשומים באתר · ניהול דרגות מנוי</p>
+                </div>
+                <motion.button onClick={() => exportCSV(filtered)} whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(ACCENT, 0.28)}` }} whileTap={TAP}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: RADIUS.button, border: `1.5px solid ${hexA(ACCENT, 0.32)}`, background: hexA(ACCENT, 0.08), color: ACCENT_DARK, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Heebo, sans-serif' }}>
+                    <Download size={15} /> ייצוא CSV
+                </motion.button>
             </div>
 
-            {/* Table */}
-            <div style={{ ...glass, borderRadius: 20, overflow: 'hidden' }}>
-                {loading ? (
-                    <div style={{ padding: 48, textAlign: 'center', color: '#8E8E93', fontSize: 14 }}>טוען...</div>
-                ) : filtered.length === 0 ? (
-                    <div style={{ padding: 48, textAlign: 'center', color: '#8E8E93', fontSize: 14 }}>לא נמצאו משתמשים</div>
-                ) : (
+            {/* ── KPI band — cyan primary + semantic accents ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <AdminKPICard title="סה״כ משתמשים" value={users.length} subtitle="רשומים באתר" accent={ACCENT} delay={0}
+                    icon={<Users size={20} color={ACCENT} />} loading={loading} />
+                <AdminKPICard title="דרך Google" value={googleCount} subtitle={`${Math.round(googleCount / (users.length || 1) * 100)}% מהסך הכל`} accent="#4285F4" delay={0.05}
+                    icon={<Chrome size={20} color="#4285F4" />} loading={loading} />
+                <AdminKPICard title="מנויים פעילים" value={memberCount} subtitle="חבר / Premium" accent={PALETTE.orange} delay={0.1}
+                    icon={<Star size={20} color={PALETTE.orange} />} loading={loading} />
+                <AdminKPICard title="נרשמו היום" value={todayCount} subtitle="24 שעות אחרונות" accent={PALETTE.emerald} delay={0.15}
+                    icon={<Clock size={20} color={PALETTE.emerald} />} loading={loading} />
+            </div>
+
+            {/* ── Filters — search + accent segmented pills ── */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 340 }}>
+                    <Search size={14} style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: '#AEAEB2', pointerEvents: 'none' }} />
+                    <input value={search} onChange={e => setSearch(e.target.value)}
+                        placeholder="חיפוש לפי שם, מייל, מוסד..." dir="rtl"
+                        style={{
+                            ...GLASS.frosted, width: '100%', height: 40, paddingRight: 36, paddingLeft: 14,
+                            borderRadius: RADIUS.input, fontFamily: 'Heebo, sans-serif',
+                            fontSize: 13, fontWeight: 600, color: '#1D1D1F', outline: 'none', boxSizing: 'border-box',
+                            transition: 'border 0.15s, box-shadow 0.15s',
+                        }}
+                        onFocus={e => { e.target.style.border = `1.5px solid ${hexA(ACCENT, 0.5)}`; e.target.style.boxShadow = `0 0 0 4px ${hexA(ACCENT, 0.12)}`; }}
+                        onBlur={e => { e.target.style.border = GLASS.frosted.border; e.target.style.boxShadow = GLASS.frosted.boxShadow; }} />
+                </div>
+                <div style={{ flex: 1 }} />
+                <Segmented value={filterTier} onChange={setFilterTier}
+                    options={[{ value: 'all', label: 'הכל' }, { value: 'free', label: 'פרטי' }, { value: 'member', label: 'חבר' }, { value: 'premium', label: 'Premium' }]} />
+                <Segmented value={filterProv} onChange={setFilterProv}
+                    options={[{ value: 'all', label: 'כל הספקים' }, { value: 'google', label: 'Google' }, { value: 'email', label: 'מייל' }]} />
+            </div>
+
+            {/* ── Table — loading skeleton · guiding empty · glass surface ── */}
+            {loading ? (
+                <AdminSkeleton rows={6} />
+            ) : filtered.length === 0 ? (
+                <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
+                    <AdminEmpty
+                        title={users.length === 0 ? 'אין משתמשים רשומים עדיין' : 'לא נמצאו משתמשים'}
+                        subtitle={users.length === 0 ? 'משתמשים חדשים יופיעו כאן מיד עם ההרשמה לאתר' : 'נסה לשנות את מונחי החיפוש או הסינון'}
+                    />
+                </div>
+            ) : (
+                <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }} dir="rtl">
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                                     {['משתמש', 'מוסד / תפקיד', 'ספק', 'דרגה', 'הצטרף', 'כניסה אחרונה'].map(h => (
-                                        <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 800, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                                        <th key={h} style={{ padding: '13px 16px', textAlign: 'right', fontSize: 11, fontWeight: 800, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', background: hexA(ACCENT, 0.03) }}>
                                             {h}
                                         </th>
                                     ))}
@@ -612,8 +615,8 @@ export default function AdminUsers() {
                             </tbody>
                         </table>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {createPortal(
                 <AnimatePresence>

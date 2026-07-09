@@ -7,8 +7,10 @@ import {
     AdminInput,
     AdminTextArea,
     AdminToggle,
-    AdminButton
+    AdminButton,
+    AdminKPICard
 } from '../components/AdminComponents';
+import { hexA, accentGradient } from '../theme/tokens';
 import {
     Eye, Layout, Type, Image as ImageIcon, Search, Menu,
     ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw, Check,
@@ -25,6 +27,9 @@ import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
+
+// ─── Content domain accent (Heaven, purple ★) ──────────────────────────────────
+const PURPLE = '#AF52DE';
 
 // ─── Visibility Items ─────────────────────────────────────────────────────────
 const VISIBILITY_ITEMS = [
@@ -2135,8 +2140,8 @@ export default function AdminContent({ showToast }) {
                     className="w-full pr-11 pl-10 py-3.5 rounded-2xl border text-[14px] placeholder-[#C7C7CC] focus:outline-none transition-all"
                     style={{
                         background: 'rgba(255,255,255,0.9)',
-                        borderColor: globalSearch ? '#007AFF40' : 'rgba(0,0,0,0.07)',
-                        boxShadow: globalSearch ? '0 0 0 3px rgba(0,122,255,0.08), 0 1px 4px rgba(0,0,0,0.05)' : '0 1px 4px rgba(0,0,0,0.05)',
+                        borderColor: globalSearch ? hexA(PURPLE, 0.4) : 'rgba(0,0,0,0.07)',
+                        boxShadow: globalSearch ? `0 0 0 3px ${hexA(PURPLE, 0.10)}, 0 1px 4px rgba(0,0,0,0.05)` : '0 1px 4px rgba(0,0,0,0.05)',
                     }}
                 />
                 {globalSearch && (
@@ -2249,7 +2254,7 @@ export default function AdminContent({ showToast }) {
                     {/* Hero heading */}
                     <div className="text-center space-y-2">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black tracking-widest mb-3"
-                            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                            style={{ background: hexA(PURPLE, 0.10), color: PURPLE }}>
                             ניהול תוכן האתר
                         </div>
                         <h1 className="text-[32px] font-black text-[#1D1D1F] tracking-tight leading-none">
@@ -2415,15 +2420,23 @@ export default function AdminContent({ showToast }) {
                                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                 className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
                                 style={{
-                                    background: saved ? '#34C759' : '#007AFF',
+                                    background: saved ? '#34C759' : accentGradient(PURPLE),
                                     color: 'white',
-                                    boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : '0 4px 14px rgba(0,122,255,0.35)',
+                                    boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : `0 4px 14px ${hexA(PURPLE, 0.38)}`,
                                 }}
                             >
                                 <Save size={14} />
                                 {saved ? <><Check size={14} style={{ display: 'inline', marginLeft: 4 }} /> נשמר!</> : 'שמור הכל'}
                             </motion.button>
                         </div>
+                    </div>
+
+                    {/* KPI band — content-management overview */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} />
+                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5856D6" subtitle="ניתנים לעריכה" delay={0.05} />
+                        <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} />
+                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#34C759" subtitle="קבוצות ניווט" delay={0.15} />
                     </div>
 
                     {renderContentPanel()}
@@ -2447,7 +2460,8 @@ export default function AdminContent({ showToast }) {
                         <span className="w-2 h-2 rounded-full bg-[#FF9500] shrink-0" />
                         <span className="text-white text-[13px] font-bold">יש שינויים שלא נשמרו</span>
                         <button onClick={handleSave}
-                            className="px-4 py-1.5 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">
+                            className="px-4 py-1.5 rounded-xl text-[12px] font-black text-white transition-opacity hover:opacity-90"
+                            style={{ background: accentGradient(PURPLE) }}>
                             שמור עכשיו
                         </button>
                     </motion.div>

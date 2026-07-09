@@ -1,8 +1,17 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, orderBy, query, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, ExternalLink, X, Save, Loader } from 'lucide-react';
+import { Plus, Edit2, Trash2, ExternalLink, X, Save, Loader, Newspaper, Tag, Globe } from 'lucide-react';
+import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
+import { AdminKPICard, AdminEmpty, AdminFilterPills } from '../components/AdminComponents';
+
+// ─── Magazine domain accent (Heaven, sky) ─────────────────────────────────────
+const SKY      = '#64D2FF';
+const SKY_GRAD = 'linear-gradient(135deg, #64D2FF 0%, #32ADE6 100%)';
+const SKY_SOFT = 'linear-gradient(135deg, rgba(100,210,255,0.18) 0%, rgba(50,173,230,0.08) 100%)';
+const glass    = { ...GLASS.base };
 
 const CATEGORIES = ['חדשנות פדגוגית', 'מעבדות STEM', 'טרנדים', 'מקרי בוחן', 'תשתיות', 'בינה מלאכותית'];
 const EMPTY = { title: '', category: 'חדשנות פדגוגית', excerpt: '', date: '', readTime: '', image: '', url: '', source: '' };
@@ -13,14 +22,8 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
 
     return (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="rounded-2xl p-6 mb-6" dir="rtl"
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}>
+            className="p-6 mb-6" dir="rtl"
+            style={{ ...glass, borderRadius: RADIUS.card }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
                     <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">כותרת</label>
@@ -79,7 +82,7 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
             <div className="flex gap-3 justify-start">
                 <button onClick={() => onSave(form)} disabled={loading || !form.title || !form.url}
                     className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] disabled:opacity-40 transition-all"
-                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                    style={{ background: SKY_GRAD, boxShadow: `0 4px 16px ${hexA(SKY, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     {loading ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
                     שמור
                 </button>
@@ -130,20 +133,34 @@ export default function AdminMagazine() {
 
     const displayed = filterCat === 'הכל' ? articles : articles.filter(a => a.category === filterCat);
     const editArticle = articles.find(a => a.id === editId);
+    const catCount = new Set(articles.map(a => a.category).filter(Boolean)).size;
+    const srcCount = new Set(articles.map(a => a.source).filter(Boolean)).size;
 
     return (
         <div className="p-6 md:p-8 max-w-5xl mx-auto" dir="rtl">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-[22px] font-black text-[#1D1D1F] tracking-tight">מגזין חדשנות</h1>
-                    <p className="text-[13px] text-gray-400 mt-0.5">{articles.length} כתבות ב-Firestore</p>
+            {/* Header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: SKY_SOFT, border: `1px solid ${hexA(SKY, 0.28)}`, boxShadow: `${glow(SKY, 0.2, 20)}, ${SHADOW.specular}` }}>
+                    <Newspaper size={22} color="#32ADE6" />
                 </div>
-                <button onClick={() => { setShowAdd(true); setEditId(null); }}
-                    className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] transition-all"
-                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>מגזין חדשנות</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{articles.length} כתבות ב-Firestore</p>
+                </div>
+                <motion.button onClick={() => { setShowAdd(true); setEditId(null); }} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(SKY, 0.45)}` }} whileTap={TAP}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: SKY_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(SKY, 0.36)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     <Plus size={15} />הוסף כתבה
-                </button>
+                </motion.button>
+            </div>
+
+            {/* KPI band — articles · categories · sources */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 22 }}>
+                <AdminKPICard title="כתבות" value={articles.length} subtitle="ב-Firestore" accent={SKY} delay={0}
+                    icon={<Newspaper size={20} color="#32ADE6" />} />
+                <AdminKPICard title="קטגוריות" value={catCount} subtitle="בשימוש פעיל" accent={PALETTE.indigo} delay={0.05}
+                    icon={<Tag size={20} color={PALETTE.indigo} />} />
+                <AdminKPICard title="מקורות" value={srcCount} subtitle="מקורות תוכן" accent={PALETTE.emerald} delay={0.1}
+                    icon={<Globe size={20} color={PALETTE.emerald} />} />
             </div>
 
             {/* Note when Firestore is empty */}
@@ -162,19 +179,8 @@ export default function AdminMagazine() {
 
             {/* Category filter */}
             {articles.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
-                    {['הכל', ...CATEGORIES].map(c => (
-                        <button key={c} onClick={() => setFilterCat(c)}
-                            className="px-4 py-1.5 rounded-full font-bold text-[12px] whitespace-nowrap transition-all"
-                            style={{
-                                background: filterCat === c ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
-                                color: filterCat === c ? 'white' : '#6E6E73',
-                                border: filterCat === c ? 'none' : '1px solid rgba(0,0,0,0.08)',
-                                boxShadow: filterCat === c ? '0 2px 12px rgba(0,122,255,0.22)' : 'none',
-                            }}>
-                            {c}
-                        </button>
-                    ))}
+                <div className="mb-5 overflow-x-auto no-scrollbar pb-1">
+                    <AdminFilterPills options={['הכל', ...CATEGORIES]} active={filterCat} onChange={setFilterCat} id="magazine-cat" />
                 </div>
             )}
 
@@ -184,14 +190,10 @@ export default function AdminMagazine() {
                     {displayed.map(article => (
                         <motion.div key={article.id}
                             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                            className="rounded-2xl overflow-hidden"
-                            style={{
-                                background: 'rgba(255,255,255,0.78)',
-                                backdropFilter: 'blur(24px) saturate(200%)',
-                                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                                border: '1px solid rgba(255,255,255,0.72)',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-                            }}>
+                            whileHover={editId === article.id ? undefined : { y: -2 }}
+                            transition={SPRING.soft}
+                            className="overflow-hidden"
+                            style={{ ...glass, borderRadius: RADIUS.card }}>
                             {editId === article.id ? (
                                 <div className="p-4">
                                     <ArticleForm initial={editArticle} onSave={handleEdit} onCancel={() => setEditId(null)} loading={loading} />
@@ -232,6 +234,17 @@ export default function AdminMagazine() {
                         </motion.div>
                     ))}
                 </AnimatePresence>
+
+                {displayed.length === 0 && (
+                    <div className="overflow-hidden" style={{ ...glass, borderRadius: RADIUS.card }}>
+                        <AdminEmpty
+                            icon="empty"
+                            title={articles.length === 0 ? 'אין כתבות ב-Firestore' : 'אין כתבות בקטגוריה זו'}
+                            subtitle={articles.length === 0 ? 'הוסף כתבה ראשונה כדי שהמגזין יוצג מתוך Firestore' : 'בחר קטגוריה אחרת או הוסף כתבה חדשה'}
+                            action={articles.length === 0 ? { label: 'הוסף כתבה', onClick: () => { setShowAdd(true); setEditId(null); } } : undefined}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -2,19 +2,17 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InboxIcon, Trash2, Check } from 'lucide-react';
+import { InboxIcon, Trash2, Check, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
-import { StatusBadge, AdminSectionHeader, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate } from '../components/AdminComponents';
+import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Shared glass ─────────────────────────────────────────────────────────────
-const glass = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Customers domain accent (Heaven · teal) ──────────────────────────────────
+const ACCENT = '#5AC8FA';
+
+// ─── Liquid-glass surface (token-driven — one system everywhere) ──────────────
+const glass = { ...GLASS.base };
 
 const CONTACT_STATUSES = ['חדש', 'בטיפול', 'נסגר'];
 
@@ -27,25 +25,6 @@ function Avatar({ name, size = 9 }) {
             style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)', width: size * 4, height: size * 4 }}>
             {name?.[0] || '?'}
         </div>
-    );
-}
-
-// ─── Summary stat ──────────────────────────────────────────────────────────────
-function StatPill({ label, value, color, index = 0 }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 28 }}
-            whileHover={{ y: -2, boxShadow: `0 12px 32px ${color}18` }}
-            className="rounded-2xl p-4 text-right relative overflow-hidden"
-            style={{ background: `${color}12`, border: `1px solid ${color}22`, boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset` }}
-        >
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}30)` }} />
-            <p className="text-2xl font-black tracking-tighter pt-1" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[11px] font-bold mt-0.5">{label}</p>
-        </motion.div>
     );
 }
 
@@ -205,16 +184,25 @@ export default function AdminCustomers() {
 
     return (
         <div dir="rtl" className="space-y-5">
-            <AdminSectionHeader
-                title="לקוחות ופניות"
-                subtitle={`${customers.length} לקוחות · ${newContacts} פניות חדשות`}
-            />
+            {/* ── Header — teal accent icon box + gradient ink title ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.24)}`, boxShadow: `${glow(ACCENT, 0.2, 20)}, ${SHADOW.specular}` }}>
+                    <Users size={22} color={ACCENT} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>לקוחות ופניות</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{customers.length} לקוחות · {newContacts} פניות חדשות</p>
+                </div>
+            </div>
 
-            {/* Stats */}
+            {/* ── KPI band — teal primary + semantic accents ── */}
             <div className="grid grid-cols-3 gap-4">
-                <StatPill label="לקוחות" value={customers.length} color="#007AFF" index={0} />
-                <StatPill label="פניות חדשות" value={newContacts} color="#FF3B30" index={1} />
-                <StatPill label="הכנסה כוללת" value={`₪${totalRevenue.toLocaleString()}`} color="#34C759" index={2} />
+                <AdminKPICard title="לקוחות" value={customers.length} subtitle="לקוחות פעילים" accent={ACCENT} delay={0}
+                    icon={<Users size={20} color={ACCENT} />} />
+                <AdminKPICard title="פניות חדשות" value={newContacts} subtitle="ממתינות לטיפול" accent={PALETTE.red} delay={0.05}
+                    icon={<InboxIcon size={20} color={PALETTE.red} />} />
+                <AdminKPICard title="הכנסה כוללת" value={`₪${totalRevenue.toLocaleString()}`} subtitle="מכלל הלקוחות" accent={PALETTE.green} delay={0.1}
+                    icon="revenue" />
             </div>
 
             {/* Tabs + Search */}
@@ -250,12 +238,12 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#5AC8FA]/45 hover:shadow-[0_12px_40px_rgba(90,200,250,0.14)] group"
                             >
                                 <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
                                 <div className="flex items-center gap-3 justify-end">
                                     <div className="text-right min-w-0">
-                                        <p className="text-[#1D1D1F] font-bold text-sm group-hover:text-[#007AFF] transition-colors">{c.name}</p>
+                                        <p className="text-[#1D1D1F] font-bold text-sm group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>
                                         <p className="text-[#AEAEB2] text-xs truncate mt-0.5">{c.email}</p>
                                     </div>
                                     <Avatar name={c.name} size={10} />
@@ -267,9 +255,10 @@ export default function AdminCustomers() {
                         ))}
                     </AnimatePresence>
                     {filteredContacts.length === 0 && (
-                        <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                            <InboxIcon size={40} className="opacity-30" />
-                            <p className="text-sm font-bold text-[#6E6E73]">אין פניות תואמות לחיפוש</p>
+                        <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
+                            <AdminEmpty icon="empty"
+                                title={contacts.length === 0 ? 'אין פניות עדיין' : 'אין פניות תואמות'}
+                                subtitle={contacts.length === 0 ? 'פניות חדשות מטופס יצירת הקשר יופיעו כאן אוטומטית' : 'נסה לשנות את החיפוש או את סינון התאריך'} />
                         </div>
                     )}
                 </div>
@@ -294,10 +283,10 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => setSelectedCustomer(c)}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group" dir="rtl"
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#5AC8FA]/45 hover:shadow-[0_12px_40px_rgba(90,200,250,0.14)] group" dir="rtl"
                             >
                                 <Avatar name={c.name} size={11} />
-                                <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#007AFF] transition-colors">{c.name}</p>
+                                <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>
                                 <div className="text-right">
                                     <p className="text-[#6E6E73] text-xs truncate">{c.email || '—'}</p>
                                     <p className="text-[#AEAEB2] text-[10px] mt-0.5">{c.phone || '—'}</p>
@@ -312,9 +301,10 @@ export default function AdminCustomers() {
                         ))}
                     </AnimatePresence>
                     {filteredCustomers.length === 0 && (
-                        <div className="py-20 flex flex-col items-center gap-4 text-[#AEAEB2]">
-                            <svg className="w-12 h-12 text-[#C7C7CC]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <p className="text-sm font-bold text-[#6E6E73]">אין לקוחות תואמים לחיפוש</p>
+                        <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
+                            <AdminEmpty icon="empty"
+                                title={customers.length === 0 ? 'אין לקוחות עדיין' : 'אין לקוחות תואמים'}
+                                subtitle={customers.length === 0 ? 'לקוחות ייווצרו אוטומטית מהזמנות שנקלטות במערכת' : 'נסה לשנות את מונחי החיפוש'} />
                         </div>
                     )}
                 </div>
@@ -440,7 +430,9 @@ export default function AdminCustomers() {
             {tab === 'trash' && (
                 <div className="space-y-3 mt-4" dir="rtl">
                     {(deletedItems?.contacts || []).length === 0 ? (
-                        <div className="text-center py-16 text-[#AEAEB2] text-sm font-semibold">סל המחזור ריק</div>
+                        <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
+                            <AdminEmpty icon="empty" title="סל המחזור ריק" subtitle="פניות שנמחקו יופיעו כאן וניתן יהיה לשחזר אותן" />
+                        </div>
                     ) : (deletedItems?.contacts || []).map(c => (
                         <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                             <div style={{ flex: 1, textAlign: 'right' }}>

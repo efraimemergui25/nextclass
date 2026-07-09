@@ -7,12 +7,17 @@ import {
     doc, deleteDoc, addDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import {
     Users, Trash2, Download, Search, TrendingUp,
     Calendar, Star, Zap, Send,
     CheckSquare, Square
 } from 'lucide-react';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+
+// ─── Community domain accent (Heaven, green) ──────────────────────────────────
+const GREEN      = '#34C759';
+const GREEN_SOFT = 'linear-gradient(135deg, rgba(52,199,89,0.16) 0%, rgba(48,209,88,0.08) 100%)';
 
 function fmtDate(ts) {
     if (!ts) return '—';
@@ -38,37 +43,6 @@ function SourceBadge({ source }) {
             style={{ background: `${s.color}15`, color: s.color, border: `1px solid ${s.color}22` }}>
             {s.label}
         </span>
-    );
-}
-
-function StatCard({ label, value, icon: Icon, color, sub }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-[20px] p-5"
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
-        >
-            <div className="absolute inset-0 pointer-events-none rounded-[20px]"
-                style={{ background: `radial-gradient(ellipse at top right, ${color}0D, transparent 65%)` }} />
-            <div className="flex items-start justify-between">
-                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: `${color}12`, border: `1px solid ${color}20` }}>
-                    <Icon size={16} style={{ color }} />
-                </div>
-                <div className="text-right">
-                    <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-1">{label}</p>
-                    <p className="text-[28px] font-black text-[#1D1D1F] tracking-tighter leading-none">{value}</p>
-                </div>
-            </div>
-            {sub && <p className="text-[10px] font-semibold text-[#AEAEB2] text-right mt-2.5">{sub}</p>}
-        </motion.div>
     );
 }
 
@@ -190,51 +164,55 @@ export default function AdminCommunity() {
         website: '#86868B',
     };
 
-    const panelStyle = {
-        background: 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-        border: '1px solid rgba(255,255,255,0.72)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    };
+    const panelStyle = { ...GLASS.base };
 
     return (
         <div dir="rtl" className="space-y-5">
-            <AdminSectionHeader
-                title="ניהול קהילה"
-                subtitle="רשימת תפוצה ומנויי ניוזלטר"
-                action={
-                    <div className="flex items-center gap-2.5">
-                        {selected.size > 0 && (
-                            <motion.button
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                onClick={() => setShowDeleteConfirm('bulk')}
-                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
-                                style={{ background: '#FF3B30' }}
-                            >
-                                <Trash2 size={13} />
-                                הסר {selected.size}
-                            </motion.button>
-                        )}
-                        <button
-                            onClick={exportCSV}
-                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
-                            style={{ background: 'rgba(0,122,255,0.09)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GREEN_SOFT, border: `1px solid ${hexA(GREEN, 0.24)}`, boxShadow: `${glow(GREEN, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <Users size={22} color={GREEN} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ניהול קהילה</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>רשימת תפוצה ומנויי ניוזלטר</p>
+                </div>
+                <div className="flex items-center gap-2.5">
+                    {selected.size > 0 && (
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileTap={TAP}
+                            onClick={() => setShowDeleteConfirm('bulk')}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
+                            style={{ background: '#FF3B30' }}
                         >
-                            <Download size={13} />
-                            ייצוא CSV
-                        </button>
-                    </div>
-                }
-            />
+                            <Trash2 size={13} />
+                            הסר {selected.size}
+                        </motion.button>
+                    )}
+                    <motion.button
+                        onClick={exportCSV}
+                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(GREEN, 0.28)}` }} whileTap={TAP}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
+                        style={{ background: hexA(GREEN, 0.1), color: '#1A8C40', border: `1px solid ${hexA(GREEN, 0.28)}` }}
+                    >
+                        <Download size={13} />
+                        ייצוא CSV
+                    </motion.button>
+                </div>
+            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard label="סה״כ מנויים"    value={stats.total}     icon={Users}       color="#007AFF" sub={stats.growth} />
-                <StatCard label="הצטרפו השבוע"   value={stats.thisWeek}  icon={TrendingUp}  color="#34C759" sub="7 ימים אחרונים" />
-                <StatCard label="הצטרפו החודש"   value={stats.thisMonth} icon={Calendar}    color="#5856D6" sub="30 ימים אחרונים" />
-                <StatCard label="שיעור פתיחה"    value="—"               icon={Star}        color="#86868B" sub="בקרוב" />
+            {/* KPI band — total · this week · this month · open rate */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="סך מנויים" value={stats.total} subtitle={stats.growth} accent={GREEN} delay={0}
+                    icon={<Users size={20} color={GREEN} />} loading={loading} />
+                <AdminKPICard title="הצטרפו השבוע" value={stats.thisWeek} subtitle="7 ימים אחרונים" accent={PALETTE.emerald} delay={0.05}
+                    icon={<TrendingUp size={20} color={PALETTE.emerald} />} loading={loading} />
+                <AdminKPICard title="הצטרפו החודש" value={stats.thisMonth} subtitle="30 ימים אחרונים" accent={PALETTE.indigo} delay={0.1}
+                    icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} />
+                <AdminKPICard title="שיעור פתיחה" value="—" subtitle="בקרוב" accent={PALETTE.graphite} delay={0.15}
+                    icon={<Star size={20} color={PALETTE.graphite} />} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -282,11 +260,11 @@ export default function AdminCommunity() {
                             {loading ? (
                                 <div className="py-16 text-center text-[#AEAEB2] text-sm font-bold">טוען...</div>
                             ) : filtered.length === 0 ? (
-                                <div className="py-16 text-center">
-                                    <Users size={36} className="mx-auto mb-3 text-[#AEAEB2]" />
-                                    <p className="text-[#AEAEB2] font-bold text-sm">{search ? 'לא נמצאו תוצאות' : 'אין מנויים עדיין'}</p>
-                                    <p className="text-[#AEAEB2] text-xs mt-1">הרשמות ניוזלטר יופיעו כאן</p>
-                                </div>
+                                <AdminEmpty
+                                    icon="empty"
+                                    title={search ? 'לא נמצאו תוצאות' : 'אין מנויים עדיין'}
+                                    subtitle={search ? 'נסה חיפוש אחר' : 'הרשמות ניוזלטר יופיעו כאן אוטומטית'}
+                                />
                             ) : (
                                 filtered.map((sub) => (
                                     <motion.div

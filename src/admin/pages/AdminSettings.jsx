@@ -8,27 +8,34 @@ import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
+import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow } from '../theme/tokens';
 
-function SettingCard({ title, Icon, accent = '#007AFF', children }) {
+// ─── Settings domain accent (graphite) ─────────────────────────────────────────
+const GRAPHITE = '#8E8E93';
+
+function SettingCard({ title, Icon, accent = '#007AFF', children, delay = 0 }) {
     return (
-        <div className="rounded-[22px] overflow-hidden" style={{
-            background: 'rgba(255,255,255,0.78)',
-            backdropFilter: 'blur(24px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-            border: '1px solid rgba(255,255,255,0.72)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-        }}>
-            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60)` }} />
-            <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
-                style={{ background: 'rgba(248,248,250,0.85)' }}>
+        <motion.div
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ boxShadow: `${SHADOW.lg}, ${glow(accent, 0.12, 30)}, ${SHADOW.specular}` }}
+            className="overflow-hidden relative transition-shadow"
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
+        >
+            {/* Specular top edge */}
+            <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none z-10"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
+            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${hexA(accent, 0.55)})` }} />
+            <div className="px-6 py-4 flex items-center justify-between"
+                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: hexA(accent, 0.045) }}>
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: `${accent}14`, border: `1px solid ${accent}20` }}>
+                    style={{ background: hexA(accent, 0.14), border: `1px solid ${hexA(accent, 0.24)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
                     {Icon && <Icon size={15} style={{ color: accent }} />}
                 </div>
-                <h3 className="text-[#1D1D1F] font-black text-base">{title}</h3>
+                <h3 className="text-[#1D1D1F] font-black text-base tracking-tight">{title}</h3>
             </div>
             <div className="p-6 space-y-4">{children}</div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -158,7 +165,7 @@ export default function AdminSettings() {
 
     return (
         <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader title="הגדרות" subtitle="ניהול עסק, תוכן, אבטחה ומערכת — כל שינוי מסתנכרן עם השרתים בזמן-אמת" />
+            <AdminSectionHeader title="הגדרות" subtitle="ניהול עסק, תוכן, אבטחה ומערכת — כל שינוי מסתנכרן עם השרתים בזמן-אמת" icon={Settings} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -302,20 +309,23 @@ export default function AdminSettings() {
             </div>
 
             {/* Session / Logout */}
-            <div className="rounded-[20px] p-6 flex items-center justify-between"
+            <motion.div
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={SPRING.soft}
+                className="p-6 flex items-center justify-between relative overflow-hidden"
                 style={{
-                    background: 'rgba(255,255,255,0.78)',
-                    backdropFilter: 'blur(24px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                    border: '1px solid rgba(255,59,48,0.18)',
-                    boxShadow: '0 8px 32px rgba(255,59,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
+                    ...GLASS.base,
+                    borderRadius: RADIUS.card,
+                    border: `1px solid ${hexA('#FF3B30', 0.18)}`,
+                    boxShadow: `${SHADOW.md}, ${glow('#FF3B30', 0.08, 26)}, ${SHADOW.specular}`,
                 }}>
+                <div className="h-[3px] absolute top-0 left-0 right-0 pointer-events-none"
+                    style={{ background: `linear-gradient(90deg, #FF3B30, ${hexA('#FF3B30', 0.5)})` }} />
                 <AdminButton variant="danger" onClick={logout}>יציאה מהמערכת</AdminButton>
                 <div className="text-right">
                     <p className="text-[#1D1D1F] font-black text-sm">סיום Session</p>
                     <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת · נתונים ב-Firestore</p>
                 </div>
-            </div>
+            </motion.div>
 
             <div className="text-center">
                 <p className="text-[#AEAEB2] text-xs">NextClass Admin v2.0 · React + Vite + Firebase · 2026</p>

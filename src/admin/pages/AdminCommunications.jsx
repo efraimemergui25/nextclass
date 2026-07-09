@@ -13,10 +13,14 @@ import {
     ChevronDown, AlertCircle, MessageCircle, Zap, Clock,
     AtSign, Star, TrendingUp, Users, Hash, AlertTriangle, Check,
 } from 'lucide-react';
+import { GLASS, RADIUS, SPRING, hexA, accentSurface } from '../theme/tokens';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SF = `-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',Heebo,Arial,sans-serif`;
+
+// ─── Communications domain accent (Heaven, coral ★) ────────────────────────────
+const CORAL = '#FF453A';
 
 const PIPELINE_STATUSES = {
     'חדש':           { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
@@ -67,15 +71,8 @@ const DEFAULT_TEMPLATES = [
     },
 ];
 
-// ─── Glass token ──────────────────────────────────────────────────────────────
-const CARD = {
-    background:   'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border:       '1px solid rgba(255,255,255,0.72)',
-    boxShadow:    '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    borderRadius: 20,
-};
+// ─── Liquid-glass surface (token-driven — one system everywhere) ────────────────
+const CARD = { ...GLASS.base, borderRadius: RADIUS.card };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -859,7 +856,7 @@ export default function AdminCommunications() {
                         style={{ flex: 1, padding: '7px 0', border: 'none', background: activeTab === 'emails' ? '#fff' : 'transparent', borderRadius: 9, fontSize: 12, fontWeight: activeTab === 'emails' ? 800 : 600, color: activeTab === 'emails' ? '#1D1D1F' : '#86868B', cursor: 'pointer', boxShadow: activeTab === 'emails' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontFamily: SF, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         אישור מיילים
                         {pendingEmails.length > 0 && (
-                            <span style={{ fontSize: 9, fontWeight: 900, background: '#FF3B30', color: '#fff', padding: '1px 5px', borderRadius: 99 }}>
+                            <span style={{ fontSize: 9, fontWeight: 900, background: CORAL, color: '#fff', padding: '1px 5px', borderRadius: 99 }}>
                                 {pendingEmails.length}
                             </span>
                         )}
@@ -996,11 +993,11 @@ export default function AdminCommunications() {
                         {/* Email Filter Tabs */}
                         <div style={{ display: 'flex', gap: 8, padding: '10px 14px 8px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                             <button onClick={() => { setActiveEmailFilter('pending'); setSelectedEmail(null); }}
-                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'pending' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'pending' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'pending' ? hexA(CORAL, 0.10) : 'transparent', color: activeEmailFilter === 'pending' ? CORAL : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
                                 ממתינים ({pendingEmails.length})
                             </button>
                             <button onClick={() => { setActiveEmailFilter('log'); setSelectedEmail(null); }}
-                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'log' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'log' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'log' ? hexA(CORAL, 0.10) : 'transparent', color: activeEmailFilter === 'log' ? CORAL : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
                                 יומן שליחה ({emailLog.length})
                             </button>
                         </div>
@@ -1389,20 +1386,21 @@ export default function AdminCommunications() {
                     /* ── Emails Queue Tab ── */
                     !selectedEmail ? (
                         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', paddingTop: 60, fontFamily: SF }}>
-                            <div style={{ width: 80, height: 80, borderRadius: 99, background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#007AFF' }}>
+                            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING.soft}
+                                style={{ width: 80, height: 80, borderRadius: 24, background: hexA(CORAL, 0.12), border: `1px solid ${hexA(CORAL, 0.24)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: CORAL, boxShadow: `0 8px 24px ${hexA(CORAL, 0.18)}` }}>
                                 <Mail size={40} />
-                            </div>
+                            </motion.div>
                             <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 8px' }}>תור אישור מיילים</h2>
                             <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 470, margin: '0 auto 24px', lineHeight: 1.5 }}>
                                 כל מייל יוצא — ללקוחות, לספקים ופנימי לצוות — נעצר כאן לאישור ידני (וניתן לעריכה) לפני השליחה. שום מייל לא נשלח אוטומטית.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#FF3B30', margin: '0 0 2px' }}>{pendingEmails.length}</p>
+                                <div style={{ ...accentSurface(CORAL, { radius: RADIUS.smCard }), padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: CORAL, margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{pendingEmails.length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>ממתינים לאישור</p>
                                 </div>
-                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#34C759', margin: '0 0 2px' }}>{emailLog.filter(e => e.status === 'sent').length}</p>
+                                <div style={{ ...accentSurface('#34C759', { radius: RADIUS.smCard }), padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#248A3D', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{emailLog.filter(e => e.status === 'sent').length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>נשלחו בהצלחה</p>
                                 </div>
                             </div>

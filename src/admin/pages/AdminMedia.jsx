@@ -8,27 +8,21 @@ import {
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
     FolderOpen, X, Search, Grid, List, ExternalLink, Plus
 } from 'lucide-react';
+import { PALETTE, GLASS as GLASS_TOKENS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 
-const CARD = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Media domain accent (Heaven, rose) ───────────────────────────────────────
+const ROSE      = '#FF2D55';
+const ROSE_GRAD = 'linear-gradient(135deg, #FF5E7D 0%, #FF2D55 100%)';
+const ROSE_SOFT = 'linear-gradient(135deg, rgba(255,45,85,0.16) 0%, rgba(255,94,125,0.08) 100%)';
 
-const GLASS = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Liquid-glass surfaces (token-driven — one system everywhere) ──────────────
+const CARD  = { ...GLASS_TOKENS.base };
+const GLASS = { ...GLASS_TOKENS.base };
 
 function formatSize(bytes) {
     if (!bytes) return '';
@@ -150,17 +144,17 @@ function DropZone({ onFiles, uploading }) {
             onClick={() => inputRef.current?.click()}
             className="relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 p-10 flex flex-col items-center gap-4"
             style={{
-                borderColor: isDragActive ? '#007AFF' : 'rgba(0,122,255,0.35)',
-                background: isDragActive ? 'rgba(0,122,255,0.06)' : 'rgba(255,255,255,0.55)',
+                borderColor: isDragActive ? ROSE : hexA(ROSE, 0.35),
+                background: isDragActive ? hexA(ROSE, 0.06) : 'rgba(255,255,255,0.55)',
                 backdropFilter: 'blur(12px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                boxShadow: isDragActive ? '0 0 0 4px rgba(0,122,255,0.12)' : 'none',
+                boxShadow: isDragActive ? `0 0 0 4px ${hexA(ROSE, 0.12)}` : 'none',
             }}
         >
             {uploading ? (
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin" />
-                    <p className="text-sm font-bold text-[#007AFF]">מעלה...</p>
+                    <div className="w-10 h-10 rounded-full animate-spin" style={{ border: `2px solid ${hexA(ROSE, 0.3)}`, borderTopColor: ROSE }} />
+                    <p className="text-sm font-bold" style={{ color: ROSE }}>מעלה...</p>
                 </div>
             ) : (
                 <>
@@ -168,9 +162,9 @@ function DropZone({ onFiles, uploading }) {
                         animate={{ y: isDragActive ? -6 : 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                         className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'rgba(0,122,255,0.1)' }}
+                        style={{ background: hexA(ROSE, 0.1) }}
                     >
-                        <Upload size={24} className="text-[#007AFF]" />
+                        <Upload size={24} color={ROSE} />
                     </motion.div>
                     <div className="text-center">
                         <p className="text-[15px] font-black text-[#1D1D1F]">
@@ -265,7 +259,7 @@ function AddUrlDialog({ onAdd, onClose }) {
                             onClick={() => { if (url) { onAdd({ url, name: name || url, source: 'url' }); onClose(); } }}
                             disabled={!url}
                             className="w-full py-3 rounded-xl font-black text-[13px] text-white transition-all disabled:opacity-40"
-                            style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}
+                            style={{ background: ROSE_GRAD, boxShadow: `0 4px 16px ${hexA(ROSE, 0.28)}` }}
                         >
                             הוסף לספרייה
                         </button>
@@ -348,10 +342,12 @@ function VodTab({ onCopy, copied }) {
     );
 
     if (items.length === 0 && !loading) return (
-        <div className="py-20 text-center rounded-[24px]" style={CARD}>
-            <Film size={40} className="mx-auto text-[#D1D1D6] mb-3" />
-            <p className="text-[#AEAEB2] font-bold">{search ? 'לא נמצאו סרטונים' : 'אין סרטוני VOD עדיין'}</p>
-            <p className="text-[#C7C7CC] text-sm mt-1">הוסף קורסים דרך עמוד ניהול ה-VOD</p>
+        <div className="rounded-[24px] overflow-hidden" style={CARD}>
+            <AdminEmpty
+                icon="empty"
+                title={search ? 'לא נמצאו סרטונים' : 'אין סרטוני VOD עדיין'}
+                subtitle={search ? 'נסה חיפוש אחר' : 'הוסף קורסים דרך עמוד ניהול ה-VOD'}
+            />
         </div>
     );
 
@@ -514,22 +510,27 @@ export default function AdminMedia() {
 
     return (
         <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader
-                title="ספריית מדיה"
-                subtitle="תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד"
-                action={
-                    tab === 'library' ? (
-                        <button
-                            onClick={() => setShowUrlDialog(true)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all"
-                            style={{ background: 'rgba(0,122,255,0.09)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}
-                        >
-                            <Link2 size={13} />
-                            הוסף קישור
-                        </button>
-                    ) : null
-                }
-            />
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: ROSE_SOFT, border: `1px solid ${hexA(ROSE, 0.24)}`, boxShadow: `${glow(ROSE, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <FolderOpen size={22} color={ROSE} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ספריית מדיה</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד</p>
+                </div>
+                {tab === 'library' && (
+                    <motion.button
+                        onClick={() => setShowUrlDialog(true)}
+                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(ROSE, 0.3)}` }} whileTap={TAP}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
+                        style={{ background: hexA(ROSE, 0.1), color: '#C0184A', border: `1px solid ${hexA(ROSE, 0.28)}` }}
+                    >
+                        <Link2 size={13} />
+                        הוסף קישור
+                    </motion.button>
+                )}
+            </div>
 
             {/* Tab switcher */}
             <div className="flex items-center gap-2">
@@ -538,17 +539,17 @@ export default function AdminMedia() {
                     { id: 'products', label: 'תמונות מוצרים', Icon: Image },
                     { id: 'vod',      label: 'סרטוני VOD', Icon: Film },
                 ].map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
+                    <motion.button key={t.id} onClick={() => setTab(t.id)} whileTap={TAP}
                         className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all"
                         style={{
-                            background: tab === t.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
+                            background: tab === t.id ? ROSE_GRAD : 'rgba(255,255,255,0.78)',
                             color: tab === t.id ? 'white' : '#6E6E73',
-                            border: tab === t.id ? 'none' : '1px solid rgba(0,0,0,0.07)',
-                            boxShadow: tab === t.id ? '0 4px 16px rgba(0,122,255,0.28)' : 'none',
+                            border: tab === t.id ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(0,0,0,0.07)',
+                            boxShadow: tab === t.id ? `0 4px 16px ${hexA(ROSE, 0.3)}` : 'none',
                         }}>
                         <t.Icon size={13} />
                         {t.label}
-                    </button>
+                    </motion.button>
                 ))}
             </div>
 
@@ -559,25 +560,16 @@ export default function AdminMedia() {
             {tab !== 'library' && null}
             {tab === 'library' && (<>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                    { label: 'סה"כ פריטים', value: stats.total, color: '#007AFF', icon: FolderOpen },
-                    { label: 'תמונות', value: stats.images, color: '#34C759', icon: Image },
-                    { label: 'סרטונים', value: stats.videos, color: '#FF3B30', icon: Film },
-                    { label: 'קישורים חיצוניים', value: stats.urls, color: '#FF9500', icon: Link2 },
-                ].map(s => (
-                    <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-[20px] text-right" style={GLASS}>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${s.color}15` }}>
-                                <s.icon size={14} style={{ color: s.color }} />
-                            </div>
-                            <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{s.value}</span>
-                        </div>
-                        <p className="text-[10px] font-black text-[#86868B] tracking-widest">{s.label}</p>
-                    </motion.div>
-                ))}
+            {/* KPI band — total · images · videos · external links */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="סך פריטים" value={stats.total} subtitle="בספרייה" accent={ROSE} delay={0}
+                    icon={<FolderOpen size={20} color={ROSE} />} loading={loading} />
+                <AdminKPICard title="תמונות" value={stats.images} subtitle="קבצי תמונה" accent={PALETTE.green} delay={0.05}
+                    icon={<Image size={20} color={PALETTE.green} />} loading={loading} />
+                <AdminKPICard title="סרטונים" value={stats.videos} subtitle="קבצי וידאו" accent={PALETTE.indigo} delay={0.1}
+                    icon={<Film size={20} color={PALETTE.indigo} />} loading={loading} />
+                <AdminKPICard title="קישורים" value={stats.urls} subtitle="קישורים חיצוניים" accent={PALETTE.orange} delay={0.15}
+                    icon={<Link2 size={20} color={PALETTE.orange} />} loading={loading} />
             </div>
 
             {/* Upload progress */}
@@ -628,10 +620,10 @@ export default function AdminMedia() {
                         <button key={f.id} onClick={() => setFilter(f.id)}
                             className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
                             style={{
-                                background: filter === f.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
+                                background: filter === f.id ? ROSE_GRAD : 'rgba(255,255,255,0.78)',
                                 color: filter === f.id ? 'white' : '#6E6E73',
-                                border: filter === f.id ? 'none' : '1px solid rgba(0,0,0,0.06)',
-                                boxShadow: filter === f.id ? '0 2px 10px rgba(0,122,255,0.22)' : 'none',
+                                border: filter === f.id ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(0,0,0,0.06)',
+                                boxShadow: filter === f.id ? `0 2px 10px ${hexA(ROSE, 0.28)}` : 'none',
                             }}>
                             {f.label}
                         </button>
@@ -658,14 +650,17 @@ export default function AdminMedia() {
             {/* Grid / List */}
             {loading ? (
                 <div className="py-20 text-center">
-                    <div className="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-3" />
+                    <div className="w-8 h-8 rounded-full animate-spin mx-auto mb-3"
+                        style={{ border: `2px solid ${hexA(ROSE, 0.3)}`, borderTopColor: ROSE }} />
                     <p className="text-[#AEAEB2] font-bold text-sm">טוען ספרייה...</p>
                 </div>
             ) : filtered.length === 0 ? (
-                <div className="py-20 text-center rounded-[24px]" style={CARD}>
-                    <Image size={40} className="mx-auto text-[#D1D1D6] mb-3" />
-                    <p className="text-[#AEAEB2] font-bold">{search ? 'לא נמצאו פריטים' : 'הספרייה ריקה'}</p>
-                    <p className="text-[#C7C7CC] text-sm mt-1">{!search && 'גרור קבצים לאזור למעלה או הוסף קישור'}</p>
+                <div className="rounded-[24px] overflow-hidden" style={CARD}>
+                    <AdminEmpty
+                        icon="empty"
+                        title={search ? 'לא נמצאו פריטים' : 'הספרייה ריקה'}
+                        subtitle={search ? 'נסה חיפוש אחר' : 'גרור קבצים לאזור למעלה או הוסף קישור חיצוני'}
+                    />
                 </div>
             ) : viewMode === 'grid' ? (
                 <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

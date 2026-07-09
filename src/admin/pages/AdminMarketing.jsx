@@ -1,21 +1,21 @@
 /* eslint-disable */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, BarChart2, Percent, Check } from 'lucide-react';
+import { Ticket, BarChart2, Percent, Check, Megaphone, Plus } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminToggle } from '../components/AdminComponents';
+import { AdminButton, AdminModal, AdminInput, AdminToggle, AdminKPICard, AdminEmpty, AdminSearchBar, AdminFilterPills } from '../components/AdminComponents';
 import { useSettings } from '../../context/SettingsContext';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Shared glass ─────────────────────────────────────────────────────────────
-const glass = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Marketing domain accent (Heaven, pink) ───────────────────────────────────
+const PINK      = '#FF375F';
+const PINK_GRAD = 'linear-gradient(135deg, #FF6482 0%, #FF375F 100%)';
+const PINK_SOFT = 'linear-gradient(135deg, rgba(255,55,95,0.14) 0%, rgba(255,100,130,0.08) 100%)';
+
+// ─── Shared liquid-glass surface (token-driven — one system everywhere) ────────
+const glass = { ...GLASS.base };
 
 const BANNER_COLORS = [
     { label: 'כחול',  value: '#007AFF' },
@@ -176,6 +176,8 @@ export default function AdminMarketing() {
     const [showNew, setShowNew] = useState(false);
     const [form, setForm] = useState(EMPTY);
     const [saved, setSaved] = useState(false);
+    const [couponFilter, setCouponFilter] = useState('הכל');
+    const [couponSearch, setCouponSearch] = useState('');
 
     const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -195,59 +197,68 @@ export default function AdminMarketing() {
         ? Math.round(coupons.filter(c => c.type === 'percent').reduce((s, c) => s + c.discount, 0) / coupons.filter(c => c.type === 'percent').length)
         : 0;
 
+    const displayedCoupons = useMemo(() => {
+        let list = coupons;
+        if (couponFilter === 'פעילים') list = list.filter(c => c.active);
+        else if (couponFilter === 'כבויים') list = list.filter(c => !c.active);
+        const term = couponSearch.trim().toLowerCase();
+        if (term) list = list.filter(c => (c.code || '').toLowerCase().includes(term));
+        return list;
+    }, [coupons, couponFilter, couponSearch]);
+
     return (
         <div dir="rtl" className="space-y-5">
-            <AdminSectionHeader
-                title="שיווק וקידום מכירות"
-                subtitle={`${coupons.length} קופונים · ${activeCoupons} פעילים · פס הכרזה: ${bannerActive ? 'פעיל' : 'כבוי'}`}
-                action={<AdminButton onClick={() => setShowNew(true)}>+ קופון חדש</AdminButton>}
-            />
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: PINK_SOFT, border: `1px solid ${hexA(PINK, 0.22)}`, boxShadow: `${glow(PINK, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <Megaphone size={22} color={PINK} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שיווק וקידום מכירות</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{coupons.length} קופונים · {activeCoupons} פעילים · פס הכרזה: {bannerActive ? 'פעיל' : 'כבוי'}</p>
+                </div>
+                <motion.button onClick={() => setShowNew(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(PINK, 0.5)}` }} whileTap={TAP}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: PINK_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(PINK, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                    <Plus size={15} />קופון חדש
+                </motion.button>
+            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-                {[
-                    { label: 'קופונים פעילים', value: activeCoupons, color: '#34C759', Icon: Ticket },
-                    { label: 'שימושים כולל', value: totalUses, color: '#007AFF', Icon: BarChart2 },
-                    { label: 'ממוצע הנחה', value: `${avgDiscount}%`, color: '#FF9500', Icon: Percent },
-                ].map(({ label, value, color, Icon }) => (
-                    <div key={label} className="rounded-[20px] p-4 text-right relative overflow-hidden"
-                        style={{
-                            background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
-                            border: `1px solid ${color}22`,
-                            boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
-                        }}>
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-                                style={{ background: `${color}16`, border: `1px solid ${color}20` }}>
-                                <Icon size={15} style={{ color }} />
-                            </div>
-                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                        </div>
-                        <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
-                        <p className="text-[#86868B] text-[10px] font-bold mt-1.5 tracking-widest">{label}</p>
-                    </div>
-                ))}
+            {/* KPI band — coupons · active · uses · avg discount */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="קופונים" value={coupons.length} subtitle="סך הכל במערכת" accent={PINK} delay={0}
+                    icon={<Ticket size={20} color={PINK} />} />
+                <AdminKPICard title="פעילים" value={activeCoupons} subtitle="קופונים פעילים כעת" accent={PALETTE.green} delay={0.05}
+                    icon={<Check size={20} color={PALETTE.green} />} />
+                <AdminKPICard title="שימושים" value={totalUses} subtitle="סך מימושים" accent={PALETTE.azure} delay={0.1}
+                    icon={<BarChart2 size={20} color={PALETTE.azure} />} />
+                <AdminKPICard title="ממוצע הנחה" value={`${avgDiscount}%`} subtitle="קופוני אחוז" accent={PALETTE.orange} delay={0.15}
+                    icon={<Percent size={20} color={PALETTE.orange} />} />
             </div>
 
             {/* Coupon list */}
             <div className="rounded-[22px] overflow-hidden" style={glass}>
-                <div className="px-5 py-4 border-b border-black/06 flex items-center justify-between"
+                <div className="px-5 py-4 border-b border-black/06 flex items-center justify-between gap-3 flex-wrap"
                     style={{ background: 'rgba(248,248,250,0.85)' }}>
-                    <span className="text-[#AEAEB2] text-[10px] font-black tracking-[0.18em]">{coupons.length} קופונים</span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <AdminFilterPills options={['הכל', 'פעילים', 'כבויים']} active={couponFilter} onChange={setCouponFilter} id="coupon-filter" />
+                        <div className="w-[200px] max-w-full"><AdminSearchBar value={couponSearch} onChange={setCouponSearch} placeholder="חיפוש לפי קוד..." /></div>
+                    </div>
                     <h3 className="text-[#1D1D1F] font-black text-base">קופוני הנחה</h3>
                 </div>
 
                 <AnimatePresence>
-                    {coupons.map((c, i) => (
+                    {displayedCoupons.map((c, i) => (
                         <CouponCard key={c.id} coupon={c} onToggle={toggleCoupon} onDelete={deleteCoupon} delay={i * 0.025} />
                     ))}
                 </AnimatePresence>
 
-                {coupons.length === 0 && (
-                    <div className="py-16 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                        <Ticket size={36} className="opacity-30" />
-                        <p className="text-sm font-medium">אין קופונים. צור קופון חדש.</p>
-                    </div>
+                {displayedCoupons.length === 0 && (
+                    <AdminEmpty
+                        icon="empty"
+                        title={coupons.length === 0 ? 'אין קופונים עדיין' : 'לא נמצאו קופונים תואמים'}
+                        subtitle={coupons.length === 0 ? 'צור קופון חדש כדי להתחיל לקדם מכירות' : 'נסה לשנות את הסינון או החיפוש'}
+                        action={coupons.length === 0 ? { label: 'קופון חדש', onClick: () => setShowNew(true) } : undefined}
+                    />
                 )}
             </div>
 

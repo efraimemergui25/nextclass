@@ -6,13 +6,31 @@ import { ShoppingBag, Box, Upload, Loader2, LayoutGrid, List, AlertTriangle, Che
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
-import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminFilterPills, AdminToggle, StatusBadge } from '../components/AdminComponents';
+import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminFilterPills, AdminToggle, StatusBadge, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import { GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, accentGradient } from '../theme/tokens';
 import { storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנה', 'מחשוב וטאבלטים', 'תשתיות רשת ואודיו-ויזואל', 'מעבדות STEM וחינוך STEAM', 'ריהוט חינוכי ואחסון', 'בטיחות ומעקב'];
 
-const EMPTY_FORM = { title: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], dimensions: [], isActive: true, isNew: false, isFeatured: false };
+const EMPTY_FORM = { title: '', brand: '', model: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], dimensions: [], isActive: true, isNew: false, isFeatured: false };
+
+// ─── Products domain accent (Heaven, indigo ★) + liquid-glass surfaces ──────────
+const INDIGO      = '#5E5CE6';                                   // products accent
+const INDIGO_GRAD = accentGradient(INDIGO);                      // azure → indigo
+const G           = { ...GLASS.base, borderRadius: RADIUS.card };
+
+// Deterministic SKU — NC-BRAND-MODEL, sanitized. No randomness for production data.
+function makeSku({ brand, model, category, title }) {
+    const clean = s => (s || '').toUpperCase().replace(/[^A-Z0-9]+/g, '');
+    const b = clean(brand);
+    const m = clean(model);
+    if (b || m) return ['NC', b, m].filter(Boolean).join('-');
+    // Fallback when no brand/model: derive deterministically from category + title initials
+    const catCode   = clean((category || 'GEN').split(/[\s-]/)[0]).slice(0, 3) || 'GEN';
+    const titleCode = clean((title || 'PROD').split(/\s+/).map(w => w[0]).join('')).slice(0, 4) || 'PROD';
+    return `NC-${catCode}-${titleCode}`;
+}
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -49,14 +67,12 @@ function ProductCard({ product, onEdit }) {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(0,0,0,0.10)' }}
-            className="rounded-[20px] overflow-hidden cursor-pointer group relative"
+            transition={SPRING.soft}
+            whileHover={{ y: -3, scale: 1.01, boxShadow: `0 18px 44px ${hexA(INDIGO, 0.20)}, 0 0 0 1px ${hexA(INDIGO, 0.14)}, ${SHADOW.specular}` }}
+            whileTap={TAP}
+            className="overflow-hidden cursor-pointer group relative transition-shadow"
             style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+                ...G,
                 opacity: isInactive ? 0.65 : 1,
             }}
             onClick={() => onEdit(product)}
@@ -91,13 +107,19 @@ function ProductCard({ product, onEdit }) {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-white/90 backdrop-blur rounded-xl px-3 py-1.5 text-center text-xs font-black text-[#007AFF]">
+                    <div className="bg-white/90 backdrop-blur rounded-xl px-3 py-1.5 text-center text-xs font-black" style={{ color: INDIGO }}>
                         לחץ לעריכה
                     </div>
                 </div>
             </div>
             <div className="p-4">
-                <p className="text-[#AEAEB2] text-[9px] font-black tracking-widest mb-1">{product.category}</p>
+                {(product.brand || product.model) ? (
+                    <p className="text-[9px] font-black tracking-widest uppercase mb-1 truncate" style={{ color: INDIGO }}>
+                        {[product.brand, product.model].filter(Boolean).join(' · ')}
+                    </p>
+                ) : (
+                    <p className="text-[#AEAEB2] text-[9px] font-black tracking-widest mb-1">{product.category}</p>
+                )}
                 <h3 className="text-[#1D1D1F] font-black text-sm leading-tight line-clamp-2 mb-3">{product.title}</h3>
                 <div className="flex items-center justify-between">
                     <div>
@@ -107,7 +129,7 @@ function ProductCard({ product, onEdit }) {
                                 <span className="text-[#AEAEB2] text-xs line-through">₪{Number(product.price).toLocaleString()}</span>
                             </div>
                         ) : (
-                            <span style={{ color: '#007AFF', fontWeight: 900 }} className="text-base">₪{Number(product.price).toLocaleString()}</span>
+                            <span style={{ color: INDIGO, fontWeight: 900 }} className="text-base">₪{Number(product.price).toLocaleString()}</span>
                         )}
                     </div>
                     <div className="text-right">
@@ -132,8 +154,9 @@ function ProductRow({ product, onEdit }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            whileHover={{ y: -2 }}
             onClick={() => onEdit(product)}
-            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] cursor-pointer transition-all group"
+            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#5E5CE6]/25 hover:shadow-[0_14px_40px_rgba(94,92,230,0.12)] cursor-pointer transition-all group"
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image
@@ -154,8 +177,13 @@ function ProductRow({ product, onEdit }) {
                     : <div className="w-full h-full flex items-center justify-center opacity-20"><ShoppingBag size={16} className="text-[#86868B]" /></div>}
             </div>
             <div className="flex-1 min-w-0 text-right">
-                <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 group-hover:text-[#007AFF] transition-colors">{product.title}</p>
-                <p className="text-[#AEAEB2] text-xs mt-0.5">{product.category} {product.sku ? `· ${product.sku}` : ''}</p>
+                <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 transition-colors group-hover:text-[#5E5CE6]">{product.title}</p>
+                <p className="text-[#AEAEB2] text-xs mt-0.5 truncate">
+                    {(product.brand || product.model) && (
+                        <span className="font-black" style={{ color: INDIGO }}>{[product.brand, product.model].filter(Boolean).join(' · ')}</span>
+                    )}
+                    {(product.brand || product.model) ? ' · ' : ''}{product.category}{product.sku ? ` · ${product.sku}` : ''}
+                </p>
             </div>
             <div className="flex gap-1.5 shrink-0 items-center">
                 <ActiveBadge isActive={product.isActive} />
@@ -174,7 +202,7 @@ function ProductRow({ product, onEdit }) {
                     <p className="text-[#1D1D1F] font-black text-sm">₪{Number(product.price).toLocaleString()}</p>
                 )}
             </div>
-            <span className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors shrink-0" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</span>
+            <span className="text-[#AEAEB2] group-hover:text-[#5E5CE6] text-xs font-bold transition-colors shrink-0" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</span>
         </motion.div>
     );
 }
@@ -230,6 +258,8 @@ export default function AdminProducts() {
         setEditingProduct(product);
         setEditForm({
             title: product.title || '',
+            brand: product.brand || '',
+            model: product.model || '',
             price: product.price || '',
             salePrice: product.salePrice || '',
             sku: product.sku || '',
@@ -319,6 +349,7 @@ export default function AdminProducts() {
 
     const activeCount = products.filter(p => p.isActive !== false).length;
     const saleCount = products.filter(p => p.salePrice).length;
+    const lowStockCount = products.filter(p => typeof p.stock === 'number' && p.stock <= (p.threshold ?? 5)).length;
 
     return (
         <div dir="rtl">
@@ -335,10 +366,18 @@ export default function AdminProducts() {
                                 </button>
                             ))}
                         </div>
-                        <AdminButton onClick={handleNewProduct}><span className="flex items-center gap-1"><Plus size={13} /> מוצר חדש</span></AdminButton>
+                        <AdminButton onClick={handleNewProduct} accent={INDIGO}><span className="flex items-center gap-1"><Plus size={13} /> מוצר חדש</span></AdminButton>
                     </div>
                 }
             />
+
+            {/* KPI band */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <AdminKPICard title="סה״כ מוצרים" value={products.length} icon="products" accent={INDIGO} subtitle={`${filtered.length} מוצגים כעת`} delay={0} />
+                <AdminKPICard title="מוצרים פעילים" value={activeCount} icon="orders" accent="#34C759" subtitle={`${products.length - activeCount} מושבתים`} delay={0.05} />
+                <AdminKPICard title="מלאי נמוך" value={lowStockCount} icon="alert" accent="#FF9500" subtitle="מתחת לסף המלאי" delay={0.1} />
+                <AdminKPICard title="במבצע" value={saleCount} icon="revenue" accent="#FF3B30" subtitle="מחיר מבצע פעיל" delay={0.15} />
+            </div>
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -360,7 +399,10 @@ export default function AdminProducts() {
                         ))}
                     </AnimatePresence>
                     {filtered.length === 0 && (
-                        <div className="col-span-full py-20 text-center text-[#AEAEB2] text-sm">אין מוצרים תואמים</div>
+                        <div className="col-span-full">
+                            <AdminEmpty icon="products" title="אין מוצרים תואמים" subtitle="נסה לשנות את הסינון או לחפש מונח אחר"
+                                action={{ label: 'מוצר חדש', onClick: handleNewProduct }} />
+                        </div>
                     )}
                 </motion.div>
             )}
@@ -384,10 +426,8 @@ export default function AdminProducts() {
                         ))}
                     </AnimatePresence>
                     {filtered.length === 0 && (
-                        <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                            <ShoppingBag size={40} className="opacity-30" />
-                            <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
-                        </div>
+                        <AdminEmpty icon="products" title="אין מוצרים תואמים לחיפוש" subtitle="נסה לשנות את הסינון או לחפש מונח אחר"
+                            action={{ label: 'מוצר חדש', onClick: handleNewProduct }} />
                     )}
                 </div>
             )}
@@ -398,6 +438,7 @@ export default function AdminProducts() {
                 onClose={() => { setEditingProduct(null); setConfirmDelete(false); }}
                 title={isNew ? 'מוצר חדש' : 'עריכת מוצר'}
                 size="lg"
+                accent={INDIGO}
             >
                 <div className="space-y-5" dir="rtl">
                     {/* Status toggle row */}
@@ -419,6 +460,11 @@ export default function AdminProducts() {
 
                     <AdminInput label="שם המוצר" value={editForm.title} onChange={v => setField('title', v)} placeholder="כותרת מוצר..." />
 
+                    <div className="grid grid-cols-2 gap-3">
+                        <AdminInput label="מותג (Brand)" value={editForm.brand || ''} onChange={v => setField('brand', v)} placeholder="ASUS" dir="ltr" />
+                        <AdminInput label="דגם (Model)" value={editForm.model || ''} onChange={v => setField('model', v)} placeholder="VZ24EHF" dir="ltr" />
+                    </div>
+
                     <div className="grid grid-cols-3 gap-3">
                         <AdminInput label="מחיר רגיל (₪)" type="number" value={String(editForm.price)} onChange={v => setField('price', v)} placeholder="0" />
                         <AdminInput label="מחיר מבצע (₪)" type="number" value={String(editForm.salePrice || '')} onChange={v => setField('salePrice', v)} placeholder="ריק = ללא מבצע" />
@@ -426,17 +472,12 @@ export default function AdminProducts() {
                             <label className="block text-[#6E6E73] text-[10px] font-black tracking-[0.18em] mb-1.5">SKU</label>
                             <div className="flex gap-1">
                                 <input value={editForm.sku || ''} onChange={e => setField('sku', e.target.value)} dir="ltr"
-                                    placeholder="SKU-001"
-                                    className="flex-1 bg-white border border-black/12 rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#007AFF]/60"
+                                    placeholder="NC-ASUS-VZ24EHF"
+                                    className="flex-1 bg-white border border-black/12 rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#5E5CE6]/60"
                                 />
-                                <button type="button" title="צור SKU אוטומטי"
-                                    onClick={() => {
-                                        const catCode = (editForm.category || 'GEN').split(/[\s-]/)[0].slice(0, 3).toUpperCase();
-                                        const titleCode = (editForm.title || 'PROD').split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
-                                        const rand = Math.floor(Math.random() * 900 + 100);
-                                        setField('sku', `${catCode}-${titleCode}-${rand}`);
-                                    }}
-                                    className="px-2.5 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#007AFF]/10 text-[#007AFF] text-xs font-black transition-colors shrink-0">
+                                <button type="button" title="צור SKU דטרמיניסטי מתוך המותג והדגם"
+                                    onClick={() => setField('sku', makeSku(editForm))}
+                                    className="px-2.5 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#5E5CE6]/10 text-[#5E5CE6] text-xs font-black transition-colors shrink-0">
                                     SKU
                                 </button>
                             </div>
@@ -566,7 +607,7 @@ export default function AdminProducts() {
                         )}
                         <div className="flex-1" />
                         <AdminButton variant="ghost" onClick={() => { setEditingProduct(null); setConfirmDelete(false); }}>ביטול</AdminButton>
-                        <AdminButton onClick={handleSave}>
+                        <AdminButton onClick={handleSave} accent={INDIGO}>
                             {saved ? <span className="flex items-center gap-1"><Check size={13} /> נשמר!</span> : isNew ? 'הוסף מוצר' : 'שמור שינויים'}
                         </AdminButton>
                     </div>

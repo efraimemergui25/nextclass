@@ -15,6 +15,7 @@ import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { AdminKPICard, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
+import { PALETTE, GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
 import initialProducts from '../../data/products';
 
 // ─── Stage weights for pipeline forecast ─────────────────────────────────────
@@ -271,13 +272,7 @@ function Card({ title, subtitle, accent, action, children, className = '', title
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
             {accent && <div className="h-[3px] rounded-t-[22px]" style={{ background: accent }} />}
             <div className="p-5">
@@ -479,9 +474,15 @@ export default function AdminDashboard() {
             {/* ── Header ────────────────────────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex items-center justify-between flex-wrap gap-3">
-                <div className="text-right">
-                    <h1 className="text-xl sm:text-3xl font-black text-[#1D1D1F] tracking-tighter">{greeting()}, הנהלת NextClass</h1>
-                    <p className="text-[#86868B] text-xs sm:text-sm mt-1 font-medium">{dateStr} · נתוני אמת</p>
+                <div className="flex items-center gap-3.5">
+                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(PALETTE.azure, 0.16)}, ${hexA(PALETTE.azure, 0.06)})`, border: `1px solid ${hexA(PALETTE.azure, 0.22)}`, boxShadow: `${glow(PALETTE.azure, 0.18, 20)}, ${SHADOW.specular}` }}>
+                        <Activity size={22} color={PALETTE.azure} />
+                    </div>
+                    <div className="text-right">
+                        <h1 className="text-xl sm:text-3xl font-black tracking-tighter"
+                            style={{ background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{greeting()}, הנהלת NextClass</h1>
+                        <p className="text-[#86868B] text-xs sm:text-sm mt-1 font-medium">{dateStr} · נתוני אמת</p>
+                    </div>
                 </div>
                 <div className="flex items-center flex-wrap gap-2">
                     {/* Live dot */}

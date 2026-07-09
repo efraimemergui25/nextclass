@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
@@ -6,8 +7,15 @@ import {
     doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
-import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink } from 'lucide-react';
+import { AdminKPICard, AdminTabs, AdminEmpty } from '../components/AdminComponents';
+import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent } from 'lucide-react';
+import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
+
+// ─── Q&A domain accent (Heaven, amber) ────────────────────────────────────────
+const AMBER      = '#FFB340';
+const AMBER_GRAD = 'linear-gradient(135deg, #FFCB66 0%, #FFB340 100%)';
+const AMBER_SOFT = 'linear-gradient(135deg, rgba(255,179,64,0.16) 0%, rgba(255,203,102,0.08) 100%)';
+const glass      = { ...GLASS.base };
 
 export default function AdminQA() {
     const [activeTab, setActiveTab] = useState('pending');
@@ -29,6 +37,7 @@ export default function AdminQA() {
     const pending   = questions.filter(q => !q.answers?.length);
     const answered  = questions.filter(q => q.answers?.length > 0);
     const displayed = activeTab === 'pending' ? pending : answered;
+    const responseRate = questions.length ? Math.round((answered.length / questions.length) * 100) : 0;
 
     const handleAnswer = useCallback(async (id) => {
         const text = answerTexts[id]?.trim();
@@ -52,69 +61,52 @@ export default function AdminQA() {
     }, [showToast]);
 
     return (
-        <div className="space-y-8">
-            <AdminSectionHeader
-                title="שאלות ותשובות"
-                subtitle="שאלות שנשאלו על דפי מוצרים — ניהול ומתן תשובות"
-                action={
-                    <div className="flex items-center gap-3">
-                        <div className="px-4 py-2 rounded-full text-sm font-bold"
-                            style={{ background: 'rgba(255,149,0,0.10)', color: '#FF9500' }}>
-                            {pending.length} ממתינות
-                        </div>
-                        <div className="px-4 py-2 rounded-full text-sm font-bold"
-                            style={{ background: 'rgba(52,199,89,0.10)', color: '#34C759' }}>
-                            {answered.length} נענו
-                        </div>
-                    </div>
-                }
-            />
+        <div dir="rtl" className="space-y-6">
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: AMBER_SOFT, border: `1px solid ${hexA(AMBER, 0.24)}`, boxShadow: `${glow(AMBER, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <MessageSquare size={22} color={AMBER} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שאלות ותשובות</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>שאלות שנשאלו על דפי מוצרים — ניהול ומתן תשובות</p>
+                </div>
+            </div>
+
+            {/* KPI band — total · pending · answered · response rate */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="סך שאלות" value={questions.length} subtitle="על דפי מוצרים" accent={AMBER} delay={0}
+                    icon={<MessageSquare size={20} color={AMBER} />} loading={loading} />
+                <AdminKPICard title="ממתינות" value={pending.length} subtitle="דורשות מענה" accent={PALETTE.orange} delay={0.05}
+                    icon={<HelpCircle size={20} color={PALETTE.orange} />} loading={loading} />
+                <AdminKPICard title="נענו" value={answered.length} subtitle="קיבלו תשובה" accent={PALETTE.green} delay={0.1}
+                    icon={<CheckCircle size={20} color={PALETTE.green} />} loading={loading} />
+                <AdminKPICard title="שיעור מענה" value={`${responseRate}%`} subtitle="מכלל השאלות" accent={PALETTE.azure} delay={0.15}
+                    icon={<Percent size={20} color={PALETTE.azure} />} loading={loading} />
+            </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl w-fit"
-                style={{
-                    background: 'rgba(255,255,255,0.78)',
-                    backdropFilter: 'blur(24px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                    border: '1px solid rgba(255,255,255,0.72)',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                }}>
-                {[
+            <AdminTabs
+                tabs={[
                     { id: 'pending',  label: 'ממתינות לתשובה', count: pending.length },
                     { id: 'answered', label: 'נענו',             count: answered.length },
-                ].map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                            activeTab === tab.id
-                                ? 'bg-white text-[#1D1D1F] shadow-sm'
-                                : 'text-[#86868B] hover:text-[#1D1D1F]'
-                        }`}>
-                        {tab.label}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                            activeTab === tab.id ? 'bg-[#007AFF]/10 text-[#007AFF]' : 'bg-gray-100 text-gray-400'
-                        }`}>{tab.count}</span>
-                    </button>
-                ))}
-            </div>
+                ]}
+                active={activeTab} onChange={setActiveTab} id="qa-tabs"
+            />
 
             {/* List */}
             {loading ? (
                 <div className="flex items-center justify-center py-24">
-                    <div className="w-8 h-8 border-4 border-gray-100 border-t-[#007AFF] rounded-full animate-spin" />
+                    <div className="w-8 h-8 rounded-full animate-spin"
+                        style={{ border: `4px solid ${hexA(AMBER, 0.16)}`, borderTopColor: AMBER }} />
                 </div>
             ) : displayed.length === 0 ? (
-                <div className="text-center py-24 rounded-[2rem]"
-                    style={{
-                        background: 'rgba(255,255,255,0.78)',
-                        backdropFilter: 'blur(24px) saturate(200%)',
-                        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                        border: '1px solid rgba(255,255,255,0.72)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-                    }}>
-                    <MessageSquare size={40} className="mx-auto text-gray-200 mb-4" />
-                    <p className="text-[#86868B] font-bold">
-                        {activeTab === 'pending' ? 'אין שאלות ממתינות' : 'אין שאלות שנענו עדיין'}
-                    </p>
+                <div className="rounded-[24px] overflow-hidden" style={glass}>
+                    <AdminEmpty
+                        icon="empty"
+                        title={activeTab === 'pending' ? 'אין שאלות ממתינות' : 'אין שאלות שנענו עדיין'}
+                        subtitle={activeTab === 'pending' ? 'כל השאלות קיבלו מענה — כל הכבוד' : 'תשובות שתפרסם יופיעו כאן'}
+                    />
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -123,14 +115,10 @@ export default function AdminQA() {
                             <motion.div key={item.id}
                                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
-                                className="rounded-[1.5rem] p-6"
-                                style={{
-                                    background: 'rgba(255,255,255,0.78)',
-                                    backdropFilter: 'blur(24px) saturate(200%)',
-                                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                                    border: '1px solid rgba(255,255,255,0.72)',
-                                    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-                                }}>
+                                whileHover={{ y: -2 }}
+                                transition={SPRING.soft}
+                                className="p-6"
+                                style={{ ...glass, borderRadius: RADIUS.panel }}>
                                 {/* Question header */}
                                 <div className="flex items-start justify-between gap-4 mb-4">
                                     <div className="flex items-center gap-2 text-xs text-[#86868B] font-medium shrink-0">
@@ -192,10 +180,11 @@ export default function AdminQA() {
                                         style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
                                     />
                                     <motion.button
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ y: -1, boxShadow: `0 8px 22px ${hexA(AMBER, 0.42)}` }}
+                                        whileTap={TAP}
                                         onClick={() => handleAnswer(item.id)}
                                         className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white cursor-pointer shrink-0"
-                                        style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
+                                        style={{ background: AMBER_GRAD, boxShadow: `0 4px 16px ${hexA(AMBER, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                                         <Send size={15} />
                                         פרסם
                                     </motion.button>

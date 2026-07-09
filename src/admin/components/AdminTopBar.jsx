@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
+import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow, PALETTE } from '../theme/tokens';
 
 // ─── Page meta ───────────────────────────────────────────────────────────────
 const PAGE_META = {
@@ -438,6 +439,14 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
   const urgentCount   = kpis.pendingOrders + kpis.contactsNew + kpis.lowStockCount;
   const today         = new Date().toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' });
   const pageMeta      = PAGE_META[location.pathname] || { label: 'ניהול', icon: 'M4 6h16M4 12h16M4 18h16' };
+  const greeting      = (() => {
+    const h = new Date().getHours();
+    if (h < 5)  return 'לילה טוב';
+    if (h < 12) return 'בוקר טוב';
+    if (h < 17) return 'צהריים טובים';
+    if (h < 21) return 'ערב טוב';
+    return 'לילה טוב';
+  })();
 
   const todayRevenue = useMemo(() => {
     const now = new Date();
@@ -453,14 +462,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
       <div className="h-[60px] shrink-0 flex items-center gap-2 px-4 lg:px-5 relative"
         style={{
-          background: 'rgba(252,252,255,0.78)',
-          backdropFilter: 'blur(60px) saturate(240%)',
-          WebkitBackdropFilter: 'blur(60px) saturate(240%)',
-          borderBottom: '0.5px solid rgba(0,0,0,0.09)',
-          boxShadow: '0 1px 0 rgba(255,255,255,0.8), 0 4px 32px rgba(0,0,0,0.06)',
+          background: 'rgba(252,252,255,0.72)',
+          backdropFilter: 'blur(64px) saturate(240%)',
+          WebkitBackdropFilter: 'blur(64px) saturate(240%)',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: `0 4px 32px rgba(0,0,0,0.06), ${SHADOW.specular}`,
         }}
         dir="rtl"
       >
+        {/* Specular top edge — glass chrome highlight */}
+        <div className="absolute top-0 left-[6%] right-[6%] h-px pointer-events-none"
+          style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
 
         {/* ── Mobile hamburger ── */}
         <motion.button whileTap={{ scale: 0.88 }} onClick={onMobileMenuToggle}
@@ -493,12 +505,16 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
           className="flex items-center gap-2.5 mr-1"
         >
           <span className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.10))' }}>
+            style={{
+              background: `linear-gradient(135deg,${hexA(PALETTE.azure, 0.14)},${hexA(PALETTE.indigo, 0.10)})`,
+              border: `1px solid ${hexA(PALETTE.azure, 0.16)}`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7)`,
+            }}>
             <svg className="w-3.5 h-3.5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d={pageMeta.icon} />
             </svg>
           </span>
-          <h1 className="text-[#1D1D1F] text-[15px] font-black hidden sm:block" style={{ letterSpacing: '-0.02em' }}>
+          <h1 className="text-[#1D1D1F] text-[15px] font-black hidden sm:block tracking-tight" style={{ letterSpacing: '-0.02em' }}>
             {pageMeta.label}
           </h1>
         </motion.div>
@@ -558,10 +574,10 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
         {/* ── Notifications ── */}
         <div className="relative" ref={notifRef}>
-          <motion.button whileTap={{ scale: 0.90 }}
+          <motion.button whileTap={{ scale: 0.90 }} whileHover={{ y: -1 }} transition={SPRING.snappy}
             onClick={() => { setNotifOpen(o => !o); setLaunchOpen(false); }}
-            className="relative w-9 h-9 rounded-[12px] flex items-center justify-center transition-all"
-            style={{ background: notifOpen ? 'rgba(0,122,255,0.08)' : 'rgba(0,0,0,0.05)', border: '0.5px solid rgba(0,0,0,0.08)', color: '#3C3C43' }}
+            className="relative w-9 h-9 flex items-center justify-center transition-all"
+            style={{ borderRadius: RADIUS.button, background: notifOpen ? hexA(PALETTE.azure, 0.10) : 'rgba(0,0,0,0.045)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: notifOpen ? glow(PALETTE.azure, 0.14, 14) : SHADOW.specular, color: '#3C3C43' }}
           >
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -580,9 +596,9 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
         </div>
 
         {/* ── Back to site ── */}
-        <motion.a href="/" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
-          className="flex items-center justify-center w-9 h-9 rounded-[12px] shrink-0 transition-all"
-          style={{ background: 'linear-gradient(135deg,#5856D6,#007AFF)', boxShadow: '0 3px 12px rgba(88,86,214,0.40), inset 0 1px 0 rgba(255,255,255,0.22)', color: 'white' }}
+        <motion.a href="/" whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.94 }} transition={SPRING.snappy}
+          className="flex items-center justify-center w-9 h-9 shrink-0 transition-all"
+          style={{ borderRadius: RADIUS.button, background: 'linear-gradient(135deg,#5856D6,#007AFF)', boxShadow: `${glow(PALETTE.indigo, 0.34, 12)}, inset 0 1px 0 rgba(255,255,255,0.22)`, color: 'white' }}
           title="חזרה לאתר"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -590,11 +606,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
           </svg>
         </motion.a>
 
-        {/* ── Admin avatar ── */}
-        <div className="w-8 h-8 rounded-[12px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
-          style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 3px 10px rgba(0,122,255,0.35), 0 0 0 2px rgba(255,255,255,0.9)', cursor: 'default' }}>
-          N
+        {/* ── Greeting + Admin avatar ── */}
+        <div className="hidden xl:flex flex-col items-end leading-none mr-0.5">
+          <span className="text-[11px] font-black text-[#1D1D1F] tracking-tight">{greeting}</span>
+          <span className="text-[9px] font-bold text-[#AEAEB2] mt-0.5">מנהל NextClass</span>
         </div>
+        <motion.div
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }} transition={SPRING.snappy}
+          className="w-8 h-8 flex items-center justify-center text-white text-[11px] font-black shrink-0"
+          style={{ borderRadius: RADIUS.button, background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: `${glow(PALETTE.azure, 0.3, 10)}, 0 0 0 2px rgba(255,255,255,0.9)`, cursor: 'default' }}>
+          N
+        </motion.div>
       </div>
 
       <AnimatePresence>
