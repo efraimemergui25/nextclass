@@ -299,7 +299,7 @@ const FIELD_SECTIONS = [
             { key: 'catalog_inst_price_label', label: 'תווית מחיר מוסדי בכרטיס מוצר', type: 'text', default: 'מחיר מוסדי מאושר' },
             { key: 'catalog_filter_drawer_title', label: 'כותרת מגירת סינון', type: 'text',  default: 'סינון מתקדם' },
             { key: 'catalog_filter_drawer_sub',   label: 'תיאור מגירת סינון', type: 'text',  default: 'התאם את הקטלוג לצרכי המוסד שלך' },
-            { key: 'catalog_categories',       label: 'קטגוריות המוצרים (מופרדות בפסיק)', type: 'textarea', default: 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה' },
+            { key: 'catalog_categories',       label: 'קטגוריות המוצרים (מידע בלבד — נגזרות אוטומטית מהמוצרים)', type: 'textarea', default: 'מסכי מחשב' },
         ],
     },
     {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Sparkles, ChevronLeft, ArrowLeft, LayoutGrid, List } from 'lucide-react';
@@ -26,14 +26,11 @@ const HomeProductsSection = () => {
  const { activeProducts } = useProducts();
  const { user, firstName, timeGreeting } = useAuth();
 
- // Categories from CMS
- const rawCats = getSetting(
- 'catalog_categories',
- 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה'
- );
+ // Categories derived from the REAL catalog — never a hardcoded list, so tabs
+ // always match the actual products in the store.
  const categories = useMemo(
- () => rawCats.split(',').map(c => c.trim()).filter(Boolean),
- [rawCats]
+ () => [...new Set(activeProducts.map(p => p.category).filter(Boolean))],
+ [activeProducts]
  );
 
  // Per-category products
@@ -51,6 +48,11 @@ const HomeProductsSection = () => {
  const [sortOpen, setSortOpen] = useState(false);
  const [priceMax, setPriceMax] = useState(30000);
  const [sliderOpen, setSliderOpen] = useState(false);
+
+ // Keep the active tab valid as the real categories load in
+ useEffect(() => {
+ if (categories.length && !categories.includes(activeTab)) setActiveTab(categories[0]);
+ }, [categories, activeTab]);
 
  const tabIndex = categories.indexOf(activeTab);
  const accent = CAT_ACCENTS[tabIndex >= 0 ? tabIndex % CAT_ACCENTS.length : 0];

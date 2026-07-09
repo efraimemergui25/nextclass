@@ -35,10 +35,11 @@ const Header = () => {
  const siteName = getSetting('site_name', 'NextClass');
  const siteLogo = getSetting('site_logo_url', '');
 
+ // Derive categories from the REAL catalog so the mega-menu always matches the store.
  const CATEGORIES = useMemo(() => {
- const raw = getSetting('catalog_categories', 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה');
- return raw.split(',').map(s => ({ label: s.trim(), slug: s.trim() }));
- }, [getSetting]);
+ const cats = [...new Set(activeProducts.map(p => p.category).filter(Boolean))];
+ return cats.map(s => ({ label: s, slug: s }));
+ }, [activeProducts]);
 
  // Per-category: product count + top product image for mega menu
  const categoryMeta = useMemo(() => {

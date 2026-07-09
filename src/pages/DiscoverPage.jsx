@@ -142,13 +142,10 @@ const DiscoverPage = () => {
  const { getSetting } = useSettings();
  const { activeProducts, featuredProduct, bestSellers, newArrivals, dealProducts } = useProducts();
 
- const rawCats = getSetting(
- 'catalog_categories',
- 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה'
- );
+ // Categories derived from the REAL catalog (not a hardcoded CMS list).
  const cmsCategories = useMemo(
- () => rawCats.split(',').map(c => c.trim()).filter(Boolean),
- [rawCats]
+ () => [...new Set(activeProducts.map(p => p.category).filter(Boolean))],
+ [activeProducts]
  );
 
  const categoryData = useMemo(() => {
