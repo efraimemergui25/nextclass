@@ -59,50 +59,33 @@ const BUDGET_OPTIONS = [
  { id: 'exploring', label: 'עדיין בוחנים', subtitle: 'שלב מחקר ובחינה', Icon: Compass },
 ];
 
+// Pricing is NEVER auto-estimated — every institution receives a tailored, accurate
+// quote from us. These labels describe the request track only (no fabricated prices).
+const TRACK = (label) => ({
+ pilot:    { from: '', label: `${label} — הזמנה ראשונית`, timeline: 'נחזור אליכם עם הצעה מדויקת' },
+ school:   { from: '', label: `${label} — הזמנה למוסד`,   timeline: 'נחזור אליכם עם הצעה מדויקת' },
+ district: { from: '', label: `${label} — הזמנה מרובת מוסדות`, timeline: 'נחזור אליכם עם הצעה מדויקת' },
+});
 const PRICE_MATRIX = {
- elementary: {
- pilot: { from: '18,500', label: 'חבילת פיילוט – יסודי', timeline: '7–10 ימי עסקים' },
- school: { from: '72,000', label: 'חבילת בית ספר – יסודי', timeline: '3–4 שבועות' },
- district: { from: '280,000', label: 'פתרון מחוזי – יסודי', timeline: 'לפי תכנית מפורטת' },
- },
- high: {
- pilot: { from: '24,000', label: 'חבילת פיילוט – תיכון', timeline: '7–10 ימי עסקים' },
- school: { from: '98,000', label: 'חבילת בית ספר – תיכון', timeline: '3–4 שבועות' },
- district: { from: '390,000', label: 'פתרון מחוזי – תיכון', timeline: 'לפי תכנית מפורטת' },
- },
- academy: {
- pilot: { from: '35,000', label: 'חבילת סטארטר – אקדמיה', timeline: '10–14 ימי עסקים' },
- school: { from: '150,000', label: 'חבילת קמפוס – אקדמיה', timeline: '4–6 שבועות' },
- district: { from: '550,000', label: 'פתרון ארגוני – אקדמיה', timeline: 'לפי תכנית מפורטת' },
- },
- other: {
- pilot: { from: '15,000', label: 'חבילת פיילוט – מותאמת אישית', timeline: '7–14 ימי עסקים' },
- school: { from: '65,000', label: 'חבילה מותאמת אישית', timeline: 'לפי תכנית מפורטת' },
- district: { from: '250,000', label: 'פתרון מקיף – מותאם אישית', timeline: 'לפי תכנית מפורטת' },
- },
+ elementary: TRACK('יסודי'),
+ high: TRACK('תיכון'),
+ academy: TRACK('אקדמיה'),
+ other: TRACK('מותאם אישית'),
 };
 
+// Honest deliverables tied to the REAL business: original ASUS/HP monitors, direct import.
+const HONEST_INCLUDES = [
+ 'מסכי מחשב מקוריים של ASUS ו-HP',
+ 'אחריות יצרן מלאה',
+ 'אספקה למוסד וליווי אישי לכל אורך הדרך',
+ 'מחירי יבואן ישירים — ללא מתווכים',
+];
+const TRACK_INCLUDES = { pilot: HONEST_INCLUDES, school: HONEST_INCLUDES, district: HONEST_INCLUDES };
 const BASE_INCLUDES = {
- elementary: {
- pilot: ['מסכים אינטראקטיביים 75" ל-1–5 כיתות', 'שירות ישיר ומקצועי לכל שלב', 'הדרכת צוות מורים מלאה', 'תמיכה טכנית 24/7'],
- school: ['מסכים אינטראקטיביים לכל הכיתות', 'תשתית רשת בית-ספרית מהירה', 'ניהול מרכזי (MDM) לכל המכשירים', 'הדרכה שנתית + תמיכה שוטפת'],
- district: ['פריסה מלאה בכל מוסדות המחוז', 'מערכת ניהול מחוזית אחידה', 'מנהל לקוח ייעודי', 'SLA מועדף + uptime מובטח'],
- },
- high: {
- pilot: ['מסכים אינטראקטיביים 86" ל-1–5 כיתות', 'מעבדת STEM מצוידת לפיילוט', 'הדרכת מורים ומנהלים', 'תמיכה טכנית 24/7'],
- school: ['מסכים + מעבדות STEM לכל הכיתות', 'חדר מחשבים מודרני מצויד', 'ניהול מרכזי + רישיונות תוכנה', 'הדרכה שנתית + תמיכה שוטפת'],
- district: ['פתרון end-to-end לכל בתי הספר', 'ניהול מרכזי של כלל המוסדות', 'מנהל לקוח ייעודי + דוחות שימוש', 'SLA מועדף + uptime מובטח'],
- },
- academy: {
- pilot: ['חדרי הוראה חכמים ל-1–5 אולמות', 'מערכת הקלטה ושידור חי', 'אינטגרציה עם מערכת הלמידה הקיימת', 'תמיכה טכנית 24/7'],
- school: ['פתרון קמפוס מלא לכל האולמות', 'סטודיו להפקת תוכן דיגיטלי', 'מערכת ניהול תוכן ולמידה (LMS)', 'הדרכה שוטפת + תמיכה'],
- district: ['תשתית דיגיטלית ארגונית מלאה', 'אינטגרציה עם מערכות ERP/SIS', 'מנהל לקוח ייעודי', 'SLA מועדף + שירות ישיר מובטח'],
- },
- other: {
- pilot: ['פתרון מותאם לצרכים ספציפיים', 'ייעוץ אישי ומקצועי ראשוני', 'הצעת מחיר מדויקת', 'תמיכה ישירה בכל שלב'],
- school: ['מיפוי צרכים מלא', 'פתרון מקיף מותאם', 'ליווי אישי לאורך כל הדרך', 'תמיכה שוטפת'],
- district: ['ייעוץ ארגוני מעמיק', 'תכנון ופריסה מותאמים', 'מנהל לקוח ייעודי', 'שירות ישיר מובטח'],
- },
+ elementary: TRACK_INCLUDES,
+ high: TRACK_INCLUDES,
+ academy: TRACK_INCLUDES,
+ other: TRACK_INCLUDES,
 };
 
 const BUDGET_NOTES = {

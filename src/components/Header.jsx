@@ -13,7 +13,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useProducts } from '../context/ProductsContext';
 import { useAuth } from '../context/AuthContext';
 
-// Cycling per-category visual identity — matches HomeDiscoverSection palette
+// Cycling per-category visual identity (Apple system-color palette)
 const CAT_ACCENTS = ['#007AFF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF375F', '#64D2FF'];
 const CAT_ICONS = [Monitor, Laptop2, FlaskConical, Volume2, Zap, Globe];
 

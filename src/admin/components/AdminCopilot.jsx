@@ -308,8 +308,8 @@ export default function AdminCopilot() {
 
     return (
         <div
-            className="fixed z-[940] flex flex-col items-start gap-4"
-            style={{ bottom: '24px', insetInlineStart: '24px', fontFamily: 'Heebo, sans-serif' }}
+            className="fixed z-[940] flex flex-col items-end gap-4"
+            style={{ bottom: '24px', insetInlineEnd: '24px', fontFamily: 'Heebo, sans-serif' }}
             dir="rtl"
         >
             {/* ── Chat panel ──────────────────────────────────────────────────── */}

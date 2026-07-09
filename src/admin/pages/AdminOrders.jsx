@@ -554,7 +554,7 @@ function QuoteBuilderPanel({ quote, updateQuoteFields, onUpdateStatus, showToast
                     shippingFee: Number(shippingFee) || 0, shippingIncluded,
                 });
                 await onUpdateStatus(quote.id, 'הוצע מחיר');
-                showToast('הצעת מחיר נשלחה ✓', 'success');
+                showToast('ההצעה נשלחה לאישורך במרכז המיילים ✓', 'success');
                 setTimeout(() => onSwitchTab?.('chat'), 400);
             };
             openEmailPreview?.('quote_sent', updatedQuote, preAction);
@@ -1711,7 +1711,7 @@ function StageActionPanel({ quote, onUpdateStatus, updateQuoteFields, showToast,
         : null;
 
     if (status === 'חדש') return (
-        <StagePanel color="#FF3B30" icon={<Bell size={18} color="#fff" />} title="בקשה חדשה הגיעה!" desc="מייל אוטומטי נשלח ללקוח — צור קשר ישיר להתחיל" onSwitchTab={onSwitchTab} items={quote.items}>
+        <StagePanel color="#FF3B30" icon={<Bell size={18} color="#fff" />} title="בקשה חדשה הגיעה!" desc="אישור קבלה ללקוח ממתין לאישורך במרכז המיילים — צור קשר ישיר להתחיל" onSwitchTab={onSwitchTab} items={quote.items}>
             <ContactChips quote={quote} onSwitchTab={onSwitchTab}
                 waText={`שלום ${quote.contactName || 'לקוח'}, קיבלנו את בקשת הצעת המחיר שלך (${quote.id}). אנחנו בודקים ונחזור אליך בהקדם.`} />
             <StageBtn color="#FF3B30" label="📞 יצרתי קשר — המשך לבדיקת מלאי" onClick={() => { onUpdateStatus(quote.id, 'ביצירת קשר'); showToast('עבר לבדיקת מלאי', 'success'); }} />

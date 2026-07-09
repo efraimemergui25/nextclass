@@ -608,13 +608,13 @@ const FIELD_SECTIONS = [
             { key: 'about_tm1_desc',  label: 'אירוע 1: תיאור',  type: 'textarea', default: 'הקמנו את NextClass עם חזון אחד ברור.' },
             { key: 'about_tm2_year',  label: 'אירוע 2: שנה',    type: 'text',     default: '2016' },
             { key: 'about_tm2_title', label: 'אירוע 2: כותרת',  type: 'text',     default: 'צמיחה' },
-            { key: 'about_tm2_desc',  label: 'אירוע 2: תיאור',  type: 'textarea', default: 'הגענו ל-200 מוסדות חינוך ברחבי ישראל.' },
+            { key: 'about_tm2_desc',  label: 'אירוע 2: תיאור',  type: 'textarea', default: 'התחלנו לספק ציוד תצוגה למוסדות רשת עמל.' },
             { key: 'about_tm3_year',  label: 'אירוע 3: שנה',    type: 'text',     default: '2020' },
             { key: 'about_tm3_title', label: 'אירוע 3: כותרת',  type: 'text',     default: 'חדשנות' },
             { key: 'about_tm3_desc',  label: 'אירוע 3: תיאור',  type: 'textarea', default: 'השקנו את פלטפורמת הניהול החכמה שלנו.' },
             { key: 'about_tm4_year',  label: 'אירוע 4: שנה',    type: 'text',     default: '2024' },
             { key: 'about_tm4_title', label: 'אירוע 4: כותרת',  type: 'text',     default: 'מנהיגות' },
-            { key: 'about_tm4_desc',  label: 'אירוע 4: תיאור',  type: 'textarea', default: '1,200 מוסדות חינוך בחרו בנו.' },
+            { key: 'about_tm4_desc',  label: 'אירוע 4: תיאור',  type: 'textarea', default: 'השקנו פלטפורמה מקוונת לרכש וניהול הזמנות.' },
         ],
     },
     {
@@ -743,7 +743,7 @@ const FIELD_SECTIONS = [
             // ── Header ──────────────────────────────────────────────────────────
             { key: 'tst_eyebrow',      label: 'תווית Badge עליונה',  type: 'text',     default: 'לקוחות מספרים' },
             { key: 'tst_header_title', label: 'כותרת הסקציה',        type: 'text',     default: 'לקוחות מספרים' },
-            { key: 'tst_header_desc',  label: 'תיאור הסקציה',        type: 'textarea', default: 'מבתי ספר יסודיים ועד אוניברסיטאות — שותפות ארוכת טווח בכל שלב.' },
+            { key: 'tst_header_desc',  label: 'תיאור הסקציה',        type: 'textarea', default: 'ציוד תצוגה מקורי ואמין, במחיר הוגן ובליווי אישי.' },
             // ── Stats bar ───────────────────────────────────────────────────────
             { key: 'tst_stat1_val',    label: 'סטטיסטיקה 1: ערך',   type: 'text',     default: 'ייעוץ חינם' },
             { key: 'tst_stat1_lbl',    label: 'סטטיסטיקה 1: תווית', type: 'text',     default: 'ללא התחייבות' },

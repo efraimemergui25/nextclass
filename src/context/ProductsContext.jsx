@@ -3,8 +3,8 @@
 /**
  * ProductsContext — Single Source of Truth for the entire site.
  *
- * Reads from Firebase in real-time. productMeta overlays seed data
- * (sold counts, isNew, isFeatured, salePrice) — Firebase admin edits win.
+ * Reads the real `products` collection from Firebase in real-time, with the local
+ * seed (the 3 real monitors) as an offline fallback. No fabricated metadata.
  *
  * Exports:
  *  products         — all products (with _isBestSeller computed)
