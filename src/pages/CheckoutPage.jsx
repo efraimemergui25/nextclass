@@ -220,7 +220,8 @@ export default function CheckoutPage() {
    body: JSON.stringify({ quote }),
  }).catch(() => {});
 
- // Instead of auto-sending confirmation, compile and save to pending_emails collection
+ // Never auto-send. Render the confirmation and queue it to pending_emails for
+ // manual admin approve-AND-edit before it ever reaches the customer.
  if (quote.userEmail) {
    try {
      const emailRes = await fetch('/api/send-quote-email', {
@@ -233,6 +234,10 @@ export default function CheckoutPage() {
        await setDoc(doc(db, 'pending_emails', id), {
          quoteId: id,
          type: 'quote_confirmation',
+         kind: 'customer',
+         refId: id,
+         refType: 'quote',
+         source: 'checkout-customer',
          to: quote.userEmail,
          recipientName: quote.contactName || '',
          subject: emailData.subject || '',
@@ -246,7 +251,8 @@ export default function CheckoutPage() {
    }
  }
 
- // Send internal team notification only
+ // Internal team notification — also queued for approval (kind:'internal'),
+ // NOT auto-sent. send-quote-email enqueues it to pending_emails.
  fetch('/api/send-quote-email', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },

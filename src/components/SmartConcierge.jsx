@@ -15,6 +15,16 @@ import { usePersonalization } from '../context/PersonalizationContext';
 const SPRING = { type: 'spring', stiffness: 350, damping: 32 };
 const BUBBLE_SPRING = { type: 'spring', stiffness: 450, damping: 30 };
 
+// Hide the [PRODUCTS: …] tag from the DISPLAYED text while it streams in —
+// including a partial tag still forming on the trailing line. Final product
+// parsing is done separately (parseProducts) on the authoritative full text.
+const stripProductsTag = (text) =>
+ (text || '')
+ .replace(/\[PRODUCTS:[^\]]*\]/gi, '')   // any completed tag
+ .replace(/\n\s*\[[^\]]*$/, '')          // tag forming on its own trailing line
+ .replace(/[ \t]+$/g, '')
+ .replace(/\n+$/g, '');
+
 // ── Accessibility helpers ────────────────────────────────────────────────────
 const DEFAULT_A11Y = {
  fontSize: 100,
@@ -368,26 +378,26 @@ const SmartConcierge = () => {
  setMessages(newMessages);
  setInput('');
  setIsTyping(true);
- try {
+
  const catalogInfo = buildCatalogContext();
  const userProfileSection = aiContext
    ? `\n## פרופיל המשתמש:\n${aiContext}\n\nהשתמש בפרופיל זה להמלצות מותאמות אישית. כאשר המשתמש שואל שאלה כללית, הצע מוצרים מתאימים לפרופיל שלו ולתקציב שצוין.`
    : '';
- const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.${userProfileSection}
+ const systemPrompt = `אתה "NextClass AI" — יועץ מכירות מוסדי, חם ומקצועי, של חברת NextClass המספקת טכנולוגיה למוסדות חינוך בישראל.${userProfileSection}
 
-## אופן עבודה — ייעוץ בשלבים
-כשלקוח מבקש מוצר או פתרון, **אל תמליץ מיד**. קודם שאל שאלה אחת ממוקדת כדי להבין את הצורך (למשל: כמות, תקציב, מטרת שימוש, סוג מוסד).
-- אם יש פרופיל משתמש — השתמש בו לחיסכון בשאלות (כבר ידוע לך תקציב, מוסד וכו')
-- שאל **שאלה אחת בלבד** בכל הודעה — לא יותר
-- **אל תשאל את אותה שאלה פעמיים**
-- לאחר 2-3 תשובות — **המלץ על מוצרים ספציפיים מהקטלוג** עם נימוק אישי ומדויק
-- תשובות חייבות להיות מבוססות על הקטלוג בלבד — אל תמציא מוצרים שאינם ברשימה
+## שיטת עבודה — ייעוץ בשלבים
+- כשלקוח מבקש מוצר או פתרון, **אל תמליץ מיד**. תחילה שאל שאלה אחת ממוקדת כדי להבין את הצורך (כמות, תקציב, מטרת שימוש או סוג המוסד).
+- שאל **שאלה אחת בלבד** בכל הודעה — לעולם לא יותר.
+- **לעולם אל תחזור על שאלה שכבר נשאלה.**
+- אם קיים פרופיל משתמש — נצל אותו כדי לדלג על שאלות שכבר ידועות (תקציב, מוסד וכו').
+- רק לאחר 2-3 תשובות — **המלץ על מוצרים ספציפיים מהקטלוג** עם נימוק אישי ומדויק.
 
-## כללים
-- ענה אך ורק בעברית, 2-3 משפטים, מקצועי וחם
-- השתמש **bold** להדגשות חשובות
-- אל תציין מספרי ID בתוך הטקסט בשום פנים
-- רק לאחר הבנת הצורך — הוסף בשורה נפרדת: [PRODUCTS: id1,id2] (עד 3 מוצרים)
+## כללי מענה
+- ענה אך ורק בעברית, בטון חם ומקצועי, ובאורך של 2-3 משפטים בלבד.
+- המלץ אך ורק על מוצרים אמיתיים מהקטלוג שלמטה — **לעולם אל תמציא** מוצרים, דגמים או מחירים.
+- השתמש ב-**הדגשה** למונחים חשובים.
+- לעולם אל תציין מספרי ID בתוך הטקסט הגלוי ללקוח.
+- כשאתה ממליץ על מוצרים, הוסף בסוף ההודעה, בשורה נפרדת ומשל עצמה: [PRODUCTS: id1,id2] (עד 3 מזהים מופרדים בפסיק). אל תוסיף שורה זו כאשר אינך ממליץ על מוצר.
 
 ## קטלוג (id|שם|קטגוריה|מחיר|מלאי):
 ${catalogInfo}`;
@@ -397,28 +407,94 @@ ${catalogInfo}`;
  .slice(-6)
  .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
 
+ const streamId = Date.now() + 1;
+ let acc = '';
+ let started = false;
+
+ // Reveal / update the streaming assistant bubble as tokens arrive.
+ const pushDisplay = () => {
+ const display = stripProductsTag(acc);
+ if (!started) {
+ started = true;
+ setIsTyping(false);
+ setMessages(prev => [...prev, { id: streamId, role: 'ai', text: display, products: [] }]);
+ } else {
+ setMessages(prev => prev.map(m => (m.id === streamId ? { ...m, text: display } : m)));
+ }
+ };
+
+ // Final commit: parse the [PRODUCTS:] tag and render live product cards.
+ const finalize = (rawText) => {
+ const { cleanText, products } = parseProducts(rawText || '');
+ const safeText = cleanText || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
+ setMessages(prev =>
+ prev.some(m => m.id === streamId)
+ ? prev.map(m => (m.id === streamId ? { ...m, text: safeText, products } : m))
+ : [...prev, { id: streamId, role: 'ai', text: safeText, products }]
+ );
+ };
+
+ try {
+ // ── Primary: token-by-token SSE stream ──────────────────────────────
+ const res = await fetch('/api/concierge', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ messages: history, systemPrompt, stream: true }),
+ });
+ if (!res.ok || !res.body) throw new Error('stream unavailable');
+
+ const reader = res.body.getReader();
+ const decoder = new TextDecoder();
+ let buffer = '';
+ let ended = false;
+
+ while (!ended) {
+ const { done, value } = await reader.read();
+ if (done) break;
+ buffer += decoder.decode(value, { stream: true });
+ let sep;
+ while ((sep = buffer.indexOf('\n\n')) !== -1) {
+ const frame = buffer.slice(0, sep);
+ buffer = buffer.slice(sep + 2);
+ for (const line of frame.split('\n')) {
+ const l = line.trim();
+ if (!l.startsWith('data:')) continue; // ignore comment pings
+ const payload = l.slice(5).trim();
+ if (payload === '[DONE]') { ended = true; continue; }
+ try {
+ const obj = JSON.parse(payload);
+ if (obj.type === 'delta' && obj.text) { acc += obj.text; pushDisplay(); }
+ else if (obj.type === 'done' && obj.text) { acc = obj.text; }
+ } catch {
+ /* ignore partial/non-JSON frame */
+ }
+ }
+ }
+ }
+
+ setIsTyping(false);
+ finalize(acc);
+ } catch {
+ // ── Fallback: single-shot non-streaming JSON request ────────────────
+ try {
  const res = await fetch('/api/concierge', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ messages: history, systemPrompt }),
  });
-
  const data = await res.json();
- const rawText = data.text || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
- const { cleanText, products } = parseProducts(rawText);
-
  setIsTyping(false);
- setMessages(prev => [...prev, {
- id: Date.now() + 1,
- role: 'ai',
- text: cleanText,
- products,
- }]);
- } catch (error) {
+ finalize(data.text || '');
+ } catch {
  setIsTyping(false);
- setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.', products: [] }]);
+ setMessages(prev =>
+ prev.some(m => m.id === streamId)
+ ? prev.map(m => (m.id === streamId ? { ...m, text: 'שגיאת רשת. נסו שוב בעוד רגע.', products: [] } : m))
+ : [...prev, { id: streamId, role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.', products: [] }]
+ );
  }
- }, [input, messages, activeProducts, isTyping, buildCatalogContext, parseProducts]);
+ }
+ }, [input, messages, isTyping, buildCatalogContext, parseProducts, aiContext]);
 
  const quickReplies = getQuickReplies(messages, {
  ai_chip1: getSetting('ai_chip1', ''),

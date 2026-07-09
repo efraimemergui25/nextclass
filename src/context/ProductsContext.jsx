@@ -19,23 +19,20 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import defaultProducts, { productMeta } from '../data/products';
+import defaultProducts from '../data/products';
 
 const ProductsContext = createContext(null);
 
-// Module-level map: id → seed image URL (always reliable Unsplash URLs)
+// Module-level map: id → seed image URL (real manufacturer image, offline fallback)
 const seedImageById = Object.fromEntries(defaultProducts.map(p => [p.id, p.image || '']));
 
-// Merge productMeta defaults with Firebase data.
-// Firebase wins on all fields EXCEPT image: if Firebase returns an empty/missing
-// image, we restore the seed Unsplash URL so products never go imageless.
+// Normalise Firebase data. Firebase wins on all fields EXCEPT image: if Firebase
+// returns an empty/missing image, we restore the seed image so products never go imageless.
 function mergeWithMeta(rawProducts) {
     return rawProducts.map(p => {
-        const meta = productMeta[p.id] || {};
         const seedImage = seedImageById[p.id] || '';
         const resolvedImage = (p.image && p.image.trim()) ? p.image : seedImage;
         return {
-            ...meta,
             ...p,
             image: resolvedImage,
             _seedImage: seedImage,

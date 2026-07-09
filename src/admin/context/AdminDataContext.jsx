@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
 import { db } from '../../firebase';
-import initialProducts, { productMeta } from '../../data/products';
+import initialProducts from '../../data/products';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -138,18 +138,14 @@ export function AdminDataProvider({ children }) {
             if (snap.empty) {
                 // Seed database if empty
                 console.log("Seeding Firebase with initial products...");
-                const toSeed = initialProducts.map(p => {
-                    const meta = productMeta[p.id] || {};
-                    return {
-                        ...p,
-                        ...meta,
-                        stock: Math.floor(Math.random() * 50) + 10,
-                        threshold: 5,
-                        sold: meta.sold || Math.floor(Math.random() * 30),
-                        isActive: true,
-                        sku: p.sku || `SKU-${p.id || Math.floor(Math.random() * 9000 + 1000)}`,
-                    };
-                });
+                const toSeed = initialProducts.map(p => ({
+                    ...p,
+                    stock: p.stock ?? 0,
+                    threshold: p.threshold ?? 5,
+                    sold: 0,
+                    isActive: p.isActive !== false,
+                    sku: p.sku || `NC-${p.id}`,
+                }));
                 const seedBatch = writeBatch(db);
                 toSeed.forEach(prod => {
                     seedBatch.set(doc(db, 'products', prod.id.toString()), prod);
@@ -479,15 +475,13 @@ export function AdminDataProvider({ children }) {
         const batch = writeBatch(db);
         initialProducts.forEach(p => {
             const existing = inventory.find(ep => ep.id === p.id);
-            const meta = productMeta[p.id] || {};
             const data = {
                 ...p,
-                ...meta,
-                stock: existing ? existing.stock : (Math.floor(Math.random() * 50) + 10),
-                sold: existing ? existing.sold : (meta.sold || 0),
-                threshold: existing ? existing.threshold : 5,
+                stock: existing ? existing.stock : (p.stock ?? 0),
+                sold: existing ? existing.sold : 0,
+                threshold: existing ? existing.threshold : (p.threshold ?? 5),
                 isActive: existing ? (existing.isActive !== false) : true,
-                sku: existing?.sku || p.sku || `SKU-${p.id}`,
+                sku: existing?.sku || p.sku || `NC-${p.id}`,
             };
             batch.set(doc(db, 'products', p.id.toString()), data);
         });

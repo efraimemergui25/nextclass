@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NEXTCLASS ADMIN — LIQUID GLASS UTILITY LAYER  (Heaven language, light-only)
+   CSS twin of ./tokens.js.  Everything is namespaced  nc-*  to avoid collisions
+   with the existing index.css component layer.  Imported from src/index.css.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Multi-layer radial MESH — bright, airy, multi-depth */
+    --nc-bg-mesh:
+        radial-gradient(ellipse at 12% 16%, rgba(0,122,255,0.12)  0%, transparent 55%),
+        radial-gradient(ellipse at 88% 12%, rgba(94,92,230,0.10)  0%, transparent 52%),
+        radial-gradient(ellipse at 50% 92%, rgba(90,200,250,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 82% 74%, rgba(191,90,242,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 74%, rgba(48,209,88,0.05)  0%, transparent 50%),
+        linear-gradient(150deg, #EEF2FF 0%, #F0F2FA 32%, #F2EEFF 64%, #EAF3FF 100%);
+
+    --nc-glass-base:     rgba(255,255,255,0.72);
+    --nc-glass-elevated: rgba(255,255,255,0.82);
+    --nc-glass-sheet:    rgba(255,255,255,0.92);
+
+    --nc-border-glass:   rgba(255,255,255,0.94);
+    --nc-specular:       inset 0 1.5px 0 rgba(255,255,255,1);
+
+    --nc-shadow-md:  0 4px 20px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+    --nc-shadow-lg:  0 8px 40px rgba(0,0,0,0.09), 0 3px 10px rgba(0,0,0,0.05);
+    --nc-shadow-xl:  0 16px 60px rgba(0,0,0,0.10), 0 6px 20px rgba(0,0,0,0.06);
+
+    --nc-ease-snap:   cubic-bezier(0.22,1,0.36,1);
+    --nc-ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ─── The living mesh background (fixed, behind the glass shell) ──────────────── */
+.nc-mesh-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--nc-bg-mesh);
+    background-attachment: fixed;
+    overflow: hidden;
+}
+
+/* Drifting blurred orbs — MUST be DOM elements so backdrop-filter has something to
+   refract. Placed inside .nc-mesh-bg. */
+.nc-orb {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    will-change: transform;
+}
+.nc-orb-1 {
+    width: 720px; height: 720px; top: -280px; right: -180px;
+    background: radial-gradient(circle, rgba(0,122,255,0.18) 0%, rgba(0,122,255,0.05) 50%, transparent 70%);
+    filter: blur(100px);
+    animation: nc-orb-drift-1 30s ease-in-out infinite;
+}
+.nc-orb-2 {
+    width: 640px; height: 640px; bottom: -260px; left: -160px;
+    background: radial-gradient(circle, rgba(94,92,230,0.16) 0%, rgba(94,92,230,0.04) 50%, transparent 70%);
+    filter: blur(92px);
+    animation: nc-orb-drift-2 36s ease-in-out infinite;
+}
+.nc-orb-3 {
+    width: 500px; height: 500px; top: 24%; left: 10%;
+    background: radial-gradient(circle, rgba(191,90,242,0.12) 0%, rgba(191,90,242,0.03) 50%, transparent 70%);
+    filter: blur(84px);
+    animation: nc-orb-drift-3 24s ease-in-out infinite;
+}
+.nc-orb-4 {
+    width: 420px; height: 420px; bottom: 14%; right: 10%;
+    background: radial-gradient(circle, rgba(90,200,250,0.12) 0%, rgba(90,200,250,0.03) 50%, transparent 70%);
+    filter: blur(76px);
+    animation: nc-orb-drift-4 20s ease-in-out infinite;
+}
+
+@keyframes nc-orb-drift-1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    25% { transform: translate(-60px,80px) scale(1.05); }
+    50% { transform: translate(-100px,30px) scale(0.97); }
+    75% { transform: translate(-30px,90px) scale(1.02); }
+}
+@keyframes nc-orb-drift-2 {
+    0%,100% { transform: translate(0,0); }
+    40% { transform: translate(80px,-70px); }
+    80% { transform: translate(45px,-110px); }
+}
+@keyframes nc-orb-drift-3 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33% { transform: translate(55px,-60px) scale(1.12); }
+    66% { transform: translate(-45px,50px) scale(0.9); }
+}
+@keyframes nc-orb-drift-4 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(-60px,-45px) scale(1.1); }
+}
+
+/* ─── Glass surfaces (class twins of GLASS.* in tokens.js) ────────────────────── */
+.nc-glass {
+    background: var(--nc-glass-base);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    backdrop-filter: blur(32px) saturate(200%);
+    border: 1.5px solid var(--nc-border-glass);
+    box-shadow: var(--nc-shadow-md), var(--nc-specular);
+}
+.nc-glass-elevated {
+    background: var(--nc-glass-elevated);
+    -webkit-backdrop-filter: blur(64px) saturate(220%);
+    backdrop-filter: blur(64px) saturate(220%);
+    border: 1.5px solid var(--nc-border-glass);
+    box-shadow: var(--nc-shadow-lg), var(--nc-specular);
+}
+.nc-glass-sheet {
+    background: var(--nc-glass-sheet);
+    -webkit-backdrop-filter: blur(80px) saturate(240%);
+    backdrop-filter: blur(80px) saturate(240%);
+    border: 1.5px solid rgba(255,255,255,0.95);
+    box-shadow: var(--nc-shadow-xl), inset 0 2px 0 rgba(255,255,255,1);
+}
+
+/* ─── Hairline specular top edge (adds the "glass sheet" read) ────────────────── */
+.nc-specular-top { position: relative; }
+.nc-specular-top::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent);
+    pointer-events: none;
+    border-radius: 999px;
+}
+
+/* ─── Hairline separator ─────────────────────────────────────────────────────── */
+.nc-hairline {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.08) 70%, transparent);
+}
+
+/* ─── Glint sweep — periodic specular pass across a glass surface ─────────────── */
+.nc-glint { position: relative; overflow: hidden; }
+.nc-glint::after {
+    content: '';
+    position: absolute; inset: -20%;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+}
+.nc-glint:hover::after {
+    animation: nc-glint-sweep 0.9s var(--nc-ease-snap);
+}
+@keyframes nc-glint-sweep {
+    0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
+
+/* Pulsing pill dot (live indicator) */
+.nc-live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #30D158; flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(48,209,88,0.5);
+    animation: nc-pulse 2.4s ease-in-out infinite;
+}
+@keyframes nc-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(48,209,88,0.5); opacity: 1; }
+    50%     { box-shadow: 0 0 0 5px rgba(48,209,88,0); opacity: 0.8; }
+}
+
+/* Badge ping used by the sidebar / topbar alert dots */
+@keyframes nc-ping {
+    0%   { transform: scale(1);   opacity: 0.4; }
+    70%,100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* ─── Accessibility: honour reduced-motion — freeze all ambient drift ────────── */
+@media (prefers-reduced-motion: reduce) {
+    .nc-orb,
+    .nc-glint::after,
+    .nc-live-dot {
+        animation: none !important;
+    }
+}

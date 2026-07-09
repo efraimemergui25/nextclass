@@ -5,28 +5,12 @@
  */
 
 import { isRateLimited } from './_rateLimit.js';
+import { queuePendingEmail } from './_pendingEmail.js';
 
-const RESEND_URL = 'https://api.resend.com/emails';
-const FROM_NAME  = 'NextClass';
-const FROM_ADDR  = process.env.RESEND_FROM || 'onboarding@resend.dev';
-const FROM       = `${FROM_NAME} <${FROM_ADDR}>`;
 const BIZ_PHONE  = process.env.NEXTCLASS_PHONE || '058-585-6356';
 const BIZ_EMAIL  = 'nextclass.en@gmail.com';
 const SITE_URL   = process.env.NEXTCLASS_SITE_URL || 'https://nextclass-v4-living.vercel.app';
 const FONT       = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-async function sendEmail(to, subject, html) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) { console.warn('[Resend] RESEND_API_KEY not set'); return; }
-    const res = await fetch(RESEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ from: FROM, to: [to], subject, html }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(JSON.stringify(data));
-    return data;
-}
 
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
@@ -49,8 +33,7 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
     const contactPerson = supplier?.contactPerson || supplier?.agentName || supplier?.contact || '';
     const greeting = contactPerson ? `שלום ${contactPerson},` : `שלום ${supplierName},`;
     const so = quote.supplierOrder || {};
-    const sd = quote.shippingDetails || {};
-    const subtotal = priceNum(quote.subtotal);
+    // Note: shipping details and totals are intentionally NOT shown to suppliers in the RFQ.
 
     // Items rows — quantities only, no prices shown to supplier
     const itemRows = (quote.items || []).map(item => {
@@ -402,13 +385,20 @@ export default async function handler(req, res) {
         const recipient = to || supplier?.agentEmail || supplier?.email || quote.supplierOrder?.supplierEmail;
         if (!recipient) return res.status(400).json({ error: 'No recipient email for supplier' });
 
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('[send-supplier-email] RESEND_API_KEY not set');
-            return res.status(200).json({ skipped: true });
-        }
-
-        const data = await sendEmail(recipient, subject, html);
-        return res.status(200).json({ ok: true, id: data?.id });
+        // Never auto-send. Queue for manual admin approve-AND-edit in AdminCommunications.
+        const recipientName = supplier?.contactPerson || supplier?.agentName || supplier?.contact
+            || supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
+        await queuePendingEmail({
+            to: recipient,
+            subject,
+            html,
+            recipientName,
+            kind: 'supplier',
+            refId: quote.id || quote._docId || '',
+            refType: 'quote',
+            source: isOrder ? 'supplier-order-confirmation' : 'supplier-rfq',
+        });
+        return res.status(200).json({ ok: true, queued: true });
     } catch (err) {
         console.error('[send-supplier-email]', err);
         return res.status(500).json({ error: String(err) });

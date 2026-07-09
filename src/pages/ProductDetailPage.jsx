@@ -108,14 +108,17 @@ function ProductFAQ({ getSetting }) {
 }
 
 // ─── Reviews Section ──────────────────────────────────────────────────────────
-function ProductReviews({ getSetting, product }) {
- const avgRating = parseFloat(getSetting('pd_reviews_avg', '4.8'));
- const reviewCount = parseInt(getSetting('pd_reviews_count', '24'));
+function ProductReviews({ getSetting }) {
+ // Real reviews only — pulled from CMS. No fabricated fallbacks: if there are
+ // no real reviews yet, the whole section renders nothing.
  const defaultReviews = [
- { name: getSetting('pd_review1_name','שרה כ.'), role: getSetting('pd_review1_role','מורה, חט"ב גבעתיים'), text: getSetting('pd_review1_text','ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים.'), stars: parseInt(getSetting('pd_review1_stars','5')) || 5 },
- { name: getSetting('pd_review2_name','דוד מ.'), role: getSetting('pd_review2_role','רכז טכנולוגיה, יסודי הרצליה'), text: getSetting('pd_review2_text','התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי.'), stars: parseInt(getSetting('pd_review2_stars','5')) || 5 },
- { name: getSetting('pd_review3_name','מיכל ל.'), role: getSetting('pd_review3_role','מנהלת בית ספר'), text: getSetting('pd_review3_text','השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים.'), stars: parseInt(getSetting('pd_review3_stars','4')) || 4 },
- ];
+ { name: getSetting('pd_review1_name',''), role: getSetting('pd_review1_role',''), text: getSetting('pd_review1_text',''), stars: parseInt(getSetting('pd_review1_stars','5')) || 5 },
+ { name: getSetting('pd_review2_name',''), role: getSetting('pd_review2_role',''), text: getSetting('pd_review2_text',''), stars: parseInt(getSetting('pd_review2_stars','5')) || 5 },
+ { name: getSetting('pd_review3_name',''), role: getSetting('pd_review3_role',''), text: getSetting('pd_review3_text',''), stars: parseInt(getSetting('pd_review3_stars','5')) || 5 },
+ ].filter(r => (r.name || '').trim() && (r.text || '').trim());
+ if (defaultReviews.length === 0) return null;
+ const reviewCount = parseInt(getSetting('pd_reviews_count','')) || defaultReviews.length;
+ const avgRating = parseFloat(getSetting('pd_reviews_avg','')) || (defaultReviews.reduce((s,r)=>s+r.stars,0) / defaultReviews.length);
  return (
  <section id="pd-reviews" className="max-w-[1200px] xl:max-w-[960px] mx-auto px-6 md:px-12 mb-24">
  <div className="text-right mb-10">
@@ -417,7 +420,7 @@ const ProductDetailPage = () => {
  description: product.description || '',
  image: product.image || '',
  sku: product.sku || product.id,
- brand: { '@type': 'Brand', name: 'NextClass' },
+ brand: { '@type': 'Brand', name: product.brand || 'NextClass' },
  offers: {
  '@type': 'Offer',
  priceCurrency: 'ILS',
@@ -426,11 +429,6 @@ const ProductDetailPage = () => {
  ? 'https://schema.org/InStock'
  : 'https://schema.org/OutOfStock',
  seller: { '@type': 'Organization', name: 'NextClass' },
- },
- aggregateRating: {
- '@type': 'AggregateRating',
- ratingValue: '4.8',
- reviewCount: '24',
  },
  };
  const script = document.createElement('script');

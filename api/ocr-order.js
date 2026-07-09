@@ -1,18 +1,49 @@
 /* eslint-disable */
 /**
- * /api/ocr-order.js — Gemini Vision Order OCR Engine
- * Accepts a base64 image, sends it to Gemini 1.5 Flash,
- * returns structured order data (products, quantities, prices, contact info).
+ * /api/ocr-order.js — Gemini Order-Intake OCR Engine (gemini-2.5-flash)
+ * Multi-format purchase-order reader for a B2B EdTech company in Israel (NextClass).
+ *
+ * Accepts one of:
+ *   { fileBase64, mimeType, fileName }  — image OR pdf, sent via inline_data (Gemini reads PDF natively)
+ *   { text, fileName }                  — pre-extracted text (csv / docx / xlsx)
+ *   { imageBase64, mimeType }           — legacy back-compat (treated as fileBase64)
+ *
+ * Returns structured Israeli purchase-order data (Amal / "עמל" shape and generic POs):
+ *   { success, data, rawText, warnings }
  */
+
+const toNum = (v) => {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    // strip currency symbols, thousands separators, keep digits / . / -
+    const n = parseFloat(String(v).replace(/[^\d.\-]/g, ''));
+    return isFinite(n) ? n : null;
+};
+
+const cleanStr = (v) => {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s || s.toLowerCase() === 'null' || s === '-') return null;
+    return s;
+};
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { imageBase64, mimeType = 'image/jpeg' } = req.body;
-    if (!imageBase64) {
-        return res.status(400).json({ error: 'imageBase64 is required' });
+    const {
+        fileBase64,
+        imageBase64,          // legacy
+        mimeType = 'image/jpeg',
+        fileName = '',
+        text = '',
+    } = req.body || {};
+
+    const inlineData = fileBase64 || imageBase64;
+
+    if (!inlineData && !cleanStr(text)) {
+        return res.status(400).json({ error: 'Provide fileBase64 (image/pdf) or text (csv/docx/xlsx)' });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -20,41 +51,70 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Gemini API key not configured. Add GEMINI_API_KEY to .env' });
     }
 
-    const prompt = `You are an expert OCR system for a B2B educational technology company in Israel (NextClass).
-Analyze this order image/document and extract ALL order information.
+    const prompt = `You are an expert order-intake OCR engine for NextClass, a B2B educational-technology supplier in Israel.
+You read Israeli PURCHASE ORDERS (הזמנת רכש), including government/municipal "עמל" (Amal) forms, supplier POs, quote requests, spreadsheets and CSV exports.
+Extract EVERY piece of order information into a single JSON object.
 
-Return a JSON object with these exact fields:
+Return ONLY a JSON object with these exact fields (Hebrew source labels are shown in parentheses to help you locate them):
 {
-  "contactName": "string — full name of buyer/contact",
-  "institution": "string — school/organization name",
+  "orderNumber": "string — purchase order number (מספר הזמנה / הזמנת רכש מס')",
+  "poDate": "string — date the PO was issued (תאריך הזמנה)",
+  "deliveryDate": "string — requested / promised delivery date (תאריך אספקה)",
+  "budgetCode": "string — budget line / section code (סעיף תקציבי / תקנה תקציבית)",
+  "supplierRef": "string — supplier number in the buyer's system (מס' ספק)",
+  "companyId": "string — company/tax id ח.פ. / ע.מ. / עוסק מורשה",
+  "paymentTerms": "string — payment terms e.g. שוטף+30 / שוטף+80 / מזומן",
+  "authorizedBy": "string — name of the approver / authorized signatory (מאשר / מורשה חתימה)",
+  "currency": "string — currency code, default 'ILS' for ₪ / ש\\"ח",
+  "contactName": "string — buyer / contact full name",
+  "institution": "string — school / organization / municipality name (שם המוסד)",
   "phone": "string — phone number (Israeli format)",
   "email": "string — email address",
-  "address": "string — delivery address",
-  "city": "string — city",
-  "zip": "string — postal code",
-  "paymentMethod": "string — payment method (העברה בנקאית / כרטיס אשראי / שיק / etc)",
+  "address": "string — delivery / billing address (כתובת)",
+  "city": "string — city (עיר / יישוב)",
+  "zip": "string — postal code (מיקוד)",
   "items": [
     {
-      "title": "string — product name in Hebrew",
+      "catalogNumber": "string — product catalog / SKU number (מק\\"ט)",
+      "title": "string — product / line description in Hebrew",
       "qty": number,
+      "unit": "string — unit of measure (יח' / חבילה / ק\\"ג), default 'יח''",
       "price": number,
       "salePrice": number
     }
   ],
   "subtotal": number,
-  "notes": "string — any special instructions or notes",
-  "orderDate": "string — order date if visible",
-  "confidence": number (0-100, your confidence in the extraction)
+  "vatAmount": number,
+  "totalIncVat": number,
+  "notes": "string — special instructions, delivery notes, remarks",
+  "confidence": number
 }
 
 Rules:
-- Extract ALL line items with quantities and prices
-- If a field is not visible, use null
-- Prices should be numbers without currency symbols (₪)
-- Quantities must be positive integers
-- Be thorough — check headers, footers, and all text areas
-- If this is a Hebrew document, extract Hebrew text accurately
-- Return ONLY valid JSON, no explanation`;
+- Extract ALL line items with catalog numbers, quantities and unit prices. One object per line.
+- Prices/amounts are NUMBERS only, no currency symbols, no thousands separators (e.g. 375, not "375 ₪" and not "1,250").
+- Quantities are positive integers.
+- Israeli VAT ("מע\\"מ") may be 17% or 18% — read the ACTUAL amount printed on the document, never assume a rate.
+- If "totalIncVat" (סה\\"כ כולל מע\\"מ) is printed, capture it exactly as shown.
+- If a field is not present in the document, use null (do NOT invent values).
+- Read headers, footers, stamps and side boxes — Amal/עמל forms put the budget code, supplier number and approver in the margins.
+- Keep all Hebrew text accurate and right-to-left correct.
+- "confidence" is your 0-100 self-assessed extraction confidence.
+- Return ONLY valid JSON. No markdown, no commentary.`;
+
+    // Build the request parts: media (image/pdf) OR pre-extracted text.
+    let parts;
+    if (inlineData) {
+        parts = [
+            { inline_data: { mime_type: mimeType, data: inlineData } },
+            { text: prompt },
+        ];
+    } else {
+        parts = [
+            { text: prompt },
+            { text: `\n\n===== DOCUMENT CONTENT${fileName ? ` (${fileName})` : ''} =====\n${text}` },
+        ];
+    }
 
     try {
         const response = await fetch(
@@ -63,30 +123,20 @@ Rules:
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            {
-                                inline_data: {
-                                    mime_type: mimeType,
-                                    data: imageBase64,
-                                }
-                            },
-                            { text: prompt }
-                        ]
-                    }],
+                    contents: [{ parts }],
                     generationConfig: {
                         temperature: 0.1,
                         topK: 32,
                         topP: 1,
-                        maxOutputTokens: 2048,
+                        maxOutputTokens: 4096,
                     },
                     safetySettings: [
                         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
                         { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
                         { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
                         { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-                    ]
-                })
+                    ],
+                }),
             }
         );
 
@@ -97,13 +147,12 @@ Rules:
         }
 
         const geminiData = await response.json();
-        const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const rawText = geminiData?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('') || '';
 
-        // Extract JSON from response (Gemini sometimes wraps in markdown)
+        // Extract JSON (Gemini sometimes wraps it in a ```json fence)
         const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) ||
                           rawText.match(/```\s*([\s\S]*?)\s*```/) ||
                           rawText.match(/(\{[\s\S]*\})/);
-
         const jsonStr = jsonMatch ? jsonMatch[1] : rawText;
 
         let parsed;
@@ -115,26 +164,57 @@ Rules:
                 success: false,
                 error: 'Could not parse Gemini response as JSON',
                 rawText,
+                warnings: ['הסריקה לא הניבה JSON תקין — יש להזין ידנית מהטקסט הגולמי'],
             });
         }
 
-        // Normalize items array
-        if (!Array.isArray(parsed.items)) parsed.items = [];
-        parsed.items = parsed.items.map(item => ({
-            title:     item.title     || '',
-            qty:       Math.max(1, Number(item.qty) || 1),
-            price:     Number(item.price)     || 0,
-            salePrice: Number(item.salePrice) || Number(item.price) || 0,
-        })).filter(item => item.title);
+        // ── Normalize string fields ───────────────────────────────────────
+        [
+            'orderNumber', 'poDate', 'deliveryDate', 'budgetCode', 'supplierRef',
+            'companyId', 'paymentTerms', 'authorizedBy', 'contactName', 'institution',
+            'phone', 'email', 'address', 'city', 'zip', 'notes',
+        ].forEach(k => { parsed[k] = cleanStr(parsed[k]); });
+        parsed.currency = cleanStr(parsed.currency) || 'ILS';
 
-        // Auto-calculate subtotal if missing
-        if (!parsed.subtotal && parsed.items.length > 0) {
+        // ── Normalize items ───────────────────────────────────────────────
+        if (!Array.isArray(parsed.items)) parsed.items = [];
+        parsed.items = parsed.items.map(item => {
+            const p = toNum(item.price);
+            const sp = toNum(item.salePrice);
+            return {
+                catalogNumber: cleanStr(item.catalogNumber || item.sku || item.mikat || item.mkt) || '',
+                title: cleanStr(item.title || item.description || item.name) || '',
+                qty: Math.max(1, Math.round(Number(item.qty ?? item.quantity) || 1)),
+                unit: cleanStr(item.unit) || 'יח׳',
+                price: p != null ? p : 0,
+                salePrice: sp != null ? sp : (p != null ? p : 0),
+            };
+        }).filter(i => i.title || i.catalogNumber);
+
+        // ── Normalize numeric totals ──────────────────────────────────────
+        parsed.subtotal = toNum(parsed.subtotal);
+        parsed.vatAmount = toNum(parsed.vatAmount);
+        parsed.totalIncVat = toNum(parsed.totalIncVat);
+        if (parsed.subtotal == null && parsed.items.length > 0) {
             parsed.subtotal = parsed.items.reduce(
                 (sum, it) => sum + (it.salePrice || it.price || 0) * it.qty, 0
             );
         }
 
-        return res.status(200).json({ success: true, data: parsed });
+        // ── Confidence ────────────────────────────────────────────────────
+        parsed.confidence = Math.max(0, Math.min(100, Math.round(Number(parsed.confidence) || 0)));
+
+        // ── Warnings ──────────────────────────────────────────────────────
+        const warnings = [];
+        if (parsed.items.length === 0) warnings.push('לא זוהו שורות פריטים — יש להזין ידנית');
+        if (parsed.confidence < 60) warnings.push('ביטחון נמוך — מומלץ לבדוק ידנית לפני אישור');
+        if (parsed.totalIncVat != null && parsed.subtotal != null && parsed.vatAmount != null) {
+            const diff = Math.abs((parsed.subtotal + parsed.vatAmount) - parsed.totalIncVat);
+            if (diff > 1) warnings.push('סה"כ כולל מע"מ אינו תואם לסכום ביניים + מע"מ — בדוק סכומים');
+        }
+        if (!parsed.orderNumber) warnings.push('לא זוהה מספר הזמנה');
+
+        return res.status(200).json({ success: true, data: parsed, rawText, warnings });
 
     } catch (err) {
         console.error('[OCR] Unexpected error:', err);

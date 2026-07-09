@@ -138,6 +138,51 @@ function StatusPill({ status }) {
     );
 }
 
+// ─── Pending-email helpers (unified inbox for every kind) ──────────────────────
+// One approve-AND-edit inbox holds customer, supplier AND internal emails.
+// Docs are heterogeneous: newer ones carry `kind`/`refId`/`refType`; legacy ones
+// only have `leadId` or `quoteId`/`type`. These helpers normalise them.
+
+const EMAIL_KIND_META = {
+    customer: { label: 'לקוח',  color: '#007AFF', bg: 'rgba(0,122,255,0.10)' },
+    supplier: { label: 'ספק',   color: '#0891B2', bg: 'rgba(8,145,178,0.10)' },
+    internal: { label: 'פנימי', color: '#5856D6', bg: 'rgba(88,86,214,0.10)' },
+};
+const KIND_ORDER = ['customer', 'supplier', 'internal'];
+
+function emailKind(email) {
+    const k = email?.kind;
+    if (k === 'supplier' || k === 'internal' || k === 'customer') return k;
+    // Legacy fallback — infer from source/type for docs written before `kind` existed
+    const hint = `${email?.source || ''} ${email?.type || ''}`.toLowerCase();
+    if (hint.includes('supplier')) return 'supplier';
+    if (hint.includes('team') || hint.includes('internal')) return 'internal';
+    return 'customer';
+}
+
+function emailRefId(email) {
+    return email?.refId || email?.leadId || email?.quoteId || '';
+}
+
+function fmtEmailDate(ts) {
+    if (ts == null) return '';
+    let ms = 0;
+    if (typeof ts === 'number') ms = ts;
+    else if (typeof ts === 'object' && ts.seconds) ms = ts.seconds * 1000;
+    else if (typeof ts === 'string') ms = Date.parse(ts) || 0;
+    if (!ms) return '';
+    try { return new Date(ms).toLocaleDateString('he-IL'); } catch { return ''; }
+}
+
+function KindBadge({ kind }) {
+    const m = EMAIL_KIND_META[kind] || EMAIL_KIND_META.customer;
+    return (
+        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: m.bg, color: m.color, fontFamily: SF, flexShrink: 0 }}>
+            {m.label}
+        </span>
+    );
+}
+
 // ─── Lead avatar ──────────────────────────────────────────────────────────────
 function Avatar({ name, size = 36, score }) {
     const initial = (name || '?')[0].toUpperCase();
@@ -554,22 +599,26 @@ export default function AdminCommunications() {
         if (!emailItem) return;
         setEmailSendStatus('sending');
         try {
-            const res = await fetch('/api/send-stage-email', {
+            // dispatch-email is the ONLY endpoint that actually sends via Resend,
+            // and it is reachable only from this manual approve-AND-edit action.
+            const finalSubject = emailEditSubject || emailItem.subject;
+            const finalHtml    = emailEditHtml || emailItem.html;
+            const res = await fetch('/api/dispatch-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'raw',
+                    pendingId: emailItem.id,
                     to: emailItem.to,
-                    customSubject: emailEditSubject || emailItem.subject,
-                    customHtml: emailEditHtml || emailItem.html,
+                    subject: finalSubject,
+                    html: finalHtml,
                 }),
             });
             if (res.ok) {
                 await setDoc(doc(db, 'pending_emails', emailItem.id), {
                     status: 'sent',
                     sentAt: Date.now(),
-                    subject: emailEditSubject || emailItem.subject,
-                    html: emailEditHtml || emailItem.html,
+                    subject: finalSubject,
+                    html: finalHtml,
                 }, { merge: true });
                 showToast('המייל נשלח בהצלחה! ✓', true);
                 setSelectedEmail(null);
@@ -769,6 +818,13 @@ export default function AdminCommunications() {
         [filtered]
     );
 
+    // Group the pending inbox by kind (customer / supplier / internal)
+    const groupedPending = useMemo(() => {
+        const groups = { customer: [], supplier: [], internal: [] };
+        pendingEmails.forEach(e => { (groups[emailKind(e)] || groups.customer).push(e); });
+        return groups;
+    }, [pendingEmails]);
+
     const channelTpls    = templates.filter(t => t.channel === activeChannel || t.channel === 'both');
     const activeChDef    = CHANNELS.find(c => c.id === activeChannel);
     const recommendedTpl = selected ? getRecommendedTpl(selected, channelTpls) : null;
@@ -955,18 +1011,33 @@ export default function AdminCommunications() {
                                 pendingEmails.length === 0 ? (
                                     <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>אין מיילים הממתינים לאישור</div>
                                 ) : (
-                                    pendingEmails.map(email => {
-                                        const isActive = selectedEmail?.id === email.id;
-                                        const dateStr = email.createdAt?.seconds ? new Date(email.createdAt.seconds * 1000).toLocaleDateString('he-IL') : '';
+                                    KIND_ORDER.filter(k => groupedPending[k].length > 0).map(kind => {
+                                        const meta = EMAIL_KIND_META[kind];
                                         return (
-                                            <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
-                                                style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                                                    <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                            <div key={kind}>
+                                                {/* Group header */}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, padding: '8px 14px 6px', background: 'rgba(0,0,0,0.015)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                    <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, fontFamily: SF }}>{meta.label} · {groupedPending[kind].length}</span>
+                                                    <span style={{ width: 6, height: 6, borderRadius: 99, background: meta.color }} />
                                                 </div>
-                                                <div style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginBottom: 2, textAlign: 'right' }}>{email.to}</div>
-                                                <div style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{email.subject}</div>
+                                                {groupedPending[kind].map(email => {
+                                                    const isActive = selectedEmail?.id === email.id;
+                                                    const dateStr = fmtEmailDate(email.createdAt);
+                                                    return (
+                                                        <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
+                                                            style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? `3px solid ${meta.color}` : '3px solid transparent', transition: 'all 0.15s' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                                                <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || meta.label}</span>
+                                                                    <KindBadge kind={kind} />
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: meta.color, fontWeight: 600, marginBottom: 2, textAlign: 'right' }}>{email.to}</div>
+                                                            <div style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{email.subject}</div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         );
                                     })
@@ -977,14 +1048,18 @@ export default function AdminCommunications() {
                                 ) : (
                                     emailLog.map(email => {
                                         const isActive = selectedEmail?.id === email.id;
-                                        const dateStr = email.sentAt ? new Date(email.sentAt).toLocaleDateString('he-IL') : email.declinedAt ? new Date(email.declinedAt).toLocaleDateString('he-IL') : '';
+                                        const dateStr = fmtEmailDate(email.sentAt) || fmtEmailDate(email.declinedAt);
                                         const isSent = email.status === 'sent';
+                                        const kind = emailKind(email);
                                         return (
                                             <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
                                                 style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                                                     <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || EMAIL_KIND_META[kind].label}</span>
+                                                        <KindBadge kind={kind} />
+                                                    </div>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{email.subject}</span>
@@ -1318,8 +1393,8 @@ export default function AdminCommunications() {
                                 <Mail size={40} />
                             </div>
                             <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 8px' }}>תור אישור מיילים</h2>
-                            <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 450, margin: '0 auto 24px', lineHeight: 1.5 }}>
-                                כל המיילים האוטומטיים שנוצרים על ידי ה-AI ומערכת הלידים מגיעים לכאן לאישור מנהל ידני לפני שליחתם בפועל ללקוחות.
+                            <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 470, margin: '0 auto 24px', lineHeight: 1.5 }}>
+                                כל מייל יוצא — ללקוחות, לספקים ופנימי לצוות — נעצר כאן לאישור ידני (וניתן לעריכה) לפני השליחה. שום מייל לא נשלח אוטומטית.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
                                 <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
@@ -1373,9 +1448,12 @@ export default function AdminCommunications() {
                             <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 14 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: '0 0 4px' }}>
-                                            אל: {selectedEmail.recipientName || 'לקוח'}
-                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <h3 style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>
+                                                אל: {selectedEmail.recipientName || EMAIL_KIND_META[emailKind(selectedEmail)].label}
+                                            </h3>
+                                            <KindBadge kind={emailKind(selectedEmail)} />
+                                        </div>
                                         <p style={{ fontSize: 13, color: '#007AFF', fontWeight: 600, margin: 0 }}>
                                             {selectedEmail.to}
                                         </p>
@@ -1388,9 +1466,9 @@ export default function AdminCommunications() {
                                         }}>
                                             {selectedEmail.status === 'pending' ? 'ממתין לאישור' : selectedEmail.status === 'sent' ? 'נשלח' : 'נדחה'}
                                         </span>
-                                        {selectedEmail.leadId && (
+                                        {emailRefId(selectedEmail) && leads.some(l => l._docId === emailRefId(selectedEmail)) && (
                                             <button onClick={() => {
-                                                const lead = leads.find(l => l._docId === selectedEmail.leadId);
+                                                const lead = leads.find(l => l._docId === emailRefId(selectedEmail));
                                                 if (lead) {
                                                     setSelected(lead);
                                                     setActiveTab('leads');

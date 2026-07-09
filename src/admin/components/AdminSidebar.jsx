@@ -4,6 +4,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { accentFor, hexA } from '../theme/tokens';
 
 // Time-of-day border glow color
 function useTimeColor() {
@@ -115,8 +116,8 @@ const NAV_GROUPS = [
             { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',        badge: 'lowStock' },
             { path: '/admin/fulfillment', icon: 'fulfillment', label: 'רכש וספקים',  badge: null },
             { path: '/admin/suppliers',   icon: 'suppliers',   label: 'הצעות ספקים', badge: null },
-            { path: '/admin/ocr',         icon: 'ocr',         label: '🔍 סריקת הזמנה AI', badge: null },
-            { path: '/admin/vault',       icon: 'vault',       label: '🔒 כספת מסמכים', badge: null },
+            { path: '/admin/ocr',         icon: 'ocr',         label: 'סריקת הזמנה AI', badge: null },
+            { path: '/admin/vault',       icon: 'vault',       label: 'כספת מסמכים', badge: null },
         ],
     },
     {
@@ -187,14 +188,15 @@ function NavItem({ item, collapsed, badgeValue, accent = '#007AFF' }) {
                     layoutId="nav-active"
                     className="absolute inset-0 rounded-xl"
                     style={{
-                        background: `linear-gradient(135deg, ${accent}22 0%, ${accent}10 100%)`,
-                        border: `1px solid ${accent}38`,
-                        boxShadow: `0 4px 16px ${accent}28, inset 0 1px 0 rgba(255,255,255,0.85)`,
+                        background: `linear-gradient(135deg, ${hexA(accent, 0.16)} 0%, ${hexA(accent, 0.06)} 100%)`,
+                        border: `1px solid ${hexA(accent, 0.32)}`,
+                        boxShadow: `0 4px 16px ${hexA(accent, 0.22)}, inset 0 1px 0 rgba(255,255,255,0.85)`,
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
             )}
-            <div className="relative z-10 shrink-0 transition-colors" style={{ color: isActive ? accent : '#8E8E93' }}>
+            {/* Color-coded per-domain icon — vibrant even when idle */}
+            <div className="relative z-10 shrink-0 transition-colors" style={{ color: isActive ? accent : hexA(accent, 0.82) }}>
                 <NavIcon d={ICONS[item.icon]} />
             </div>
             <AnimatePresence>
@@ -398,6 +400,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                         item={item}
                                         collapsed={true}
                                         badgeValue={getBadge(item.badge)}
+                                        accent={accentFor(item.path)}
                                     />
                                 ))}
                             </div>
@@ -419,7 +422,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                             item={group.items[0]}
                                             collapsed={false}
                                             badgeValue={getBadge(group.items[0].badge)}
-                                            accent={group.accent}
+                                            accent={accentFor(group.items[0].path)}
                                         />
                                     </div>
                                 );
@@ -505,7 +508,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                             item={item}
                                                             collapsed={false}
                                                             badgeValue={getBadge(item.badge)}
-                                                            accent={group.accent}
+                                                            accent={accentFor(item.path)}
                                                         />
                                                     ))}
                                                 </div>
@@ -629,7 +632,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                 if (group.standalone) {
                                     return (
                                         <div key={group.id} className={gi > 0 ? 'border-t border-black/[0.06] pt-1 mt-1' : ''}>
-                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} accent={group.accent} />
+                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} accent={accentFor(group.items[0].path)} />
                                         </div>
                                     );
                                 }
@@ -649,7 +652,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                 <motion.div key="open" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                                                     <div className="mt-0.5 space-y-0.5 pr-1 border-r-2" style={{ borderColor: group.accent + '28' }}>
                                                         {group.items.map(item => (
-                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} accent={group.accent} />
+                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} accent={accentFor(item.path)} />
                                                         ))}
                                                     </div>
                                                 </motion.div>

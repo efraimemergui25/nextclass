@@ -1,8 +1,9 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow, accentSurface, accentGradient } from '../theme/tokens';
 
 // ─── Info Tooltip — always appears below the button, clamped to viewport
 // Lazily create/reuse a position:fixed inset-0 overlay — position:absolute children
@@ -155,14 +156,8 @@ export function InfoTooltip({ text, source, link, linkLabel = 'פתח נתוני
     );
 }
 
-// ─── Shared glass surface ─────────────────────────────────────────────────────
-const glassStyle = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Shared glass surface (token-driven liquid glass) ─────────────────────────
+const glassStyle = { ...GLASS.base };
 
 // ─── Common SVGs to replace Emojis ──────────────────────────────────────────
 const ICONS = {
@@ -206,34 +201,65 @@ function MiniSparkline({ data = [], color }) {
 }
 
 // ─── Premium KPI Card ─────────────────────────────────────────────────────────
-export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', delay = 0, onClick, sparkData, tooltip }) {
+export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, color = '#007AFF', accent, delay = 0, onClick, sparkData, tooltip, loading, error }) {
+    const c = accent || color;
+
+    // ── Loading state ──
+    if (loading) {
+        return (
+            <div className="relative overflow-hidden flex flex-col h-full min-h-[140px]"
+                style={accentSurface(c, { radius: RADIUS.kpi })}>
+                <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${hexA(c, 0.4)}, ${hexA(c, 0.15)})` }} />
+                <div className="p-5 flex flex-col gap-3 flex-1">
+                    <motion.div className="h-3 w-24 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ background: hexA(c, 0.14) }} />
+                    <motion.div className="h-8 w-32 rounded-lg" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.15 }} style={{ background: hexA(c, 0.16) }} />
+                    <div className="flex-1" />
+                    <motion.div className="h-3 w-20 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.3 }} style={{ background: 'rgba(0,0,0,0.05)' }} />
+                </div>
+            </div>
+        );
+    }
+
+    // ── Error state ──
+    if (error) {
+        return (
+            <div className="relative overflow-hidden flex flex-col h-full min-h-[140px]"
+                style={{ ...accentSurface('#FF3B30', { radius: RADIUS.kpi }) }}>
+                <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg,#FF453A,#FF9500)' }} />
+                <div className="p-5 flex flex-col items-center justify-center flex-1 text-center gap-2">
+                    <div className="w-10 h-10 rounded-[12px] flex items-center justify-center" style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.22)' }}>
+                        <svg className="w-5 h-5 text-[#FF3B30]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS.alert}</svg>
+                    </div>
+                    <p className="text-[11px] font-bold tracking-[0.14em] text-[#86868B]">{title}</p>
+                    <p className="text-[12px] font-semibold text-[#FF3B30]">{typeof error === 'string' ? error : 'שגיאה בטעינה'}</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, type: 'spring', stiffness: 340, damping: 28 }}
-            whileHover={{ y: -4, scale: 1.018, boxShadow: `0 20px 48px ${color}30, 0 0 0 1px ${color}15, inset 0 1px 0 rgba(255,255,255,0.95)` }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ y: -3, scale: 1.015, boxShadow: `0 22px 52px ${hexA(c, 0.24)}, 0 0 0 1px ${hexA(c, 0.14)}, ${SHADOW.specular}` }}
+            whileTap={onClick ? TAP : undefined}
             onClick={onClick}
-            className={`relative overflow-hidden rounded-[26px] transition-shadow flex flex-col h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-            style={{
-                background: `linear-gradient(145deg, ${color}12 0%, rgba(255,255,255,0.97) 45%, #fff 100%)`,
-                border: `1px solid ${color}24`,
-                boxShadow: `0 4px 24px ${color}12, 0 1px 0 rgba(255,255,255,0.95) inset, 0 -1px 0 rgba(0,0,0,0.025) inset`,
-            }}
+            className={`relative overflow-hidden transition-shadow flex flex-col h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            style={accentSurface(c, { radius: RADIUS.kpi })}
         >
             {/* Colored top accent bar */}
-            <div className="h-[3px] w-full rounded-t-[26px] pointer-events-none"
-                style={{ background: `linear-gradient(90deg, ${color}, ${color}99)` }} />
-            <div className="p-5 flex flex-col flex-1">
+            <div className="h-[3px] w-full pointer-events-none"
+                style={{ background: `linear-gradient(90deg, ${c}, ${hexA(c, 0.6)})`, borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
+            <div className="p-5 flex flex-col flex-1 relative">
             {/* Top specular edge */}
-            <div className="absolute top-[3px] left-[10%] right-[10%] h-px pointer-events-none"
+            <div className="absolute -top-[1px] left-[10%] right-[10%] h-px pointer-events-none"
                 style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
-            {/* Ambient radial glow */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${color}18 0%, transparent 65%)` }} />
+            {/* Corner glow orb — vivid Heaven halo behind the glass */}
+            <div className="absolute -top-14 -left-12 w-44 h-44 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${hexA(c, 0.26)} 0%, ${hexA(c, 0.05)} 45%, transparent 68%)`, filter: 'blur(6px)' }} />
 
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-3 relative z-10">
                 <div className="flex flex-col">
                     <span className="flex items-center gap-0.5 mb-1.5">
                         <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em]">{title}</p>
@@ -242,12 +268,12 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                             return <InfoTooltip text={t.text} source={t.source} link={t.link} linkLabel={t.linkLabel} />;
                         })()}
                     </span>
-                    <CountUp value={value} color={color} />
+                    <CountUp value={value} color={c} />
                 </div>
-                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 shadow-sm"
-                    style={{ background: `${color}18`, border: `1px solid ${color}28` }}>
+                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
+                    style={{ background: hexA(c, 0.14), border: `1px solid ${hexA(c, 0.28)}`, boxShadow: `0 4px 14px ${hexA(c, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.7)` }}>
                     {typeof icon === 'string' && ICONS[icon] ? (
-                        <svg className="w-5 h-5" style={{ color }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
+                        <svg className="w-5 h-5" style={{ color: c }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
                     ) : (
                         <span className="text-lg">{icon}</span>
                     )}
@@ -256,15 +282,15 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
 
             {/* Sparkline */}
             {sparkData && sparkData.length >= 2 && (
-                <div className="mb-3 opacity-70">
-                    <MiniSparkline data={sparkData} color={color} />
+                <div className="mb-3 opacity-70 relative z-10">
+                    <MiniSparkline data={sparkData} color={c} />
                 </div>
             )}
 
             {/* Push bottom row to card bottom */}
             <div className="flex-1" />
 
-            <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${color}12` }}>
+            <div className="flex items-center justify-between pt-3 relative z-10" style={{ borderTop: `1px solid ${hexA(c, 0.1)}` }}>
                 {subtitle ? (
                     <p className="text-[#86868B] text-[11px] font-medium">{subtitle}</p>
                 ) : <div />}
@@ -285,7 +311,7 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
     );
 }
 
-function CountUp({ value }) {
+function CountUp({ value, color = '#1D1D1F' }) {
     const [display, setDisplay] = useState(typeof value === 'number' ? 0 : value);
     useEffect(() => {
         const raw = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.]/g, '')) : value;
@@ -310,7 +336,13 @@ function CountUp({ value }) {
         : display;
 
     return (
-        <p className="text-[34px] font-[800] tracking-tight leading-none text-[#1D1D1F]">
+        <p className="text-[36px] font-black tracking-tighter leading-none"
+            style={{
+                background: `linear-gradient(160deg, ${color} 0%, ${hexA(color, 0.72)} 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+            }}>
             {formatted}
         </p>
     );
@@ -355,7 +387,24 @@ export function StatusBadge({ status, pulse }) {
 }
 
 // ─── Table ────────────────────────────────────────────────────────────────────
-export function AdminTable({ columns, data, onRowClick, emptyMessage, emptyIcon, emptyAction }) {
+export function AdminTable({ columns, data = [], onRowClick, emptyMessage, emptyIcon, emptyAction, loading, error }) {
+    // ── Loading state ──
+    if (loading) return <AdminSkeleton rows={6} />;
+
+    // ── Error state ──
+    if (error) {
+        return (
+            <div className="w-full rounded-[24px] overflow-hidden" style={{ ...glassStyle }}>
+                <AdminEmpty
+                    icon="alert"
+                    title={typeof error === 'string' ? error : 'שגיאה בטעינת הנתונים'}
+                    subtitle="נסה לרענן את הדף או לנסות שוב מאוחר יותר"
+                    action={emptyAction}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="w-full overflow-x-auto rounded-[24px]" style={{ ...glassStyle, WebkitOverflowScrolling: 'touch' }}>
             <table className="w-full text-right min-w-[600px]">
@@ -465,15 +514,15 @@ export function AdminSectionHeader({ title, subtitle, action, icon: Icon }) {
 }
 
 // ─── Button ───────────────────────────────────────────────────────────────────
-export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', loading }) {
+export function AdminButton({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', loading, accent }) {
     const [ripple, setRipple] = useState(null);
     const styles = {
         primary: {
-            bg: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+            bg: accent ? accentGradient(accent) : 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
             color: 'white',
             border: '1px solid rgba(255,255,255,0.20)',
-            shadow: '0 4px 16px rgba(0,122,255,0.40), inset 0 1px 0 rgba(255,255,255,0.22)',
-            hoverShadow: '0 8px 28px rgba(0,122,255,0.55)',
+            shadow: `0 4px 16px ${hexA(accent || '#007AFF', 0.4)}, inset 0 1px 0 rgba(255,255,255,0.22)`,
+            hoverShadow: `0 8px 28px ${hexA(accent || '#007AFF', 0.55)}`,
         },
         success: {
             bg: 'linear-gradient(135deg, #34C759 0%, #30D158 100%)',
@@ -482,11 +531,13 @@ export function AdminButton({ children, onClick, variant = 'primary', size = 'md
             shadow: '0 4px 16px rgba(52,199,89,0.35), inset 0 1px 0 rgba(255,255,255,0.22)',
             hoverShadow: '0 8px 24px rgba(52,199,89,0.50)',
         },
+        glass:   { bg: 'rgba(255,255,255,0.72)', color: '#1D1D1F', border: '1px solid rgba(255,255,255,0.9)', shadow: `${SHADOW.sm}, ${SHADOW.specular}`, hoverShadow: SHADOW.md, glass: true },
         danger:  { bg: 'transparent', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)', shadow: 'none', hoverShadow: '0 2px 12px rgba(255,59,48,0.14)' },
         ghost:   { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.10)', shadow: 'none', hoverShadow: 'none' },
         outline: { bg: 'transparent', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.18)', shadow: 'none', hoverShadow: 'none' },
     };
     const s = styles[variant] || styles.primary;
+    const filled = variant === 'primary' || variant === 'success' || variant === 'glass';
     const pad = size === 'sm' ? 'px-3 py-1.5 text-xs' : size === 'lg' ? 'px-7 py-3 text-base' : 'px-4 py-2 text-sm';
 
     const handleClick = (e) => {
@@ -503,12 +554,14 @@ export function AdminButton({ children, onClick, variant = 'primary', size = 'md
             whileTap={{ scale: 0.96, y: 0 }}
             onClick={handleClick}
             disabled={disabled}
-            className={`${pad} rounded-[11px] font-semibold disabled:opacity-50 whitespace-nowrap shrink-0 relative overflow-hidden`}
+            className={`${pad} rounded-[12px] font-semibold disabled:opacity-50 whitespace-nowrap shrink-0 relative overflow-hidden`}
             style={{
-                background: variant === 'primary' || variant === 'success' ? s.bg : 'transparent',
+                background: filled ? s.bg : 'transparent',
                 color: s.color,
                 border: s.border,
                 boxShadow: s.shadow,
+                backdropFilter: s.glass ? 'blur(24px) saturate(180%)' : undefined,
+                WebkitBackdropFilter: s.glass ? 'blur(24px) saturate(180%)' : undefined,
                 transition: 'box-shadow 250ms ease',
             }}
         >
@@ -536,8 +589,11 @@ export function AdminButton({ children, onClick, variant = 'primary', size = 'md
 }
 
 // ─── Modal ─────────────────────────────────────────────────────────────────────
-export function AdminModal({ open, onClose, title, children, size = 'md' }) {
+export function AdminModal({ open, onClose, title, children, size = 'md', accent }) {
     const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl', split: 'max-w-6xl' };
+    const strip = accent
+        ? `linear-gradient(90deg, ${accent}, ${hexA(accent, 0.55)})`
+        : 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)';
     useEffect(() => {
         document.body.style.overflow = open ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
@@ -557,18 +613,16 @@ export function AdminModal({ open, onClose, title, children, size = 'md' }) {
                         initial={{ opacity: 0, scale: 0.9, y: 32 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.94, y: 16 }}
-                        transition={{ type: 'spring', stiffness: 460, damping: 34 }}
-                        className={`fixed inset-x-4 top-1/2 -translate-y-1/2 ${widths[size]} mx-auto z-[201] rounded-[28px] overflow-hidden`}
-                        style={{
-                            background: 'rgba(255,255,255,0.94)',
-                            backdropFilter: 'blur(48px) saturate(220%)',
-                            WebkitBackdropFilter: 'blur(48px) saturate(220%)',
-                            border: '1px solid rgba(255,255,255,0.85)',
-                            boxShadow: '0 48px 120px rgba(0,0,0,0.26), 0 0 0 1px rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.98)',
-                        }}
+                        transition={{ ...SPRING.pill }}
+                        className={`fixed inset-x-4 top-1/2 -translate-y-1/2 ${widths[size]} mx-auto z-[201] overflow-hidden`}
+                        style={{ ...GLASS.sheet, borderRadius: RADIUS.sheet }}
                     >
                         {/* Accent top strip */}
-                        <div className="h-[2px]" style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)' }} />
+                        <div className="h-[3px]" style={{ background: strip }} />
+                        {/* Drag-handle grabber */}
+                        <div className="flex justify-center pt-2 pb-1">
+                            <div className="w-9 h-[5px] rounded-full" style={{ background: 'rgba(0,0,0,0.14)' }} />
+                        </div>
                         <div className="flex items-center justify-between px-6 py-4"
                             style={{ background: 'rgba(248,248,252,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                             <motion.button onClick={onClose} whileTap={{ scale: 0.88 }} whileHover={{ background: 'rgba(0,0,0,0.08)' }}
@@ -632,7 +686,9 @@ export function AdminTextArea(props) {
 
 
 // ─── Filter Pills ─────────────────────────────────────────────────────────────
-export function AdminFilterPills({ options, active, onChange }) {
+export function AdminFilterPills({ options, active, onChange, id }) {
+    const uid = useId();
+    const pillId = id || `filter-pill-${uid}`;
     return (
         <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {options.map(opt => (
@@ -640,7 +696,7 @@ export function AdminFilterPills({ options, active, onChange }) {
                     className="relative px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap"
                     style={{ color: active === opt ? '#007AFF' : '#86868B' }}>
                     {active === opt && (
-                        <motion.div layoutId="filter-pill" className="absolute inset-0 rounded-xl"
+                        <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
                             style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
@@ -652,7 +708,9 @@ export function AdminFilterPills({ options, active, onChange }) {
 }
 
 // ─── Date Filter ──────────────────────────────────────────────────────────────
-export function AdminDateFilter({ value, onChange }) {
+export function AdminDateFilter({ value, onChange, id }) {
+    const uid = useId();
+    const pillId = id || `date-filter-pill-${uid}`;
     const options = [
         { id: 'all', label: 'כל הזמן' },
         { id: 'today', label: 'היום' },
@@ -660,7 +718,7 @@ export function AdminDateFilter({ value, onChange }) {
         { id: 'month', label: 'חודש אחרון' },
         { id: 'year', label: 'שנה אחרונה' },
     ];
-    
+
     return (
         <div className="flex gap-1 p-1 rounded-2xl w-fit overflow-x-auto custom-scrollbar" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {options.map(o => (
@@ -668,7 +726,7 @@ export function AdminDateFilter({ value, onChange }) {
                     className="relative px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap shrink-0"
                     style={{ color: value === o.id ? '#007AFF' : '#86868B' }}>
                     {value === o.id && (
-                        <motion.div layoutId="date-filter-pill" className="absolute inset-0 rounded-xl"
+                        <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
                             style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
@@ -699,7 +757,9 @@ export function filterByDate(items, dateField, period) {
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-export function AdminTabs({ tabs, active, onChange }) {
+export function AdminTabs({ tabs, active, onChange, id }) {
+    const uid = useId();
+    const pillId = id || `tab-pill-${uid}`;
     return (
         <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {tabs.map(t => (
@@ -707,7 +767,7 @@ export function AdminTabs({ tabs, active, onChange }) {
                     className="relative px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap"
                     style={{ color: active === t.id ? '#007AFF' : '#86868B' }}>
                     {active === t.id && (
-                        <motion.div layoutId="tab-pill" className="absolute inset-0 rounded-xl"
+                        <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
                             style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
@@ -722,14 +782,19 @@ export function AdminTabs({ tabs, active, onChange }) {
 }
 
 // ─── Glass Panel ──────────────────────────────────────────────────────────────
-export function GlassPanel({ children, className = '', padding = 'p-6' }) {
+// tone: 'glass' | 'elevated' | 'sheet' | 'frosted'   ·   accent: adds colored glow + tinted border
+export function GlassPanel({ children, className = '', padding = 'p-6', tone = 'glass', accent, style }) {
+    const toneMap = { glass: GLASS.base, elevated: GLASS.elevated, sheet: GLASS.sheet, frosted: GLASS.frosted };
+    const base = toneMap[tone] || GLASS.base;
     return (
-        <div className={`rounded-[24px] ${padding} ${className} relative overflow-hidden`} style={{
-            background: 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(28px) saturate(220%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(220%)',
-            border: '1px solid rgba(255,255,255,0.75)',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.98)',
+        <div className={`${padding} ${className} relative overflow-hidden`} style={{
+            ...base,
+            borderRadius: RADIUS.panel,
+            ...(accent ? {
+                border: `1px solid ${hexA(accent, 0.22)}`,
+                boxShadow: `${base.boxShadow}, ${glow(accent, 0.12, 32)}`,
+            } : null),
+            ...style,
         }}>
             {/* Specular top edge */}
             <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none"

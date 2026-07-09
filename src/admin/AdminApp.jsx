@@ -154,14 +154,16 @@ function AdminShell() {
     return (
         <AdminToastProvider>
             <AdminDataProvider>
-                <div className="flex h-screen overflow-hidden" dir="rtl"
-                    style={{ background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 35%, #F2EEFF 65%, #F5F0FF 100%)' }}>
+                <div className="flex h-screen overflow-hidden relative" dir="rtl" style={{ background: 'transparent' }}>
 
-                    {/* Ambient atmosphere */}
-                    <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-                        <div style={{ position: 'absolute', top: '-6%', right: '-3%', width: 560, height: 560, borderRadius: '50%', background: '#007AFF', filter: 'blur(140px)', opacity: 0.055 }} />
-                        <div style={{ position: 'absolute', bottom: '-8%', left: '-4%', width: 480, height: 480, borderRadius: '50%', background: '#5856D6', filter: 'blur(150px)', opacity: 0.045 }} />
-                        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.018, mixBlendMode: 'overlay' }}>
+                    {/* ── Liquid-glass living background — multi-layer mesh + drifting orbs ── */}
+                    <div className="nc-mesh-bg" aria-hidden="true">
+                        <div className="nc-orb nc-orb-1" />
+                        <div className="nc-orb nc-orb-2" />
+                        <div className="nc-orb nc-orb-3" />
+                        <div className="nc-orb nc-orb-4" />
+                        {/* Fine grain — material depth */}
+                        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.02, mixBlendMode: 'overlay' }}>
                             <filter id="admin-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /></filter>
                             <rect width="100%" height="100%" filter="url(#admin-noise)" />
                         </svg>
