@@ -4,11 +4,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, InfoTooltip } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, InfoTooltip } from '../components/AdminComponents';
+import { hexA, DOMAIN_ACCENTS } from '../theme/tokens';
 import initialProducts from '../../data/products';
+
+const ORANGE = DOMAIN_ACCENTS.inventory; // #FF9500 ★
 
 // ─── Smart Reorder Modal ──────────────────────────────────────────────────────
 function SmartReorderModal({ open, product, onClose, suppliers }) {
@@ -226,19 +229,19 @@ export default function AdminInventory() {
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? '#007AFF' : '#AEAEB2', boxShadow: viewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+                                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
                             ><LayoutGrid size={15} /></button>
                             <button
                                 onClick={() => setViewMode('list')}
                                 className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? '#007AFF' : '#AEAEB2', boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+                                style={{ background: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
                             ><List size={15} /></button>
                         </div>
 
                         {bulkMode ? (
                             <div className="flex gap-2">
                                 <AdminButton variant="ghost" onClick={() => setBulkMode(false)}>ביטול</AdminButton>
-                                <AdminButton onClick={saveBulkMode} disabled={bulkSaving} loading={bulkSaving}>{bulkSaving ? 'שומר...' : 'שמור הכל'}</AdminButton>
+                                <AdminButton accent={ORANGE} onClick={saveBulkMode} disabled={bulkSaving} loading={bulkSaving}>{bulkSaving ? 'שומר...' : 'שמור הכל'}</AdminButton>
                             </div>
                         ) : (
                             <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
@@ -247,24 +250,16 @@ export default function AdminInventory() {
                 }
             />
 
-            {/* ── KPI chips ── */}
-            <div className="flex items-center gap-2.5 flex-wrap">
+            {/* ── KPI band ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.' },
-                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.' },
-                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.' },
-                ].map(({ label, value, color, Icon, tooltip }) => (
-                    <motion.div key={label}
-                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl"
-                        style={{ background: `${color}10`, border: `1px solid ${color}22` }}
-                    >
-                        <Icon size={14} style={{ color }} />
-                        <span className="text-[22px] font-black leading-none" style={{ color }}>{value}</span>
-                        <span className="text-[11px] font-bold text-[#86868B] flex items-center gap-0.5">
-                            {label}<InfoTooltip text={tooltip} />
-                        </span>
-                    </motion.div>
+                    { label: 'סה״כ מוצרים', value: inventory.length, color: ORANGE, Icon: Boxes, sub: `${filtered.length} בתצוגה`, tooltip: 'כל המוצרים בקטלוג המלאי.' },
+                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.' },
+                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.' },
+                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.' },
+                ].map(({ label, value, color, Icon, sub, tooltip }, i) => (
+                    <AdminKPICard key={label} title={label} value={value} subtitle={sub} tooltip={tooltip}
+                        icon={<Icon size={20} color={color} />} accent={color} delay={i * 0.05} />
                 ))}
             </div>
 
@@ -284,9 +279,10 @@ export default function AdminInventory() {
                         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
                     >
                         {filtered.length === 0 && (
-                            <div className="col-span-full py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                                <Box size={40} className="opacity-30" />
-                                <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
+                            <div className="col-span-full">
+                                <AdminEmpty icon={<Box size={30} style={{ color: ORANGE }} />}
+                                    title="אין מוצרים תואמים לחיפוש"
+                                    subtitle="נסה לשנות את המסננים או מונח החיפוש" />
                             </div>
                         )}
                         <AnimatePresence>
@@ -302,7 +298,7 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
+                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#FF9500]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
                                     >
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] bg-[#F5F5F7] overflow-hidden">
@@ -351,7 +347,7 @@ export default function AdminInventory() {
 
                                         {/* Card body */}
                                         <div className="p-3.5">
-                                            <p className="font-black text-[#1D1D1F] text-[12px] leading-snug truncate text-right group-hover:text-[#007AFF] transition-colors">
+                                            <p className="font-black text-[#1D1D1F] text-[12px] leading-snug truncate text-right group-hover:text-[#FF9500] transition-colors">
                                                 {product.title}
                                             </p>
 
@@ -411,7 +407,7 @@ export default function AdminInventory() {
                                                             whileTap={{ scale: 0.9 }}
                                                             onClick={e => { e.stopPropagation(); setReorderProduct(product); }}
                                                             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black transition-all"
-                                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.2)' }}
+                                                            style={{ background: hexA(ORANGE, 0.12), color: ORANGE, border: `1px solid ${hexA(ORANGE, 0.25)}` }}
                                                             title="הזמן מספק"
                                                         >
                                                             <Package size={8} />הזמן
@@ -432,10 +428,9 @@ export default function AdminInventory() {
                         className="space-y-2"
                     >
                         {filtered.length === 0 && (
-                            <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                                <Box size={40} className="opacity-30" />
-                                <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
-                            </div>
+                            <AdminEmpty icon={<Box size={30} style={{ color: ORANGE }} />}
+                                title="אין מוצרים תואמים לחיפוש"
+                                subtitle="נסה לשנות את המסננים או מונח החיפוש" />
                         )}
                         <AnimatePresence>
                             {filtered.map((product, i) => {
@@ -449,7 +444,7 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.98 }}
                                         transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/20 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
+                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#FF9500]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
                                     >
                                         {/* Thumb */}
                                         <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
@@ -462,10 +457,10 @@ export default function AdminInventory() {
 
                                         {/* Name + category */}
                                         <div className="flex-1 min-w-0 text-right">
-                                            <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#007AFF] transition-colors">{product.title}</p>
+                                            <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#FF9500] transition-colors">{product.title}</p>
                                             <div className="flex items-center justify-end gap-1.5 mt-0.5">
                                                 {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#FF9500]/10 text-[#FF9500]">נבחרת</span>}
-                                                {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>{product.category}</span>}
+                                                {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
                                             </div>
                                         </div>
 
@@ -591,9 +586,9 @@ function ProductModal({ product, onClose, onSave }) {
 
                 <div className="px-7 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
                     {/* Stock */}
-                    <div className="rounded-2xl p-4 border-2 border-[#007AFF]/20 bg-[#007AFF]/04">
+                    <div className="rounded-2xl p-4 border-2 border-[#FF9500]/25 bg-[#FF9500]/04">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-[11px] font-black tracking-widest text-[#007AFF]">ניהול מלאי</span>
+                            <span className="text-[11px] font-black tracking-widest text-[#FF9500]">ניהול מלאי</span>
                             <span className="text-[11px] font-black px-2.5 py-1 rounded-full" style={{ background: `${stockColor}15`, color: stockColor }}>{stockLabel}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -639,7 +634,7 @@ function ProductModal({ product, onClose, onSave }) {
 
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
-                    <AdminButton className="flex-1"
+                    <AdminButton className="flex-1" accent={ORANGE}
                         onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold) })}>
                         שמור שינויים
                     </AdminButton>

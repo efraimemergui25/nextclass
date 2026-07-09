@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
+import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow, accentSurface } from '../theme/tokens';
 import initialProducts from '../../data/products';
 import { db } from '../../firebase';
 import { doc, updateDoc, setDoc, arrayUnion, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -261,28 +262,44 @@ const QUOTE_STATUSES = ['הכל', 'חדש', 'ביצירת קשר', 'הוצע מ�
 const QUOTE_STATUS_FLOW  = ['חדש', 'ביצירת קשר', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 
 // ─── Mini KPI stat ────────────────────────────────────────────────────────────
-function Stat({ label, value, color, Icon, tooltip }) {
+function Stat({ label, value, color = '#007AFF', Icon, tooltip, onClick, delay = 0 }) {
+    const c = color;
+    const num = typeof value === 'number' ? value.toLocaleString() : value;
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-[20px] p-4 text-right relative overflow-hidden"
-            style={{
-                background: `linear-gradient(145deg, ${color}10 0%, rgba(255,255,255,0.94) 50%, rgba(255,255,255,0.88) 100%)`,
-                border: `1px solid ${color}22`,
-                boxShadow: `0 4px 20px ${color}10, 0 1px 0 rgba(255,255,255,0.95) inset`,
-            }}
+            initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ y: -3, boxShadow: `0 20px 46px ${hexA(c, 0.22)}, 0 0 0 1px ${hexA(c, 0.14)}, ${SHADOW.specular}` }}
+            whileTap={onClick ? { scale: 0.97 } : undefined}
+            onClick={onClick}
+            className={`relative overflow-hidden text-right transition-shadow ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            style={accentSurface(c, { radius: RADIUS.kpi })}
         >
-            <div className="flex items-start justify-between mb-3">
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: `${color}16`, border: `1px solid ${color}22` }}>
-                    {Icon && <Icon size={15} style={{ color }} />}
+            {/* Colored top accent bar */}
+            <div className="h-[3px] w-full pointer-events-none"
+                style={{ background: `linear-gradient(90deg, ${c}, ${hexA(c, 0.55)})`, borderTopLeftRadius: RADIUS.kpi, borderTopRightRadius: RADIUS.kpi }} />
+            <div className="p-4 relative">
+                {/* Corner glow orb — vivid halo behind the glass */}
+                <div className="absolute -top-12 -left-10 w-36 h-36 rounded-full pointer-events-none"
+                    style={{ background: `radial-gradient(circle, ${hexA(c, 0.24)} 0%, ${hexA(c, 0.04)} 46%, transparent 68%)`, filter: 'blur(6px)' }} />
+                <div className="flex items-start justify-between mb-2.5 relative z-10">
+                    <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0"
+                        style={{ background: hexA(c, 0.14), border: `1px solid ${hexA(c, 0.26)}`, boxShadow: `0 4px 12px ${hexA(c, 0.16)}, inset 0 1px 0 rgba(255,255,255,0.7)` }}>
+                        {Icon && <Icon size={16} style={{ color: c }} />}
+                    </div>
+                    <span className="relative flex w-2 h-2 mt-1">
+                        <span className="absolute inset-0 rounded-full" style={{ background: c, opacity: 0.32 }} />
+                        <span className="relative w-2 h-2 rounded-full" style={{ background: c }} />
+                    </span>
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full mt-1" style={{ background: color }} />
+                <p className="text-[30px] font-black tracking-tighter leading-none relative z-10"
+                    style={{ background: `linear-gradient(160deg, ${c} 0%, ${hexA(c, 0.7)} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                    {num}
+                </p>
+                <p className="text-[#86868B] text-[10px] font-bold tracking-[0.14em] mt-1.5 flex items-center gap-0.5 relative z-10">
+                    {label}{tooltip && <InfoTooltip text={tooltip} />}
+                </p>
             </div>
-            <p className="text-[26px] font-black tracking-tighter leading-none" style={{ color }}>{value}</p>
-            <p className="text-[#86868B] text-[10px] font-bold tracking-widest mt-1.5 flex items-center gap-0.5">
-                {label}{tooltip && <InfoTooltip text={tooltip} />}
-            </p>
         </motion.div>
     );
 }
@@ -1059,7 +1076,7 @@ function SupplierContactModal({ quote, supplier, onClose }) {
                     const profitPct = (Number(quote.subtotal) || 0) > 0 ? (netProfit / (Number(quote.subtotal) || 1)) * 100 : 0;
                     updateDoc(doc(db, 'quotes', quote.id), { pricingData: { ...pd, netProfit: Math.round(netProfit), profitPct: Math.round(profitPct * 10) / 10 } }).catch(() => {});
                 }
-                showToast?.('מייל נשלח לספק ✓', 'success'); setSupplierPreview(null); onClose();
+                showToast?.('נשלח לאישור — יישלח לספק לאחר אישור', 'success'); setSupplierPreview(null); onClose();
             }
             else showToast?.('שגיאה בשליחת מייל', 'error');
         } catch { showToast?.('שגיאה', 'error'); }
@@ -1542,11 +1559,11 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
                 body: JSON.stringify({ quote: { ...quote, supplierOrder: { ...(quote.supplierOrder || {}), notes: suppNote, estimatedDelivery: suppDelivery, supplierName: selSupplierName } }, supplier: selSupplier, customNote: prevCustomNote || null, subject: prevEditSubject !== prevSubject ? prevEditSubject : null }),
             });
             if (res.ok) {
-                showToast('מייל נשלח לספק ✓', 'success');
+                showToast('נשלח לאישור', 'success');
                 setPrevOpen(false);
-                await updateQuoteFields(quote.id, { supplierOrder: { supplierName: selSupplierName, notes: suppNote, estimatedDelivery: suppDelivery, orderedAt: Date.now() } });
-                onUpdateStatus(quote.id, 'הועבר לספק');
-                showToast('עבר ל"הועבר לספק"', 'success');
+                // Email is only QUEUED for approval — do NOT advance the order to "הועבר לספק"
+                // yet. Keep the supplierOrder record + an intermediate "awaiting approval" marker.
+                await updateQuoteFields(quote.id, { supplierOrder: { supplierName: selSupplierName, notes: suppNote, estimatedDelivery: suppDelivery, emailStatus: 'ממתין לאישור שליחה', emailQueuedAt: Date.now() } });
             } else showToast('שגיאה בשליחת מייל', 'error');
         } catch { showToast('שגיאה', 'error'); }
         finally { setPrevSending(false); }
@@ -2512,7 +2529,7 @@ function QuotesPipeline() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-            if (res.ok) { showToast('מייל נשלח ✓', 'success'); setEmailPreview(null); }
+            if (res.ok) { showToast('נשלח לאישור ✓', 'success'); setEmailPreview(null); }
             else showToast('שגיאה בשליחת מייל', 'error');
         } catch { showToast('שגיאה בשליחת מייל', 'error'); }
         finally { setPreviewSending(false); }
@@ -2642,6 +2659,22 @@ function QuotesPipeline() {
             .slice(0, 3);
     }, [quotes]);
 
+    // ── Proactive alert band — "what needs you right now" ────────────────────
+    const alerts = useMemo(() => {
+        const a = [];
+        if (stats.new > 0)
+            a.push({ icon: '🆕', label: 'בקשות חדשות ממתינות', count: stats.new, color: '#FF3B30', onClick: () => setStatusFilter('חדש') });
+        if (staleQuotes > 0)
+            a.push({ icon: '⏰', label: 'הצעות תקועות מעבר לזמן', count: staleQuotes, color: '#FF9500', onClick: () => { setStatusFilter('הכל'); setDateFilter('all'); } });
+        const awaitingApproval = quotes.filter(q => q.status === 'ממתין לאישור').length;
+        if (awaitingApproval > 0)
+            a.push({ icon: '✍️', label: 'ממתינות לאישור לקוח', count: awaitingApproval, color: '#5856D6', onClick: () => setStatusFilter('ממתין לאישור') });
+        const ocrLow = quotes.filter(q => q.ocrIntakeId && (typeof q.ocrConfidence === 'number' ? q.ocrConfidence < 0.75 : q.ocrNeedsReview === true)).length;
+        if (ocrLow > 0)
+            a.push({ icon: '🔎', label: 'קליטות סריקה בוודאות נמוכה', count: ocrLow, color: '#00C7BE', onClick: () => navigate('/admin/ocr') });
+        return a;
+    }, [stats.new, staleQuotes, quotes]);
+
     const shownReminderToast = useRef(false);
     useEffect(() => {
         if (todayReminders > 0 && !shownReminderToast.current) {
@@ -2662,42 +2695,67 @@ function QuotesPipeline() {
         <>
         <style>{`@keyframes ppulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.4)}}@keyframes ppDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}@keyframes emailSpin{to{transform:rotate(360deg)}}`}</style>
         <div className="space-y-5">
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={Bell}
+            {/* ── Top KPI band — the pipeline at a glance ──────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={Bell} delay={0}
+                    onClick={() => setStatusFilter('חדש')}
                     tooltip="בקשות הצעת מחיר שנקלטו ועדיין לא טופלו." />
-                <Stat label="בטיפול" value={stats.contacting} color="#FF9500" Icon={Phone}
+                <Stat label="בטיפול" value={stats.contacting} color="#FF9500" Icon={Phone} delay={0.04}
+                    onClick={() => setStatusFilter('ביצירת קשר')}
                     tooltip="בשלב יצירת קשר ובדיקת מלאי מספק." />
-                <Stat label="הוצאת מחיר" value={stats.quoted} color="#007AFF" Icon={FileText}
+                <Stat label="הוצאת מחיר" value={stats.quoted} color="#007AFF" Icon={FileText} delay={0.08}
+                    onClick={() => setStatusFilter('הוצע מחיר')}
                     tooltip="הצעות בשלב בנאי המחיר, שליחה וממתין לאישור לקוח." />
-                <Stat label="נסגרו" value={stats.closed} color="#34C759" Icon={CheckCircle2}
+                <Stat label="נסגרו" value={stats.closed} color="#34C759" Icon={CheckCircle2} delay={0.12}
+                    onClick={() => setStatusFilter('נסגר')}
                     tooltip="עסקאות שנסגרו — ממתינות להעברה לספק." />
-                <Stat label="בדרך" value={stats.transit} color="#0891B2" Icon={Truck}
+                <Stat label="בדרך" value={stats.transit} color="#0891B2" Icon={Truck} delay={0.16}
+                    onClick={() => setStatusFilter('בדרך')}
                     tooltip="הזמנות שהועברו לספק ובדרך ללקוח." />
-                <Stat label="סופקו" value={stats.delivered} color="#1DB954" Icon={Package}
+                <Stat label="סופקו" value={stats.delivered} color="#1DB954" Icon={Package} delay={0.2}
+                    onClick={() => setStatusFilter('סופק')}
                     tooltip="עסקאות שסופקו בהצלחה — הכנסה נרשמה." />
+                <Stat label="שווי פתוח" value={`₪${totalValue.toLocaleString()}`} color="#5856D6" Icon={FileText} delay={0.24}
+                    tooltip="שווי כולל של ההצעות המסוננות המוצגות כרגע." />
                 {staleQuotes > 0 && (
-                    <Stat label="דורשות טיפול" value={staleQuotes} color="#FF3B30" Icon={AlertCircle} tooltip="הצעות שלא התקדמו מעבר לזמן הצפוי לשלב." />
+                    <Stat label="דורשות טיפול" value={staleQuotes} color="#FF3B30" Icon={AlertCircle} delay={0.28}
+                        onClick={() => { setStatusFilter('הכל'); setDateFilter('all'); }}
+                        tooltip="הצעות שלא התקדמו מעבר לזמן הצפוי לשלב." />
                 )}
             </div>
 
-            {/* ── Duplicate Institution Alert ─────────────────────────────── */}
-            {duplicateGroups.length > 0 && (
+            {/* ── Proactive ALERT band — what needs action right now ────────── */}
+            {(alerts.length > 0 || duplicateGroups.length > 0) && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    style={{ borderRadius: 16, background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.22)', padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <AlertCircle size={13} style={{ color: '#FF9500', flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#B86A00' }}>
-                            {duplicateGroups.length} מוסדות עם מספר הצעות פתוחות — שקול איחוד
+                    className="relative overflow-hidden"
+                    style={{ ...GLASS.frosted, borderRadius: RADIUS.panel, border: `1px solid ${hexA('#FF9500', 0.22)}`, boxShadow: `${GLASS.frosted.boxShadow}, ${glow('#FF9500', 0.10, 30)}`, padding: '14px 16px' }} dir="rtl">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hexA('#FF9500', 0.14), border: `1px solid ${hexA('#FF9500', 0.26)}` }}>
+                            <AlertCircle size={14} style={{ color: '#FF9500' }} />
+                        </div>
+                        <span style={{ fontSize: 12.5, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.01em' }}>דורש תשומת לב</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#B86A00', background: hexA('#FF9500', 0.12), borderRadius: 99, padding: '2px 8px' }}>
+                            {alerts.reduce((s, a) => s + a.count, 0) + duplicateGroups.length}
                         </span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {alerts.map((a, i) => (
+                            <motion.button key={i} whileTap={{ scale: 0.96 }} whileHover={{ y: -1 }} onClick={a.onClick}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 12, background: hexA(a.color, 0.10), border: `1px solid ${hexA(a.color, 0.24)}`, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                <span style={{ fontSize: 13 }}>{a.icon}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 800, color: a.color }}>{a.label}</span>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', background: a.color, borderRadius: 99, minWidth: 18, textAlign: 'center', padding: '1px 6px' }}>{a.count}</span>
+                            </motion.button>
+                        ))}
                         {duplicateGroups.map((g, i) => (
-                            <button key={i}
+                            <motion.button key={`dup${i}`} whileTap={{ scale: 0.96 }} whileHover={{ y: -1 }}
                                 onClick={() => setSearch(g[0].institution || g[0].email || '')}
-                                style={{ padding: '4px 10px', borderRadius: 99, background: 'rgba(255,149,0,0.12)', border: '1px solid rgba(255,149,0,0.28)', cursor: 'pointer', fontSize: 10, fontWeight: 800, color: '#B86A00', fontFamily: 'Heebo, sans-serif' }}>
-                                {g[0].institution || g[0].email || '—'} ({g.length})
-                            </button>
+                                title="מוסד עם מספר הצעות פתוחות — שקול איחוד"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 12, background: hexA('#AF52DE', 0.10), border: `1px solid ${hexA('#AF52DE', 0.24)}`, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                <span style={{ fontSize: 13 }}>🗂️</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#AF52DE', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g[0].institution || g[0].email || '—'}</span>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', background: '#AF52DE', borderRadius: 99, minWidth: 18, textAlign: 'center', padding: '1px 6px' }}>{g.length}</span>
+                            </motion.button>
                         ))}
                     </div>
                 </motion.div>
@@ -3167,6 +3225,87 @@ function QuotesPipeline() {
                                                 </span>
                                             ))}
                                         </div>
+                                    );
+                                })()}
+
+                                {/* ── פרטי הזמנת רכש (OCR intake) — all fields optional ── */}
+                                {(() => {
+                                    const q = selected;
+                                    const cur = q.currency && q.currency !== '₪' ? `${q.currency} ` : '₪';
+                                    const money = (v) => `${cur}${Number(v).toLocaleString()}`;
+                                    const rows = [
+                                        ['מספר הזמנת רכש', q.orderNumber],
+                                        ['תאריך הזמנה', q.poDate],
+                                        ['תאריך אספקה', q.deliveryDate],
+                                        ['סעיף תקציבי', q.budgetCode],
+                                        ['אסמכתת ספק', q.supplierRef],
+                                        ['מזהה חברה', q.companyId],
+                                        ['תנאי תשלום', q.paymentTerms],
+                                        ['מאושר ע״י', q.authorizedBy],
+                                    ].filter(([, v]) => v != null && v !== '');
+                                    const hasVat = (q.vatAmount != null && q.vatAmount !== '') || (q.totalIncVat != null && q.totalIncVat !== '');
+                                    const catItems = (q.items || []).filter(it => it.catalogNumber || it.unit);
+                                    if (!rows.length && !hasVat && !q.fileUrl && !q.ocrIntakeId && !catItems.length) return null;
+                                    return (
+                                        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                                            style={{ ...GLASS.base, borderRadius: RADIUS.card, border: `1px solid ${hexA('#00C7BE', 0.22)}`, boxShadow: `${SHADOW.sm}, ${glow('#00C7BE', 0.10, 26)}`, overflow: 'hidden' }} dir="rtl">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.05)', background: hexA('#00C7BE', 0.06) }}>
+                                                <div style={{ width: 26, height: 26, borderRadius: 9, background: hexA('#00C7BE', 0.14), border: `1px solid ${hexA('#00C7BE', 0.26)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <FileText size={13} style={{ color: '#00A79E' }} />
+                                                </div>
+                                                <span style={{ fontSize: 12, fontWeight: 900, color: '#1D1D1F' }}>פרטי הזמנת רכש</span>
+                                                <span style={{ fontSize: 9, fontWeight: 800, color: '#00A79E', background: hexA('#00C7BE', 0.12), borderRadius: 99, padding: '2px 8px', letterSpacing: '0.04em' }}>מסמך סרוק</span>
+                                            </div>
+                                            <div style={{ padding: 14 }}>
+                                                {rows.length > 0 && (
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 10 }}>
+                                                        {rows.map(([l, v]) => (
+                                                            <div key={l} style={{ textAlign: 'right' }}>
+                                                                <p style={{ fontSize: 9, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.08em', margin: '0 0 2px' }}>{l}</p>
+                                                                <p style={{ fontSize: 12.5, fontWeight: 700, color: '#1D1D1F', margin: 0, wordBreak: 'break-word' }}>{String(v)}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {hasVat && (
+                                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: rows.length ? 12 : 0 }}>
+                                                        {q.vatAmount != null && q.vatAmount !== '' && (
+                                                            <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 99, background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>מע״מ: {money(q.vatAmount)}</span>
+                                                        )}
+                                                        {q.totalIncVat != null && q.totalIncVat !== '' && (
+                                                            <span style={{ fontSize: 11, fontWeight: 900, padding: '4px 12px', borderRadius: 99, background: hexA('#00C7BE', 0.12), color: '#00A79E' }}>סה״כ כולל מע״מ: {money(q.totalIncVat)}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {catItems.length > 0 && (
+                                                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                        {catItems.map((it, i) => (
+                                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#1D1D1F', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{it.title || it.name || '—'}</span>
+                                                                {it.catalogNumber && <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6E6E73', background: 'rgba(0,0,0,0.05)', borderRadius: 6, padding: '1px 7px' }}>מק״ט {it.catalogNumber}</span>}
+                                                                {it.unit && <span style={{ fontSize: 10, color: '#AEAEB2', fontWeight: 700 }}>{it.unit}</span>}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {(q.fileUrl || q.ocrIntakeId) && (
+                                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                                                        {q.fileUrl && (
+                                                            <a href={q.fileUrl} target="_blank" rel="noopener noreferrer"
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, background: hexA('#00C7BE', 0.10), border: `1px solid ${hexA('#00C7BE', 0.24)}`, color: '#00A79E', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>
+                                                                📄 צפה במסמך המקורי
+                                                            </a>
+                                                        )}
+                                                        {q.ocrIntakeId && (
+                                                            <button onClick={() => navigate(`/admin/ocr?intake=${encodeURIComponent(q.ocrIntakeId)}`)}
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.09)', color: '#6E6E73', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                                                🔎 פתח קליטת סריקה
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
                                     );
                                 })()}
 
@@ -3976,7 +4115,7 @@ function FulfillmentTab() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: ftEmailPreview.type, quote: ftEmailPreview.quote }),
             });
-            if (res.ok) { showToast('מייל נשלח ✓', 'success'); setFtEmailPreview(null); }
+            if (res.ok) { showToast('נשלח לאישור ✓', 'success'); setFtEmailPreview(null); }
             else showToast('שגיאה בשליחת מייל', 'error');
         } catch { showToast('שגיאה בשליחת מייל', 'error'); }
         finally { setFtPreviewSending(false); }

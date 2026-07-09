@@ -20,21 +20,20 @@ import {
     Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
     Zap, Rocket, Crown, ClipboardList, MessageSquare, Download,
 } from 'lucide-react';
+import {
+    PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP,
+    hexA, glow, accentSurface,
+} from '../theme/tokens';
+import { AdminKPICard } from '../components/AdminComponents';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const G = {
-    background: 'rgba(255,255,255,0.92)',
-    backdropFilter: 'blur(40px) saturate(180%)',
-    border: '1px solid rgba(0,0,0,0.055)',
-    boxShadow: '0 2px 20px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
-    borderRadius: 20,
-};
-const CARD = {
-    background: 'rgba(255,255,255,0.96)',
-    border: '1px solid rgba(0,0,0,0.06)',
-    boxShadow: '0 1px 8px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,1)',
-    borderRadius: 16,
-};
+// ─── Suppliers domain accent (Heaven, gold ★) ──────────────────────────────────
+const GOLD      = '#FF9F0A';                                     // suppliers accent
+const GOLD_GRAD = 'linear-gradient(135deg, #FFC062 0%, #FF9F0A 100%)';
+const GOLD_SOFT = 'linear-gradient(135deg, rgba(255,159,10,0.14) 0%, rgba(255,179,64,0.08) 100%)';
+
+// ─── Liquid-glass surface recipes (token-driven — one system everywhere) ───────
+const G    = { ...GLASS.base,    borderRadius: RADIUS.card };    // workhorse card
+const CARD = { ...GLASS.frosted, borderRadius: RADIUS.smCard };  // compact chrome card
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const NEG_STAGES = [
@@ -1539,7 +1538,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
 
                     {/* Quote count chip */}
                     <div style={{ flexShrink: 0 }}>
-                        <KPIBox label="הצעות" value={quotes.length} color="#007AFF" />
+                        <KPIBox label="הצעות" value={quotes.length} color={GOLD} />
                     </div>
                 </div>
                 <SupplierScorecard quotes={quotes} />
@@ -1553,8 +1552,8 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                         <MessageCircle size={13} />בקש הצעה
                     </motion.button>
-                    <motion.button onClick={onAddQuote} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
+                    <motion.button onClick={onAddQuote} whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 16px ${hexA(GOLD, 0.38)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                         <Plus size={13} />הצעה חדשה
                     </motion.button>
                 </div>
@@ -1570,7 +1569,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                     <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: 9, border: '1px solid rgba(0,0,0,0.05)' }}>
                         {[{ id: 'grid', label: 'רשימה' }, { id: 'kanban', label: 'סטטוס' }].map(v => (
                             <button key={v.id} onClick={() => setQuotesView(v.id)}
-                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent', background: quotesView === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent', color: quotesView === v.id ? '#007AFF' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? '0 2px 8px rgba(0,122,255,0.13)' : 'none' }}>
+                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? `1px solid ${hexA(GOLD, 0.3)}` : '1px solid transparent', background: quotesView === v.id ? GOLD_SOFT : 'transparent', color: quotesView === v.id ? '#B86A00' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 800 : 600, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? `0 2px 8px ${hexA(GOLD, 0.15)}` : 'none' }}>
                                 {v.label}
                             </button>
                         ))}
@@ -1587,7 +1586,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                             <div key={q.id} style={{ position: 'relative' }}>
                                 {selected.size > 0 && (
                                     <button onClick={e => { e.stopPropagation(); setSelected(s => { const n = new Set(s); n.has(q.id) ? n.delete(q.id) : n.add(q.id); return n; }); }}
-                                        style={{ position: 'absolute', top: 12, left: 12, zIndex: 3, width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected.has(q.id) ? '#007AFF' : 'rgba(0,0,0,0.2)'}`, background: selected.has(q.id) ? '#007AFF' : 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        style={{ position: 'absolute', top: 12, left: 12, zIndex: 3, width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected.has(q.id) ? GOLD : 'rgba(0,0,0,0.2)'}`, background: selected.has(q.id) ? GOLD : 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {selected.has(q.id) && <Check size={11} color="#fff" />}
                                     </button>
                                 )}
@@ -1648,7 +1647,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                             {NEG_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
                         <motion.button onClick={applyBulkStatus} disabled={!bulkStatus} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            style={{ padding: '8px 16px', borderRadius: 11, border: 'none', background: bulkStatus ? '#007AFF' : 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: bulkStatus ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            style={{ padding: '8px 16px', borderRadius: 11, border: 'none', background: bulkStatus ? GOLD_GRAD : 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: bulkStatus ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <Check size={12} />החל
                         </motion.button>
                         <motion.button onClick={async () => {
@@ -1666,11 +1665,11 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
     );
 }
 
-function KPIBox({ label, value, color, small }) {
+function KPIBox({ label, value, color = GOLD, small }) {
     return (
-        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minWidth: 72 }}>
-            <div style={{ fontSize: small ? 14 : 20, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.4px' }}>{value}</div>
-            <div style={{ fontSize: 10, fontWeight: 500, color: '#AEAEB2' }}>{label}</div>
+        <div style={{ ...accentSurface(color, { radius: RADIUS.smCard }), padding: '12px 18px', textAlign: 'center', minWidth: 80 }}>
+            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, color, letterSpacing: '-0.6px', lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, color: '#86868B', marginTop: 3 }}>{label}</div>
         </div>
     );
 }
@@ -3751,6 +3750,8 @@ export default function AdminSuppliers() {
     const [suppliers,    setSuppliers]    = useState([]);
     const [quotes,       setQuotes]       = useState([]);
     const [loading,      setLoading]      = useState(true);
+    const [error,        setError]        = useState(null);
+    const [search,       setSearch]       = useState('');
     const [activeTab,    setActiveTab]    = useState(null);
     const [selectedQ,    setSelectedQ]    = useState(null);
     const [focusProductKey, setFocusProductKey] = useState(null);
@@ -3778,9 +3779,10 @@ export default function AdminSuppliers() {
                     if (t !== 'compare' && !data.find(s => s.id === t)) return data[0]?.id || 'compare';
                     return t;
                 });
+                setError(null);
                 setLoading(false);
             },
-            () => setLoading(false)
+            () => { setError('שגיאה בטעינת ספקים'); setLoading(false); }
         );
         return unsub;
     }, []);
@@ -3788,7 +3790,8 @@ export default function AdminSuppliers() {
     useEffect(() => {
         const unsub = onSnapshot(
             query(collection(db, 'supplier_quotes'), orderBy('createdAt', 'desc')),
-            snap => setQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+            snap => setQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+            () => setError('שגיאה בטעינת הצעות מחיר')
         );
         return unsub;
     }, []);
@@ -3803,136 +3806,192 @@ export default function AdminSuppliers() {
         return [...s].sort((a, b) => a.localeCompare(b, 'he'));
     }, [quotes]);
 
+    // ─── KPI band derivations (suppliers · active RFQs · pending quotes · value) ──
+    const kpis = useMemo(() => {
+        const stageOf       = q => q.status || 'received';
+        const activeRFQs    = quotes.filter(q => ['received', 'reviewing', 'negotiating'].includes(stageOf(q))).length;
+        const pendingQuotes = quotes.filter(q => stageOf(q) === 'received').length;
+        const totalValue    = quotes.reduce((s, q) => s + calcTotal(q.products || []), 0);
+        return { suppliers: suppliers.length, activeRFQs, pendingQuotes, totalValue };
+    }, [suppliers, quotes]);
+
+    // ─── Search filters the supplier segment pills (Heaven organizing mechanism) ──
+    const filteredSuppliers = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        if (!term) return suppliers;
+        return suppliers.filter(s =>
+            (s.name || '').toLowerCase().includes(term) ||
+            (s.agentName || '').toLowerCase().includes(term) ||
+            (s.domain || '').toLowerCase().includes(term)
+        );
+    }, [suppliers, search]);
+
     const handleSupplierAdded = s => {
         setActiveTab(s.id);
     };
 
-    if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{ width: 28, height: 28, border: '3px solid rgba(0,122,255,0.14)', borderTopColor: '#007AFF', borderRadius: '50%' }} />
-        </div>
-    );
-
     return (
         <div dir="rtl">
             {/* Page header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1 }}>
-                    <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>הצעות מחיר מספקים</h1>
-                    <p style={{ fontSize: 13, color: '#AEAEB2', margin: '3px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: `${glow(GOLD, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <Briefcase size={22} color={GOLD} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>הצעות מחיר מספקים</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     {quotes.length > 0 && (
                         <motion.button
                             onClick={() => { exportQuotesXLSX(suppliers, quotes); showToast('מייצא קובץ Excel...', 'info'); }}
-                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 14, border: '1.5px solid rgba(52,199,89,0.35)', background: 'rgba(52,199,89,0.08)', color: '#34C759', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(52,199,89,0.28)' }} whileTap={TAP}
+                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: RADIUS.button, border: '1.5px solid rgba(52,199,89,0.35)', background: 'rgba(52,199,89,0.08)', color: '#248A3D', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                             <Download size={15} />ייצוא Excel
                         </motion.button>
                     )}
-                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 18px rgba(0,122,255,0.28)' }}>
+                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(GOLD, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                         <Plus size={15} />ספק חדש
                     </motion.button>
                 </div>
             </div>
 
-            {/* Tab bar */}
+            {/* KPI band — suppliers · active RFQs · pending quotes · total value */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14, marginBottom: 22 }}>
+                <AdminKPICard title="ספקים" value={kpis.suppliers} subtitle="ספקים במערכת" accent={GOLD} delay={0}
+                    icon={<Briefcase size={20} color={GOLD} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                <AdminKPICard title="הצעות פעילות" value={kpis.activeRFQs} subtitle="במשא ומתן" accent={PALETTE.azure} delay={0.05}
+                    icon={<ClipboardList size={20} color={PALETTE.azure} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                <AdminKPICard title="ממתינות לבדיקה" value={kpis.pendingQuotes} subtitle="הצעות חדשות" accent={PALETTE.orange} delay={0.1}
+                    icon={<Clock size={20} color={PALETTE.orange} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                <AdminKPICard title="ערך כולל" value={fmt(kpis.totalValue)} subtitle="סך כל ההצעות" accent={PALETTE.green} delay={0.15}
+                    icon={<CreditCard size={20} color={PALETTE.green} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+            </div>
+
+            {/* Segment pills + search — Heaven organizing mechanism */}
             {suppliers.length > 0 && (
-                <div style={{
-                    display: 'flex', gap: 4, marginBottom: 26,
-                    overflowX: 'auto', scrollbarWidth: 'none',
-                    padding: '5px 6px', background: 'rgba(0,0,0,0.04)', borderRadius: 16,
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    backdropFilter: 'blur(20px)',
-                    alignItems: 'center',
-                }}>
-                    {suppliers.map(s => {
-                        const on = activeTab === s.id;
-                        const cnt = quotes.filter(q => q.supplierId === s.id).length;
-                        return (
-                            <motion.button key={s.id} onClick={() => setActiveTab(s.id)}
-                                whileHover={{ scale: on ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px',
-                                    borderRadius: 11,
-                                    border: on ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                                    background: on ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                                    cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                    boxShadow: on ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                                    transition: 'all 0.15s ease',
-                                }}>
-                                <SupplierAvatar domain={s.domain} name={s.name} size={20} />
-                                <span style={{ fontSize: 13, fontWeight: on ? 700 : 500, color: on ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
-                                {cnt > 0 && (
-                                    <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.04)', fontSize: 10, fontWeight: 700, color: on ? '#3C3C43' : '#8E8E93' }}>
-                                        {cnt}
-                                    </span>
-                                )}
-                            </motion.button>
-                        );
-                    })}
-
-                    {/* Divider */}
-                    {suppliers.length >= 1 && <div style={{ width: 1, height: 20, background: 'rgba(0,0,0,0.09)', flexShrink: 0, margin: '0 2px' }} />}
-
-                    {/* Compare tab — only if ≥2 suppliers */}
-                    {suppliers.length >= 2 && (
-                        <motion.button onClick={() => setActiveTab('compare')}
-                            whileHover={{ scale: activeTab === 'compare' ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                                borderRadius: 11,
-                                border: activeTab === 'compare' ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                                background: activeTab === 'compare' ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                boxShadow: activeTab === 'compare' ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                                transition: 'all 0.15s ease',
-                            }}>
-                            <Layers size={13} color={activeTab === 'compare' ? '#007AFF' : '#8E8E93'} />
-                            <span style={{ fontSize: 13, fontWeight: activeTab === 'compare' ? 700 : 500, color: activeTab === 'compare' ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
+                <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 11 }}>
+                    {/* Search + quick-add row */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
+                            <Search size={15} style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: '#AEAEB2', pointerEvents: 'none' }} />
+                            <input
+                                value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="חיפוש ספק, נציג או דומיין..." dir="rtl"
+                                style={{ ...GLASS.frosted, width: '100%', borderRadius: RADIUS.input, padding: '9px 38px 9px 14px', fontSize: 13, fontWeight: 600, color: '#1D1D1F', outline: 'none', boxSizing: 'border-box', transition: 'border 0.15s, box-shadow 0.15s' }}
+                                onFocus={e => { e.target.style.border = `1.5px solid ${hexA(GOLD, 0.5)}`; e.target.style.boxShadow = `0 0 0 4px ${hexA(GOLD, 0.12)}`; }}
+                                onBlur={e => { e.target.style.border = GLASS.frosted.border; e.target.style.boxShadow = GLASS.frosted.boxShadow; }}
+                            />
+                            {search && (
+                                <button onClick={() => setSearch('')} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E6E73' }}>
+                                    <X size={11} />
+                                </button>
+                            )}
+                        </div>
+                        <div style={{ flex: 1 }} />
+                        <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -1 }} whileTap={TAP}
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: RADIUS.button, border: `1px solid ${hexA(GOLD, 0.28)}`, background: hexA(GOLD, 0.08), cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#B86A00', fontSize: 12.5, fontWeight: 700 }}>
+                            <Plus size={13} />ספק מהיר
                         </motion.button>
-                    )}
-                    {/* Contacts tab */}
-                    <motion.button onClick={() => setActiveTab('contacts')}
-                        whileHover={{ scale: activeTab === 'contacts' ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                            borderRadius: 11,
-                            border: activeTab === 'contacts' ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                            background: activeTab === 'contacts' ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                            boxShadow: activeTab === 'contacts' ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                            transition: 'all 0.15s ease',
-                        }}>
-                        <User size={13} color={activeTab === 'contacts' ? '#007AFF' : '#8E8E93'} />
-                        <span style={{ fontSize: 13, fontWeight: activeTab === 'contacts' ? 700 : 500, color: activeTab === 'contacts' ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
-                    </motion.button>
+                    </div>
 
-                    <div style={{ flex: 1 }} />
+                    {/* Segment pill rail */}
+                    <div style={{ ...GLASS.frosted, display: 'flex', gap: 4, padding: '6px 7px', borderRadius: RADIUS.md, overflowX: 'auto', scrollbarWidth: 'none', alignItems: 'center' }}>
+                        {filteredSuppliers.map(s => {
+                            const on = activeTab === s.id;
+                            const cnt = quotes.filter(q => q.supplierId === s.id).length;
+                            return (
+                                <motion.button key={s.id} onClick={() => setActiveTab(s.id)}
+                                    whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <SupplierAvatar domain={s.domain} name={s.name} size={20} color={s.color} logoUrl={s.logoUrl} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
+                                        {cnt > 0 && (
+                                            <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? hexA(GOLD, 0.18) : 'rgba(0,0,0,0.05)', fontSize: 10, fontWeight: 800, color: on ? '#B86A00' : '#8E8E93' }}>
+                                                {cnt}
+                                            </span>
+                                        )}
+                                    </span>
+                                </motion.button>
+                            );
+                        })}
 
-                    {/* Quick-add supplier */}
-                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.07)', background: 'rgba(255,255,255,0.8)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#6E6E73', fontSize: 12, fontWeight: 600 }}>
-                        <Plus size={11} />ספק
-                    </motion.button>
+                        {filteredSuppliers.length === 0 && search && (
+                            <span style={{ padding: '7px 12px', fontSize: 12.5, fontWeight: 600, color: '#AEAEB2', whiteSpace: 'nowrap' }}>לא נמצאו ספקים תואמים</span>
+                        )}
+
+                        {/* Divider */}
+                        <div style={{ width: 1, height: 20, background: 'rgba(0,0,0,0.09)', flexShrink: 0, margin: '0 3px' }} />
+
+                        {/* Compare segment — only if ≥2 suppliers */}
+                        {suppliers.length >= 2 && (() => {
+                            const on = activeTab === 'compare';
+                            return (
+                                <motion.button onClick={() => setActiveTab('compare')} whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Layers size={13} color={on ? GOLD : '#8E8E93'} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
+                                    </span>
+                                </motion.button>
+                            );
+                        })()}
+
+                        {/* Contacts segment */}
+                        {(() => {
+                            const on = activeTab === 'contacts';
+                            return (
+                                <motion.button onClick={() => setActiveTab('contacts')} whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <User size={13} color={on ? GOLD : '#8E8E93'} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
+                                    </span>
+                                </motion.button>
+                            );
+                        })()}
+                    </div>
                 </div>
             )}
 
             {/* Main content */}
             <AnimatePresence mode="wait">
+                {loading ? (
+                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '80px 20px' }}>
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            style={{ width: 30, height: 30, border: `3px solid ${hexA(GOLD, 0.16)}`, borderTopColor: GOLD, borderRadius: '50%' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#86868B' }}>טוען ספקים והצעות מחיר...</span>
+                    </motion.div>
+                ) : error && suppliers.length === 0 ? (
+                    <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '64px 20px', textAlign: 'center' }}>
+                        <div style={{ width: 60, height: 60, borderRadius: RADIUS.md, background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <AlertCircle size={28} color="#FF3B30" />
+                        </div>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: '#1D1D1F' }}>{error}</div>
+                        <div style={{ fontSize: 13, color: '#AEAEB2' }}>בדוק את החיבור ונסה לרענן את הדף</div>
+                    </motion.div>
+                ) : (
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ type: 'spring', stiffness: 340, damping: 30 }}>
                     {suppliers.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18 }}>
-                            <div style={{ width: 88, height: 88, borderRadius: 26, background: 'linear-gradient(135deg,rgba(0,122,255,0.10),rgba(88,86,214,0.10))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Building2 size={38} color="#007AFF" />
+                        <div style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18, boxShadow: `${G.boxShadow}, ${glow(GOLD, 0.1, 40)}` }}>
+                            <div style={{ width: 88, height: 88, borderRadius: RADIUS.hero, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: glow(GOLD, 0.16, 30) }}>
+                                <Briefcase size={38} color={GOLD} />
                             </div>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#1D1D1F', marginBottom: 6 }}>אין ספקים עדיין</div>
                                 <div style={{ fontSize: 13, color: '#AEAEB2', marginBottom: 24 }}>הוסף ספק ראשון כדי להתחיל לנהל הצעות מחיר</div>
-                                <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                    style={{ padding: '13px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.30)' }}>
+                                <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -2, boxShadow: `0 8px 28px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                                    style={{ padding: '13px 28px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 22px ${hexA(GOLD, 0.38)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                                     <Plus size={14} style={{ display: 'inline', marginLeft: 6 }} />הוסף ספק ראשון
                                 </motion.button>
                             </div>
@@ -3953,6 +4012,7 @@ export default function AdminSuppliers() {
                         />
                     ) : null}
                 </motion.div>
+                )}
             </AnimatePresence>
 
             {/* Drawers & Modals */}

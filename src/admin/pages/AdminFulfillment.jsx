@@ -11,8 +11,9 @@ import {
 import { useAdminToast } from '../context/AdminToastContext';
 import {
     AdminSectionHeader, AdminInput, AdminTextArea,
-    AdminToggle, AdminModal
+    AdminToggle, AdminModal, AdminKPICard, AdminEmpty
 } from '../components/AdminComponents';
+import { GLASS, RADIUS, TAP, hexA, DOMAIN_ACCENTS } from '../theme/tokens';
 import {
     Truck, Package, Building2, Link2, Plus, Trash2, Edit2,
     Clock, CheckCircle, AlertTriangle, Send, X, Phone,
@@ -56,13 +57,8 @@ const TABS = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const card = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+const BROWN = DOMAIN_ACCENTS.fulfillment; // #AC8E68 ★
+const card = { ...GLASS.base, borderRadius: RADIUS.card };
 
 function StatusPill({ statusId }) {
     const s = STATUSES.find(s => s.id === statusId) || STATUSES[0];
@@ -815,23 +811,15 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
         { label: 'ממתינות להעברה',  value: pending,   color: '#FF9500', icon: Clock,       sub: 'דורשות פעולה' },
         { label: 'בתהליך אצל ספק', value: forwarded,  color: '#007AFF', icon: Send,        sub: 'מחכות לאישור' },
         { label: 'בדרך',            value: inTransit, color: '#FF9F0A', icon: Truck,       sub: 'בהובלה' },
-        { label: 'הושלמו',          value: shipped,   color: '#34C759', icon: CheckCircle, sub: 'כל הזמנות' },
+        { label: 'הושלמו',          value: shipped,   color: '#34C759', icon: CheckCircle, sub: 'כל ההזמנות' },
     ];
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {kpis.map(k => (
-                    <div key={k.label} className="p-5 rounded-[1.5rem] text-right" style={card}>
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: `${k.color}15` }}>
-                                <k.icon size={18} style={{ color: k.color }} />
-                            </div>
-                            <span className="text-3xl font-black text-[#1D1D1F]">{k.value}</span>
-                        </div>
-                        <p className="text-sm font-bold text-[#1D1D1F]">{k.label}</p>
-                        <p className="text-[11px] text-[#86868B] mt-0.5">{k.sub}</p>
-                    </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {kpis.map((k, i) => (
+                    <AdminKPICard key={k.label} title={k.label} value={k.value} subtitle={k.sub}
+                        icon={<k.icon size={20} color={k.color} />} accent={k.color} delay={i * 0.05} />
                 ))}
             </div>
 
@@ -1204,9 +1192,10 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
 
             {/* List */}
             {displayed.length === 0 ? (
-                <div className="py-16 text-center rounded-[2rem]" style={card}>
-                    <Package size={36} className="mx-auto text-gray-200 mb-3" />
-                    <p className="text-[#86868B] font-bold">אין הזמנות בסטטוס זה</p>
+                <div className="rounded-[24px] overflow-hidden" style={card}>
+                    <AdminEmpty icon={<Package size={30} style={{ color: BROWN }} />}
+                        title="אין הזמנות בסטטוס זה"
+                        subtitle="הזמנות ספקים שתעביר יופיעו כאן עם מעקב מלא עד למסירה" />
                 </div>
             ) : (
                 <div className="space-y-2">
@@ -1532,10 +1521,11 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
             </div>
 
             {suppliers.length === 0 ? (
-                <div className="py-16 text-center rounded-[2rem]" style={card}>
-                    <Building2 size={36} className="mx-auto text-gray-200 mb-3" />
-                    <p className="text-[#86868B] font-bold">לא הוגדרו ספקים עדיין</p>
-                    <p className="text-[11px] text-gray-400 mt-1">הוסף ספק ראשון כדי להתחיל</p>
+                <div className="rounded-[24px] overflow-hidden" style={card}>
+                    <AdminEmpty icon={<Building2 size={30} style={{ color: BROWN }} />}
+                        title="לא הוגדרו ספקים עדיין"
+                        subtitle="הוסף ספק ראשון כדי להתחיל להעביר הזמנות ולעקוב אחר אמינות"
+                        action={{ label: 'הוסף ספק', onClick: openAdd }} />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1799,21 +1789,25 @@ export default function AdminFulfillment() {
             />
 
             {/* Tab Bar */}
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl w-fit"
-                style={{ background: 'rgba(255,255,255,0.60)', border: '1px solid rgba(0,0,0,0.06)' }}>
-                {TABS.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === tab.id ? 'text-[#1D1D1F]' : 'text-[#86868B] hover:text-[#1D1D1F]'}`}
-                        style={activeTab === tab.id ? { background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px) saturate(200%)', WebkitBackdropFilter: 'blur(16px) saturate(200%)', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : {}}>
-                        <tab.Icon size={14} />
-                        {tab.label}
-                        {tab.id === 'orders' && pendingCount > 0 && (
-                            <span className="w-4 h-4 rounded-full bg-[#FF9500] text-white text-[9px] font-black flex items-center justify-center">
-                                {pendingCount}
-                            </span>
-                        )}
-                    </button>
-                ))}
+            <div className="flex items-center gap-1.5 p-1.5 rounded-2xl w-fit" style={{ ...GLASS.frosted, borderRadius: RADIUS.panel }}>
+                {TABS.map(tab => {
+                    const active = activeTab === tab.id;
+                    return (
+                        <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)} whileTap={TAP}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-colors cursor-pointer"
+                            style={active
+                                ? { color: BROWN, background: hexA(BROWN, 0.12), border: `1px solid ${hexA(BROWN, 0.24)}`, boxShadow: `0 2px 10px ${hexA(BROWN, 0.2)}` }
+                                : { color: '#86868B', border: '1px solid transparent' }}>
+                            <tab.Icon size={14} />
+                            {tab.label}
+                            {tab.id === 'orders' && pendingCount > 0 && (
+                                <span className="w-4 h-4 rounded-full bg-[#FF9500] text-white text-[9px] font-black flex items-center justify-center">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </motion.button>
+                    );
+                })}
             </div>
 
             {/* Tab Content */}

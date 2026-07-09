@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, storage } from '../../firebase';
 import {
@@ -7,30 +7,23 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
-import { useAdminData } from '../context/AdminDataContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import {
+    GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS, PALETTE
+} from '../theme/tokens';
 import {
     Upload, Link2, Trash2, Copy, Check, FileText, Folder,
-    FolderOpen, X, Search, Grid, List, ExternalLink, Plus,
-    Filter, Archive, Download, Eye, Tag, Calendar, MoreVertical,
-    CheckCircle, ShieldAlert, ArrowLeftRight, Clock, Edit, ArrowRight, Sparkles, Printer
+    FolderOpen, FolderPlus, X, Search, Grid, List, ExternalLink, Plus,
+    Archive, Download, Eye, Tag, CheckCircle, ShieldAlert, ArrowLeftRight,
+    Clock, Edit, ArrowRight, Sparkles, Printer, ChevronDown, HardDrive,
+    Image as ImageIcon, FileSpreadsheet, ShieldCheck, Zap
 } from 'lucide-react';
 
-const CARD = {
-    background: 'rgba(255,255,255,0.72)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.70)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
-
-const GLASS = {
-    background: 'rgba(255,255,255,0.80)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.70)',
-    boxShadow: '0 12px 40px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Vault accent (violet ★) + liquid-glass surfaces (token-driven) ───────────
+const VAULT  = DOMAIN_ACCENTS.vault; // #BF5AF2
+const VGRAD  = `linear-gradient(135deg, ${PALETTE.purple} 0%, ${VAULT} 100%)`; // purple → violet
+const CARD   = { ...GLASS.base, borderRadius: RADIUS.card };
+const PANEL  = { ...GLASS.elevated, borderRadius: RADIUS.panel };
 
 const SYSTEM_FOLDERS = [
     { id: 'agreements', name: 'הסכמי לקוחות', icon: 'file-text', color: '#007AFF', bg: 'rgba(0,122,255,0.08)', system: true },
@@ -69,7 +62,7 @@ const SMART_TEMPLATES = [
                     <p style="font-size: 12px; color: #86868B; margin: 5px 0 0 0;">מספר הסכם: NC-AG-${Date.now().toString().slice(-6)}</p>
                 </div>
                 <p>נערך ונחתם בתאריך: ${new Date().toLocaleDateString('he-IL')}</p>
-                
+
                 <h3 style="color: #1D1D1F; border-bottom: 1px solid #E5E5EA; padding-bottom: 5px;">1. הצדדים להסכם</h3>
                 <p><b>הספק:</b> נקסט קלאס בע"מ (ח.פ. 51654321)</p>
                 <p><b>הלקוח:</b> ${v.school_name || '___________'} (סמל מוסד/ח.פ: ${v.school_id || '___________'}) באמצעות מורשה החתימה ${v.contact_name || '___________'}</p>
@@ -118,10 +111,10 @@ const SMART_TEMPLATES = [
                 </div>
                 <p>תאריך הפקה: ${new Date().toLocaleDateString('he-IL')}</p>
                 <p>לכבוד: <b>${v.client_name || '___________'}</b></p>
-                
+
                 <h3 style="color: #1D1D1F; border-bottom: 1px solid #E5E5EA; padding-bottom: 5px;">נושא: ${v.quote_title || '___________'}</h3>
                 <p>אנו שמחים להגיש לך את הצעת המחיר הבאה עבור מוצרי NextClass:</p>
-                
+
                 <div style="background: #F5F5F7; padding: 15px; border-radius: 12px; font-size: 13px; margin: 15px 0;">
                     ${(v.items_details || 'טרם הוזן פירוט מוצרים ומחירים').replace(/\n/g, '<br/>')}
                 </div>
@@ -151,6 +144,30 @@ function formatSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatDate(ts) {
+    return ts?.toDate ? ts.toDate().toLocaleDateString('he-IL') : '';
+}
+
+// ── Derive a friendly "kind" (icon + label + color) from mime/name ──────────
+function fileKind(item) {
+    const t = `${item?.type || ''} ${item?.name || ''}`.toLowerCase();
+    if (t.includes('pdf')) return { key: 'pdf', label: 'PDF', color: '#FF3B30', Icon: FileText };
+    if (/(png|jpe?g|gif|webp|svg|image)/.test(t)) return { key: 'image', label: 'תמונה', color: '#34C759', Icon: ImageIcon };
+    if (/(sheet|excel|xlsx|xls|csv)/.test(t)) return { key: 'sheet', label: 'גיליון', color: '#30D158', Icon: FileSpreadsheet };
+    if (/(html|docx?|word|txt|document)/.test(t)) return { key: 'doc', label: 'מסמך', color: '#007AFF', Icon: FileText };
+    return { key: 'other', label: 'קובץ', color: '#8E8E93', Icon: FileText };
+}
+
+const KIND_LABELS = { all: 'כל הסוגים', pdf: 'PDF', image: 'תמונות', sheet: 'גיליונות', doc: 'מסמכים', other: 'אחר' };
+
+function folderIcon(f, size = 14) {
+    const color = f.color || '#8E8E93';
+    if (f.id === 'receipts') return <Archive size={size} style={{ color }} />;
+    if (f.id === 'suppliers') return <ArrowLeftRight size={size} style={{ color }} />;
+    if (f.id === 'product_docs' || !f.system) return <Folder size={size} style={{ color }} />;
+    return <FileText size={size} style={{ color }} />;
+}
+
 // ── Drop zone ───────────────────────────────────────────────────────────
 function DropZone({ onFiles, uploading }) {
     const [isDragActive, setIsDragActive] = useState(false);
@@ -171,36 +188,43 @@ function DropZone({ onFiles, uploading }) {
     }, [onFiles]);
 
     return (
-        <div
+        <motion.div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
-            className="relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 p-8 flex flex-col items-center gap-3 text-center"
+            animate={{ scale: isDragActive ? 1.01 : 1 }}
+            transition={SPRING.snappy}
+            className="relative cursor-pointer flex flex-col items-center gap-3 text-center overflow-hidden"
             style={{
-                borderColor: isDragActive ? '#5856D6' : 'rgba(88,86,214,0.35)',
-                background: isDragActive ? 'rgba(88,86,214,0.06)' : 'rgba(255,255,255,0.45)',
-                backdropFilter: 'blur(12px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                boxShadow: isDragActive ? '0 0 0 4px rgba(88,86,214,0.12)' : 'none',
+                borderRadius: RADIUS.panel,
+                border: `2px dashed ${isDragActive ? VAULT : hexA(VAULT, 0.35)}`,
+                background: isDragActive ? hexA(VAULT, 0.07) : 'rgba(255,255,255,0.5)',
+                backdropFilter: 'blur(18px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+                boxShadow: isDragActive ? `0 0 0 4px ${hexA(VAULT, 0.12)}, ${glow(VAULT, 0.18, 30)}` : SHADOW.sm,
+                padding: 28,
             }}
         >
+            {/* Ambient halo */}
+            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-56 h-56 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${hexA(VAULT, isDragActive ? 0.22 : 0.1)} 0%, transparent 68%)`, filter: 'blur(8px)' }} />
             {uploading ? (
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-2 border-[#5856D6]/30 border-t-[#5856D6] rounded-full animate-spin" />
-                    <p className="text-xs font-bold text-[#5856D6]">מעלה מסמכים לכספת...</p>
+                <div className="flex flex-col items-center gap-3 relative z-10">
+                    <div className="w-11 h-11 rounded-full animate-spin" style={{ border: `2px solid ${hexA(VAULT, 0.25)}`, borderTopColor: VAULT }} />
+                    <p className="text-xs font-black" style={{ color: VAULT }}>מעלה מסמכים לכספת...</p>
                 </div>
             ) : (
                 <>
                     <motion.div
                         animate={{ y: isDragActive ? -4 : 0 }}
-                        className="w-12 h-12 rounded-xl flex items-center justify-center"
-                        style={{ background: 'rgba(88,86,214,0.1)' }}
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center relative z-10"
+                        style={{ background: hexA(VAULT, 0.12), border: `1px solid ${hexA(VAULT, 0.24)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 6px 18px ${hexA(VAULT, 0.18)}` }}
                     >
-                        <Upload size={20} className="text-[#5856D6]" />
+                        <Upload size={22} style={{ color: VAULT }} />
                     </motion.div>
-                    <div>
+                    <div className="relative z-10">
                         <p className="text-[14px] font-black text-[#1D1D1F]">
                             {isDragActive ? 'שחרר מסמכים להעלאה לכספת' : 'גרור מסמכים לכאן'}
                         </p>
@@ -216,7 +240,225 @@ function DropZone({ onFiles, uploading }) {
                 onChange={e => onFiles(Array.from(e.target.files))}
                 className="hidden"
             />
-        </div>
+        </motion.div>
+    );
+}
+
+// ── Quick action pill (used inside expandable rows / cards) ──────────────
+function QuickAction({ icon: Icon, label, color = '#1D1D1F', onClick, href, download, disabled }) {
+    const base = {
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px',
+        borderRadius: RADIUS.pill, fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap',
+        border: `1px solid ${disabled ? 'rgba(0,0,0,0.06)' : hexA(color, 0.24)}`,
+        background: disabled ? 'rgba(0,0,0,0.03)' : hexA(color, 0.09),
+        color: disabled ? '#C7C7CC' : color,
+        cursor: disabled ? 'not-allowed' : 'pointer', textDecoration: 'none', transition: 'all .15s',
+    };
+    if (href && !disabled) {
+        return (
+            <a href={href} target="_blank" rel="noreferrer" download={download}
+                onClick={e => e.stopPropagation()} style={base}>
+                <Icon size={13} />{label}
+            </a>
+        );
+    }
+    return (
+        <button type="button" disabled={disabled}
+            onClick={e => { e.stopPropagation(); if (!disabled) onClick?.(); }} style={base}>
+            <Icon size={13} />{label}
+        </button>
+    );
+}
+
+// ── Expandable 360° document row (list view) ─────────────────────────────
+function VaultDocRow({ item, folders, expanded, onToggle, onUpdate, onDelete, onCopy, copied, onOpenDetail, index }) {
+    const kind = fileKind(item);
+    const classCfg = CLASSIFICATIONS.find(c => c.id === item.classification) || CLASSIFICATIONS[0];
+    const [tagDraft, setTagDraft] = useState(item.tags?.join(', ') || '');
+    useEffect(() => { setTagDraft(item.tags?.join(', ') || ''); }, [item.tags]);
+
+    const saveTags = () => {
+        const tags = tagDraft.split(',').map(t => t.trim()).filter(Boolean);
+        onUpdate(item.id, { tags });
+    };
+
+    return (
+        <motion.div layout
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ delay: Math.min(index * 0.02, 0.2), ...SPRING.soft }}
+            style={{
+                borderRadius: RADIUS.md,
+                background: expanded ? hexA(VAULT, 0.04) : 'rgba(255,255,255,0.55)',
+                border: `1px solid ${expanded ? hexA(VAULT, 0.22) : 'rgba(0,0,0,0.05)'}`,
+                boxShadow: expanded ? `${glow(VAULT, 0.08, 26)}, ${SHADOW.sm}` : 'none',
+            }}
+            className="overflow-hidden"
+        >
+            {/* Header row */}
+            <div onClick={() => onToggle(item.id)}
+                className="flex items-center gap-4 px-4 py-3 cursor-pointer group transition-colors"
+                style={{ background: expanded ? 'transparent' : undefined }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: hexA(kind.color, 0.1), border: `1px solid ${hexA(kind.color, 0.2)}` }}>
+                    <kind.Icon size={17} style={{ color: kind.color }} />
+                </div>
+                <div className="flex-1 min-w-0 text-right">
+                    <p className="text-[13px] font-black text-[#1D1D1F] truncate">{item.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[#AEAEB2] flex-wrap">
+                        <span>{formatSize(item.size)}</span>
+                        <span>•</span>
+                        <span>{formatDate(item.createdAt) || '—'}</span>
+                        {item.tags?.length > 0 && (
+                            <>
+                                <span>•</span>
+                                <span className="truncate max-w-[160px]">{item.tags.map(t => `#${t}`).join(' ')}</span>
+                            </>
+                        )}
+                    </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-black shrink-0"
+                    style={{ background: hexA(classCfg.color, 0.14), color: classCfg.color }}>
+                    {classCfg.label}
+                </span>
+                <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={SPRING.soft}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(0,0,0,0.04)' }}>
+                    <ChevronDown size={14} className="text-[#86868B]" />
+                </motion.div>
+            </div>
+
+            {/* Expanded 360° panel */}
+            <AnimatePresence initial={false}>
+                {expanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        transition={{ ...SPRING.soft }} style={{ overflow: 'hidden' }}>
+                        <div className="px-4 pb-4 pt-1 space-y-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }} onClick={e => e.stopPropagation()}>
+                            {/* Quick actions */}
+                            <div className="flex flex-wrap gap-2 pt-3">
+                                <QuickAction icon={Eye} label="תצוגה" color={VAULT} href={item.url} disabled={!item.url} />
+                                <QuickAction icon={Download} label="הורדה" color="#007AFF" href={item.url} download disabled={!item.url} />
+                                <QuickAction icon={copied === item.url ? Check : Copy} label={copied === item.url ? 'הועתק' : 'העתק קישור'} color="#34C759" onClick={() => onCopy(item.url)} disabled={!item.url} />
+                                <QuickAction icon={Edit} label="פרטים מלאים" color="#5856D6" onClick={() => onOpenDetail(item)} />
+                                <QuickAction icon={Trash2} label="מחק" color="#FF3B30" onClick={() => { if (window.confirm('למחוק מסמך זה לצמיתות מהכספת?')) onDelete(item); }} />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Classify */}
+                                <div>
+                                    <label className="text-[9px] font-black text-[#AEAEB2] tracking-widest block mb-1.5 text-right">סיווג מהיר</label>
+                                    <div className="flex gap-1.5">
+                                        {CLASSIFICATIONS.filter(c => c.id !== 'all').map(c => {
+                                            const active = item.classification === c.id;
+                                            return (
+                                                <button key={c.id} onClick={() => onUpdate(item.id, { classification: c.id })}
+                                                    className="flex-1 py-2 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1"
+                                                    style={{
+                                                        border: `1px solid ${active ? c.color : 'rgba(0,0,0,0.07)'}`,
+                                                        background: active ? hexA(c.color, 0.12) : 'rgba(255,255,255,0.7)',
+                                                        color: active ? c.color : '#6E6E73',
+                                                    }}>
+                                                    {c.id === 'approved' && <CheckCircle size={10} />}
+                                                    {c.id === 'pending' && <Clock size={10} />}
+                                                    {c.id === 'archived' && <ShieldAlert size={10} />}
+                                                    {c.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                {/* Move folder */}
+                                <div>
+                                    <label className="text-[9px] font-black text-[#AEAEB2] tracking-widest block mb-1.5 text-right">העבר לתיקייה</label>
+                                    <select value={item.folder || ''} onChange={e => onUpdate(item.id, { folder: e.target.value })}
+                                        className="w-full px-3 py-2 rounded-xl text-[12px] font-bold text-[#1D1D1F] focus:outline-none transition-all text-right"
+                                        style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.08)' }}>
+                                        {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Tags editor */}
+                            <div>
+                                <label className="text-[9px] font-black text-[#AEAEB2] tracking-widest block mb-1.5 text-right">תגיות (מופרדות בפסיקים)</label>
+                                <div className="flex gap-2">
+                                    <input value={tagDraft} onChange={e => setTagDraft(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') saveTags(); }}
+                                        placeholder="2026, חוזה מוסדי, בית ספר"
+                                        className="flex-1 px-3 py-2 rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none text-right"
+                                        style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.08)' }} />
+                                    <button onClick={saveTags}
+                                        className="px-3.5 rounded-xl text-[11px] font-black text-white shrink-0"
+                                        style={{ background: VGRAD, boxShadow: `0 3px 12px ${hexA(VAULT, 0.3)}` }}>
+                                        <Tag size={13} className="inline -mt-0.5 ml-1" />שמור
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+}
+
+// ── Document card (grid view) ────────────────────────────────────────────
+function VaultDocCard({ item, onOpen, onCopy, copied, index }) {
+    const kind = fileKind(item);
+    const classCfg = CLASSIFICATIONS.find(c => c.id === item.classification) || CLASSIFICATIONS[0];
+    return (
+        <motion.div
+            layout
+            onClick={() => onOpen(item)}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ delay: Math.min(index * 0.02, 0.25), ...SPRING.soft }}
+            whileHover={{ y: -3, boxShadow: `${glow(VAULT, 0.12, 30)}, ${SHADOW.lg}` }}
+            className="p-4 flex flex-col justify-between cursor-pointer group relative text-right overflow-hidden"
+            style={{ ...CARD }}
+        >
+            <div>
+                <div className="flex justify-between items-start mb-3">
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black"
+                        style={{ background: hexA(classCfg.color, 0.14), color: classCfg.color }}>
+                        {classCfg.label}
+                    </span>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                        style={{ background: hexA(kind.color, 0.1), border: `1px solid ${hexA(kind.color, 0.2)}` }}>
+                        <kind.Icon size={19} style={{ color: kind.color }} />
+                    </div>
+                </div>
+                <p className="text-[13px] font-black text-[#1D1D1F] line-clamp-2 leading-snug" title={item.name}>{item.name}</p>
+                {item.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2.5">
+                        {item.tags.slice(0, 4).map(t => (
+                            <span key={t} className="px-1.5 py-0.5 rounded font-bold text-[8px]"
+                                style={{ background: hexA(VAULT, 0.08), color: hexA(VAULT, 0.9) }}>#{t}</span>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Hover quick actions */}
+            <div className="flex items-center gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a href={item.url || undefined} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                    style={{ background: item.url ? hexA(VAULT, 0.1) : 'rgba(0,0,0,0.03)', color: item.url ? VAULT : '#C7C7CC', pointerEvents: item.url ? 'auto' : 'none' }}
+                    title="תצוגה"><Eye size={13} /></a>
+                <a href={item.url || undefined} download target="_blank" onClick={e => e.stopPropagation()}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                    style={{ background: item.url ? 'rgba(0,122,255,0.1)' : 'rgba(0,0,0,0.03)', color: item.url ? '#007AFF' : '#C7C7CC', pointerEvents: item.url ? 'auto' : 'none' }}
+                    title="הורדה"><Download size={13} /></a>
+                <button onClick={e => { e.stopPropagation(); if (item.url) onCopy(item.url); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                    style={{ background: item.url ? 'rgba(52,199,89,0.1)' : 'rgba(0,0,0,0.03)', color: item.url ? '#34C759' : '#C7C7CC' }}
+                    title="העתק קישור">{copied === item.url ? <Check size={13} /> : <Copy size={13} />}</button>
+            </div>
+
+            <div className="flex items-center justify-between mt-3 pt-3 text-[10px] text-[#AEAEB2]" style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                <span>{formatSize(item.size)}</span>
+                <span>{formatDate(item.createdAt)}</span>
+            </div>
+        </motion.div>
     );
 }
 
@@ -227,78 +469,63 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
     const [classification, setClassification] = useState(item.classification || 'pending');
     const [tagsInput, setTagsInput] = useState(item.tags?.join(', ') || '');
     const [saving, setSaving] = useState(false);
+    const kind = fileKind(item);
 
     const handleSave = async () => {
         setSaving(true);
         const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-        await onUpdate(item.id, {
-            name,
-            folder,
-            classification,
-            tags
-        });
+        await onUpdate(item.id, { name, folder, classification, tags });
         setSaving(false);
         onClose();
     };
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex justify-end"
-            onClick={onClose}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex justify-end" onClick={onClose}
         >
-            <div className="absolute inset-0 bg-black/15 backdrop-blur-sm" />
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.18)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />
             <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ ...SPRING.gentle }}
                 onClick={e => e.stopPropagation()}
                 className="relative w-full max-w-md h-full flex flex-col p-6 text-right font-sans"
-                style={GLASS}
+                style={PANEL}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-black/[0.05]">
+                <div className="flex items-center justify-between mb-6 pb-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                     <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/05 text-[#AEAEB2] transition-colors">
                         <X size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <FileText size={18} className="text-[#5856D6]" />
+                        <FileText size={18} style={{ color: VAULT }} />
                         <h3 className="font-black text-[#1D1D1F] text-lg">פרטי מסמך בכספת</h3>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-5 pb-6">
                     {/* File preview icon card */}
-                    <div className="p-5 rounded-2xl bg-black/[0.02] border border-black/[0.04] flex flex-col items-center justify-center text-center">
-                        <FileText size={48} className="text-[#8E8E93] mb-2" />
-                        <p className="text-[10px] font-mono text-[#8E8E93] max-w-full truncate">{item.type || 'קובץ'}</p>
-                        <p className="text-[11px] font-bold text-[#1D1D1F] mt-1">{formatSize(item.size)}</p>
+                    <div className="p-5 rounded-2xl flex flex-col items-center justify-center text-center"
+                        style={{ background: hexA(kind.color, 0.06), border: `1px solid ${hexA(kind.color, 0.16)}` }}>
+                        <kind.Icon size={46} style={{ color: kind.color }} />
+                        <p className="text-[10px] font-mono text-[#8E8E93] max-w-full truncate mt-2">{item.type || 'קובץ'}</p>
+                        <p className="text-[11px] font-black text-[#1D1D1F] mt-1">{formatSize(item.size)} · {kind.label}</p>
                     </div>
 
                     {/* Form fields */}
                     <div>
                         <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">שם הקובץ בכספת</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            className="w-full px-4 py-3 bg-[#F5F5F7] rounded-xl text-[13px] font-bold text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 focus:bg-white transition-all text-right"
-                        />
+                        <input type="text" value={name} onChange={e => setName(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl text-[13px] font-bold text-[#1D1D1F] focus:outline-none transition-all text-right"
+                            style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }} />
                     </div>
 
                     <div>
                         <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">תיקיית סיווג</label>
-                        <select
-                            value={folder}
-                            onChange={e => setFolder(e.target.value)}
-                            className="w-full px-4 py-3 bg-[#F5F5F7] rounded-xl text-[13px] font-bold text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 focus:bg-white transition-all text-right"
-                        >
-                            {folders.map(f => (
-                                <option key={f.id} value={f.id}>{f.name}</option>
-                            ))}
+                        <select value={folder} onChange={e => setFolder(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl text-[13px] font-bold text-[#1D1D1F] focus:outline-none transition-all text-right"
+                            style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }}>
+                            {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </select>
                     </div>
 
@@ -306,17 +533,13 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
                         <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">סטטוס מסמך</label>
                         <div className="grid grid-cols-3 gap-2">
                             {CLASSIFICATIONS.filter(c => c.id !== 'all').map(c => (
-                                <button
-                                    key={c.id}
-                                    type="button"
-                                    onClick={() => setClassification(c.id)}
+                                <button key={c.id} type="button" onClick={() => setClassification(c.id)}
                                     className="py-2.5 rounded-xl border text-[11px] font-bold transition-all text-center flex items-center justify-center gap-1.5"
                                     style={{
                                         borderColor: classification === c.id ? c.color : 'rgba(0,0,0,0.06)',
-                                        background: classification === c.id ? `${c.color}12` : '#F5F5F7',
+                                        background: classification === c.id ? hexA(c.color, 0.12) : '#F5F5F7',
                                         color: classification === c.id ? c.color : '#6E6E73'
-                                    }}
-                                >
+                                    }}>
                                     {c.id === 'approved' && <CheckCircle size={10} />}
                                     {c.id === 'pending' && <Clock size={10} />}
                                     {c.id === 'archived' && <ShieldAlert size={10} />}
@@ -328,28 +551,25 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
 
                     <div>
                         <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">תגיות חיפוש (מופרדות בפסיקים)</label>
-                        <input
-                            type="text"
-                            value={tagsInput}
-                            onChange={e => setTagsInput(e.target.value)}
+                        <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
                             placeholder="דוגמה: 2026, חוזה מוסדי, בית ספר"
-                            className="w-full px-4 py-3 bg-[#F5F5F7] rounded-xl text-[13px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 focus:bg-white transition-all text-right"
-                        />
+                            className="w-full px-4 py-3 rounded-xl text-[13px] font-medium text-[#1D1D1F] focus:outline-none transition-all text-right"
+                            style={{ background: '#F5F5F7', border: '1px solid rgba(0,0,0,0.06)' }} />
                     </div>
 
                     {/* Metadata Readonly */}
-                    <div className="p-4 rounded-xl bg-black/[0.01] border border-black/[0.02] space-y-2 text-[11px] text-[#8E8E93]">
+                    <div className="p-4 rounded-xl space-y-2 text-[11px] text-[#8E8E93]" style={{ background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.03)' }}>
                         <div className="flex justify-between">
                             <span>{item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString('he-IL') : '—'}</span>
                             <span className="font-bold">תאריך העלאה</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="font-mono">{item.source === 'upload' ? 'העלאה ישירה' : 'סריקת AI / ייבוא'}</span>
+                            <span className="font-mono">{item.source === 'upload' ? 'העלאה ישירה' : item.source === 'ai_generator' ? 'מחולל AI' : 'סריקת AI / ייבוא'}</span>
                             <span className="font-bold">מקור מסמך</span>
                         </div>
                         {item.url && (
                             <div className="flex justify-between">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="text-[#5856D6] hover:underline flex items-center gap-1 font-mono text-[10px] max-w-[200px] truncate">
+                                <a href={item.url} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1 font-mono text-[10px] max-w-[200px] truncate" style={{ color: VAULT }}>
                                     <ExternalLink size={10} /> קישור ישיר לשרת
                                 </a>
                                 <span className="font-bold">קישור הורדה</span>
@@ -359,33 +579,29 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="mt-auto pt-4 border-t border-black/[0.05] space-y-2">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="w-full py-3.5 rounded-xl font-bold text-[13px] text-white flex items-center justify-center gap-2 transition-all"
-                        style={{ background: 'linear-gradient(135deg, #5856D6 0%, #007AFF 100%)', boxShadow: '0 4px 16px rgba(88,86,214,0.25)' }}
-                    >
+                <div className="mt-auto pt-4 space-y-2" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                    <button onClick={handleSave} disabled={saving}
+                        className="w-full py-3.5 rounded-xl font-black text-[13px] text-white flex items-center justify-center gap-2 transition-all"
+                        style={{ background: VGRAD, boxShadow: `0 4px 16px ${hexA(VAULT, 0.28)}` }}>
                         {saving ? 'שומר שינויים...' : 'שמור עדכונים בכספת'}
                     </button>
                     <div className="grid grid-cols-2 gap-2">
-                        {item.url && (
-                            <a
-                                href={item.url}
-                                target="_blank"
-                                download
-                                className="py-2.5 rounded-xl border border-black/10 bg-white hover:bg-black/02 text-[12px] font-bold text-[#1D1D1F] flex items-center justify-center gap-1.5 transition-all text-center"
-                            >
-                                <Download size={13} />
-                                הורד קובץ
+                        {item.url ? (
+                            <a href={item.url} target="_blank" download
+                                className="py-2.5 rounded-xl border text-[12px] font-bold text-[#1D1D1F] flex items-center justify-center gap-1.5 transition-all text-center"
+                                style={{ borderColor: 'rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)' }}>
+                                <Download size={13} /> הורד קובץ
                             </a>
+                        ) : (
+                            <div className="py-2.5 rounded-xl border text-[12px] font-bold text-[#C7C7CC] flex items-center justify-center gap-1.5 text-center cursor-not-allowed"
+                                style={{ borderColor: 'rgba(0,0,0,0.05)', background: 'rgba(0,0,0,0.02)' }}>
+                                <Download size={13} /> אין קובץ
+                            </div>
                         )}
-                        <button
-                            onClick={() => { if (window.confirm('למחוק מסמך זה לצמיתות מהכספת?')) { onDelete(item); onClose(); } }}
-                            className="py-2.5 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-50 text-[12px] font-bold text-red-600 flex items-center justify-center gap-1.5 transition-all text-center"
-                        >
-                            <Trash2 size={13} />
-                            מחק מהכספת
+                        <button onClick={() => { if (window.confirm('למחוק מסמך זה לצמיתות מהכספת?')) { onDelete(item); onClose(); } }}
+                            className="py-2.5 rounded-xl border text-[12px] font-bold text-[#FF3B30] flex items-center justify-center gap-1.5 transition-all text-center"
+                            style={{ borderColor: 'rgba(255,59,48,0.2)', background: 'rgba(255,59,48,0.05)' }}>
+                            <Trash2 size={13} /> מחק מהכספת
                         </button>
                     </div>
                 </div>
@@ -401,13 +617,16 @@ export default function AdminVault() {
     const [customFolders, setCustomFolders] = useState([]);
     const [loadingFolders, setLoadingFolders] = useState(true);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({});
     const [search, setSearch] = useState('');
     const [classificationFilter, setClassificationFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
     const [viewMode, setViewMode] = useState('grid');
     const [copied, setCopied] = useState('');
     const [selectedDoc, setSelectedDoc] = useState(null);
+    const [expandedId, setExpandedId] = useState(null);
 
     // Smart document state
     const [showSmartDoc, setShowSmartDoc] = useState(false);
@@ -436,8 +655,9 @@ export default function AdminVault() {
         const q = query(collection(db, 'vault_documents'), orderBy('createdAt', 'desc'));
         const unsub = onSnapshot(q, snap => {
             setDocuments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setError(null);
             setLoading(false);
-        }, () => setLoading(false));
+        }, () => { setError('שגיאה בטעינת המסמכים מהכספת'); setLoading(false); });
         return unsub;
     }, []);
 
@@ -471,7 +691,7 @@ export default function AdminVault() {
         try {
             // Find docs inside this folder and move them to 'agreements'
             const docsToMove = documents.filter(d => d.folder === folder.id);
-            await Promise.all(docsToMove.map(d => 
+            await Promise.all(docsToMove.map(d =>
                 updateDoc(doc(db, 'vault_documents', d.id), { folder: 'agreements' })
             ));
             await deleteDoc(doc(db, 'vault_folders', folder.id));
@@ -552,6 +772,7 @@ export default function AdminVault() {
     };
 
     const handleCopy = (url) => {
+        if (!url) return;
         navigator.clipboard.writeText(url).then(() => {
             setCopied(url);
             showToast('הקישור הועתק ללוח', 'success');
@@ -559,31 +780,50 @@ export default function AdminVault() {
         });
     };
 
+    const openSmartDoc = () => {
+        setShowSmartDoc(true);
+        setSmartStep('library');
+        setSelectedTemplate(null);
+        setFormValues({});
+        setAiPrompt('');
+        setGeneratedDoc(null);
+    };
+
+    // Docs in the active folder (before classification/type/search) — feeds type pills
+    const folderDocs = documents.filter(d => d.folder === activeFolder);
+    const availableKinds = Array.from(new Set(folderDocs.map(d => fileKind(d).key)));
+
     // Filters logic
-    const filteredDocs = documents.filter(doc => {
-        if (doc.folder !== activeFolder) return false;
-        if (classificationFilter !== 'all' && doc.classification !== classificationFilter) return false;
+    const filteredDocs = folderDocs.filter(docItem => {
+        if (classificationFilter !== 'all' && docItem.classification !== classificationFilter) return false;
+        if (typeFilter !== 'all' && fileKind(docItem).key !== typeFilter) return false;
         if (search) {
             const term = search.toLowerCase();
-            const matchName = doc.name?.toLowerCase().includes(term);
-            const matchTag = doc.tags?.some(t => t.toLowerCase().includes(term));
+            const matchName = docItem.name?.toLowerCase().includes(term);
+            const matchTag = docItem.tags?.some(t => t.toLowerCase().includes(term));
             return matchName || matchTag;
         }
         return true;
     });
 
     const folderStats = folders.map(folder => {
-        const folderDocs = documents.filter(d => d.folder === folder.id);
-        const totalSize = folderDocs.reduce((acc, d) => acc + (d.size || 0), 0);
-        return {
-            ...folder,
-            count: folderDocs.length,
-            size: totalSize
-        };
+        const fDocs = documents.filter(d => d.folder === folder.id);
+        return { ...folder, count: fDocs.length, size: fDocs.reduce((acc, d) => acc + (d.size || 0), 0) };
     });
 
+    // KPI aggregates
     const totalVaultSize = documents.reduce((acc, d) => acc + (d.size || 0), 0);
     const vaultQuota = 100 * 1024 * 1024; // 100 MB free tier quota
+    const quotaPct = Math.min(100, (totalVaultSize / vaultQuota) * 100);
+    const approvedCount = documents.filter(d => d.classification === 'approved').length;
+    const pendingCount = documents.filter(d => d.classification === 'pending').length;
+    const archivedCount = documents.filter(d => d.classification === 'archived').length;
+    const recentCount = documents.filter(d => {
+        const t = d.createdAt?.toDate ? d.createdAt.toDate().getTime() : 0;
+        return t && (Date.now() - t) < 7 * 86400000;
+    }).length;
+
+    const activeFolderObj = folders.find(f => f.id === activeFolder);
 
     return (
         <div dir="rtl" className="space-y-6 font-sans">
@@ -591,150 +831,131 @@ export default function AdminVault() {
                 title="כספת מסמכים דיגיטלית"
                 subtitle="ניהול מאובטח וסיווג חכם של כל הסכמי הלקוחות, הצעות המחיר ומסמכי הספקים של NextClass"
                 action={
-                    <button
-                        onClick={() => {
-                            setShowSmartDoc(true);
-                            setSmartStep('library');
-                            setSelectedTemplate(null);
-                            setFormValues({});
-                            setAiPrompt('');
-                            setGeneratedDoc(null);
-                        }}
-                        className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#5856D6] to-[#007AFF] hover:opacity-90 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                    <motion.button
+                        onClick={openSmartDoc}
+                        whileHover={{ y: -1, boxShadow: `0 8px 26px ${hexA(VAULT, 0.45)}` }}
+                        whileTap={TAP}
+                        className="px-4 py-2.5 rounded-xl font-black text-xs text-white flex items-center gap-1.5"
+                        style={{ background: VGRAD, boxShadow: `0 4px 16px ${hexA(VAULT, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.25)` }}
                     >
                         <Sparkles size={14} />
                         מחולל מסמכים חכם AI
-                    </button>
+                    </motion.button>
                 }
             />
 
-            {/* Quota & Quick stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 p-5 rounded-[22px] flex flex-col justify-between" style={CARD}>
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[12px] font-black text-[#8E8E93]">נפח אחסון מנוצל בכספת</span>
-                            <span className="text-[12px] font-bold text-[#1D1D1F]">
-                                {formatSize(totalVaultSize)} מתוך {formatSize(vaultQuota)}
-                            </span>
-                        </div>
-                        <div className="h-2 bg-[#F2F2F7] rounded-full overflow-hidden">
-                            <div
-                                className="h-full rounded-full bg-gradient-to-l from-[#5856D6] to-[#007AFF] transition-all duration-500"
-                                style={{ width: `${Math.min(100, (totalVaultSize / vaultQuota) * 100)}%` }}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex gap-4 mt-4 pt-4 border-t border-black/[0.04] text-[11px] text-[#8E8E93]">
-                        <div>🛡️ הצפנת קצה-אל-קצה מופעלת</div>
-                        <div>📂 סיווג אוטומטי זמין</div>
-                        <div>⚡ סנכרון Firestore בזמן אמת</div>
-                    </div>
-                </div>
+            {/* KPI band */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <AdminKPICard title="סה״כ מסמכים" value={documents.length}
+                    subtitle={recentCount > 0 ? `${recentCount} הועלו השבוע` : 'כספת מאובטחת'}
+                    icon={<FolderOpen size={20} color={VAULT} />} accent={VAULT} loading={loading} error={error} delay={0} />
+                <AdminKPICard title="מאושרים" value={approvedCount}
+                    subtitle={archivedCount > 0 ? `${archivedCount} בארכיון` : 'מוכנים לשליחה'}
+                    icon={<CheckCircle size={20} color="#30D158" />} accent="#30D158" loading={loading} error={error} delay={0.05} />
+                <AdminKPICard title="ממתינים לבדיקה" value={pendingCount}
+                    subtitle="דורשים סיווג" icon={<Clock size={20} color="#FF9F0A" />} accent="#FF9F0A" loading={loading} error={error} delay={0.1} />
 
-                <div className="p-5 rounded-[22px] flex items-center justify-between" style={CARD}>
-                    <div className="space-y-1">
-                        <span className="text-[10px] font-black text-[#86868B] tracking-widest block">סה״כ מסמכים מאובטחים</span>
-                        <span className="text-3xl font-black text-[#1D1D1F] tracking-tighter">{documents.length}</span>
-                        <span className="text-[10px] text-[#34C759] font-bold block">פעיל ומאובטח ✓</span>
+                {/* Storage tile (KPI-styled with quota bar) */}
+                {loading ? (
+                    <div className="relative overflow-hidden flex flex-col min-h-[140px]" style={accentSurface('#007AFF', { radius: RADIUS.kpi })}>
+                        <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg,#007AFF,rgba(0,122,255,0.4))' }} />
+                        <div className="p-5 flex-1 flex items-center justify-center">
+                            <motion.div className="h-8 w-24 rounded-lg" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ background: 'rgba(0,122,255,0.14)' }} />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-[#5856D6]/10 flex items-center justify-center">
-                        <FolderOpen size={24} className="text-[#5856D6]" />
+                ) : (
+                    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, ...SPRING.soft }}
+                        className="relative overflow-hidden flex flex-col min-h-[140px]" style={accentSurface('#007AFF', { radius: RADIUS.kpi })}>
+                        <div className="h-[3px] w-full pointer-events-none" style={{ background: 'linear-gradient(90deg,#007AFF,rgba(0,122,255,0.6))', borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
+                        <div className="p-5 flex flex-col flex-1">
+                            <div className="flex items-start justify-between mb-3">
+                                <div>
+                                    <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] mb-1.5">נפח אחסון</p>
+                                    <p className="text-[26px] font-black tracking-tighter leading-none text-[#1D1D1F]">{formatSize(totalVaultSize)}</p>
+                                </div>
+                                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
+                                    style={{ background: 'rgba(0,122,255,0.14)', border: '1px solid rgba(0,122,255,0.28)', boxShadow: '0 4px 14px rgba(0,122,255,0.18), inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                                    <HardDrive size={20} color="#007AFF" />
+                                </div>
+                            </div>
+                            <div className="flex-1" />
+                            <div className="h-2 rounded-full overflow-hidden mb-1.5" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                <motion.div className="h-full rounded-full" style={{ background: quotaPct > 85 ? 'linear-gradient(90deg,#FF9500,#FF3B30)' : 'linear-gradient(90deg,#007AFF,#5AC8FA)' }}
+                                    initial={{ width: 0 }} animate={{ width: `${quotaPct}%` }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }} />
+                            </div>
+                            <p className="text-[10px] text-[#86868B] font-medium">{quotaPct.toFixed(0)}% מתוך {formatSize(vaultQuota)}</p>
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+
+            {/* Security assurances strip */}
+            <div className="flex items-center gap-4 flex-wrap px-5 py-3 rounded-[18px]" style={{ ...GLASS.frosted, borderRadius: RADIUS.md }}>
+                {[
+                    { Icon: ShieldCheck, label: 'הצפנת קצה-אל-קצה מופעלת', color: '#34C759' },
+                    { Icon: FolderOpen, label: 'סיווג אוטומטי זמין', color: VAULT },
+                    { Icon: Zap, label: 'סנכרון Firestore בזמן אמת', color: '#FF9F0A' },
+                ].map(({ Icon, label, color }) => (
+                    <div key={label} className="flex items-center gap-2 text-[11px] font-bold text-[#6E6E73]">
+                        <Icon size={13} style={{ color }} />{label}
                     </div>
-                </div>
+                ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 {/* Folders list */}
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between mr-2 mb-1">
+                    <div className="flex items-center justify-between mr-1 mb-2">
                         <p className="text-[10px] font-black text-[#86868B] tracking-widest uppercase">תיקיות כספת</p>
-                        <button
-                            onClick={() => {
-                                const name = prompt('הזן שם עבור התיקייה החדשה:');
-                                if (name) handleCreateFolder(name);
-                            }}
-                            className="text-[#5856D6] hover:text-[#007AFF] p-1 rounded-lg hover:bg-black/05 transition-all"
-                            title="יצירת תיקייה חדשה"
-                        >
-                            <Plus size={14} />
-                        </button>
+                        <motion.button whileTap={TAP}
+                            onClick={() => { const name = prompt('הזן שם עבור התיקייה החדשה:'); if (name) handleCreateFolder(name); }}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                            style={{ background: hexA(VAULT, 0.1), color: VAULT }}
+                            title="יצירת תיקייה חדשה">
+                            <FolderPlus size={14} />
+                        </motion.button>
                     </div>
                     <div className="space-y-1.5">
-                        {folderStats.map(f => (
-                            <div
-                                key={f.id}
-                                className="w-full rounded-2xl text-right flex items-center justify-between transition-all group relative border"
-                                style={{
-                                    background: activeFolder === f.id ? 'rgba(88,86,214,0.1)' : 'rgba(255,255,255,0.72)',
-                                    borderColor: activeFolder === f.id ? 'rgba(88,86,214,0.22)' : 'rgba(0,0,0,0.05)',
-                                }}
-                            >
-                                <button
-                                    onClick={() => { setActiveFolder(f.id); setClassificationFilter('all'); }}
-                                    className="flex-1 p-3.5 text-right flex items-center justify-between"
-                                    style={{ color: activeFolder === f.id ? '#5856D6' : '#1D1D1F' }}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors shrink-0"
-                                            style={{ background: activeFolder === f.id ? 'rgba(88,86,214,0.2)' : f.bg }}
-                                        >
-                                            {f.id === 'agreements' && <FileText size={14} style={{ color: f.color }} />}
-                                            {f.id === 'quotes' && <FileText size={14} style={{ color: f.color }} />}
-                                            {f.id === 'receipts' && <Archive size={14} style={{ color: f.color }} />}
-                                            {f.id === 'suppliers' && <ArrowLeftRight size={14} style={{ color: f.color }} />}
-                                            {f.id === 'product_docs' && <Folder size={14} style={{ color: f.color }} />}
-                                            {!f.system && <Folder size={14} style={{ color: f.color || '#8E8E93' }} />}
+                        {folderStats.map(f => {
+                            const active = activeFolder === f.id;
+                            return (
+                                <motion.div key={f.id} layout
+                                    className="w-full text-right flex items-center justify-between transition-all group relative overflow-hidden"
+                                    style={{
+                                        borderRadius: RADIUS.md,
+                                        background: active ? hexA(VAULT, 0.1) : 'rgba(255,255,255,0.6)',
+                                        border: `1px solid ${active ? hexA(VAULT, 0.24) : 'rgba(0,0,0,0.05)'}`,
+                                        boxShadow: active ? glow(VAULT, 0.1, 22) : 'none',
+                                    }}>
+                                    <button onClick={() => { setActiveFolder(f.id); setClassificationFilter('all'); setTypeFilter('all'); setExpandedId(null); }}
+                                        className="flex-1 p-3 text-right flex items-center gap-3"
+                                        style={{ color: active ? VAULT : '#1D1D1F' }}>
+                                        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                                            style={{ background: active ? hexA(VAULT, 0.18) : (f.bg || 'rgba(0,0,0,0.03)') }}>
+                                            {folderIcon(active ? { ...f, color: VAULT } : f)}
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[12.5px] font-black">{f.name}</p>
+                                        <div className="text-right min-w-0">
+                                            <p className="text-[12.5px] font-black truncate">{f.name}</p>
                                             <p className="text-[9px] text-[#8E8E93] font-mono mt-0.5">{formatSize(f.size)}</p>
                                         </div>
+                                    </button>
+                                    <div className="flex items-center gap-2 pl-3">
+                                        {!f.system && (
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => { e.stopPropagation(); const newName = prompt('עדכן שם תיקייה:', f.name); if (newName) handleRenameFolder(f.id, newName); }}
+                                                    className="p-1 text-[#8E8E93] hover:text-[#007AFF]" title="ערוך שם"><Edit size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); if (confirm(`למחוק את התיקייה "${f.name}"? כל המסמכים בה יועברו ל"הסכמי לקוחות".`)) handleDeleteFolder(f); }}
+                                                    className="p-1 text-[#8E8E93] hover:text-red-500" title="מחק תיקייה"><Trash2 size={12} /></button>
+                                            </div>
+                                        )}
+                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 select-none"
+                                            style={{ background: active ? VAULT : 'rgba(0,0,0,0.06)', color: active ? 'white' : '#8E8E93' }}>
+                                            {f.count}
+                                        </span>
                                     </div>
-                                </button>
-
-                                <div className="flex items-center gap-2 pl-3">
-                                    {!f.system && (
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newName = prompt('עדכן שם תיקייה:', f.name);
-                                                    if (newName) handleRenameFolder(f.id, newName);
-                                                }}
-                                                className="p-1 text-[#8E8E93] hover:text-[#007AFF]"
-                                                title="ערוך שם"
-                                            >
-                                                <Edit size={12} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (confirm(`למחוק את התיקייה "${f.name}"? כל המסמכים בה יועברו ל"הסכמי לקוחות".`)) {
-                                                        handleDeleteFolder(f);
-                                                    }
-                                                }}
-                                                className="p-1 text-[#8E8E93] hover:text-red-500"
-                                                title="מחק תיקייה"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <span
-                                        className="px-2 py-0.5 rounded-full text-[9px] font-bold transition-all shrink-0 select-none"
-                                        style={{
-                                            background: activeFolder === f.id ? '#5856D6' : 'rgba(0,0,0,0.06)',
-                                            color: activeFolder === f.id ? 'white' : '#8E8E93'
-                                        }}
-                                    >
-                                        {f.count}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -747,16 +968,14 @@ export default function AdminVault() {
                     <AnimatePresence>
                         {Object.entries(uploadProgress).map(([name, pct]) => (
                             <motion.div key={name}
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="p-4 rounded-2xl" style={CARD}>
-                                <div className="flex items-center justify-between mb-2 text-[12px] font-bold">
-                                    <span className="text-[#5856D6]">{pct}%</span>
+                                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                className="p-4" style={{ ...CARD }}>
+                                <div className="flex items-center justify-between mb-2 text-[12px] font-black">
+                                    <span style={{ color: VAULT }}>{pct}%</span>
                                     <span className="text-[#86868B] truncate max-w-[250px]">{name}</span>
                                 </div>
-                                <div className="h-1.5 bg-[#F2F2F7] rounded-full overflow-hidden">
-                                    <motion.div animate={{ width: `${pct}%` }} className="h-full rounded-full bg-[#5856D6]" />
+                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                    <motion.div animate={{ width: `${pct}%` }} className="h-full rounded-full" style={{ background: VGRAD }} />
                                 </div>
                             </motion.div>
                         ))}
@@ -764,166 +983,101 @@ export default function AdminVault() {
 
                     {/* Toolbar */}
                     <div className="flex items-center gap-3 flex-wrap">
-                        {/* Search input */}
                         <div className="relative flex-1 min-w-[200px]">
-                            <Search size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
+                            <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2] pointer-events-none" />
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                                 placeholder="חיפוש קובץ או תגית בכספת..."
-                                className="w-full pr-9 pl-4 py-2.5 bg-white rounded-xl text-[13px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 transition-all border border-black/05"
-                                style={CARD}
-                            />
+                                className="w-full pr-10 pl-4 py-2.5 rounded-xl text-[13px] font-medium text-[#1D1D1F] focus:outline-none transition-all"
+                                style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', borderRadius: 13 }}
+                                onFocus={e => { e.target.style.border = `1px solid ${hexA(VAULT, 0.5)}`; e.target.style.boxShadow = `0 0 0 4px ${hexA(VAULT, 0.1)}`; }}
+                                onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.7)'; e.target.style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)'; }} />
                         </div>
 
-                        {/* Classification pills */}
-                        <div className="flex items-center gap-1.5">
-                            {CLASSIFICATIONS.map(c => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => setClassificationFilter(c.id)}
-                                    className="px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border"
-                                    style={{
-                                        background: classificationFilter === c.id ? c.color : 'rgba(255,255,255,0.72)',
-                                        borderColor: classificationFilter === c.id ? 'transparent' : 'rgba(0,0,0,0.06)',
-                                        color: classificationFilter === c.id ? 'white' : '#6E6E73',
-                                        boxShadow: classificationFilter === c.id ? `0 2px 8px ${c.color}33` : 'none'
-                                    }}
-                                >
-                                    {c.label}
-                                </button>
-                            ))}
+                        {/* Classification segment pills */}
+                        <div className="flex items-center gap-1 p-1 rounded-2xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
+                            {CLASSIFICATIONS.map(c => {
+                                const active = classificationFilter === c.id;
+                                return (
+                                    <motion.button key={c.id} onClick={() => setClassificationFilter(c.id)} whileTap={TAP_SOFT}
+                                        className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-colors"
+                                        style={{ color: active ? '#fff' : '#86868B', background: active ? c.color : 'transparent', boxShadow: active ? `0 2px 8px ${hexA(c.color, 0.35)}` : 'none' }}>
+                                        {c.label}
+                                    </motion.button>
+                                );
+                            })}
                         </div>
 
                         {/* View switcher */}
-                        <div className="flex items-center gap-1 p-1 rounded-xl bg-black/05">
-                            {[
-                                { id: 'grid', Icon: Grid },
-                                { id: 'list', Icon: List },
-                            ].map(v => (
-                                <button key={v.id} onClick={() => setViewMode(v.id)}
-                                    className="p-1.5 rounded-lg transition-all"
+                        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
+                            {[{ id: 'grid', Icon: Grid }, { id: 'list', Icon: List }].map(v => (
+                                <button key={v.id} onClick={() => setViewMode(v.id)} className="p-1.5 rounded-lg transition-all"
                                     style={{ background: viewMode === v.id ? 'white' : 'transparent', boxShadow: viewMode === v.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none' }}>
-                                    <v.Icon size={13} className={viewMode === v.id ? 'text-[#5856D6]' : 'text-[#AEAEB2]'} />
+                                    <v.Icon size={14} style={{ color: viewMode === v.id ? VAULT : '#AEAEB2' }} />
                                 </button>
                             ))}
                         </div>
                     </div>
 
+                    {/* Type filter pills (only when multiple kinds present) */}
+                    {availableKinds.length > 1 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {['all', ...availableKinds].map(k => {
+                                const active = typeFilter === k;
+                                return (
+                                    <motion.button key={k} onClick={() => setTypeFilter(k)} whileTap={TAP_SOFT}
+                                        className="px-3 py-1.5 rounded-full text-[10.5px] font-black transition-all"
+                                        style={{
+                                            background: active ? hexA(VAULT, 0.12) : 'rgba(255,255,255,0.6)',
+                                            border: `1px solid ${active ? hexA(VAULT, 0.3) : 'rgba(0,0,0,0.06)'}`,
+                                            color: active ? VAULT : '#86868B',
+                                        }}>
+                                        {KIND_LABELS[k] || k}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     {/* Files display */}
                     {loading ? (
-                        <div className="py-20 text-center">
-                            <div className="w-8 h-8 border-2 border-[#5856D6]/30 border-t-[#5856D6] rounded-full animate-spin mx-auto mb-3" />
+                        <div className="py-20 text-center rounded-[24px]" style={{ ...CARD }}>
+                            <div className="w-9 h-9 rounded-full animate-spin mx-auto mb-3" style={{ border: `2px solid ${hexA(VAULT, 0.25)}`, borderTopColor: VAULT }} />
                             <p className="text-[#AEAEB2] font-bold text-sm">פותח כספת מאובטחת...</p>
                         </div>
+                    ) : error ? (
+                        <div className="rounded-[24px] overflow-hidden" style={{ ...CARD }}>
+                            <AdminEmpty icon="alert" title={error} subtitle="נסה לרענן את הדף או לנסות שוב מאוחר יותר" />
+                        </div>
                     ) : filteredDocs.length === 0 ? (
-                        <div className="py-16 text-center rounded-[24px]" style={CARD}>
-                            <Folder size={40} className="mx-auto text-[#D1D1D6] mb-3" />
-                            <p className="text-[#8E8E93] font-bold">התיקייה ריקה או שלא נמצאו מסמכים מתאימים</p>
-                            <p className="text-[#AEAEB2] text-[11px] mt-1">גרור קבצים לתיבת ההעלאה למעלה כדי להוסיף מסמכים</p>
+                        <div className="rounded-[24px] overflow-hidden" style={{ ...CARD }}>
+                            <AdminEmpty
+                                icon={<Folder size={30} style={{ color: VAULT }} />}
+                                title={search || classificationFilter !== 'all' || typeFilter !== 'all' ? 'לא נמצאו מסמכים תואמים' : `התיקייה "${activeFolderObj?.name || ''}" ריקה`}
+                                subtitle="גרור קבצים לתיבת ההעלאה למעלה, או הפק מסמך חדש עם המחולל החכם"
+                                action={{ label: 'מחולל מסמכים חכם AI', onClick: openSmartDoc }}
+                            />
                         </div>
                     ) : viewMode === 'grid' ? (
                         <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <AnimatePresence>
-                                {filteredDocs.map(doc => {
-                                    const classCfg = CLASSIFICATIONS.find(c => c.id === doc.classification) || CLASSIFICATIONS[0];
-                                    return (
-                                        <motion.div
-                                            key={doc.id}
-                                            layout
-                                            onClick={() => setSelectedDoc(doc)}
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.92 }}
-                                            className="p-4 rounded-2xl flex flex-col justify-between cursor-pointer hover:shadow-md transition-all group relative text-right"
-                                            style={CARD}
-                                        >
-                                            <div>
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <span
-                                                        className="px-2 py-0.5 rounded-md text-[9px] font-bold"
-                                                        style={{ background: `${classCfg.color}15`, color: classCfg.color }}
-                                                    >
-                                                        {classCfg.label}
-                                                    </span>
-                                                    <div className="w-10 h-10 rounded-xl bg-black/[0.02] border border-black/[0.04] flex items-center justify-center">
-                                                        <FileText size={18} className="text-[#8E8E93]" />
-                                                    </div>
-                                                </div>
-                                                <p className="text-[13px] font-black text-[#1D1D1F] line-clamp-2 leading-snug" title={doc.name}>
-                                                    {doc.name}
-                                                </p>
-                                                {doc.tags && doc.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-2.5">
-                                                        {doc.tags.map(t => (
-                                                            <span key={t} className="px-1.5 py-0.5 bg-black/[0.03] text-[#8E8E93] text-[8px] rounded font-bold">
-                                                                #{t}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-black/[0.04] text-[10px] text-[#AEAEB2]">
-                                                <span>{formatSize(doc.size)}</span>
-                                                <span>{doc.createdAt?.toDate ? doc.createdAt.toDate().toLocaleDateString('he-IL') : ''}</span>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
+                                {filteredDocs.map((docItem, i) => (
+                                    <VaultDocCard key={docItem.id} item={docItem} index={i}
+                                        onOpen={setSelectedDoc} onCopy={handleCopy} copied={copied} />
+                                ))}
                             </AnimatePresence>
                         </motion.div>
                     ) : (
-                        <div className="rounded-[22px] overflow-hidden" style={CARD}>
-                            <div className="divide-y divide-black/[0.04]">
-                                {filteredDocs.map(doc => {
-                                    const classCfg = CLASSIFICATIONS.find(c => c.id === doc.classification) || CLASSIFICATIONS[0];
-                                    return (
-                                        <div
-                                            key={doc.id}
-                                            onClick={() => setSelectedDoc(doc)}
-                                            className="flex items-center gap-4 px-5 py-3.5 hover:bg-black/[0.01] transition-colors group cursor-pointer"
-                                        >
-                                            <div className="w-10 h-10 rounded-xl bg-black/[0.02] border border-black/[0.04] flex items-center justify-center shrink-0">
-                                                <FileText size={16} className="text-[#8E8E93]" />
-                                            </div>
-                                            <div className="flex-1 min-w-0 text-right">
-                                                <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{doc.name}</p>
-                                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[#AEAEB2]">
-                                                    <span>{formatSize(doc.size)}</span>
-                                                    <span>•</span>
-                                                    <span>{doc.createdAt?.toDate ? doc.createdAt.toDate().toLocaleDateString('he-IL') : ''}</span>
-                                                    {doc.tags && doc.tags.length > 0 && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className="truncate max-w-[150px]">{doc.tags.map(t => `#${t}`).join(', ')}</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <span
-                                                    className="px-2 py-0.5 rounded-md text-[9px] font-bold"
-                                                    style={{ background: `${classCfg.color}15`, color: classCfg.color }}
-                                                >
-                                                    {classCfg.label}
-                                                </span>
-                                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {doc.url && (
-                                                        <button
-                                                            onClick={e => { e.stopPropagation(); handleCopy(doc.url); }}
-                                                            className="p-1.5 rounded-lg hover:bg-black/05 text-[#AEAEB2] hover:text-[#1D1D1F] transition-all"
-                                                        >
-                                                            {copied === doc.url ? <Check size={12} className="text-[#30D158]" /> : <Copy size={12} />}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <motion.div layout className="space-y-2">
+                            <AnimatePresence>
+                                {filteredDocs.map((docItem, i) => (
+                                    <VaultDocRow key={docItem.id} item={docItem} index={i} folders={folders}
+                                        expanded={expandedId === docItem.id}
+                                        onToggle={id => setExpandedId(prev => prev === id ? null : id)}
+                                        onUpdate={handleUpdateDoc} onDelete={handleDeleteDoc}
+                                        onCopy={handleCopy} copied={copied} onOpenDetail={setSelectedDoc} />
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
                     )}
                 </div>
             </div>
@@ -944,24 +1098,25 @@ export default function AdminVault() {
             {/* Smart document dialog */}
             <AnimatePresence>
                 {showSmartDoc && (
-                    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-md" dir="rtl">
+                    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 sm:p-6" dir="rtl"
+                        style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="w-full max-w-6xl h-[85vh] rounded-[28px] overflow-hidden flex flex-col font-sans"
-                            style={GLASS}
+                            initial={{ opacity: 0, scale: 0.95, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ ...SPRING.pill }}
+                            className="w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col font-sans"
+                            style={{ ...GLASS.sheet, borderRadius: RADIUS.sheetLg }}
                         >
+                            {/* Accent strip */}
+                            <div className="h-[3px]" style={{ background: VGRAD }} />
                             {/* Header */}
-                            <div className="flex items-center justify-between px-6 py-4 bg-[#F8F8FC] border-b border-black/05">
-                                <button
-                                    onClick={() => setShowSmartDoc(false)}
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#AEAEB2] hover:text-[#1D1D1F] hover:bg-black/05 transition-all"
-                                >
+                            <div className="flex items-center justify-between px-6 py-4"
+                                style={{ background: 'rgba(248,248,252,0.92)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                <motion.button whileTap={{ scale: 0.88 }} onClick={() => setShowSmartDoc(false)}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#AEAEB2] hover:text-[#1D1D1F] hover:bg-black/05 transition-all">
                                     <X size={16} />
-                                </button>
+                                </motion.button>
                                 <div className="flex items-center gap-2">
-                                    <Sparkles size={18} className="text-[#5856D6] animate-pulse" />
+                                    <Sparkles size={18} style={{ color: VAULT }} className="animate-pulse" />
                                     <h3 className="font-black text-[#1D1D1F] text-base">מחולל מסמכים חכם NextClass AI</h3>
                                 </div>
                             </div>
@@ -978,38 +1133,29 @@ export default function AdminVault() {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                                            {/* System Templates */}
                                             {SMART_TEMPLATES.map(tpl => (
-                                                <div
-                                                    key={tpl.id}
-                                                    onClick={() => {
-                                                        setSelectedTemplate(tpl);
-                                                        setFormValues({});
-                                                        setSmartStep('compose');
-                                                    }}
-                                                    className="p-5 rounded-2xl border border-black/05 bg-white/60 hover:bg-white hover:border-[#5856D6]/40 hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
-                                                >
+                                                <motion.div key={tpl.id} whileHover={{ y: -3 }} whileTap={TAP_SOFT}
+                                                    onClick={() => { setSelectedTemplate(tpl); setFormValues({}); setSmartStep('compose'); }}
+                                                    className="p-5 cursor-pointer transition-all flex flex-col justify-between"
+                                                    style={{ ...CARD, borderRadius: RADIUS.card }}>
                                                     <div className="space-y-2">
-                                                        <div className="w-10 h-10 rounded-xl bg-[#5856D6]/10 flex items-center justify-center">
-                                                            <FileText size={18} className="text-[#5856D6]" />
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: hexA(VAULT, 0.1), border: `1px solid ${hexA(VAULT, 0.2)}` }}>
+                                                            <FileText size={18} style={{ color: VAULT }} />
                                                         </div>
                                                         <h5 className="font-black text-[#1D1D1F] text-[14px]">{tpl.title}</h5>
                                                         <p className="text-[11px] text-[#86868B] leading-relaxed">{tpl.description}</p>
                                                     </div>
                                                     <span className="text-[9px] text-[#AEAEB2] mt-4 font-bold">{tpl.legalBasis}</span>
-                                                </div>
+                                                </motion.div>
                                             ))}
 
                                             {/* AI Custom Prompt Card */}
-                                            <div
-                                                onClick={() => {
-                                                    setSmartStep('ai');
-                                                    setAiPrompt('');
-                                                }}
-                                                className="p-5 rounded-2xl border border-dashed border-[#FF9500]/40 bg-gradient-to-br from-[#FFF9F2]/60 to-white hover:border-[#FF9500] hover:shadow-md cursor-pointer transition-all flex flex-col justify-between"
-                                            >
+                                            <motion.div whileHover={{ y: -3 }} whileTap={TAP_SOFT}
+                                                onClick={() => { setSmartStep('ai'); setAiPrompt(''); }}
+                                                className="p-5 cursor-pointer transition-all flex flex-col justify-between"
+                                                style={{ borderRadius: RADIUS.card, border: '1px dashed rgba(255,149,0,0.4)', background: 'linear-gradient(160deg, rgba(255,249,242,0.7), #fff)', boxShadow: SHADOW.sm }}>
                                                 <div className="space-y-2">
-                                                    <div className="w-10 h-10 rounded-xl bg-[#FF9500]/10 flex items-center justify-center">
+                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,149,0,0.1)' }}>
                                                         <Sparkles size={18} className="text-[#FF9500]" />
                                                     </div>
                                                     <h5 className="font-black text-[#1D1D1F] text-[14px]">ניסוח חופשי באמצעות AI</h5>
@@ -1018,7 +1164,7 @@ export default function AdminVault() {
                                                     </p>
                                                 </div>
                                                 <span className="text-[9px] text-[#FF9500] mt-4 font-bold">טיוטה מהירה מבוססת Gemini Flash</span>
-                                            </div>
+                                            </motion.div>
                                         </div>
                                     </div>
                                 )}
@@ -1026,13 +1172,9 @@ export default function AdminVault() {
                                 {smartStep === 'compose' && selectedTemplate && (
                                     <div className="flex-1 flex overflow-hidden">
                                         {/* Fields Form (Right side) */}
-                                        <div className="w-1/2 p-6 overflow-y-auto border-l border-black/05 space-y-4">
-                                            <button
-                                                onClick={() => setSmartStep('library')}
-                                                className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]"
-                                            >
-                                                <ArrowRight size={12} />
-                                                חזרה לבחירת תבנית
+                                        <div className="w-1/2 p-6 overflow-y-auto space-y-4" style={{ borderLeft: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <button onClick={() => setSmartStep('library')} className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]">
+                                                <ArrowRight size={12} /> חזרה לבחירת תבנית
                                             </button>
                                             <h4 className="font-black text-[#1D1D1F] text-[15px]">{selectedTemplate.title}</h4>
 
@@ -1043,51 +1185,47 @@ export default function AdminVault() {
                                                             {f.label} {f.required && <span className="text-red-500">*</span>}
                                                         </label>
                                                         {f.type === 'textarea' ? (
-                                                            <textarea
-                                                                value={formValues[f.key] || ''}
+                                                            <textarea value={formValues[f.key] || ''}
                                                                 onChange={e => setFormValues(prev => ({ ...prev, [f.key]: e.target.value }))}
-                                                                placeholder={f.placeholder}
-                                                                rows={4}
-                                                                className="w-full rounded-xl px-4 py-2.5 bg-white border border-black/09 text-sm focus:outline-none focus:border-[#5856D6] transition-all resize-none text-right"
-                                                            />
+                                                                placeholder={f.placeholder} rows={4}
+                                                                className="w-full rounded-xl px-4 py-2.5 bg-white text-sm focus:outline-none transition-all resize-none text-right"
+                                                                style={{ border: '1px solid rgba(0,0,0,0.09)' }}
+                                                                onFocus={e => e.target.style.border = `1px solid ${VAULT}`}
+                                                                onBlur={e => e.target.style.border = '1px solid rgba(0,0,0,0.09)'} />
                                                         ) : (
-                                                            <input
-                                                                type={f.type === 'money' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                                                            <input type={f.type === 'money' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                                                                 value={formValues[f.key] || ''}
                                                                 onChange={e => setFormValues(prev => ({ ...prev, [f.key]: e.target.value }))}
                                                                 placeholder={f.placeholder}
-                                                                className="w-full rounded-xl px-4 py-2.5 bg-white border border-black/09 text-sm focus:outline-none focus:border-[#5856D6] transition-all text-right"
-                                                            />
+                                                                className="w-full rounded-xl px-4 py-2.5 bg-white text-sm focus:outline-none transition-all text-right"
+                                                                style={{ border: '1px solid rgba(0,0,0,0.09)' }}
+                                                                onFocus={e => e.target.style.border = `1px solid ${VAULT}`}
+                                                                onBlur={e => e.target.style.border = '1px solid rgba(0,0,0,0.09)'} />
                                                         )}
                                                     </div>
                                                 ))}
 
-                                                <button
+                                                <motion.button whileTap={TAP}
                                                     onClick={() => {
-                                                        // Validate required
                                                         const missing = selectedTemplate.fields.filter(f => f.required && !formValues[f.key]);
                                                         if (missing.length) {
                                                             showToast(`נא למלא את כל שדות החובה: ${missing.map(m => m.label).join(', ')}`, 'error');
                                                             return;
                                                         }
                                                         const html = selectedTemplate.templateHtml(formValues);
-                                                        setGeneratedDoc({
-                                                            title: selectedTemplate.title,
-                                                            html,
-                                                            folder: selectedTemplate.category
-                                                        });
+                                                        setGeneratedDoc({ title: selectedTemplate.title, html, folder: selectedTemplate.category });
                                                         setSmartStep('preview');
                                                     }}
-                                                    className="w-full py-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#5856D6] to-[#007AFF] hover:opacity-90 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                                                >
-                                                    תצוגה מקדימה והפקה
-                                                </button>
+                                                    className="w-full py-3 rounded-xl font-black text-xs text-white transition-all flex items-center justify-center gap-1.5"
+                                                    style={{ background: VGRAD, boxShadow: `0 4px 16px ${hexA(VAULT, 0.3)}` }}>
+                                                    <Eye size={14} /> תצוגה מקדימה והפקה
+                                                </motion.button>
                                             </div>
                                         </div>
 
                                         {/* Live/Static Preview (Left side) */}
-                                        <div className="w-1/2 p-6 bg-black/[0.02] flex items-center justify-center overflow-y-auto">
-                                            <div className="w-full max-w-lg bg-white rounded-2xl shadow-sm border border-black/05 p-6 h-[90%] overflow-y-auto">
+                                        <div className="w-1/2 p-6 flex items-center justify-center overflow-y-auto" style={{ background: 'rgba(0,0,0,0.02)' }}>
+                                            <div className="w-full max-w-lg bg-white rounded-2xl p-6 h-[90%] overflow-y-auto" style={{ boxShadow: SHADOW.md, border: '1px solid rgba(0,0,0,0.05)' }}>
                                                 <div dangerouslySetInnerHTML={{ __html: selectedTemplate.templateHtml(formValues) }} />
                                             </div>
                                         </div>
@@ -1096,35 +1234,27 @@ export default function AdminVault() {
 
                                 {smartStep === 'ai' && (
                                     <div className="flex-1 flex overflow-hidden">
-                                        <div className="w-1/2 p-6 overflow-y-auto border-l border-black/05 space-y-4 flex flex-col justify-between">
+                                        <div className="w-1/2 p-6 overflow-y-auto space-y-4 flex flex-col justify-between" style={{ borderLeft: '1px solid rgba(0,0,0,0.05)' }}>
                                             <div className="space-y-4">
-                                                <button
-                                                    onClick={() => setSmartStep('library')}
-                                                    className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]"
-                                                >
-                                                    <ArrowRight size={12} />
-                                                    חזרה לבחירת תבנית
+                                                <button onClick={() => setSmartStep('library')} className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]">
+                                                    <ArrowRight size={12} /> חזרה לבחירת תבנית
                                                 </button>
                                                 <h4 className="font-black text-[#1D1D1F] text-[15px]">ניסוח מסמך מותאם עם AI</h4>
-                                                
                                                 <div>
                                                     <label className="block text-[#6E6E73] text-[10px] font-black tracking-widest mb-1.5">הנחיות לניסוח המסמך</label>
-                                                    <textarea
-                                                        value={aiPrompt}
-                                                        onChange={e => setAiPrompt(e.target.value)}
+                                                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
                                                         placeholder="לדוגמה: מכתב דרישה רשמי לעיריית תל אביב לתשלום חוב על סך 24,000 ש״ח עבור אספקת מחשבים ניידים לבית ספר רוגוזין. ציין כי האיחור בתשלום גורר ריבית פיגורים."
                                                         rows={6}
-                                                        className="w-full rounded-xl px-4 py-2.5 bg-white border border-black/09 text-sm focus:outline-none focus:border-[#5856D6] transition-all resize-none text-right"
-                                                    />
+                                                        className="w-full rounded-xl px-4 py-2.5 bg-white text-sm focus:outline-none transition-all resize-none text-right"
+                                                        style={{ border: '1px solid rgba(0,0,0,0.09)' }}
+                                                        onFocus={e => e.target.style.border = `1px solid ${VAULT}`}
+                                                        onBlur={e => e.target.style.border = '1px solid rgba(0,0,0,0.09)'} />
                                                 </div>
                                             </div>
 
-                                            <button
+                                            <motion.button whileTap={TAP}
                                                 onClick={async () => {
-                                                    if (!aiPrompt.trim()) {
-                                                        showToast('נא להזין הנחיות לניסוח המסמך', 'error');
-                                                        return;
-                                                    }
+                                                    if (!aiPrompt.trim()) { showToast('נא להזין הנחיות לניסוח המסמך', 'error'); return; }
                                                     setDrafting(true);
                                                     try {
                                                         const res = await fetch('/api/concierge', {
@@ -1137,19 +1267,10 @@ export default function AdminVault() {
                                                         });
                                                         const data = await res.json();
                                                         if (data.response) {
-                                                            // Strip ```html and ``` if present
                                                             let cleaned = data.response.trim();
-                                                            if (cleaned.startsWith('```html')) {
-                                                                cleaned = cleaned.slice(7);
-                                                            }
-                                                            if (cleaned.endsWith('```')) {
-                                                                cleaned = cleaned.slice(0, -3);
-                                                            }
-                                                            setGeneratedDoc({
-                                                                title: 'מסמך AI מותאם',
-                                                                html: cleaned,
-                                                                folder: 'agreements'
-                                                            });
+                                                            if (cleaned.startsWith('```html')) cleaned = cleaned.slice(7);
+                                                            if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+                                                            setGeneratedDoc({ title: 'מסמך AI מותאם', html: cleaned, folder: 'agreements' });
                                                             setSmartStep('preview');
                                                         } else {
                                                             showToast('שגיאה בהפקת המסמך מה-AI', 'error');
@@ -1161,23 +1282,17 @@ export default function AdminVault() {
                                                     }
                                                 }}
                                                 disabled={drafting}
-                                                className="w-full py-3.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#FF9500] to-[#FF2D55] hover:opacity-90 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                                            >
+                                                className="w-full py-3.5 rounded-xl font-black text-xs text-white transition-all flex items-center justify-center gap-1.5"
+                                                style={{ background: 'linear-gradient(135deg,#FF9500,#FF2D55)', boxShadow: '0 4px 16px rgba(255,149,0,0.3)' }}>
                                                 {drafting ? (
-                                                    <>
-                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                        מנסח מסמך בעזרת Gemini...
-                                                    </>
+                                                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> מנסח מסמך בעזרת Gemini...</>
                                                 ) : (
-                                                    <>
-                                                        <Sparkles size={14} />
-                                                        נסח מסמך בעזרת AI
-                                                    </>
+                                                    <><Sparkles size={14} /> נסח מסמך בעזרת AI</>
                                                 )}
-                                            </button>
+                                            </motion.button>
                                         </div>
 
-                                        <div className="w-1/2 p-6 bg-black/[0.02] flex flex-col items-center justify-center">
+                                        <div className="w-1/2 p-6 flex flex-col items-center justify-center" style={{ background: 'rgba(0,0,0,0.02)' }}>
                                             <div className="text-center space-y-2 text-[#AEAEB2]">
                                                 <Sparkles size={32} className="mx-auto animate-pulse text-[#FF9500]" />
                                                 <p className="font-bold text-sm">הבינה המלאכותית מוכנה לנסח עבורך</p>
@@ -1192,43 +1307,28 @@ export default function AdminVault() {
                                 {smartStep === 'preview' && generatedDoc && (
                                     <div className="flex-1 flex overflow-hidden">
                                         {/* Editor/Saver (Right side) */}
-                                        <div className="w-1/3 p-6 overflow-y-auto border-l border-black/05 flex flex-col justify-between">
+                                        <div className="w-1/3 p-6 overflow-y-auto flex flex-col justify-between" style={{ borderLeft: '1px solid rgba(0,0,0,0.05)' }}>
                                             <div className="space-y-4">
-                                                <button
-                                                    onClick={() => setSmartStep(selectedTemplate ? 'compose' : 'ai')}
-                                                    className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]"
-                                                >
-                                                    <ArrowRight size={12} />
-                                                    חזרה לעריכה
+                                                <button onClick={() => setSmartStep(selectedTemplate ? 'compose' : 'ai')} className="flex items-center gap-1 text-[11px] font-bold text-[#86868B] hover:text-[#1D1D1F]">
+                                                    <ArrowRight size={12} /> חזרה לעריכה
                                                 </button>
                                                 <h4 className="font-black text-[#1D1D1F] text-[15px]">אשר ושמור מסמך</h4>
-
                                                 <div>
                                                     <label className="block text-[#6E6E73] text-[10px] font-black tracking-widest mb-1.5">שם המסמך בכספת</label>
-                                                    <input
-                                                        type="text"
-                                                        value={generatedDoc.title}
-                                                        onChange={e => setGeneratedDoc(prev => ({ ...prev, title: e.target.value }))}
-                                                        className="w-full rounded-xl px-4 py-2.5 bg-white border border-black/09 text-sm focus:outline-none focus:border-[#5856D6] transition-all text-right font-bold"
-                                                    />
+                                                    <input type="text" value={generatedDoc.title} onChange={e => setGeneratedDoc(prev => ({ ...prev, title: e.target.value }))}
+                                                        className="w-full rounded-xl px-4 py-2.5 bg-white text-sm focus:outline-none transition-all text-right font-bold" style={{ border: '1px solid rgba(0,0,0,0.09)' }} />
                                                 </div>
-
                                                 <div>
                                                     <label className="block text-[#6E6E73] text-[10px] font-black tracking-widest mb-1.5">תיקיית יעד</label>
-                                                    <select
-                                                        value={generatedDoc.folder}
-                                                        onChange={e => setGeneratedDoc(prev => ({ ...prev, folder: e.target.value }))}
-                                                        className="w-full rounded-xl px-4 py-2.5 bg-white border border-black/09 text-sm focus:outline-none focus:border-[#5856D6] transition-all text-right"
-                                                    >
-                                                        {folders.map(f => (
-                                                            <option key={f.id} value={f.id}>{f.name}</option>
-                                                        ))}
+                                                    <select value={generatedDoc.folder} onChange={e => setGeneratedDoc(prev => ({ ...prev, folder: e.target.value }))}
+                                                        className="w-full rounded-xl px-4 py-2.5 bg-white text-sm focus:outline-none transition-all text-right" style={{ border: '1px solid rgba(0,0,0,0.09)' }}>
+                                                        {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                                     </select>
                                                 </div>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <button
+                                                <motion.button whileTap={TAP}
                                                     onClick={async () => {
                                                         setDrafting(true);
                                                         try {
@@ -1266,29 +1366,27 @@ export default function AdminVault() {
                                                         }
                                                     }}
                                                     disabled={drafting}
-                                                    className="w-full py-3.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#34C759] to-[#30D158] hover:opacity-90 transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                                                >
-                                                    {drafting ? 'שומר קובץ...' : 'אשר ושמור לכספת'}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        const w = window.open('', '_blank');
-                                                        w.document.write(generatedDoc.html);
-                                                        w.document.close();
-                                                        w.focus();
-                                                        setTimeout(() => w.print(), 250);
-                                                    }}
-                                                    className="w-full py-3 rounded-xl border border-black/10 text-xs font-bold text-[#1D1D1F] hover:bg-black/02 transition-all flex items-center justify-center gap-1.5"
-                                                >
-                                                    <Printer size={13} />
-                                                    הדפס מסמך / שמור כ-PDF
+                                                    className="w-full py-3.5 rounded-xl font-black text-xs text-white transition-all flex items-center justify-center gap-1.5"
+                                                    style={{ background: 'linear-gradient(135deg,#34C759,#30D158)', boxShadow: '0 4px 16px rgba(52,199,89,0.3)' }}>
+                                                    {drafting ? 'שומר קובץ...' : <><CheckCircle size={14} /> אשר ושמור לכספת</>}
+                                                </motion.button>
+                                                <button onClick={() => {
+                                                    const w = window.open('', '_blank');
+                                                    w.document.write(generatedDoc.html);
+                                                    w.document.close();
+                                                    w.focus();
+                                                    setTimeout(() => w.print(), 250);
+                                                }}
+                                                    className="w-full py-3 rounded-xl border text-xs font-bold text-[#1D1D1F] hover:bg-black/02 transition-all flex items-center justify-center gap-1.5"
+                                                    style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                                                    <Printer size={13} /> הדפס מסמך / שמור כ-PDF
                                                 </button>
                                             </div>
                                         </div>
 
                                         {/* Document Sheet Preview */}
-                                        <div className="w-2/3 p-6 bg-[#8E8E93]/10 flex items-center justify-center overflow-y-auto">
-                                            <div className="w-full max-w-2xl bg-white rounded-[20px] shadow-lg border border-black/05 p-12 min-h-[90%] overflow-y-auto">
+                                        <div className="w-2/3 p-6 flex items-center justify-center overflow-y-auto" style={{ background: 'rgba(142,142,147,0.1)' }}>
+                                            <div className="w-full max-w-2xl bg-white rounded-[20px] p-12 min-h-[90%] overflow-y-auto" style={{ boxShadow: SHADOW.lg, border: '1px solid rgba(0,0,0,0.05)' }}>
                                                 <div dangerouslySetInnerHTML={{ __html: generatedDoc.html }} />
                                             </div>
                                         </div>
