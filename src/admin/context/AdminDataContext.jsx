@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, storage } from '../../firebase';
+import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 import initialProducts from '../../data/products';
 import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
+import { buildAmalPO, amalPoHtml } from '../../data/amalPO';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -522,6 +524,43 @@ export function AdminDataProvider({ children }) {
         return { removed, seeded: initialProducts.length };
     };
 
+    // Purge demo dashboard data. Keeps products/suppliers/supplier_quotes/supplier_orders.
+    const purgeDemoData = async () => {
+        const CLEAR = ['orders','quotes','leads','contacts','customers','newsletter_subs','product_questions','activity','page_views','pending_emails','coupons','comm_templates','security_logs'];
+        let total = 0;
+        for (const name of CLEAR) {
+            const snap = await getDocs(collection(db, name));
+            const docs = snap.docs;
+            for (let i = 0; i < docs.length; i += 400) {
+                const b = writeBatch(db);
+                docs.slice(i, i + 400).forEach(d => b.delete(d.ref));
+                await b.commit();
+            }
+            total += docs.length;
+        }
+        addActivity(`נמחקו ${total} רשומות דמו מהדשבורד`, 'info');
+        return total;
+    };
+
+    // One-time: create the first real order from the Amal PO + save a document to the vault.
+    const createAmalFirstOrder = async () => {
+        const PO = buildAmalPO();
+        await setDoc(doc(db, 'quotes', PO.id), PO);
+        await setDoc(doc(db, 'ocr_intakes', PO.id), { ...PO, kind: 'purchase_order', status: 'approved', approvedAt: PO.createdTs, confidence: 100, createdAt: serverTimestamp() });
+        const html = amalPoHtml(PO);
+        const path = 'vault/PO-80363169_amal.html';
+        const r = storageRef(storage, path);
+        await uploadString(r, html, 'raw', { contentType: 'text/html' });
+        const url = await getDownloadURL(r);
+        await setDoc(doc(db, 'vault_documents', PO.id), {
+            id: PO.id, name: 'הזמנת רכש 80363169 — עמל (צפת מעיינות)', type: 'text/html', url, path,
+            folder: 'quotes', classification: 'approved', tags: ['עמל', 'הזמנת רכש'],
+            source: 'po', relatedOrderId: PO.id, size: html.length, createdAt: serverTimestamp(),
+        });
+        addActivity('נוצרה הזמנה ראשונה מ-PO עמל 80363169 ונשמרה בכספת', 'order');
+        return PO.id;
+    };
+
     // KPI calculations — includes both orders (e-commerce) and quotes (pipeline)
     const kpis = React.useMemo(() => {
         const now = new Date();
@@ -607,7 +646,7 @@ export function AdminDataProvider({ children }) {
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
         addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
-        repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, markOrdersSeen, clearReminder,
+        repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,

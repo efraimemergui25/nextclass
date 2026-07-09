@@ -41,7 +41,7 @@ function SettingCard({ title, Icon, accent = '#007AFF', children, delay = 0 }) {
 
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
-    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog } = useAdminData();
+    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
 
@@ -331,6 +331,24 @@ export default function AdminSettings() {
                                 }
                             }}>אפס קטלוג ל-3 המסכים בלבד</AdminButton>
                             <p className="text-[10px] text-[#AEAEB2]">מוחק את כל המוצרים וטוען מחדש 3 מסכים אמיתיים. לאחר מכן אפשר לערוך פרטים ולהעלות תמונות אמיתיות ב"מוצרים".</p>
+                        </div>
+                        <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                            <AdminButton variant="danger" onClick={async () => {
+                                if (confirm('למחוק את כל נתוני הדמו מהדשבורד?\n\nנמחק: הזמנות, הצעות מחיר, לידים, אנשי קשר, לקוחות, שאלות, ניוזלטר, יומן פעילות, צפיות, מיילים ממתינים, קופונים, לוגים.\nלא ייגע: מלאי, ספקים, הצעות ספקים.\n\nפעולה בלתי הפיכה. להמשיך?')) {
+                                    try { const n = await purgeDemoData(); showToast(`נמחקו ${n} רשומות דמו מהדשבורד`, 'success'); }
+                                    catch (err) { showToast('שגיאה במחיקת נתוני הדמו', 'error'); }
+                                }
+                            }}>מחק נתוני דמו מהדשבורד</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">מנקה הזמנות/לקוחות/אנליטיקות דמו. שומר על מלאי, ספקים והצעות ספקים.</p>
+                        </div>
+                        <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                            <AdminButton variant="outline" onClick={async () => {
+                                if (confirm('ליצור את ההזמנה הראשונה מ-PO של עמל (#80363169) ולשמור אותה בכספת?\n\n2× מסך ASUS VA279QG-J 27", סה"כ ₪885 כולל מע"מ.')) {
+                                    try { await createAmalFirstOrder(); showToast('ההזמנה הראשונה (PO עמל 80363169) נוצרה ונשמרה בכספת ✓', 'success'); }
+                                    catch (err) { showToast('שגיאה ביצירת ההזמנה: ' + err.message, 'error'); }
+                                }
+                            }}>צור הזמנה ראשונה מ-PO עמל (#80363169)</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">יוצר את ההזמנה הראשונה בפייפליין (הצעות מחיר) עם כל פרטי ה-PO, ושומר מסמך בכספת. פעולה חד-פעמית.</p>
                         </div>
                     </div>
                 </SettingCard>
