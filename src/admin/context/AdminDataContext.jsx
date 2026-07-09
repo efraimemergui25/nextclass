@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
 import { db } from '../../firebase';
 import initialProducts from '../../data/products';
+import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -489,6 +490,38 @@ export function AdminDataProvider({ children }) {
         addActivity(`בוצע סנכרון מחדש של בסיס הנתונים`, 'info');
     };
 
+    // ─── Launch Cleanup ─────────────────────────────────────────────────────
+    // Overwrite ONLY the known fabricated CMS keys with clean values (merge),
+    // neutralising fake testimonials/stats/partners/reviews/timeline in the LIVE db
+    // without touching any legitimate configuration.
+    const resetMarketingContent = async () => {
+        await setDoc(doc(db, 'config', 'cms'), CMS_CLEAN_OVERRIDES, { merge: true });
+        addActivity('תוכן שיווקי אופס לברירות מחדל נקיות (הוסרו נתונים פקטיביים)', 'info');
+        return Object.keys(CMS_CLEAN_OVERRIDES).length;
+    };
+
+    // Delete EVERY product, then seed exactly the 3 real monitors. Destructive —
+    // guarded by a confirmation in the UI. Guarantees a clean launch catalog.
+    const wipeAndReseedCatalog = async () => {
+        const snap = await getDocs(collection(db, 'products'));
+        const batch = writeBatch(db);
+        let removed = 0;
+        snap.forEach(d => { batch.delete(d.ref); removed++; });
+        initialProducts.forEach(p => {
+            batch.set(doc(db, 'products', p.id.toString()), {
+                ...p,
+                stock: p.stock ?? 0,
+                threshold: p.threshold ?? 5,
+                sold: 0,
+                isActive: true,
+                sku: p.sku || `NC-${p.id}`,
+            });
+        });
+        await batch.commit();
+        addActivity(`קטלוג אופס: נמחקו ${removed} מוצרים, נטענו ${initialProducts.length} מסכים אמיתיים`, 'product');
+        return { removed, seeded: initialProducts.length };
+    };
+
     // KPI calculations — includes both orders (e-commerce) and quotes (pipeline)
     const kpis = React.useMemo(() => {
         const now = new Date();
@@ -574,7 +607,7 @@ export function AdminDataProvider({ children }) {
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
         addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
-        repairProductImages, reseedDatabase, markOrdersSeen, clearReminder,
+        repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,

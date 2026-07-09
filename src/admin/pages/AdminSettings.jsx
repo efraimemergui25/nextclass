@@ -41,7 +41,7 @@ function SettingCard({ title, Icon, accent = '#007AFF', children, delay = 0 }) {
 
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
-    const { repairProductImages, reseedDatabase } = useAdminData();
+    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
 
@@ -303,6 +303,34 @@ export default function AdminSettings() {
                                 }
                             }}>סנכרון מלא מחדש (Reseed)</AdminButton>
                             <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף מהמקור. שומר על מלאי ומכירות קיימים.</p>
+                        </div>
+                    </div>
+                </SettingCard>
+
+                {/* ── Launch Cleanup ────────────────────────────────────────── */}
+                <SettingCard title="ניקוי להשקה (Launch Cleanup)" Icon={Wrench} accent="#FF9500">
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <AdminButton variant="outline" onClick={async () => {
+                                if (confirm('לאפס את התוכן השיווקי בבסיס הנתונים החי לברירות מחדל נקיות?\n\nהפעולה מסירה נתונים פקטיביים שהוזנו בעבר (המלצות, סטטיסטיקות, שותפים, ביקורות, טיימליין). הגדרות אמיתיות (טלפונים, מתגים) לא ייפגעו.')) {
+                                    try {
+                                        const n = await resetMarketingContent();
+                                        showToast(`תוכן שיווקי נוקה — ${n} שדות אופסו לברירת מחדל נקייה`, 'success');
+                                    } catch (e) { showToast('שגיאה בניקוי התוכן', 'error'); }
+                                }
+                            }}>אפס תוכן שיווקי לברירת מחדל נקייה</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">מסיר מה-Firestore החי המלצות, סטטיסטיקות ושותפים פקטיביים. בטוח — לא נוגע בהגדרות אמיתיות.</p>
+                        </div>
+                        <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                            <AdminButton variant="danger" onClick={async () => {
+                                if (confirm('⚠️ אזהרה: פעולה זו תמחק את כל המוצרים בבסיס הנתונים ותטען מחדש רק את 3 המסכים האמיתיים.\n\nמוצרים שהוספת (כולל תמונות שהעלית) יוחלפו בנתוני המקור. השתמש רק אם יש מוצרי דמו ישנים לנקות.\n\nלהמשיך?')) {
+                                    try {
+                                        const r = await wipeAndReseedCatalog();
+                                        showToast(`הקטלוג אופס: נמחקו ${r.removed}, נטענו ${r.seeded} מסכים אמיתיים`, 'success');
+                                    } catch (e) { showToast('שגיאה באיפוס הקטלוג', 'error'); }
+                                }
+                            }}>אפס קטלוג ל-3 המסכים בלבד</AdminButton>
+                            <p className="text-[10px] text-[#AEAEB2]">מוחק את כל המוצרים וטוען מחדש 3 מסכים אמיתיים. לאחר מכן אפשר לערוך פרטים ולהעלות תמונות אמיתיות ב"מוצרים".</p>
                         </div>
                     </div>
                 </SettingCard>
