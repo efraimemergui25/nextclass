@@ -14,6 +14,7 @@ import AdminSidebar from './components/AdminSidebar';
 import AdminTopBar from './components/AdminTopBar';
 import AdminLogin from './AdminLogin';
 import AdminShortcutOverlay from './components/AdminShortcutOverlay';
+import AdminCopilot from './components/AdminCopilot';
 
 // ─── Lazy pages — each is its own JS chunk ────────────────────────────────────
 const AdminDashboard      = lazy(() => import('./pages/AdminDashboard'));
@@ -244,6 +245,7 @@ function AdminShell() {
                         </main>
                     </div>
                 </div>
+                <AdminCopilot />
             </AdminDataProvider>
         </AdminToastProvider>
     );
