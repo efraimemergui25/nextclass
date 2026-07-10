@@ -8,6 +8,7 @@ import {
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
@@ -395,6 +396,7 @@ function VodTab({ onCopy, copied }) {
 
 export default function AdminMedia() {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [tab, setTab] = useState('images'); // images | videos | links | products | vod
     const [media, setMedia] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -472,7 +474,7 @@ export default function AdminMedia() {
     };
 
     const handleDelete = async (item) => {
-        if (!window.confirm('למחוק פריט זה מהספרייה?')) return;
+        if (!await confirm({ message: 'למחוק פריט זה מהספרייה?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'media_library', item.id));
             if (item.path) {

@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     Plus, X, Phone, Mail, MessageCircle, ExternalLink,
     FileText, Trash2, Check, Search, Building2, Package,
@@ -920,6 +921,7 @@ function PublishProductModal({ product: p, quoteId, addProduct, onClose, onPubli
 // ─── QuoteDrawer ───────────────────────────────────────────────────────────────
 function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focusProductKey }) {
     const { addProduct } = useAdminData();
+    const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [d, setD] = useState(() => JSON.parse(JSON.stringify(quote)));
     const [saving, setSaving]   = useState(false);
@@ -987,7 +989,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     };
 
     const delQuote = async () => {
-        if (!confirm('למחוק הצעה זו?')) return;
+        if (!await confirm({ message: 'למחוק הצעה זו?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'supplier_quotes', quote.id));
             onClose();
@@ -1075,7 +1077,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => { if (dirty && !confirm('יש שינויים שלא נשמרו. לסגור?')) return; onClose(); }}
+                onClick={async () => { if (dirty && !await confirm({ message: 'יש שינויים שלא נשמרו. לסגור?', danger: true })) return; onClose(); }}
                 style={{ position: 'fixed', inset: 0, zIndex: 48, background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(3px)' }} />
 
             <motion.div
@@ -1108,7 +1110,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.03)'; e.currentTarget.style.color = '#C7C7CC'; }}>
                         <Trash2 size={14} />
                     </button>
-                    <button onClick={() => { if (dirty && !confirm('יש שינויים שלא נשמרו. לסגור?')) return; onClose(); }}
+                    <button onClick={async () => { if (dirty && !await confirm({ message: 'יש שינויים שלא נשמרו. לסגור?', danger: true })) return; onClose(); }}
                         style={{ padding: 7, borderRadius: 9, border: '1px solid rgba(0,0,0,0.07)', background: 'rgba(0,0,0,0.03)', cursor: 'pointer', color: '#AEAEB2', display: 'flex', transition: 'all 0.15s' }}>
                         <X size={15} />
                     </button>
@@ -1488,6 +1490,7 @@ function SupplierScorecard({ quotes }) {
 // ─── SupplierView ──────────────────────────────────────────────────────────────
 function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSupplier }) {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const totalVal = quotes.reduce((s, q) => s + calcTotal(q.products), 0);
     const [quotesView, setQuotesView] = useState('grid'); // 'grid' | 'kanban'
     const [selected, setSelected] = useState(new Set()); // Set of quote IDs
@@ -1651,7 +1654,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                             <Check size={12} />החל
                         </motion.button>
                         <motion.button onClick={async () => {
-                            if (!confirm(`למחוק ${selected.size} הצעות?`)) return;
+                            if (!await confirm({ message: `למחוק ${selected.size} הצעות?`, danger: true })) return;
                             for (const qId of selected) { try { await deleteDoc(doc(db, 'supplier_quotes', qId)); } catch {} }
                             setSelected(new Set());
                         }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -2901,6 +2904,7 @@ function AddSupplierModal({ onClose, onAdded }) {
 // ─── EditSupplierModal ─────────────────────────────────────────────────────────
 function EditSupplierModal({ supplier, onClose }) {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [form, setForm] = useState({ name: supplier.name || '', domain: supplier.domain || '', logoUrl: supplier.logoUrl || '', agentName: supplier.agentName || '', agentTitle: supplier.agentTitle || '', agentPhone: supplier.agentPhone || '', agentEmail: supplier.agentEmail || '', website: supplier.website || '', color: supplier.color || '' });
     const [saving,   setSaving]   = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -2920,7 +2924,7 @@ function EditSupplierModal({ supplier, onClose }) {
         setSaving(false);
     };
     const del = async () => {
-        if (!confirm(`למחוק את הספק "${supplier.name}"?`)) return;
+        if (!await confirm({ message: `למחוק את הספק "${supplier.name}"?`, danger: true })) return;
         setDeleting(true);
         try {
             await deleteDoc(doc(db, 'suppliers', supplier.id));

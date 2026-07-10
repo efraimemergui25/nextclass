@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSectionHeader, AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
 import {
     GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS
@@ -269,6 +270,7 @@ function QuickAction({ icon: Icon, label, color = '#1D1D1F', onClick, href, down
 
 // ── Expandable 360° document row (list view) ─────────────────────────────
 function VaultDocRow({ item, folders, expanded, onToggle, onUpdate, onDelete, onCopy, copied, onOpenDetail, index }) {
+    const confirm = useAdminConfirm();
     const kind = fileKind(item);
     const classCfg = CLASSIFICATIONS.find(c => c.id === item.classification) || CLASSIFICATIONS[0];
     const [tagDraft, setTagDraft] = useState(item.tags?.join(', ') || '');
@@ -337,7 +339,7 @@ function VaultDocRow({ item, folders, expanded, onToggle, onUpdate, onDelete, on
                                 <QuickAction icon={Download} label="הורדה" color="#007AFF" href={item.url} download disabled={!item.url} />
                                 <QuickAction icon={copied === item.url ? Check : Copy} label={copied === item.url ? 'הועתק' : 'העתק קישור'} color="#34C759" onClick={() => onCopy(item.url)} disabled={!item.url} />
                                 <QuickAction icon={Edit} label="פרטים מלאים" color="#5856D6" onClick={() => onOpenDetail(item)} />
-                                <QuickAction icon={Trash2} label="מחק" color="#FF3B30" onClick={() => { if (window.confirm('למחוק מסמך זה לצמיתות מהכספת?')) onDelete(item); }} />
+                                <QuickAction icon={Trash2} label="מחק" color="#FF3B30" onClick={async () => { if (await confirm({ message: 'למחוק מסמך זה לצמיתות מהכספת?', danger: true })) onDelete(item); }} />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -461,6 +463,7 @@ function VaultDocCard({ item, onOpen, onCopy, copied, index }) {
 
 // ── Detail Drawer ────────────────────────────────────────────────────────
 function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
+    const confirm = useAdminConfirm();
     const [name, setName] = useState(item.name || '');
     const [folder, setFolder] = useState(item.folder || '');
     const [classification, setClassification] = useState(item.classification || 'pending');
@@ -595,7 +598,7 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
                                 <Download size={13} /> אין קובץ
                             </div>
                         )}
-                        <button onClick={() => { if (window.confirm('למחוק מסמך זה לצמיתות מהכספת?')) { onDelete(item); onClose(); } }}
+                        <button onClick={async () => { if (await confirm({ message: 'למחוק מסמך זה לצמיתות מהכספת?', danger: true })) { onDelete(item); onClose(); } }}
                             className="py-2.5 rounded-xl border text-[12px] font-bold text-[#FF3B30] flex items-center justify-center gap-1.5 transition-all text-center"
                             style={{ borderColor: 'rgba(255,59,48,0.2)', background: 'rgba(255,59,48,0.05)' }}>
                             <Trash2 size={13} /> מחק מהכספת
@@ -609,6 +612,7 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
 
 export default function AdminVault() {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [activeFolder, setActiveFolder] = useState('agreements');
     const [documents, setDocuments] = useState([]);
     const [customFolders, setCustomFolders] = useState([]);
@@ -947,7 +951,7 @@ export default function AdminVault() {
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={(e) => { e.stopPropagation(); const newName = prompt('עדכן שם תיקייה:', f.name); if (newName) handleRenameFolder(f.id, newName); }}
                                                     className="p-1 text-[#8E8E93] hover:text-[#007AFF]" title="ערוך שם"><Edit size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); if (confirm(`למחוק את התיקייה "${f.name}"? כל המסמכים בה יועברו ל"הסכמי לקוחות".`)) handleDeleteFolder(f); }}
+                                                <button onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: `למחוק את התיקייה "${f.name}"?`, message: 'כל המסמכים בה יועברו ל"הסכמי לקוחות".', danger: true })) handleDeleteFolder(f); }}
                                                     className="p-1 text-[#8E8E93] hover:text-red-500" title="מחק תיקייה"><Trash2 size={12} /></button>
                                             </div>
                                         )}

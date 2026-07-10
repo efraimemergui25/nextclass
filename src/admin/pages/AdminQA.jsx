@@ -7,6 +7,7 @@ import {
     doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminTabs, AdminEmpty } from '../components/AdminComponents';
 import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
@@ -23,6 +24,7 @@ export default function AdminQA() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [answerTexts, setAnswerTexts] = useState({});
 
     // Real-time listener on product_questions (same collection as public site)
@@ -60,12 +62,12 @@ export default function AdminQA() {
     }, [answerTexts, showToast]);
 
     const handleDelete = useCallback(async (id) => {
-        if (!window.confirm('למחוק שאלה זו לצמיתות?')) return;
+        if (!await confirm({ message: 'למחוק שאלה זו לצמיתות?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'product_questions', id));
             showToast('השאלה נמחקה', 'success');
         } catch { showToast('שגיאה במחיקה', 'error'); }
-    }, [showToast]);
+    }, [showToast, confirm]);
 
     return (
         <div dir="rtl" className="space-y-6">

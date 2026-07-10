@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { InboxIcon, Trash2, Check, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, hexA } from '../theme/tokens';
 
@@ -102,6 +103,7 @@ function CustomerDetailModal({ customer, onClose, navigate }) {
 
 export default function AdminCustomers() {
     const { contacts, orders, updateContactStatus, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
+    const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [tab, setTab] = useState('contacts');
@@ -409,7 +411,7 @@ export default function AdminCustomers() {
 
                         <div className="flex gap-2 justify-between">
                             <motion.button whileTap={{ scale: 0.95 }}
-                                onClick={() => { if (window.confirm('להעביר פנייה זו לסל המחזור?')) { deleteContact(selected.id); setSelected(null); } }}
+                                onClick={async () => { if (await confirm({ message: 'להעביר פנייה זו לסל המחזור?', danger: true })) { deleteContact(selected.id); setSelected(null); } }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
                                 <Trash2 size={13} />מחק
                             </motion.button>
@@ -445,7 +447,7 @@ export default function AdminCustomers() {
                                     style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(52,199,89,0.1)', color: '#34C759', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                                     שחזר
                                 </button>
-                                <button onClick={async () => { if (window.confirm('למחוק לצמיתות? לא ניתן לשחזר.')) await hardDeleteContact(c.id); }}
+                                <button onClick={async () => { if (await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) await hardDeleteContact(c.id); }}
                                     style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                                     מחק לצמיתות
                                 </button>

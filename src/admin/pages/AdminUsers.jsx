@@ -7,6 +7,7 @@ import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where, limit, getDocs } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminEmpty, AdminSkeleton } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, TAP, hexA } from '../theme/tokens';
 import {
@@ -138,6 +139,7 @@ const QUOTE_STATUS = {
 // ── User detail modal ─────────────────────────────────────────────────────────
 function UserModal({ user, onClose, onTierChange, onDelete }) {
     const { addToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [saving, setSaving]         = useState(false);
     const [userQuotes, setUserQuotes] = useState([]);
     const [loadingQ, setLoadingQ]     = useState(true);
@@ -336,7 +338,7 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
                 <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', paddingTop: 16, marginTop: 8 }}>
                     <button
                         onClick={async () => {
-                            if (!window.confirm(`למחוק את המשתמש "${user.displayName || user.email}" לצמיתות? פעולה זו אינה הפיכה.`)) return;
+                            if (!await confirm({ message: `למחוק את המשתמש "${user.displayName || user.email}" לצמיתות? פעולה זו אינה הפיכה.`, danger: true })) return;
                             try {
                                 await deleteDoc(doc(db, 'users', user.uid));
                                 addToast('המשתמש נמחק', 'warning');

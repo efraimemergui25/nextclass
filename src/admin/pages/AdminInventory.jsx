@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip } from '../components/AdminComponents';
 import { hexA, DOMAIN_ACCENTS } from '../theme/tokens';
 import initialProducts from '../../data/products';
@@ -102,6 +103,7 @@ const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 export default function AdminInventory() {
     const { inventory, orders, updateStock, updateProductDetails, deleteProduct } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [searchParams] = useSearchParams();
     const [search, setSearch] = useState(searchParams.get('search') || '');
     const [filter, setFilter] = useState('הכל');
@@ -349,9 +351,9 @@ export default function AdminInventory() {
                                             )}
                                             {/* Delete on hover */}
                                             <button
-                                                onClick={e => {
+                                                onClick={async e => {
                                                     e.stopPropagation();
-                                                    if (window.confirm(`למחוק את "${product.title}" לצמיתות?`)) {
+                                                    if (await confirm({ message: `למחוק את "${product.title}" לצמיתות?`, danger: true })) {
                                                         deleteProduct(product.id);
                                                         showToast('המוצר נמחק', 'warning');
                                                     }
@@ -511,9 +513,9 @@ export default function AdminInventory() {
 
                                         {/* Delete */}
                                         <button
-                                            onClick={e => {
+                                            onClick={async e => {
                                                 e.stopPropagation();
-                                                if (window.confirm(`למחוק את "${product.title}"?`)) {
+                                                if (await confirm({ message: `למחוק את "${product.title}"?`, danger: true })) {
                                                     deleteProduct(product.id);
                                                     showToast('המוצר נמחק', 'warning');
                                                 }

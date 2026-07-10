@@ -14,8 +14,9 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
-import { AdminKPICard, AdminTabs, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
-import { PALETTE, GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
+import { AdminKPICard, AdminTabs, StatusBadge, HeatGrid, BarChart, GoalRing, InfoTooltip } from '../components/AdminComponents';
+import { PALETTE, GLASS, RADIUS, SHADOW, GRADIENT, hexA, glow } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
 
 // ─── Stage weights for pipeline forecast ─────────────────────────────────────
@@ -149,7 +150,7 @@ function DailyBriefing({ kpis, pipelineForecast, liveVisitors, navigate }) {
 }
 
 // ─── Revenue Forecast Widget ──────────────────────────────────────────────────
-function RevenueForecastWidget({ forecast, navigate }) {
+function RevenueForecastWidget({ forecast, onOpen, onStage }) {
     if (forecast.count === 0) return null;
     const maxVal = Math.max(...forecast.byStage.map(s => s.value), 1);
 
@@ -161,7 +162,7 @@ function RevenueForecastWidget({ forecast, navigate }) {
             transition={{ type: 'spring', stiffness: 360, damping: 28, delay: 0.1 }}
             className="overflow-hidden cursor-pointer"
             style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
-            onClick={() => navigate('/admin/orders')}
+            onClick={() => onOpen?.()}
             whileHover={{ y: -3, boxShadow: SHADOW.lg }}
         >
             <div className="p-5">
@@ -187,7 +188,11 @@ function RevenueForecastWidget({ forecast, navigate }) {
                 {/* Stage bars */}
                 <div className="space-y-1.5">
                     {forecast.byStage.slice(0, 5).map(s => (
-                        <div key={s.stage} className="flex items-center gap-2">
+                        <div key={s.stage}
+                            onClick={(e) => { e.stopPropagation(); onStage?.(s.stage); }}
+                            tabIndex={0} role="button"
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onStage?.(s.stage); } }}
+                            className="flex items-center gap-2 cursor-pointer rounded-lg px-1 -mx-1 py-0.5 hover:bg-[#007AFF]/06 transition-colors focus:outline-none">
                             <span className="text-[9px] font-bold text-[#6E6E73] w-24 text-right truncate flex-shrink-0">{s.stage}</span>
                             <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
                                 <motion.div
@@ -341,14 +346,90 @@ const computeTrend = (data) => {
     return { value: Math.min(Math.abs(pct), 999), up: pct >= 0 };
 };
 
+// ─── Drill helpers (shared by the babushka detail drawer) ─────────────────────
+const computeStats = (data) => {
+    if (!data || data.length === 0) return null;
+    const nonZero = data.filter(v => v > 0);
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = nonZero.length > 0 ? Math.round(total / nonZero.length) : 0;
+    const peak = Math.max(...data);
+    const peakIdx = data.lastIndexOf(peak);
+    const half = Math.floor(data.length / 2);
+    const firstHalf = data.slice(0, half).reduce((a, b) => a + b, 0);
+    const secondHalf = data.slice(half).reduce((a, b) => a + b, 0);
+    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : (secondHalf > 0 ? 100 : 0);
+    return { total, avg, peak, peakIdx, trend, activeDays: nonZero.length };
+};
+
+// A tidy stat grid used across every drill level.
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+// A clickable/inert record row inside a drill level. Clickable rows push a deeper level.
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 export default function AdminDashboard() {
     const { kpis, orders, quotes, analytics, inventory, activityLog, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
     const navigate = useNavigate();
     const [period, setPeriod] = useState('30');
-    const [drilldown, setDrilldown] = useState(null);
     const [dashTab, setDashTab] = useState('today');
+
+    // ── Babushka drill stack — each entry is one nested detail level ──────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null); // retains last level so the drawer content persists through its exit animation
+    const openDrill  = (level) => setDrillStack([level]);          // fresh root level
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]); // deeper level
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };  // footer navigation
 
     // Loading proxy: analytics is null until the first Firestore snapshot resolves
     const dataLoading = analytics == null;
@@ -436,6 +517,46 @@ export default function AdminDashboard() {
     }, [orders, inventory]);
 
     const lowStock = inventory.filter(p => p.stock <= p.threshold).slice(0, 6);
+
+    // ── Derived datasets feeding the drill drawer (real data only) ────────────
+    // Per-product sales aggregated from all orders → { pid: { revenue, count } }
+    const productSalesMap = useMemo(() => {
+        const map = {};
+        orders.forEach(o => (o.items || []).forEach(item => {
+            const pid = String(item.id ?? '');
+            if (!pid) return;
+            if (!map[pid]) map[pid] = { revenue: 0, count: 0 };
+            map[pid].revenue += (Number(item.price) || 0) * (Number(item.qty) || 1);
+            map[pid].count += Number(item.qty) || 1;
+        }));
+        return map;
+    }, [orders]);
+
+    const findProduct = (id) => {
+        const pid = String(id);
+        return inventory.find(p => String(p.id) === pid) || initialProducts.find(p => String(p.id) === pid) || null;
+    };
+
+    // Every product below its own alert threshold, worst first.
+    const lowStockItems = useMemo(() => inventory.filter(p => {
+        const stock = Number(p.stock ?? p.quantity ?? 0);
+        const threshold = Number(p.stockThreshold ?? p.minStock ?? p.threshold ?? 3);
+        return stock <= threshold;
+    }).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)), [inventory]);
+
+    // Orders still awaiting approval/handling, newest first.
+    const pendingOrdersList = useMemo(() =>
+        orders.filter(o => o.status === 'ממתין' || o.status === 'חדש').sort((a, b) => b.dateTs - a.dateTs),
+        [orders]
+    );
+
+    // Open quotes for a given pipeline stage.
+    const quotesInStage = (stage) =>
+        quotes.filter(q => q.status === stage && !CLOSED_STAGES.has(q.status)).sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+
+    const orderDateStr = (ts) => ts ? new Date(ts).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const quoteVal = (q) => Number(q.subtotal) || (q.items || []).reduce((s, it) =>
+        s + (Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1), 0);
 
     // ── Live visitors (last 5 min from Firestore page_views) ─────────────────
     const [liveVisitors, setLiveVisitors] = useState(0);
@@ -589,28 +710,28 @@ export default function AdminDashboard() {
                         trend: trendRevenue.value, trendUp: trendRevenue.up,
                         sparkData: periodData && periodData.revenue.length >= 2 ? periodData.revenue : (analytics?.revenue?.slice(-7) || []),
                         tooltip: { text: 'סך כל ההכנסות מהזמנות שנסגרו. מצטבר מכלל הזמנות שהושלמו.', source: 'Firestore · orders · total', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
-                        onClick: () => setDrilldown('revenue'),
+                        onClick: () => openDrill({ type: 'revenue' }),
                     },
                     {
                         title: 'הזמנות ממתינות', icon: 'orders', color: '#FF9500', delay: 0.05,
                         value: kpis.allPendingOrders,
                         subtitle: 'ממתינות לאישור',
                         tooltip: { text: 'הזמנות שטרם אושרו או טופלו — דורשות תשומת לב.', source: 'Firestore · orders (status: ממתין/חדש)', link: '/admin/orders', linkLabel: 'ניהול הזמנות' },
-                        onClick: () => setDrilldown('orders'),
+                        onClick: () => openDrill({ type: 'pending' }),
                     },
                     {
                         title: 'שווי Pipeline', icon: 'traffic', color: '#007AFF', delay: 0.1,
                         value: `₪${Math.round(pipelineForecast.totalPipeline).toLocaleString()}`,
                         subtitle: `${pipelineForecast.count} עסקאות פתוחות`,
                         tooltip: { text: 'סך שווי כל ההצעות הפתוחות בצינור המכירות (לפני שקלול הסתברות).', source: 'Firestore · quotes (פתוחות) · subtotal', link: '/admin/orders', linkLabel: 'ניהול הצעות' },
-                        onClick: () => navigate('/admin/orders'),
+                        onClick: () => openDrill({ type: 'pipeline' }),
                     },
                     {
                         title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.15,
                         value: kpis.lowStockCount,
                         subtitle: 'מוצרים תחת סף',
                         tooltip: { text: 'מוצרים שמלאיהם נמוך מסף ההתרעה שהוגדר לכל מוצר בנפרד.', source: 'Firestore · inventory · stock ≤ threshold', link: '/admin/inventory', linkLabel: 'ניהול מלאי' },
-                        onClick: () => setDrilldown('lowStock'),
+                        onClick: () => openDrill({ type: 'lowStock' }),
                     },
                 ].map((kpi) => (
                     <AdminKPICard key={kpi.title} {...kpi} loading={dataLoading} />
@@ -663,8 +784,11 @@ export default function AdminDashboard() {
                                                 initial={{ opacity: 0, x: 10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.03 }}
-                                                onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
-                                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors"
+                                                onClick={() => openDrill({ type: 'order', id: order.id })}
+                                                tabIndex={0}
+                                                role="button"
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'order', id: order.id }); } }}
+                                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
                                             >
                                                 <StatusBadge status={order.status} />
                                                 <div className="flex-1 min-w-0 text-right">
@@ -696,14 +820,21 @@ export default function AdminDashboard() {
                                         <DashLoading height="h-40" label="טוען יעד…" />
                                     ) : (
                                         <>
-                                            <GoalRing
-                                                value={monthlyGoal.current}
-                                                target={monthlyGoal.target}
-                                                color="#34C759"
-                                                label="הכנסות החודש"
-                                                subtitle={monthlyGoal.isManual ? `יעד ידני: ₪${monthlyGoal.target.toLocaleString()}` : `אוטומטי: ×1.5 מהחודש הקודם`}
-                                                size={100}
-                                            />
+                                            <div
+                                                onClick={() => openDrill({ type: 'goal' })}
+                                                tabIndex={0} role="button"
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'goal' }); } }}
+                                                className="cursor-pointer rounded-2xl -m-1 p-1 transition-colors hover:bg-black/03 focus:outline-none"
+                                            >
+                                                <GoalRing
+                                                    value={monthlyGoal.current}
+                                                    target={monthlyGoal.target}
+                                                    color="#34C759"
+                                                    label="הכנסות החודש"
+                                                    subtitle={monthlyGoal.isManual ? `יעד ידני: ₪${monthlyGoal.target.toLocaleString()}` : `אוטומטי: ×1.5 מהחודש הקודם`}
+                                                    size={100}
+                                                />
+                                            </div>
                                             {!monthlyGoal.isManual && (
                                                 <button
                                                     onClick={() => navigate('/admin/settings')}
@@ -741,7 +872,10 @@ export default function AdminDashboard() {
                                                         initial={{ opacity: 0, x: 8 }}
                                                         animate={{ opacity: 1, x: 0 }}
                                                         transition={{ delay: i * 0.02 }}
-                                                        className="flex items-center gap-2.5 py-1.5 border-b border-black/04 last:border-0"
+                                                        onClick={() => openDrill({ type: 'activity', entry })}
+                                                        tabIndex={0} role="button"
+                                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'activity', entry }); } }}
+                                                        className="flex items-center gap-2.5 py-1.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-black/03 rounded-lg px-1.5 -mx-1.5 transition-colors focus:outline-none"
                                                     >
                                                         <span className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                                                             style={{ background: `${meta.color}12` }}>
@@ -879,16 +1013,23 @@ export default function AdminDashboard() {
                                     </span>
                                 }
                             >
-                                {dataLoading ? (
-                                    <DashLoading />
-                                ) : periodData && periodData.visits.some(v => v > 0) ? (
-                                    <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
-                                ) : (
-                                    <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
-                                        <Activity size={22} className="opacity-40" />
-                                        <span className="text-sm font-medium">טרם הצטברו נתוני תנועה</span>
-                                    </div>
-                                )}
+                                <div
+                                    onClick={() => openDrill({ type: 'traffic' })}
+                                    tabIndex={0} role="button"
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'traffic' }); } }}
+                                    className="cursor-pointer rounded-2xl transition-colors hover:bg-[#007AFF]/03 focus:outline-none"
+                                >
+                                    {dataLoading ? (
+                                        <DashLoading />
+                                    ) : periodData && periodData.visits.some(v => v > 0) ? (
+                                        <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
+                                    ) : (
+                                        <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
+                                            <Activity size={22} className="opacity-40" />
+                                            <span className="text-sm font-medium">טרם הצטברו נתוני תנועה</span>
+                                        </div>
+                                    )}
+                                </div>
                             </Card>
 
                             {/* Top Products — 1/3 width */}
@@ -905,7 +1046,11 @@ export default function AdminDashboard() {
                                 ) : (
                                     <div className="space-y-3.5">
                                         {topProducts.map((p, i) => (
-                                            <Link key={i} to={`/admin/inventory?open=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
+                                            <div key={i}
+                                                onClick={() => openDrill({ type: 'product', id: p.id, fallback: { title: p.title, image: p.image } })}
+                                                tabIndex={0} role="button"
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'product', id: p.id, fallback: { title: p.title, image: p.image } }); } }}
+                                                className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px] cursor-pointer focus:outline-none">
                                                 <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
                                                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
                                                     {p.image
@@ -926,7 +1071,8 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <span className="text-[#6E6E73] text-[11px] font-bold shrink-0">₪{p.revenue.toLocaleString()}</span>
-                                            </Link>
+                                                <ChevronLeft size={13} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />
+                                            </div>
                                         ))}
                                     </div>
                                 )}
@@ -947,15 +1093,22 @@ export default function AdminDashboard() {
                                     </span>
                                 }
                             >
-                                {dataLoading ? (
-                                    <DashLoading label="טוען הכנסות…" />
-                                ) : periodData && periodData.revenue.some(v => v > 0) ? (
-                                    <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
-                                ) : (
-                                    <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
-                                        טרם בוצעו עסקאות
-                                    </div>
-                                )}
+                                <div
+                                    onClick={() => openDrill({ type: 'revenue' })}
+                                    tabIndex={0} role="button"
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'revenue' }); } }}
+                                    className="cursor-pointer rounded-2xl transition-colors hover:bg-[#34C759]/03 focus:outline-none"
+                                >
+                                    {dataLoading ? (
+                                        <DashLoading label="טוען הכנסות…" />
+                                    ) : periodData && periodData.revenue.some(v => v > 0) ? (
+                                        <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
+                                    ) : (
+                                        <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
+                                            טרם בוצעו עסקאות
+                                        </div>
+                                    )}
+                                </div>
                             </Card>
 
                             {/* Daily Sales Bar Chart */}
@@ -966,330 +1119,437 @@ export default function AdminDashboard() {
                                 titleTooltip={{ text: 'כמות העסקאות שנסגרו בכל יום. כל עמודה = יום אחד. מקור: נתוני analytics מ-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}
                                 action={<span className="text-xs font-black text-[#007AFF]">{periodSales} עסקאות</span>}
                             >
-                                {dataLoading ? (
-                                    <DashLoading height="h-20" label="טוען מכירות…" />
-                                ) : periodData && periodData.sales.some(v => v > 0) ? (
-                                    <BarChart data={periodData.sales} color="#007AFF" labels={periodData.labels} height={80} />
-                                ) : (
-                                    <div className="h-20 flex items-center justify-center text-[#AEAEB2] text-sm">
-                                        טרם בוצעו עסקאות
-                                    </div>
-                                )}
+                                <div
+                                    onClick={() => openDrill({ type: 'sales' })}
+                                    tabIndex={0} role="button"
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'sales' }); } }}
+                                    className="cursor-pointer rounded-2xl transition-colors hover:bg-[#007AFF]/03 focus:outline-none"
+                                >
+                                    {dataLoading ? (
+                                        <DashLoading height="h-20" label="טוען מכירות…" />
+                                    ) : periodData && periodData.sales.some(v => v > 0) ? (
+                                        <BarChart data={periodData.sales} color="#007AFF" labels={periodData.labels} height={80} />
+                                    ) : (
+                                        <div className="h-20 flex items-center justify-center text-[#AEAEB2] text-sm">
+                                            טרם בוצעו עסקאות
+                                        </div>
+                                    )}
+                                </div>
                             </Card>
                         </div>
 
                         {/* Pipeline Forecast */}
                         {pipelineForecast.count > 0 && (
-                            <RevenueForecastWidget forecast={pipelineForecast} navigate={navigate} />
+                            <RevenueForecastWidget
+                                forecast={pipelineForecast}
+                                onOpen={() => openDrill({ type: 'pipeline' })}
+                                onStage={(stage) => openDrill({ type: 'stage', stage })}
+                            />
                         )}
                     </motion.div>
                 )}
             </AnimatePresence>
 
 
-            {/* ── KPI Drilldown Modal ────────────────────────────────────────── */}
+            {/* ── Babushka Drill Drawer — nested glass detail view ───────────── */}
             {(() => {
-                const lowStockItems = inventory.filter(p => {
-                    const stock = Number(p.stock ?? p.quantity ?? 0);
-                    const threshold = Number(p.stockThreshold ?? p.minStock ?? 3);
-                    return stock <= threshold;
-                }).sort((a, b) => (Number(a.stock ?? 0)) - (Number(b.stock ?? 0)));
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                const periodLabel = period === '1' ? 'היום' : `${period} ימים אחרונים`;
 
-                const meta = {
-                    revenue:    { title: 'פירוט הכנסות',   color: '#34C759', accent: 'linear-gradient(90deg,#34C759,#30D158)', data: periodData?.revenue, labels: periodData?.labels, unit: '₪', analyticsTab: 'revenue',  layer3Label: 'דוח הכנסות מלא' },
-                    orders:     { title: 'פירוט עסקאות',   color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#5856D6)', data: periodData?.sales,   labels: periodData?.labels, unit: '',  analyticsTab: 'overview', layer3Label: 'אנליטיקס מכירות' },
-                    conversion: { title: 'פירוט תנועה',    color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#007AFF)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
-                    avg:        { title: 'ממוצע לפי מוצר', color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FF3B30)', data: null,                analyticsTab: 'products', layer3Label: 'דוח מוצרים מלא' },
-                    lowStock:   { title: 'מלאי נמוך',      color: '#FF3B30', accent: 'linear-gradient(90deg,#FF3B30,#FF6B35)', data: null,                analyticsTab: null,       layer3Label: 'ניהול מלאי' },
-                    contacts:   { title: 'פניות חדשות',    color: '#FF9500', accent: 'linear-gradient(90deg,#FF9500,#FFB340)', data: null,                analyticsTab: null,       layer3Label: 'לטיפול בפניות' },
-                    visits:     { title: 'פירוט כניסות',   color: '#007AFF', accent: 'linear-gradient(90deg,#007AFF,#00C7BE)', data: periodData?.visits,  labels: periodData?.labels, unit: '',  analyticsTab: 'traffic',  layer3Label: 'דוח תנועה מלא' },
-                    catalog:    { title: 'קטלוג מוצרים',   color: '#5856D6', accent: 'linear-gradient(90deg,#5856D6,#AF52DE)', data: null,                analyticsTab: null,       layer3Label: 'ניהול מוצרים' },
-                };
-                const m = drilldown ? meta[drilldown] : null;
+                if (!shown) {
+                    return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+                }
 
-                const computeStats = (data) => {
-                    if (!data || data.length === 0) return null;
-                    const nonZero = data.filter(v => v > 0);
-                    const total = data.reduce((a, b) => a + b, 0);
-                    const avg = nonZero.length > 0 ? Math.round(total / nonZero.length) : 0;
-                    const peak = Math.max(...data);
-                    const peakIdx = data.lastIndexOf(peak);
-                    const half = Math.floor(data.length / 2);
-                    const firstHalf = data.slice(0, half).reduce((a, b) => a + b, 0);
-                    const secondHalf = data.slice(half).reduce((a, b) => a + b, 0);
-                    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : (secondHalf > 0 ? 100 : 0);
-                    return { total, avg, peak, peakIdx, trend, activeDays: nonZero.length };
-                };
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
 
-                return (
-                    <AdminModal open={!!drilldown} onClose={() => setDrilldown(null)} title={m?.title || ''} size="lg">
-                        {m && (
-                            <div className="space-y-5" dir="rtl">
-                                {/* ── Layer 2: Stats summary row ── */}
-                                {drilldown !== 'avg' && drilldown !== 'visits' && m.data && (() => {
-                                    const stats = computeStats(m.data);
-                                    if (!stats) return null;
-                                    return (
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            {[
-                                                { label: 'סה״כ', value: `${m.unit}${stats.total.toLocaleString()}` },
-                                                { label: 'ממוצע יומי', value: `${m.unit}${stats.avg.toLocaleString()}` },
-                                                { label: 'שיא', value: `${m.unit}${stats.peak.toLocaleString()}` },
-                                                { label: 'מגמה', value: `${stats.trend >= 0 ? '+' : ''}${stats.trend}%`, up: stats.trend >= 0 },
-                                            ].map((s, i) => (
-                                                <motion.div key={i}
-                                                    initial={{ opacity: 0, y: 8 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                    className="rounded-[14px] p-3 text-center"
-                                                    style={{ background: `${m.color}0C`, border: `1px solid ${m.color}20` }}
-                                                >
-                                                    <p className="font-black text-[15px]" style={{ color: s.up === false ? '#FF3B30' : s.up === true ? '#34C759' : m.color }}>{s.value}</p>
-                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* ── Secondary drilldowns ── */}
-                                {drilldown === 'lowStock' && (
-                                    <div className="space-y-3">
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {[
-                                                { label: 'תחת סף', value: lowStockItems.length, color: '#FF3B30' },
-                                                { label: 'אפס מלאי', value: lowStockItems.filter(p => Number(p.stock ?? 0) === 0).length, color: '#FF3B30' },
-                                                { label: 'סה״כ מוצרים', value: inventory.length, color: '#8E8E93' },
-                                            ].map(s => (
-                                                <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
-                                                    <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
-                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {lowStockItems.length === 0 ? (
-                                            <div className="text-center py-8 text-[#AEAEB2] text-sm font-bold">כל המוצרים במלאי תקין 🎉</div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {lowStockItems.slice(0, 8).map((p, i) => {
-                                                    const stock = Number(p.stock ?? 0);
-                                                    const threshold = Number(p.stockThreshold ?? p.minStock ?? 3);
-                                                    const pct = threshold > 0 ? Math.min(stock / threshold, 1) : 0;
-                                                    return (
-                                                        <motion.div key={p.id || i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                                                            className="flex items-center gap-3 p-3 rounded-[12px]" style={{ background: 'rgba(255,59,48,0.04)', border: '1px solid rgba(255,59,48,0.12)' }}>
-                                                            <div className="flex-1 min-w-0 text-right">
-                                                                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{p.title || p.name || p.id}</p>
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                    <div className="flex-1 h-1.5 rounded-full bg-black/06 overflow-hidden">
-                                                                        <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: stock === 0 ? '#FF3B30' : '#FF9500' }} />
-                                                                    </div>
-                                                                    <span className="text-[10px] font-black shrink-0" style={{ color: stock === 0 ? '#FF3B30' : '#FF9500' }}>{stock}/{threshold}</span>
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {drilldown === 'contacts' && (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {[
-                                                { label: 'חדשות', value: kpis.contactsNew, color: '#FF9500' },
-                                                { label: 'הזמנות סה״כ', value: kpis.totalOrders, color: '#007AFF' },
-                                                { label: 'ממתינות', value: kpis.pendingOrders, color: '#5856D6' },
-                                            ].map(s => (
-                                                <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
-                                                    <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
-                                                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="rounded-[16px] p-4 text-right" style={{ background: 'rgba(255,149,0,0.04)', border: '1px solid rgba(255,149,0,0.14)' }} dir="rtl">
-                                            <p className="text-[13px] font-bold text-[#1D1D1F]">יש <span style={{ color: '#FF9500', fontWeight: 900 }}>{kpis.contactsNew}</span> פניות שממתינות לטיפול</p>
-                                            <p className="text-[11px] text-[#86868B] mt-1">פניות חדשות שנשלחו דרך טופס יצירת קשר באתר ועוד לא טופלו.</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {drilldown === 'catalog' && (() => {
-                                    const active = inventory.filter(p => p.isActive !== false);
-                                    const inactive = inventory.filter(p => p.isActive === false);
-                                    const byCategory = {};
-                                    active.forEach(p => { const c = p.category || 'כללי'; byCategory[c] = (byCategory[c] || 0) + 1; });
-                                    const cats = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
-                                    return (
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-3 gap-3">
-                                                {[
-                                                    { label: 'פעילים', value: active.length, color: '#5856D6' },
-                                                    { label: 'מוסתרים', value: inactive.length, color: '#8E8E93' },
-                                                    { label: 'קטגוריות', value: Object.keys(byCategory).length, color: '#007AFF' },
-                                                ].map(s => (
-                                                    <div key={s.label} className="rounded-[14px] p-3 text-center" style={{ background: `${s.color}0C`, border: `1px solid ${s.color}20` }}>
-                                                        <p className="font-black text-[18px]" style={{ color: s.color }}>{s.value}</p>
-                                                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            {cats.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי קטגוריה</p>
-                                                    {cats.map(([cat, count], i) => (
-                                                        <div key={cat} className="flex items-center gap-3">
-                                                            <div className="flex-1">
-                                                                <div className="flex justify-between mb-1">
-                                                                    <span className="text-[11px] font-black" style={{ color: '#5856D6' }}>{count}</span>
-                                                                    <span className="text-[11px] font-medium text-[#1D1D1F]">{cat}</span>
-                                                                </div>
-                                                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
-                                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / (cats[0][1] || 1)) * 100}%` }}
-                                                                        transition={{ delay: i * 0.06, duration: 0.6 }}
-                                                                        className="h-full rounded-full" style={{ background: 'linear-gradient(90deg,#5856D6,#AF52DE)' }} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-
-                                {drilldown === 'visits' && (() => {
-                                    const stats = (() => {
-                                        const d = periodData?.visits;
-                                        if (!d || d.length === 0) return null;
-                                        const total = d.reduce((a, b) => a + b, 0);
-                                        const nonZero = d.filter(v => v > 0);
-                                        const avg = nonZero.length ? Math.round(total / nonZero.length) : 0;
-                                        const peak = Math.max(...d);
-                                        const half = Math.floor(d.length / 2);
-                                        const firstH = d.slice(0, half).reduce((a, b) => a + b, 0);
-                                        const secondH = d.slice(half).reduce((a, b) => a + b, 0);
-                                        const trend = firstH > 0 ? Math.round((secondH - firstH) / firstH * 100) : (secondH > 0 ? 100 : 0);
-                                        return { total, avg, peak, trend };
-                                    })();
-                                    return (
-                                        <div className="space-y-4">
-                                            {stats && (
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                                    {[
-                                                        { label: 'סה״כ', value: stats.total.toLocaleString() },
-                                                        { label: 'ממוצע יומי', value: stats.avg.toLocaleString() },
-                                                        { label: 'שיא', value: stats.peak.toLocaleString() },
-                                                        { label: 'מגמה', value: `${stats.trend >= 0 ? '+' : ''}${stats.trend}%`, up: stats.trend >= 0 },
-                                                    ].map((s, i) => (
-                                                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                                            className="rounded-[14px] p-3 text-center" style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.14)' }}>
-                                                            <p className="font-black text-[15px]" style={{ color: s.up === false ? '#FF3B30' : s.up === true ? '#34C759' : '#007AFF' }}>{s.value}</p>
-                                                            <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{s.label}</p>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {periodData?.visits && (
-                                                <div>
-                                                    <p className="text-[#86868B] text-[11px] font-bold mb-3">{period === '1' ? 'היום' : `${period} ימים אחרונים`}</p>
-                                                    <BarChart data={periodData.visits} color="#007AFF" labels={periodData.labels || []} height={140} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* ── Layer 2: Chart ── */}
-                                {drilldown === 'avg' ? (
-                                    <div className="space-y-3">
-                                        <p className="text-[#AEAEB2] text-[11px] font-bold">הכנסות לפי מוצר — כל הזמנים</p>
-                                        {topProducts.length === 0 && <p className="text-[#AEAEB2] text-sm text-center py-8">אין נתונים להצגה</p>}
-                                        {topProducts.map((p, i) => (
-                                            <div key={i} className="flex items-center gap-3">
-                                                <span className="text-[#AEAEB2] text-xs w-5 text-center font-black">{i + 1}</span>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between mb-1">
-                                                        <span className="text-[11px] font-bold text-[#1D1D1F]">{p.title}</span>
-                                                        <span className="text-[11px] font-black" style={{ color: m.color }}>₪{p.revenue.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
-                                                            transition={{ delay: i * 0.06, duration: 0.7, ease: [0.22,1,0.36,1] }}
-                                                            className="h-full rounded-full"
-                                                            style={{ background: `linear-gradient(90deg, ${m.color}, ${m.color}80)` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (m.data && drilldown !== 'visits') ? (
-                                    <div>
-                                        <p className="text-[#86868B] text-[11px] font-bold mb-3">
-                                            {period === '1' ? 'היום' : `${period} ימים אחרונים`} — לחץ על עמודה לפירוט
-                                        </p>
-                                        <BarChart data={m.data} color={m.color} labels={m.labels || []} height={140} />
-                                    </div>
-                                ) : null}
-
-                                {/* ── Layer 2: Breakdown (revenue only) ── */}
-                                {drilldown === 'revenue' && topProducts.length > 0 && (
-                                    <div>
-                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2.5">פירוט לפי מוצר</p>
-                                        <div className="space-y-2.5">
-                                            {topProducts.slice(0, 4).map((p, i) => (
-                                                <div key={i} className="flex items-center gap-3">
-                                                    <span className="text-[#AEAEB2] text-[10px] w-4 text-center font-black">{i + 1}</span>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between mb-1">
-                                                            <span className="text-[11px] font-black text-[#34C759]">₪{p.revenue.toLocaleString()}</span>
-                                                            <span className="text-[11px] font-medium text-[#1D1D1F] truncate max-w-[140px]">{p.title}</span>
-                                                        </div>
-                                                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
-                                                                transition={{ delay: i * 0.06, duration: 0.7 }}
-                                                                className="h-full rounded-full"
-                                                                style={{ background: 'linear-gradient(90deg,#34C759,#30D158)' }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* ── Layer 3: Navigate to full view ── */}
-                                <div className="pt-3 border-t border-black/06 flex items-center justify-between">
-                                    <span className="text-[10px] text-[#AEAEB2] font-medium">לחץ לצלילה עמוקה →</span>
-                                    <motion.button
-                                        whileHover={{ x: -3 }}
-                                        whileTap={{ scale: 0.96 }}
-                                        onClick={() => {
-                                            const routes = { lowStock: '/admin/inventory', contacts: '/admin/communications', catalog: '/admin/inventory' };
-                                            const route = routes[drilldown] || '/admin/analytics';
-                                            navigate(route);
-                                            setDrilldown(null);
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-[12px] font-black"
-                                        style={{ background: `${m.color}14`, color: m.color, border: `1px solid ${m.color}28` }}
-                                    >
-                                        <span>{m.layer3Label}</span>
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </motion.button>
+                if (shown.type === 'revenue') {
+                    const stats = computeStats(periodData?.revenue);
+                    const hasData = periodData?.revenue?.some(v => v > 0);
+                    title = 'פירוט הכנסות'; subtitle = `${periodLabel} · מצטבר`; accent = '#34C759';
+                    icon = <TrendingUp size={17} color="#34C759" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ בתקופה', value: `₪${(stats?.total || 0).toLocaleString()}`, color: '#34C759' },
+                                { label: 'ממוצע יומי', value: `₪${(stats?.avg || 0).toLocaleString()}` },
+                                { label: 'שיא יומי', value: `₪${(stats?.peak || 0).toLocaleString()}` },
+                                { label: 'מגמה', value: `${(stats?.trend || 0) >= 0 ? '+' : ''}${stats?.trend || 0}%`, color: (stats?.trend || 0) >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {hasData ? (
+                                <div>
+                                    <p className="text-[11px] font-bold text-[#86868B] mb-3">{periodLabel}</p>
+                                    <BarChart data={periodData.revenue} color="#34C759" labels={periodData.labels || []} height={140} />
+                                </div>
+                            ) : <DrillEmpty icon={TrendingUp} text="טרם נרשמו הכנסות בתקופה זו" />}
+                            {topProducts.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פירוט לפי מוצר — לחץ לצלילה</p>
+                                    {topProducts.map((p, i) => (
+                                        <DrillRow key={p.id || i} delay={i * 0.04} tone="#34C759"
+                                            onClick={() => pushDrill({ type: 'product', id: p.id, fallback: { title: p.title, image: p.image } })}
+                                            leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
+                                            title={p.title}
+                                            subtitle={`${p.count} יח׳ נמכרו`}
+                                            trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{p.revenue.toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'pending') {
+                    title = 'הזמנות ממתינות'; subtitle = `${pendingOrdersList.length} ממתינות לאישור`; accent = '#FF9500';
+                    icon = <ShoppingCart size={17} color="#FF9500" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ממתינות', value: pendingOrdersList.length, color: '#FF9500' },
+                                { label: 'סה״כ הזמנות', value: kpis.totalOrders, color: '#007AFF' },
+                                { label: 'הכנסות', value: `₪${kpis.totalRevenue.toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {pendingOrdersList.length === 0 ? (
+                                <DrillEmpty icon={CheckCircle2} text="אין הזמנות ממתינות — הכל טופל 🎉" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימת הזמנות — לחץ לפרטים</p>
+                                    {pendingOrdersList.slice(0, 12).map((o, i) => (
+                                        <DrillRow key={o.id} delay={i * 0.03} tone="#FF9500"
+                                            onClick={() => pushDrill({ type: 'order', id: o.id })}
+                                            leading={<StatusBadge status={o.status} />}
+                                            title={o.customer || 'לקוח'}
+                                            subtitle={o.product || `${(o.items || []).length} פריטים · ${orderDateStr(o.dateTs)}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'pipeline') {
+                    title = 'שווי Pipeline'; subtitle = `${pipelineForecast.count} עסקאות פתוחות`; accent = '#007AFF';
+                    icon = <Target size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לניהול הצעות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שווי צינור', value: `₪${Math.round(pipelineForecast.totalPipeline).toLocaleString()}`, color: '#007AFF' },
+                                { label: 'צפי משוקלל', value: `₪${Math.round(pipelineForecast.weighted).toLocaleString()}`, color: '#34C759' },
+                                { label: 'עסקאות', value: pipelineForecast.count, color: '#5856D6' },
+                            ]} />
+                            {pipelineForecast.byStage.length === 0 ? (
+                                <DrillEmpty icon={Target} text="אין עסקאות פתוחות בצינור" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שלבי צינור — לחץ לצלילה</p>
+                                    {pipelineForecast.byStage.map((s, i) => (
+                                        <DrillRow key={s.stage} delay={i * 0.04} tone="#007AFF"
+                                            onClick={() => pushDrill({ type: 'stage', stage: s.stage })}
+                                            leading={<span className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-[12px] font-black" style={{ background: hexA('#007AFF', 0.12), color: '#007AFF' }}>{s.count}</span>}
+                                            title={s.stage}
+                                            subtitle={`${Math.round(s.weight * 100)}% הסתברות · צפי ₪${Math.round(s.expected).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#007AFF] shrink-0">₪{s.value.toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'lowStock') {
+                    const zeroCount = lowStockItems.filter(p => Number(p.stock ?? 0) === 0).length;
+                    title = 'מלאי נמוך'; subtitle = `${lowStockItems.length} מוצרים תחת סף`; accent = '#FF3B30';
+                    icon = <AlertTriangle size={17} color="#FF3B30" />;
+                    footer = { label: 'מעבר לניהול מלאי', onClick: () => drillTo('/admin/inventory') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'תחת סף', value: lowStockItems.length, color: '#FF3B30' },
+                                { label: 'אזל מהמלאי', value: zeroCount, color: '#FF3B30' },
+                                { label: 'סה״כ מוצרים', value: inventory.length, color: '#8E8E93' },
+                            ]} />
+                            {lowStockItems.length === 0 ? (
+                                <DrillEmpty icon={CheckCircle2} text="כל המוצרים במלאי תקין 🎉" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימת מוצרים — לחץ לפרטים</p>
+                                    {lowStockItems.slice(0, 12).map((p, i) => {
+                                        const stock = Number(p.stock ?? 0);
+                                        const threshold = Number(p.stockThreshold ?? p.minStock ?? p.threshold ?? 3);
+                                        return (
+                                            <DrillRow key={p.id || i} delay={i * 0.03} tone="#FF3B30"
+                                                onClick={() => pushDrill({ type: 'product', id: p.id, fallback: { title: p.title || p.name, image: p.image } })}
+                                                leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                                title={p.title || p.name || p.id}
+                                                subtitle={`מלאי ${stock} · סף התראה ${threshold}`}
+                                                trailing={<span className="text-[11px] font-black shrink-0" style={{ color: stock === 0 ? '#FF3B30' : '#FF9500' }}>{stock}/{threshold}</span>}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'order') {
+                    const o = orders.find(x => String(x.id) === String(shown.id));
+                    const units = o ? ((o.items || []).reduce((s, it) => s + (Number(it.qty) || 1), 0) || (o.items || []).length) : 0;
+                    title = o ? (o.customer || 'הזמנה') : 'הזמנה';
+                    subtitle = o ? `#${o.id} · ${orderDateStr(o.dateTs)}` : String(shown.id);
+                    accent = '#007AFF'; icon = <ShoppingCart size={17} color="#007AFF" />;
+                    footer = { label: 'פתח בניהול הזמנות', onClick: () => drillTo(`/admin/orders?orderId=${shown.id}`) };
+                    body = o ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <StatusBadge status={o.status} />
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{(o.total || 0).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'פריטים', value: units, color: '#007AFF' },
+                                { label: 'סכום', value: `₪${(o.total || 0).toLocaleString()}`, color: '#34C759' },
+                                { label: 'תאריך', value: o.dateTs ? new Date(o.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '—' },
+                            ]} />
+                            {(o.items || []).length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטים בהזמנה — לחץ למוצר</p>
+                                    {o.items.map((it, i) => (
+                                        <DrillRow key={i} delay={i * 0.03}
+                                            onClick={it.id ? () => pushDrill({ type: 'product', id: it.id, fallback: { title: it.title, image: it.image } }) : undefined}
+                                            leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{it.image ? <img src={it.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                            title={it.title || it.name || `פריט ${i + 1}`}
+                                            subtitle={`${it.qty || 1} × ₪${(Number(it.price) || 0).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.price) || 0) * (Number(it.qty) || 1)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            ) : <DrillEmpty icon={Package} text="אין פריטים מפורטים בהזמנה זו" />}
+                        </div>
+                    ) : <DrillEmpty icon={ShoppingCart} text="ההזמנה לא נמצאה" />;
+                } else if (shown.type === 'quote') {
+                    const q = quotes.find(x => String(x.id) === String(shown.id));
+                    title = q ? (q.contactName || q.institution || 'הצעה') : 'הצעה';
+                    subtitle = q ? `${q.status || ''} · ₪${Math.round(quoteVal(q)).toLocaleString()}` : String(shown.id);
+                    accent = '#5856D6'; icon = <Layers size={17} color="#5856D6" />;
+                    footer = { label: 'פתח בניהול הצעות', onClick: () => drillTo(`/admin/orders?quoteId=${shown.id}`) };
+                    body = q ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <StatusBadge status={q.status} />
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{Math.round(quoteVal(q)).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'מוסד', value: q.institution || '—', color: '#5856D6' },
+                                { label: 'פריטים', value: (q.items || []).length, color: '#007AFF' },
+                                { label: 'תאריך', value: q.dateTs ? new Date(q.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '—' },
+                            ]} />
+                            {(q.items || []).length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטי ההצעה</p>
+                                    {q.items.map((it, i) => {
+                                        const pid = it.id || it.catalogNumber;
+                                        return (
+                                            <DrillRow key={i} delay={i * 0.03}
+                                                onClick={pid ? () => pushDrill({ type: 'product', id: pid, fallback: { title: it.title || it.name, image: it.image } }) : undefined}
+                                                title={it.title || it.name || `פריט ${i + 1}`}
+                                                subtitle={`${it.qty || it.quantity || 1} × ₪${(Number(it.salePrice || it.price) || 0).toLocaleString()}`}
+                                                trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1)).toLocaleString()}</span>}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ) : <DrillEmpty icon={Layers} text="ההצעה לא נמצאה" />;
+                } else if (shown.type === 'stage') {
+                    const list = quotesInStage(shown.stage);
+                    const stageTotal = list.reduce((s, q) => s + quoteVal(q), 0);
+                    title = shown.stage; subtitle = `${list.length} עסקאות בשלב`; accent = '#007AFF';
+                    icon = <Layers size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לניהול הצעות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'עסקאות', value: list.length, color: '#007AFF' },
+                                { label: 'שווי כולל', value: `₪${Math.round(stageTotal).toLocaleString()}`, color: '#34C759' },
+                                { label: 'הסתברות', value: `${Math.round((STAGE_WEIGHTS[shown.stage] || 0.1) * 100)}%`, color: '#5856D6' },
+                            ]} />
+                            {list.length === 0 ? (
+                                <DrillEmpty icon={Layers} text="אין עסקאות בשלב זה" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">עסקאות בשלב — לחץ לפרטים</p>
+                                    {list.map((q, i) => (
+                                        <DrillRow key={q.id} delay={i * 0.03} tone="#5856D6"
+                                            onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5856D6', 0.1) }}><Users size={13} color="#5856D6" /></span>}
+                                            title={q.contactName || q.institution || q.id}
+                                            subtitle={q.institution || orderDateStr(q.dateTs)}
+                                            trailing={<span className="text-[12px] font-black text-[#007AFF] shrink-0">₪{Math.round(quoteVal(q)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'product') {
+                    const prod = findProduct(shown.id);
+                    const sales = productSalesMap[String(shown.id)] || { revenue: 0, count: 0 };
+                    const pTitle = prod?.title || prod?.name || shown.fallback?.title || 'מוצר';
+                    const pImage = prod?.image || shown.fallback?.image;
+                    const stock = prod ? Number(prod.stock ?? prod.quantity ?? 0) : null;
+                    const threshold = prod ? Number(prod.stockThreshold ?? prod.minStock ?? prod.threshold ?? 3) : null;
+                    title = pTitle; subtitle = prod?.category || 'מוצר'; accent = '#007AFF';
+                    icon = <Box size={17} color="#007AFF" />;
+                    footer = { label: 'פתח מוצר', onClick: () => drillTo('/admin/products') };
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center" style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    {pImage ? <img src={pImage} alt={pTitle} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} /> : <Box size={26} className="text-[#AEAEB2]" />}
+                                </div>
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="text-[15px] font-black text-[#1D1D1F] leading-tight">{pTitle}</p>
+                                    {prod?.price != null && <p className="text-[13px] font-bold text-[#34C759] mt-1">₪{Number(prod.price).toLocaleString()}</p>}
+                                    {prod?.category && <p className="text-[11px] text-[#AEAEB2] mt-0.5">{prod.category}</p>}
                                 </div>
                             </div>
-                        )}
-                    </AdminModal>
+                            <DrillStat items={[
+                                { label: 'הכנסות', value: `₪${sales.revenue.toLocaleString()}`, color: '#34C759' },
+                                { label: 'יח׳ נמכרו', value: sales.count, color: '#007AFF' },
+                                ...(stock != null ? [{ label: 'במלאי', value: `${stock}${threshold != null ? `/${threshold}` : ''}`, color: stock <= (threshold ?? 0) ? '#FF3B30' : '#34C759' }] : []),
+                            ]} />
+                            {!prod && (
+                                <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                                    המוצר לא נמצא בקטלוג הנוכחי — ייתכן שהוסר. הנתונים מבוססים על היסטוריית ההזמנות.
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'activity') {
+                    const e = shown.entry || {};
+                    const map = ACTIVITY_ICONS[e.type] || ACTIVITY_ICONS.info;
+                    const IconC = map.Icon;
+                    const routeByType = { order: '/admin/orders', product: '/admin/products', inventory: '/admin/inventory', coupon: '/admin/marketing', info: '/admin/analytics' };
+                    const labelByType = { order: 'מעבר לניהול הזמנות', product: 'מעבר לניהול מוצרים', inventory: 'מעבר לניהול מלאי', coupon: 'מעבר לשיווק', info: 'מעבר לאנליטיקס' };
+                    title = 'רשומת פעילות'; subtitle = e.date || '—'; accent = map.color;
+                    icon = <IconC size={17} color={map.color} />;
+                    footer = { label: labelByType[e.type] || 'מעבר לאנליטיקס', onClick: () => drillTo(routeByType[e.type] || '/admin/analytics') };
+                    body = (
+                        <div className="space-y-4">
+                            <div className="rounded-[16px] p-4 text-right flex items-start gap-3" style={{ background: hexA(map.color, 0.06), border: `1px solid ${hexA(map.color, 0.16)}` }}>
+                                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0" style={{ background: hexA(map.color, 0.14) }}><IconC size={16} color={map.color} /></span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-bold text-[#1D1D1F] leading-snug">{e.message || '—'}</p>
+                                    <p className="text-[11px] text-[#AEAEB2] mt-1.5">{e.date || '—'} · {e.type || 'info'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'traffic') {
+                    const stats = computeStats(periodData?.visits);
+                    const hasData = periodData?.visits?.some(v => v > 0);
+                    title = 'תנועה לאתר'; subtitle = periodLabel; accent = '#007AFF';
+                    icon = <Activity size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לאנליטיקס', onClick: () => drillTo('/admin/analytics') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'כניסות', value: (stats?.total || 0).toLocaleString(), color: '#007AFF' },
+                                { label: 'ממוצע יומי', value: (stats?.avg || 0).toLocaleString() },
+                                { label: 'שיא', value: (stats?.peak || 0).toLocaleString() },
+                                { label: 'מגמה', value: `${(stats?.trend || 0) >= 0 ? '+' : ''}${stats?.trend || 0}%`, color: (stats?.trend || 0) >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {hasData ? (
+                                <div>
+                                    <p className="text-[11px] font-bold text-[#86868B] mb-3">{periodLabel}</p>
+                                    <BarChart data={periodData.visits} color="#007AFF" labels={periodData.labels || []} height={140} />
+                                </div>
+                            ) : <DrillEmpty icon={Activity} text="טרם הצטברו נתוני תנועה" />}
+                        </div>
+                    );
+                } else if (shown.type === 'sales') {
+                    const stats = computeStats(periodData?.sales);
+                    const hasData = periodData?.sales?.some(v => v > 0);
+                    title = 'מכירות יומיות'; subtitle = periodLabel; accent = '#007AFF';
+                    icon = <BarChart2 size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'עסקאות', value: (stats?.total || 0).toLocaleString(), color: '#007AFF' },
+                                { label: 'ממוצע יומי', value: (stats?.avg || 0).toLocaleString() },
+                                { label: 'שיא יומי', value: (stats?.peak || 0).toLocaleString() },
+                                { label: 'מגמה', value: `${(stats?.trend || 0) >= 0 ? '+' : ''}${stats?.trend || 0}%`, color: (stats?.trend || 0) >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {hasData ? (
+                                <div>
+                                    <p className="text-[11px] font-bold text-[#86868B] mb-3">{periodLabel}</p>
+                                    <BarChart data={periodData.sales} color="#007AFF" labels={periodData.labels || []} height={140} />
+                                </div>
+                            ) : <DrillEmpty icon={BarChart2} text="טרם בוצעו עסקאות בתקופה זו" />}
+                            {topProducts.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים מובילים — לחץ לצלילה</p>
+                                    {topProducts.slice(0, 4).map((p, i) => (
+                                        <DrillRow key={p.id || i} delay={i * 0.04}
+                                            onClick={() => pushDrill({ type: 'product', id: p.id, fallback: { title: p.title, image: p.image } })}
+                                            leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
+                                            title={p.title}
+                                            subtitle={`${p.count} יח׳`}
+                                            trailing={<span className="text-[12px] font-black text-[#007AFF] shrink-0">₪{p.revenue.toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'goal') {
+                    const remaining = Math.max(monthlyGoal.target - monthlyGoal.current, 0);
+                    const pct = monthlyGoal.target > 0 ? Math.min(Math.round(monthlyGoal.current / monthlyGoal.target * 100), 999) : 0;
+                    title = 'יעד הכנסות חודשי'; subtitle = monthlyGoal.isManual ? 'יעד ידני' : 'יעד אוטומטי ×1.5'; accent = '#34C759';
+                    icon = <Target size={17} color="#34C759" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex justify-center">
+                                <GoalRing value={monthlyGoal.current} target={monthlyGoal.target} color="#34C759" label="החודש" subtitle={`${pct}% מהיעד`} size={120} />
+                            </div>
+                            <DrillStat items={[
+                                { label: 'הכנסות החודש', value: `₪${monthlyGoal.current.toLocaleString()}`, color: '#34C759' },
+                                { label: 'יעד', value: `₪${monthlyGoal.target.toLocaleString()}`, color: '#007AFF' },
+                                { label: 'נותר ליעד', value: `₪${remaining.toLocaleString()}`, color: remaining > 0 ? '#FF9500' : '#34C759' },
+                            ]} />
+                            <DrillRow tone="#34C759"
+                                onClick={() => pushDrill({ type: 'revenue' })}
+                                leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.12) }}><TrendingUp size={14} color="#34C759" /></span>}
+                                title="פירוט הכנסות מלא"
+                                subtitle="צלול לפי יום ומוצר"
+                            />
+                        </div>
+                    );
+                } else {
+                    title = 'פרטים'; icon = <Activity size={17} color="#007AFF" />;
+                    body = <DrillEmpty icon={Activity} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.id ?? shown.stage ?? shown.entry?.id ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
                 );
             })()}
         </div>

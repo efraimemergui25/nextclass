@@ -7,6 +7,7 @@ import { Bell, Phone, FileText, CheckCircle2, AlertCircle, Package, Send, Trash2
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminFilterPills, AdminDateFilter, filterByDate, InfoTooltip } from '../components/AdminComponents';
 import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow, accentSurface } from '../theme/tokens';
 import initialProducts from '../../data/products';
@@ -2389,6 +2390,7 @@ function CmdKSearch({ quotes, orders, onSelectQuote, onClose }) {
 function QuotesPipeline() {
     const { quotes, updateQuoteStatus, updateQuoteFields, addQuoteNote, setQuoteCustomerMessage, sendThreadMessage, markAdminThreadRead, markOrdersSeen, deleteQuote } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -3091,7 +3093,7 @@ function QuotesPipeline() {
                                         </a>
                                     )}
                                     <motion.button whileTap={{ scale: 0.95 }}
-                                        onClick={() => { if (window.confirm('למחוק את ההצעה לצמיתות?')) { deleteQuote(selected.id); setSelected(null); showToast('ההצעה נמחקה', 'success'); } }}
+                                        onClick={async () => { if (await confirm({ message: 'למחוק את ההצעה לצמיתות?', danger: true })) { deleteQuote(selected.id); setSelected(null); showToast('ההצעה נמחקה', 'success'); } }}
                                         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(255,59,48,0.2)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
                                         <Trash2 size={11} /> מחק
                                     </motion.button>
@@ -3782,6 +3784,7 @@ function QuotesPipeline() {
 function OrdersList() {
     const { orders, updateOrderStatus, inventory, deleteOrder } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
@@ -3988,7 +3991,7 @@ function OrdersList() {
                             </div>
                             <div className="flex gap-2 justify-between">
                                 <motion.button whileTap={{ scale: 0.95 }}
-                                    onClick={() => { if (window.confirm('למחוק את ההזמנה לצמיתות?')) { deleteOrder(selected.id); setSelected(null); showToast('ההזמנה נמחקה', 'success'); } }}
+                                    onClick={async () => { if (await confirm({ message: 'למחוק את ההזמנה לצמיתות?', danger: true })) { deleteOrder(selected.id); setSelected(null); showToast('ההזמנה נמחקה', 'success'); } }}
                                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
                                     <Trash2 size={13} />מחק הזמנה
                                 </motion.button>
@@ -4014,6 +4017,7 @@ function OrdersList() {
 function TrashTab() {
     const { deletedItems, restoreOrder, hardDeleteOrder, restoreQuote, hardDeleteQuote } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [section, setSection] = useState('quotes');
 
     const items = section === 'quotes' ? deletedItems.quotes : deletedItems.orders;
@@ -4024,7 +4028,7 @@ function TrashTab() {
         else { await restoreOrder(id); showToast('ההזמנה שוחזרה', 'success'); }
     };
     const handleHardDelete = async (id) => {
-        if (!window.confirm('למחוק לצמיתות? לא ניתן לשחזר.')) return;
+        if (!await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) return;
         if (section === 'quotes') { await hardDeleteQuote(id); showToast('נמחק לצמיתות', 'success'); }
         else { await hardDeleteOrder(id); showToast('נמחק לצמיתות', 'success'); }
     };

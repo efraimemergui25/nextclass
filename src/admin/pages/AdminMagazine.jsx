@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, ExternalLink, X, Save, Loader, Newspaper, Tag, Globe } from 'lucide-react';
 import { GLASS, RADIUS, SHADOW, SPRING, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
 import { AdminKPICard, AdminEmpty, AdminFilterPills } from '../components/AdminComponents';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 
 // ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
 const BRAND      = '#007AFF';
@@ -99,6 +100,7 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
 }
 
 export default function AdminMagazine() {
+    const confirm = useAdminConfirm();
     const [articles, setArticles] = useState([]);
     const [showAdd, setShowAdd] = useState(false);
     const [editId, setEditId] = useState(null);
@@ -128,7 +130,7 @@ export default function AdminMagazine() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('למחוק את הכתבה?')) return;
+        if (!await confirm({ message: 'למחוק את הכתבה?', danger: true })) return;
         setDeleting(id);
         try { await deleteDoc(doc(db, 'magazine_articles', id)); }
         finally { setDeleting(null); }

@@ -7,6 +7,7 @@ import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle, AdminTabs } from '../components/AdminComponents';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { useSettings } from '../../context/SettingsContext';
 import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow } from '../theme/tokens';
 
@@ -50,6 +51,7 @@ export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
     const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const { getSetting, updateGlobalSettings } = useSettings();
 
     // ─── Active tab ───────────────────────────────────────────────────────────────
@@ -343,7 +345,7 @@ export default function AdminSettings() {
                             </div>
                             <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
                                 <AdminButton variant="ghost" onClick={async () => {
-                                    if (confirm('האם אתה בטוח? פעולה זו תעדכן את כל שדות המוצרים (למעט מלאי ומכירות) לפי קובץ המקור.')) {
+                                    if (await confirm({ title: 'סנכרון מלא מחדש?', message: 'פעולה זו תעדכן את כל שדות המוצרים (למעט מלאי ומכירות) לפי קובץ המקור.', confirmLabel: 'סנכרן', danger: true })) {
                                         await reseedDatabase();
                                         showToast('בסיס הנתונים סונכרן מחדש בהצלחה', 'success');
                                     }
@@ -357,7 +359,7 @@ export default function AdminSettings() {
                         <div className="space-y-4">
                             <div className="flex flex-col gap-2">
                                 <AdminButton variant="outline" onClick={async () => {
-                                    if (confirm('לאפס את התוכן השיווקי בבסיס הנתונים החי לברירות מחדל נקיות?\n\nהפעולה מסירה נתונים פקטיביים שהוזנו בעבר (המלצות, סטטיסטיקות, שותפים, ביקורות, טיימליין). הגדרות אמיתיות (טלפונים, מתגים) לא ייפגעו.')) {
+                                    if (await confirm({ title: 'לאפס את התוכן השיווקי לברירת מחדל נקייה?', message: 'הפעולה מסירה נתונים פקטיביים שהוזנו בעבר (המלצות, סטטיסטיקות, שותפים, ביקורות, טיימליין). הגדרות אמיתיות (טלפונים, מתגים) לא ייפגעו.', confirmLabel: 'אפס', danger: true })) {
                                         try {
                                             const n = await resetMarketingContent();
                                             showToast(`תוכן שיווקי נוקה — ${n} שדות אופסו לברירת מחדל נקייה`, 'success');
@@ -368,7 +370,7 @@ export default function AdminSettings() {
                             </div>
                             <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
                                 <AdminButton variant="danger" onClick={async () => {
-                                    if (confirm('⚠️ אזהרה: פעולה זו תמחק את כל המוצרים בבסיס הנתונים ותטען מחדש רק את 3 המסכים האמיתיים.\n\nמוצרים שהוספת (כולל תמונות שהעלית) יוחלפו בנתוני המקור. השתמש רק אם יש מוצרי דמו ישנים לנקות.\n\nלהמשיך?')) {
+                                    if (await confirm({ title: 'אזהרה: לאפס את הקטלוג ל-3 המסכים בלבד?', message: 'פעולה זו תמחק את כל המוצרים בבסיס הנתונים ותטען מחדש רק את 3 המסכים האמיתיים.\n\nמוצרים שהוספת (כולל תמונות שהעלית) יוחלפו בנתוני המקור. השתמש רק אם יש מוצרי דמו ישנים לנקות.', confirmLabel: 'אפס קטלוג', danger: true })) {
                                         try {
                                             const r = await wipeAndReseedCatalog();
                                             showToast(`הקטלוג אופס: נמחקו ${r.removed}, נטענו ${r.seeded} מסכים אמיתיים`, 'success');
@@ -379,7 +381,7 @@ export default function AdminSettings() {
                             </div>
                             <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
                                 <AdminButton variant="danger" onClick={async () => {
-                                    if (confirm('למחוק את כל נתוני הדמו מהדשבורד?\n\nנמחק: הזמנות, הצעות מחיר, לידים, אנשי קשר, לקוחות, שאלות, ניוזלטר, יומן פעילות, צפיות, מיילים ממתינים, קופונים, לוגים.\nלא ייגע: מלאי, ספקים, הצעות ספקים.\n\nפעולה בלתי הפיכה. להמשיך?')) {
+                                    if (await confirm({ title: 'למחוק את כל נתוני הדמו מהדשבורד?', message: 'נמחק: הזמנות, הצעות מחיר, לידים, אנשי קשר, לקוחות, שאלות, ניוזלטר, יומן פעילות, צפיות, מיילים ממתינים, קופונים, לוגים.\nלא ייגע: מלאי, ספקים, הצעות ספקים.\n\nפעולה בלתי הפיכה.', confirmLabel: 'מחק', danger: true })) {
                                         try { const n = await purgeDemoData(); showToast(`נמחקו ${n} רשומות דמו מהדשבורד`, 'success'); }
                                         catch (err) { showToast('שגיאה במחיקת נתוני הדמו', 'error'); }
                                     }
@@ -388,7 +390,7 @@ export default function AdminSettings() {
                             </div>
                             <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
                                 <AdminButton variant="outline" onClick={async () => {
-                                    if (confirm('ליצור את ההזמנה הראשונה מ-PO של עמל (#80363169) ולשמור אותה בכספת?\n\n2× מסך ASUS VA279QG-J 27", סה"כ ₪885 כולל מע"מ.')) {
+                                    if (await confirm({ title: 'ליצור את ההזמנה הראשונה מ-PO של עמל (#80363169) ולשמור אותה בכספת?', message: '2× מסך ASUS VA279QG-J 27", סה"כ ₪885 כולל מע"מ.', confirmLabel: 'צור הזמנה', danger: true })) {
                                         try { await createAmalFirstOrder(); showToast('ההזמנה הראשונה (PO עמל 80363169) נוצרה ונשמרה בכספת ✓', 'success'); }
                                         catch (err) { showToast('שגיאה ביצירת ההזמנה: ' + err.message, 'error'); }
                                     }

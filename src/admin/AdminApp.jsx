@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { AdminDataProvider } from './context/AdminDataContext';
 import { AdminToastProvider } from './context/AdminToastContext';
+import { AdminConfirmProvider } from './context/AdminConfirmContext';
 
 // Shell components (always loaded — structural)
 import AdminSidebar from './components/AdminSidebar';
@@ -155,6 +156,7 @@ function AdminShell() {
     return (
         <AdminToastProvider>
             <AdminDataProvider>
+                <AdminConfirmProvider>
                 <div className="flex h-screen overflow-hidden relative" dir="rtl" style={{ background: 'transparent' }}>
 
                     {/* ── Liquid-glass living background — multi-layer mesh + drifting orbs ── */}
@@ -246,6 +248,7 @@ function AdminShell() {
                     </div>
                 </div>
                 <AdminCopilot />
+                </AdminConfirmProvider>
             </AdminDataProvider>
         </AdminToastProvider>
     );

@@ -8,6 +8,7 @@ import {
 import { db } from '../../firebase';
 import { useSettings } from '../../context/SettingsContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     MessageSquare, Mail, Phone, Edit2, Trash2, Plus, Send, X,
     ChevronDown, AlertCircle, MessageCircle, Zap, Clock,
@@ -545,6 +546,7 @@ function SmartInserts({ lead, bizPhone, onInsert }) {
 export default function AdminCommunications() {
     const { getSetting }                           = useSettings();
     const { sendThreadMessage, markAdminThreadRead } = useAdminData();
+    const confirm = useAdminConfirm();
     const bizPhone = getSetting('contact_phone', '058-5856356');
 
     const [leads,          setLeads]          = useState([]);
@@ -629,7 +631,7 @@ export default function AdminCommunications() {
     };
 
     const handleDeclineEmail = async (emailItem) => {
-        if (!window.confirm('האם אתה בטוח שברצונך לדחות ולבטל מייל זה?')) return;
+        if (!await confirm({ message: 'האם אתה בטוח שברצונך לדחות ולבטל מייל זה?', danger: true })) return;
         try {
             await setDoc(doc(db, 'pending_emails', emailItem.id), {
                 status: 'declined',
@@ -682,7 +684,7 @@ export default function AdminCommunications() {
     }, []);
 
     const handleDeleteLead = async (lead) => {
-        if (!window.confirm('להעביר ליד זה לסל המחזור?')) return;
+        if (!await confirm({ message: 'להעביר ליד זה לסל המחזור?', danger: true })) return;
         await setDoc(doc(db, 'quotes', lead._docId), { deleted: true, deletedAt: Date.now() }, { merge: true });
         setSelected(null);
         showToast('הועבר לסל המחזור');
@@ -694,7 +696,7 @@ export default function AdminCommunications() {
     };
 
     const handleHardDeleteLead = async (lead) => {
-        if (!window.confirm('למחוק לצמיתות? לא ניתן לשחזר.')) return;
+        if (!await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) return;
         await deleteDoc(doc(db, 'quotes', lead._docId));
         showToast('נמחק לצמיתות');
     };
@@ -739,11 +741,11 @@ export default function AdminCommunications() {
     }, []);
 
     const deleteTpl = useCallback(async id => {
-        if (!confirm('למחוק את התבנית?')) return;
+        if (!await confirm({ message: 'למחוק את התבנית?', danger: true })) return;
         await deleteDoc(doc(db, 'comm_templates', id));
         if (activeTpl?.id === id) setActiveTpl(null);
         showToast('תבנית נמחקה');
-    }, [activeTpl]);
+    }, [activeTpl, confirm]);
 
     const logOutreach = useCallback(async (type, tplName, preview) => {
         if (!selected?._docId) return;

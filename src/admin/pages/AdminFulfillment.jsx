@@ -8,6 +8,7 @@ import {
     arrayUnion
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     AdminSectionHeader, AdminInput, AdminTextArea,
     AdminToggle, AdminModal, AdminKPICard, AdminEmpty
@@ -1125,6 +1126,7 @@ async function exportSupplierOrdersXLSX(supplierOrders, suppliers) {
 }
 
 function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToast, selectedOrder, onSelectOrder }) {
+    const confirm = useAdminConfirm();
     const [filterStatus, setFilterStatus] = useState('all');
     const [showForwardModal, setShowForwardModal] = useState(false);
 
@@ -1145,12 +1147,12 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
 
     const deleteOrder = useCallback(async (id, e) => {
         e?.stopPropagation();
-        if (!window.confirm('למחוק הזמנת ספק זו?')) return;
+        if (!await confirm({ message: 'למחוק הזמנת ספק זו?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'supplier_orders', id));
             showToast('נמחקה', 'success');
         } catch { showToast('שגיאה', 'error'); }
-    }, [showToast]);
+    }, [showToast, confirm]);
 
     return (
         <div className="space-y-4">
@@ -1477,6 +1479,7 @@ function calcReliability(supplierId, supplierName, supplierOrders) {
 }
 
 function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
+    const confirm = useAdminConfirm();
     const [showForm, setShowForm] = useState(false);
     const [editId,   setEditId]   = useState(null);
     const [form,     setForm]     = useState(BLANK_SUPPLIER);
@@ -1502,7 +1505,7 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('למחוק ספק זה?')) return;
+        if (!await confirm({ message: 'למחוק ספק זה?', danger: true })) return;
         try { await deleteDoc(doc(db, 'suppliers', id)); showToast('ספק נמחק', 'success'); }
         catch { showToast('שגיאה', 'error'); }
     };
