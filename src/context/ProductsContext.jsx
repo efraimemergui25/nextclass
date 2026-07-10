@@ -26,16 +26,22 @@ const ProductsContext = createContext(null);
 // Module-level map: id → seed image URL (real manufacturer image, offline fallback)
 const seedImageById = Object.fromEntries(defaultProducts.map(p => [p.id, p.image || '']));
 
+// Neutral monitor placeholder (data-URI, always loads) — used when a product has no
+// image at all (e.g. the HP model before a real photo is uploaded), so nothing renders
+// as a broken/blank <img> anywhere on the site. `<img src="">` never fires onError.
+const GENERIC_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23F5F5F7'/%3E%3Crect x='96' y='72' width='208' height='134' rx='10' fill='%23fff' stroke='%23C7C7CC' stroke-width='6'/%3E%3Crect x='170' y='214' width='60' height='16' rx='4' fill='%23C7C7CC'/%3E%3C/svg%3E";
+
 // Normalise Firebase data. Firebase wins on all fields EXCEPT image: if Firebase
-// returns an empty/missing image, we restore the seed image so products never go imageless.
+// returns an empty/missing image we restore the seed image, and if that's also empty
+// we fall back to a neutral placeholder so a product is NEVER imageless anywhere.
 function mergeWithMeta(rawProducts) {
     return rawProducts.map(p => {
         const seedImage = seedImageById[p.id] || '';
-        const resolvedImage = (p.image && p.image.trim()) ? p.image : seedImage;
+        const resolvedImage = (p.image && p.image.trim()) ? p.image : (seedImage || GENERIC_FALLBACK);
         return {
             ...p,
             image: resolvedImage,
-            _seedImage: seedImage,
+            _seedImage: seedImage || GENERIC_FALLBACK,
         };
     });
 }

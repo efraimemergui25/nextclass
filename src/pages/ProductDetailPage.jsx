@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent, useSpring } from 'framer-motion';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageTransition from '../components/PageTransition';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
@@ -174,6 +174,7 @@ const ProductDetailPage = () => {
  const { id } = useParams();
  const { getSetting, isVisible } = useSettings();
  const { cartItems, addToCart, removeFromCart } = useCart();
+ const navigate = useNavigate();
  const { getProductById: fetchProduct } = useProducts();
  const { addToCompare, removeFromCompare, isSelected: isProductCompared } = useCompare();
 
@@ -793,6 +794,7 @@ const ProductDetailPage = () => {
  <motion.button
  whileHover={{ scale: 1.02 }}
  whileTap={{ scale: 0.98 }}
+ onClick={() => { if (!isInCart) handleCartToggle(); navigate('/cart'); }}
  className="flex-1 min-w-[200px] bg-black text-white py-4 px-10 rounded-full font-bold text-lg hover:bg-gray-900 transition-apple-fluid shadow-lg relative overflow-hidden group"
  >
  {/* Shine effect for black button */}

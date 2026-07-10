@@ -4,14 +4,17 @@ import { collection, onSnapshot, orderBy, query, addDoc, updateDoc, deleteDoc, d
 import { db } from '../../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, ExternalLink, X, Save, Loader, Newspaper, Tag, Globe } from 'lucide-react';
-import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
+import { GLASS, RADIUS, SHADOW, SPRING, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
 import { AdminKPICard, AdminEmpty, AdminFilterPills } from '../components/AdminComponents';
 
-// ─── Magazine domain accent (Heaven, sky) ─────────────────────────────────────
-const SKY      = '#64D2FF';
-const SKY_GRAD = 'linear-gradient(135deg, #64D2FF 0%, #32ADE6 100%)';
-const SKY_SOFT = 'linear-gradient(135deg, rgba(100,210,255,0.18) 0%, rgba(50,173,230,0.08) 100%)';
+// ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
+const BRAND      = '#007AFF';
+const BRAND_GRAD = GRADIENT.signature;
+const BRAND_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.18) 0%, rgba(0,122,255,0.08) 100%)';
 const glass    = { ...GLASS.base };
+
+// Neutral placeholder when an article image URL fails to load
+const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='56' viewBox='0 0 80 56'%3E%3Crect width='80' height='56' fill='%23EEF0F3'/%3E%3C/svg%3E";
 
 const CATEGORIES = ['חדשנות פדגוגית', 'מעבדות STEM', 'טרנדים', 'מקרי בוחן', 'תשתיות', 'בינה מלאכותית'];
 const EMPTY = { title: '', category: 'חדשנות פדגוגית', excerpt: '', date: '', readTime: '', image: '', url: '', source: '' };
@@ -82,7 +85,7 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
             <div className="flex gap-3 justify-start">
                 <button onClick={() => onSave(form)} disabled={loading || !form.title || !form.url}
                     className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] disabled:opacity-40 transition-all"
-                    style={{ background: SKY_GRAD, boxShadow: `0 4px 16px ${hexA(SKY, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                    style={{ background: BRAND_GRAD, boxShadow: `0 4px 16px ${hexA(BRAND, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     {loading ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
                     שמור
                 </button>
@@ -140,27 +143,27 @@ export default function AdminMagazine() {
         <div className="p-6 md:p-8 max-w-5xl mx-auto" dir="rtl">
             {/* Header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: SKY_SOFT, border: `1px solid ${hexA(SKY, 0.28)}`, boxShadow: `${glow(SKY, 0.2, 20)}, ${SHADOW.specular}` }}>
-                    <Newspaper size={22} color="#32ADE6" />
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: BRAND_SOFT, border: `1px solid ${hexA(BRAND, 0.28)}`, boxShadow: `${glow(BRAND, 0.2, 20)}, ${SHADOW.specular}` }}>
+                    <Newspaper size={22} color={BRAND} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>מגזין חדשנות</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{articles.length} כתבות ב-Firestore</p>
                 </div>
-                <motion.button onClick={() => { setShowAdd(true); setEditId(null); }} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(SKY, 0.45)}` }} whileTap={TAP}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: SKY_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(SKY, 0.36)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                <motion.button onClick={() => { setShowAdd(true); setEditId(null); }} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(BRAND, 0.45)}` }} whileTap={TAP}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(BRAND, 0.36)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     <Plus size={15} />הוסף כתבה
                 </motion.button>
             </div>
 
             {/* KPI band — articles · categories · sources */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 22 }}>
-                <AdminKPICard title="כתבות" value={articles.length} subtitle="ב-Firestore" accent={SKY} delay={0}
-                    icon={<Newspaper size={20} color="#32ADE6" />} />
-                <AdminKPICard title="קטגוריות" value={catCount} subtitle="בשימוש פעיל" accent={PALETTE.indigo} delay={0.05}
-                    icon={<Tag size={20} color={PALETTE.indigo} />} />
-                <AdminKPICard title="מקורות" value={srcCount} subtitle="מקורות תוכן" accent={PALETTE.emerald} delay={0.1}
-                    icon={<Globe size={20} color={PALETTE.emerald} />} />
+                <AdminKPICard title="כתבות" value={articles.length} subtitle="ב-Firestore" accent={BRAND} delay={0}
+                    icon={<Newspaper size={20} color={BRAND} />} />
+                <AdminKPICard title="קטגוריות" value={catCount} subtitle="בשימוש פעיל" accent={BRAND} delay={0.05}
+                    icon={<Tag size={20} color={BRAND} />} />
+                <AdminKPICard title="מקורות" value={srcCount} subtitle="מקורות תוכן" accent={BRAND} delay={0.1}
+                    icon={<Globe size={20} color={BRAND} />} />
             </div>
 
             {/* Note when Firestore is empty */}
@@ -201,7 +204,8 @@ export default function AdminMagazine() {
                             ) : (
                                 <div className="flex items-start gap-4 p-4">
                                     {article.image && (
-                                        <img src={article.image} alt="" className="w-20 h-14 object-cover rounded-xl shrink-0" />
+                                        <img src={article.image} alt="" className="w-20 h-14 object-cover rounded-xl shrink-0"
+                                            onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
                                     )}
                                     <div className="flex-1 min-w-0 text-right">
                                         <div className="flex items-center gap-2 justify-end mb-1">
@@ -220,7 +224,7 @@ export default function AdminMagazine() {
                                         </a>
                                         <button onClick={() => { setEditId(article.id); setShowAdd(false); }}
                                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                            style={{ background: 'rgba(88,86,214,0.07)', color: '#5856D6' }}>
+                                            style={{ background: 'rgba(0,122,255,0.07)', color: '#007AFF' }}>
                                             <Edit2 size={14} />
                                         </button>
                                         <button onClick={() => handleDelete(article.id)} disabled={deleting === article.id}

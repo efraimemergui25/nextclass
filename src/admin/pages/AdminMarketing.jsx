@@ -7,12 +7,12 @@ import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminButton, AdminModal, AdminInput, AdminToggle, AdminKPICard, AdminEmpty, AdminSearchBar, AdminFilterPills } from '../components/AdminComponents';
 import { useSettings } from '../../context/SettingsContext';
-import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+import { PALETTE, GLASS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Marketing domain accent (Heaven, pink) ───────────────────────────────────
-const PINK      = '#FF375F';
-const PINK_GRAD = 'linear-gradient(135deg, #FF6482 0%, #FF375F 100%)';
-const PINK_SOFT = 'linear-gradient(135deg, rgba(255,55,95,0.14) 0%, rgba(255,100,130,0.08) 100%)';
+// ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
+const BRAND      = '#007AFF';
+const BRAND_GRAD = GRADIENT.signature;
+const BRAND_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.14) 0%, rgba(0,122,255,0.08) 100%)';
 
 // ─── Shared liquid-glass surface (token-driven — one system everywhere) ────────
 const glass = { ...GLASS.base };
@@ -210,29 +210,29 @@ export default function AdminMarketing() {
         <div dir="rtl" className="space-y-5">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: PINK_SOFT, border: `1px solid ${hexA(PINK, 0.22)}`, boxShadow: `${glow(PINK, 0.18, 20)}, ${SHADOW.specular}` }}>
-                    <Megaphone size={22} color={PINK} />
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: BRAND_SOFT, border: `1px solid ${hexA(BRAND, 0.22)}`, boxShadow: `${glow(BRAND, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <Megaphone size={22} color={BRAND} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שיווק וקידום מכירות</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{coupons.length} קופונים · {activeCoupons} פעילים · פס הכרזה: {bannerActive ? 'פעיל' : 'כבוי'}</p>
                 </div>
-                <motion.button onClick={() => setShowNew(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(PINK, 0.5)}` }} whileTap={TAP}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: PINK_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(PINK, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                <motion.button onClick={() => setShowNew(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(BRAND, 0.5)}` }} whileTap={TAP}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(BRAND, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     <Plus size={15} />קופון חדש
                 </motion.button>
             </div>
 
             {/* KPI band — coupons · active · uses · avg discount */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
-                <AdminKPICard title="קופונים" value={coupons.length} subtitle="סך הכל במערכת" accent={PINK} delay={0}
-                    icon={<Ticket size={20} color={PINK} />} />
+                <AdminKPICard title="קופונים" value={coupons.length} subtitle="סך הכל במערכת" accent={BRAND} delay={0}
+                    icon={<Ticket size={20} color={BRAND} />} />
                 <AdminKPICard title="פעילים" value={activeCoupons} subtitle="קופונים פעילים כעת" accent={PALETTE.green} delay={0.05}
                     icon={<Check size={20} color={PALETTE.green} />} />
                 <AdminKPICard title="שימושים" value={totalUses} subtitle="סך מימושים" accent={PALETTE.azure} delay={0.1}
                     icon={<BarChart2 size={20} color={PALETTE.azure} />} />
-                <AdminKPICard title="ממוצע הנחה" value={`${avgDiscount}%`} subtitle="קופוני אחוז" accent={PALETTE.orange} delay={0.15}
-                    icon={<Percent size={20} color={PALETTE.orange} />} />
+                <AdminKPICard title="ממוצע הנחה" value={`${avgDiscount}%`} subtitle="קופוני אחוז" accent={PALETTE.azure} delay={0.15}
+                    icon={<Percent size={20} color={PALETTE.azure} />} />
             </div>
 
             {/* Coupon list */}

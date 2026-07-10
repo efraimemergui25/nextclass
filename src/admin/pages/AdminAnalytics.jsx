@@ -9,8 +9,8 @@ import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, In
 import { GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
 import initialProducts from '../../data/products';
 
-// ─── Analytics domain accent (Heaven · emerald) ───────────────────────────────
-const ACCENT = '#30D158';
+// ─── Analytics accent — unified brand azure (de-rainbowed) ────────────────────
+const ACCENT = '#007AFF';
 
 // ─── Glass card ───────────────────────────────────────────────────────────────
 function Card({ title, subtitle, accent, action, children, className = '', titleTooltip }) {
@@ -481,7 +481,7 @@ export default function AdminAnalytics() {
                         {RANGES.map(r => (
                             <motion.button key={r.id} onClick={() => setRange(r.id)} whileTap={{ scale: 0.96 }}
                                 className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap"
-                                style={{ color: range === r.id ? '#1A8C40' : '#86868B' }}>
+                                style={{ color: range === r.id ? '#005EC4' : '#86868B' }}>
                                 {range === r.id && (
                                     <motion.div layoutId="range-pill" className="absolute inset-0 rounded-xl"
                                         style={{ background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)} 0%, ${hexA(ACCENT, 0.08)} 100%)`, border: `1px solid ${hexA(ACCENT, 0.28)}`, boxShadow: `0 2px 8px ${hexA(ACCENT, 0.18)}` }}

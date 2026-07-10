@@ -19,8 +19,8 @@ import { GLASS, RADIUS, SPRING, hexA, accentSurface } from '../theme/tokens';
 
 const SF = `-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',Heebo,Arial,sans-serif`;
 
-// ─── Communications domain accent (Heaven, coral ★) ────────────────────────────
-const CORAL = '#FF453A';
+// ─── Communications domain accent (restrained azure brand) ─────────────────────
+const CORAL = '#007AFF';
 
 const PIPELINE_STATUSES = {
     'חדש':           { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
@@ -589,7 +589,7 @@ export default function AdminCommunications() {
             const log = all.filter(e => e.status === 'sent' || e.status === 'declined');
             setPendingEmails(pending);
             setEmailLog(log);
-        });
+        }, err => console.error('[AdminCommunications] pending_emails snapshot error:', err));
     }, []);
 
     const handleApproveEmail = async (emailItem) => {
@@ -681,7 +681,7 @@ export default function AdminCommunications() {
             const all = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
             setLeads(all.filter(l => !l.deleted));
             setDeletedLeads(all.filter(l => l.deleted).sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0)));
-        });
+        }, err => console.error('[AdminCommunications] quotes snapshot error:', err));
     }, []);
 
     const handleDeleteLead = async (lead) => {
@@ -712,7 +712,7 @@ export default function AdminCommunications() {
             } else {
                 setTemplates(snap.docs.map(d => ({ ...d.data(), id: d.id })));
             }
-        });
+        }, err => console.error('[AdminCommunications] comm_templates snapshot error:', err));
     }, []);
 
     // Sync selected with live data

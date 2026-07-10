@@ -399,7 +399,7 @@ export default function AdminOCR() {
                                     <p style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>מחלץ טקסט מהמסמך...</p>
                                 </div>
                             ) : (canPreviewImg && filePreview) ? (
-                                <img src={filePreview} alt="preview" style={{ width: '100%', maxHeight: 420, objectFit: 'contain', display: 'block', borderRadius: 20 }} />
+                                <img src={filePreview} alt="preview" onError={e => { e.currentTarget.style.display = 'none'; }} style={{ width: '100%', maxHeight: 420, objectFit: 'contain', display: 'block', borderRadius: 20 }} />
                             ) : (step === 'ready' && fileKind === 'pdf' && filePreview) ? (
                                 <embed src={filePreview} type="application/pdf" style={{ width: '100%', height: 420, borderRadius: 18, border: 'none' }} />
                             ) : (step === 'ready' && fileObject) ? (

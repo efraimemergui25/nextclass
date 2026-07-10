@@ -11,16 +11,17 @@ import { AdminKPICard, AdminTabs, AdminEmpty } from '../components/AdminComponen
 import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Q&A domain accent (Heaven, amber) ────────────────────────────────────────
-const AMBER      = '#FFB340';
-const AMBER_GRAD = 'linear-gradient(135deg, #FFCB66 0%, #FFB340 100%)';
-const AMBER_SOFT = 'linear-gradient(135deg, rgba(255,179,64,0.16) 0%, rgba(255,203,102,0.08) 100%)';
+// ─── Q&A domain accent (restrained azure brand) ────────────────────────────────
+const AMBER      = '#007AFF';
+const AMBER_GRAD = 'linear-gradient(135deg, #007AFF 0%, #5E5CE6 100%)';
+const AMBER_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(94,92,230,0.08) 100%)';
 const glass      = { ...GLASS.base };
 
 export default function AdminQA() {
     const [activeTab, setActiveTab] = useState('pending');
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const { showToast } = useAdminToast();
     const [answerTexts, setAnswerTexts] = useState({});
 
@@ -29,6 +30,12 @@ export default function AdminQA() {
         const q = query(collection(db, 'product_questions'), orderBy('timestamp', 'desc'));
         const unsub = onSnapshot(q, (snap) => {
             setQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setError(null);
+            setLoading(false);
+        }, (err) => {
+            // H1: never spin forever on a read failure — clear loading and surface an error.
+            console.error('[AdminQA] snapshot error:', err);
+            setError(err);
             setLoading(false);
         });
         return unsub;
@@ -99,6 +106,21 @@ export default function AdminQA() {
                 <div className="flex items-center justify-center py-24">
                     <div className="w-8 h-8 rounded-full animate-spin"
                         style={{ border: `4px solid ${hexA(AMBER, 0.16)}`, borderTopColor: AMBER }} />
+                </div>
+            ) : error ? (
+                <div className="rounded-[24px] overflow-hidden" style={glass}>
+                    <div className="flex flex-col items-center justify-center text-center px-6 py-16 gap-4">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                            style={{ background: hexA('#FF3B30', 0.1), border: `1px solid ${hexA('#FF3B30', 0.24)}` }}>
+                            <MessageSquare size={26} style={{ color: '#FF3B30' }} />
+                        </div>
+                        <div>
+                            <p className="text-[15px] font-black text-[#1D1D1F]">שגיאה בטעינת השאלות</p>
+                            <p className="text-[12px] text-[#86868B] font-medium mt-1 max-w-[420px]">
+                                לא ניתן לקרוא את השאלות מ-Firestore. בדוק את החיבור וההרשאות ונסה לרענן.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             ) : displayed.length === 0 ? (
                 <div className="rounded-[24px] overflow-hidden" style={glass}>

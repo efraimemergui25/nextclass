@@ -299,16 +299,17 @@ export function AdminDataProvider({ children }) {
         batch.set(doc(db, 'quotes', quoteId), { status: newStatus, history }, { merge: true });
 
         // 2. Inventory + sales sync
+        // Resolve a product doc id — OCR/PO items carry `catalogNumber`, checkout items carry `id`.
+        const pidOf = (item) => String(item.catalogNumber || item.id || '').trim();
         if (quote?.items?.length) {
             if (newStatus === 'נסגר' && !quote.inventorySettled) {
-                // Deal closed → decrement stock & reserved, increment sold
+                // Deal closed → decrement stock, increment sold; release reservation only if it was reserved.
                 quote.items.forEach(item => {
+                    const pid = pidOf(item); if (!pid) return;
                     const qty = Number(item.qty) || 1;
-                    batch.update(doc(db, 'products', String(item.id)), {
-                        stock:    increment(-qty),
-                        reserved: increment(-qty),
-                        sold:     increment(qty),
-                    });
+                    const upd = { stock: increment(-qty), sold: increment(qty) };
+                    if (quote.stockReserved) upd.reserved = increment(-qty);
+                    batch.update(doc(db, 'products', pid), upd);
                 });
                 batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'closed' }, { merge: true });
                 addActivity(`מלאי עודכן אוטומטית — עסקה נסגרה (${quoteId})`, 'inventory');
@@ -318,12 +319,11 @@ export function AdminDataProvider({ children }) {
                 const alreadySettled = quote.inventorySettled === 'closed' || quote.inventorySettled === 'supplied';
                 if (!alreadySettled) {
                     quote.items.forEach(item => {
+                        const pid = pidOf(item); if (!pid) return;
                         const qty = Number(item.qty) || 1;
-                        batch.update(doc(db, 'products', String(item.id)), {
-                            stock:    increment(-qty),
-                            reserved: increment(-qty),
-                            sold:     increment(qty),
-                        });
+                        const upd = { stock: increment(-qty), sold: increment(qty) };
+                        if (quote.stockReserved) upd.reserved = increment(-qty);
+                        batch.update(doc(db, 'products', pid), upd);
                     });
                 }
                 batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'supplied' }, { merge: true });
@@ -339,16 +339,17 @@ export function AdminDataProvider({ children }) {
                 };
                 batch.set(doc(db, 'orders', `sale_${quoteId}`), saleRecord, { merge: true });
                 addActivity(`עסקה סופקה — הכנסה ₪${saleTotal.toLocaleString()} נרשמה (${quoteId})`, 'order');
-            } else if (newStatus === 'אבד' && !quote.inventorySettled) {
-                // Deal lost → release reservation only, no stock change
-                quote.items.forEach(item => {
-                    const qty = Number(item.qty) || 1;
-                    batch.update(doc(db, 'products', String(item.id)), {
-                        reserved: increment(-qty),
+            } else if ((newStatus === 'אבד' || newStatus === 'בוטל') && !quote.inventorySettled) {
+                // Deal cancelled/lost → release reservation only (if it was reserved), no stock change.
+                if (quote.stockReserved) {
+                    quote.items.forEach(item => {
+                        const pid = pidOf(item); if (!pid) return;
+                        const qty = Number(item.qty) || 1;
+                        batch.update(doc(db, 'products', pid), { reserved: increment(-qty) });
                     });
-                });
-                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'lost' }, { merge: true });
-                addActivity(`שמירת מלאי שוחררה — עסקה אבדה (${quoteId})`, 'inventory');
+                }
+                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: newStatus === 'בוטל' ? 'cancelled' : 'lost' }, { merge: true });
+                addActivity(`שמירת מלאי שוחררה — ${newStatus} (${quoteId})`, 'inventory');
             }
         }
 

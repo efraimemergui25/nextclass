@@ -9,7 +9,7 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject }
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminSectionHeader, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import {
-    GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS, PALETTE
+    GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS
 } from '../theme/tokens';
 import {
     Upload, Link2, Trash2, Copy, Check, FileText, Folder,
@@ -19,9 +19,9 @@ import {
     Image as ImageIcon, FileSpreadsheet, ShieldCheck, Zap
 } from 'lucide-react';
 
-// ─── Vault accent (violet ★) + liquid-glass surfaces (token-driven) ───────────
-const VAULT  = DOMAIN_ACCENTS.vault; // #BF5AF2
-const VGRAD  = `linear-gradient(135deg, ${PALETTE.purple} 0%, ${VAULT} 100%)`; // purple → violet
+// ─── Vault accent (restrained brand — azure, de-rainbowed) + liquid-glass surfaces ─
+const VAULT  = DOMAIN_ACCENTS.vault; // azure #007AFF
+const VGRAD  = 'linear-gradient(135deg,#007AFF,#5856D6)'; // azure → indigo signature
 const CARD   = { ...GLASS.base, borderRadius: RADIUS.card };
 const PANEL  = { ...GLASS.elevated, borderRadius: RADIUS.panel };
 
@@ -36,7 +36,7 @@ const SYSTEM_FOLDERS = [
 const CLASSIFICATIONS = [
     { id: 'all', label: 'הכל', color: '#8E8E93' },
     { id: 'approved', label: 'מאושר', color: '#30D158' },
-    { id: 'pending', label: 'בבדיקה', color: '#FF9F0A' },
+    { id: 'pending', label: 'בבדיקה', color: '#FF9500' },
     { id: 'archived', label: 'בארכיון', color: '#FF3B30' },
 ];
 
@@ -853,7 +853,7 @@ export default function AdminVault() {
                     subtitle={archivedCount > 0 ? `${archivedCount} בארכיון` : 'מוכנים לשליחה'}
                     icon={<CheckCircle size={20} color="#30D158" />} accent="#30D158" loading={loading} error={error} delay={0.05} />
                 <AdminKPICard title="ממתינים לבדיקה" value={pendingCount}
-                    subtitle="דורשים סיווג" icon={<Clock size={20} color="#FF9F0A" />} accent="#FF9F0A" loading={loading} error={error} delay={0.1} />
+                    subtitle="דורשים סיווג" icon={<Clock size={20} color="#FF9500" />} accent="#FF9500" loading={loading} error={error} delay={0.1} />
 
                 {/* Storage tile (KPI-styled with quota bar) */}
                 {loading ? (
@@ -894,7 +894,7 @@ export default function AdminVault() {
                 {[
                     { Icon: ShieldCheck, label: 'הצפנת קצה-אל-קצה מופעלת', color: '#34C759' },
                     { Icon: FolderOpen, label: 'סיווג אוטומטי זמין', color: VAULT },
-                    { Icon: Zap, label: 'סנכרון Firestore בזמן אמת', color: '#FF9F0A' },
+                    { Icon: Zap, label: 'סנכרון Firestore בזמן אמת', color: VAULT },
                 ].map(({ Icon, label, color }) => (
                     <div key={label} className="flex items-center gap-2 text-[11px] font-bold text-[#6E6E73]">
                         <Icon size={13} style={{ color }} />{label}

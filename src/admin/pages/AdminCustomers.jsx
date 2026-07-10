@@ -8,8 +8,8 @@ import { useAdminData } from '../context/AdminDataContext';
 import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Customers domain accent (Heaven · teal) ──────────────────────────────────
-const ACCENT = '#5AC8FA';
+// ─── Customers accent — unified brand azure (de-rainbowed) ────────────────────
+const ACCENT = '#007AFF';
 
 // ─── Liquid-glass surface (token-driven — one system everywhere) ──────────────
 const glass = { ...GLASS.base };
@@ -238,7 +238,7 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#5AC8FA]/45 hover:shadow-[0_12px_40px_rgba(90,200,250,0.14)] group"
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] group"
                             >
                                 <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
                                 <div className="flex items-center gap-3 justify-end">
@@ -283,7 +283,7 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => setSelectedCustomer(c)}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#5AC8FA]/45 hover:shadow-[0_12px_40px_rgba(90,200,250,0.14)] group" dir="rtl"
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] group" dir="rtl"
                             >
                                 <Avatar name={c.name} size={11} />
                                 <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>

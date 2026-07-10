@@ -50,28 +50,17 @@ export const PALETTE = {
    Keyed by the last path segment of /admin/<key>. Page agents: pick your page's
    accent via  accentFor(pathname)  or  DOMAIN_ACCENTS[key]  and reuse it for the
    page icon, KPI color, section glow and badges.  ★ = pinned by spec.          */
+// RESTRAINED BRAND SYSTEM (revised): one cohesive brand accent (azure) across the
+// whole admin — no per-domain rainbow. Color now carries MEANING only (see
+// STATUS_TONES for success/warning/danger/neutral). Emphasis uses the azure→indigo
+// GRADIENT.signature. Neutral canvas + whitespace + hierarchy do the work.
+const BRAND = '#007AFF';
 export const DOMAIN_ACCENTS = {
-    dashboard:      '#007AFF', // azure   — the hub (signature)
-    orders:         '#007AFF', // azure   ★ sales pipeline
-    products:       '#5E5CE6', // indigo  ★
-    inventory:      '#FF9500', // orange
-    customers:      '#5AC8FA', // teal    ★
-    users:          '#32ADE6', // cyan
-    analytics:      '#30D158', // emerald ★
-    marketing:      '#FF375F', // pink
-    content:        '#AF52DE', // purple
-    fulfillment:    '#AC8E68', // brown
-    suppliers:      '#FF9F0A', // gold    ★
-    community:      '#34C759', // green
-    qa:             '#FFB340', // amber
-    communications: '#FF453A', // coral   ★
-    media:          '#FF2D55', // rose
-    magazine:       '#64D2FF', // sky
-    ocr:            '#00C7BE', // mint
-    vault:          '#BF5AF2', // violet  ★
-    integrations:   '#5856D6', // deep indigo
-    security:       '#30B0C7', // seafoam (shield)
-    settings:       '#8E8E93', // graphite
+    dashboard: BRAND, orders: BRAND, products: BRAND, inventory: BRAND,
+    customers: BRAND, users: BRAND, analytics: BRAND, marketing: BRAND,
+    content: BRAND, fulfillment: BRAND, suppliers: BRAND, community: BRAND,
+    qa: BRAND, communications: BRAND, media: BRAND, magazine: BRAND,
+    ocr: BRAND, vault: BRAND, integrations: BRAND, security: BRAND, settings: BRAND,
 };
 export const MODULE_ACCENTS = DOMAIN_ACCENTS; // alias
 

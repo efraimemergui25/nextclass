@@ -15,9 +15,9 @@ const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנ�
 
 const EMPTY_FORM = { title: '', brand: '', model: '', price: '', salePrice: '', sku: '', category: CATEGORIES[1], image: '', description: '', specs: [], dimensions: [], isActive: true, isNew: false, isFeatured: false };
 
-// ─── Products domain accent (Heaven, indigo ★) + liquid-glass surfaces ──────────
-const INDIGO      = '#5E5CE6';                                   // products accent
-const INDIGO_GRAD = accentGradient(INDIGO);                      // azure → indigo
+// ─── Products accent — unified brand azure (de-rainbowed) + liquid-glass surfaces ─
+const INDIGO      = '#007AFF';                                   // brand azure accent
+const INDIGO_GRAD = accentGradient('#5E5CE6');                   // azure → indigo signature
 const G           = { ...GLASS.base, borderRadius: RADIUS.card };
 
 // Deterministic SKU — NC-BRAND-MODEL, sanitized. No randomness for production data.
@@ -156,7 +156,7 @@ function ProductRow({ product, onEdit }) {
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             whileHover={{ y: -2 }}
             onClick={() => onEdit(product)}
-            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#5E5CE6]/25 hover:shadow-[0_14px_40px_rgba(94,92,230,0.12)] cursor-pointer transition-all group"
+            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/25 hover:shadow-[0_14px_40px_rgba(0,122,255,0.12)] cursor-pointer transition-all group"
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image
@@ -177,7 +177,7 @@ function ProductRow({ product, onEdit }) {
                     : <div className="w-full h-full flex items-center justify-center opacity-20"><ShoppingBag size={16} className="text-[#86868B]" /></div>}
             </div>
             <div className="flex-1 min-w-0 text-right">
-                <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 transition-colors group-hover:text-[#5E5CE6]">{product.title}</p>
+                <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 transition-colors group-hover:text-[#007AFF]">{product.title}</p>
                 <p className="text-[#AEAEB2] text-xs mt-0.5 truncate">
                     {(product.brand || product.model) && (
                         <span className="font-black" style={{ color: INDIGO }}>{[product.brand, product.model].filter(Boolean).join(' · ')}</span>
@@ -202,7 +202,7 @@ function ProductRow({ product, onEdit }) {
                     <p className="text-[#1D1D1F] font-black text-sm">₪{Number(product.price).toLocaleString()}</p>
                 )}
             </div>
-            <span className="text-[#AEAEB2] group-hover:text-[#5E5CE6] text-xs font-bold transition-colors shrink-0" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</span>
+            <span className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors shrink-0" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</span>
         </motion.div>
     );
 }
@@ -473,11 +473,11 @@ export default function AdminProducts() {
                             <div className="flex gap-1">
                                 <input value={editForm.sku || ''} onChange={e => setField('sku', e.target.value)} dir="ltr"
                                     placeholder="NC-ASUS-VZ24EHF"
-                                    className="flex-1 bg-white border border-black/12 rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#5E5CE6]/60"
+                                    className="flex-1 bg-white border border-black/12 rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#007AFF]/60"
                                 />
                                 <button type="button" title="צור SKU דטרמיניסטי מתוך המותג והדגם"
                                     onClick={() => setField('sku', makeSku(editForm))}
-                                    className="px-2.5 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#5E5CE6]/10 text-[#5E5CE6] text-xs font-black transition-colors shrink-0">
+                                    className="px-2.5 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#007AFF]/10 text-[#007AFF] text-xs font-black transition-colors shrink-0">
                                     SKU
                                 </button>
                             </div>

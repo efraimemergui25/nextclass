@@ -8,17 +8,17 @@ import {
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import { AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
     FolderOpen, X, Search, Grid, List, ExternalLink, Plus
 } from 'lucide-react';
-import { PALETTE, GLASS as GLASS_TOKENS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+import { GLASS as GLASS_TOKENS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Media domain accent (Heaven, rose) ───────────────────────────────────────
-const ROSE      = '#FF2D55';
-const ROSE_GRAD = 'linear-gradient(135deg, #FF5E7D 0%, #FF2D55 100%)';
-const ROSE_SOFT = 'linear-gradient(135deg, rgba(255,45,85,0.16) 0%, rgba(255,94,125,0.08) 100%)';
+// ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
+const BRAND      = '#007AFF';
+const BRAND_GRAD = GRADIENT.signature;
+const BRAND_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(0,122,255,0.08) 100%)';
 
 // ─── Liquid-glass surfaces (token-driven — one system everywhere) ──────────────
 const CARD  = { ...GLASS_TOKENS.base };
@@ -144,17 +144,17 @@ function DropZone({ onFiles, uploading }) {
             onClick={() => inputRef.current?.click()}
             className="relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 p-10 flex flex-col items-center gap-4"
             style={{
-                borderColor: isDragActive ? ROSE : hexA(ROSE, 0.35),
-                background: isDragActive ? hexA(ROSE, 0.06) : 'rgba(255,255,255,0.55)',
+                borderColor: isDragActive ? BRAND : hexA(BRAND, 0.35),
+                background: isDragActive ? hexA(BRAND, 0.06) : 'rgba(255,255,255,0.55)',
                 backdropFilter: 'blur(12px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                boxShadow: isDragActive ? `0 0 0 4px ${hexA(ROSE, 0.12)}` : 'none',
+                boxShadow: isDragActive ? `0 0 0 4px ${hexA(BRAND, 0.12)}` : 'none',
             }}
         >
             {uploading ? (
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 rounded-full animate-spin" style={{ border: `2px solid ${hexA(ROSE, 0.3)}`, borderTopColor: ROSE }} />
-                    <p className="text-sm font-bold" style={{ color: ROSE }}>מעלה...</p>
+                    <div className="w-10 h-10 rounded-full animate-spin" style={{ border: `2px solid ${hexA(BRAND, 0.3)}`, borderTopColor: BRAND }} />
+                    <p className="text-sm font-bold" style={{ color: BRAND }}>מעלה...</p>
                 </div>
             ) : (
                 <>
@@ -162,9 +162,9 @@ function DropZone({ onFiles, uploading }) {
                         animate={{ y: isDragActive ? -6 : 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                         className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: hexA(ROSE, 0.1) }}
+                        style={{ background: hexA(BRAND, 0.1) }}
                     >
-                        <Upload size={24} color={ROSE} />
+                        <Upload size={24} color={BRAND} />
                     </motion.div>
                     <div className="text-center">
                         <p className="text-[15px] font-black text-[#1D1D1F]">
@@ -259,7 +259,7 @@ function AddUrlDialog({ onAdd, onClose }) {
                             onClick={() => { if (url) { onAdd({ url, name: name || url, source: 'url' }); onClose(); } }}
                             disabled={!url}
                             className="w-full py-3 rounded-xl font-black text-[13px] text-white transition-all disabled:opacity-40"
-                            style={{ background: ROSE_GRAD, boxShadow: `0 4px 16px ${hexA(ROSE, 0.28)}` }}
+                            style={{ background: BRAND_GRAD, boxShadow: `0 4px 16px ${hexA(BRAND, 0.28)}` }}
                         >
                             הוסף לספרייה
                         </button>
@@ -336,7 +336,7 @@ function VodTab({ onCopy, copied }) {
 
     if (loading) return (
         <div className="py-20 text-center">
-            <div className="w-8 h-8 border-2 border-[#FF3B30]/30 border-t-[#FF3B30] rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-3" />
             <p className="text-[#AEAEB2] font-bold text-sm">טוען VOD...</p>
         </div>
     );
@@ -395,13 +395,12 @@ function VodTab({ onCopy, copied }) {
 
 export default function AdminMedia() {
     const { showToast } = useAdminToast();
-    const [tab, setTab] = useState('library');
+    const [tab, setTab] = useState('images'); // images | videos | links | products | vod
     const [media, setMedia] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({});
     const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState('all'); // all | images | videos | urls
     const [viewMode, setViewMode] = useState('grid');
     const [copied, setCopied] = useState('');
     const [showUrlDialog, setShowUrlDialog] = useState(false);
@@ -493,12 +492,14 @@ export default function AdminMedia() {
         });
     };
 
+    // Active library sector → filter of the shared media_library
+    const libFilter = tab === 'videos' ? 'videos' : tab === 'links' ? 'urls' : 'images';
     const filtered = media.filter(item => {
         if (search && !item.name?.toLowerCase().includes(search.toLowerCase())) return false;
-        if (filter === 'images') return !item.type?.startsWith('video');
-        if (filter === 'videos') return item.type?.startsWith('video');
-        if (filter === 'urls') return item.source === 'url';
-        return true;
+        if (libFilter === 'videos') return item.type?.startsWith('video');
+        if (libFilter === 'urls') return item.source === 'url';
+        // images: uploaded image files (not video, not an external link)
+        return !item.type?.startsWith('video') && item.source !== 'url';
     });
 
     const stats = {
@@ -512,19 +513,19 @@ export default function AdminMedia() {
         <div dir="rtl" className="space-y-6">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: ROSE_SOFT, border: `1px solid ${hexA(ROSE, 0.24)}`, boxShadow: `${glow(ROSE, 0.18, 20)}, ${SHADOW.specular}` }}>
-                    <FolderOpen size={22} color={ROSE} />
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: BRAND_SOFT, border: `1px solid ${hexA(BRAND, 0.24)}`, boxShadow: `${glow(BRAND, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <FolderOpen size={22} color={BRAND} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ספריית מדיה</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד</p>
                 </div>
-                {tab === 'library' && (
+                {tab === 'links' && (
                     <motion.button
                         onClick={() => setShowUrlDialog(true)}
-                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(ROSE, 0.3)}` }} whileTap={TAP}
+                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(BRAND, 0.3)}` }} whileTap={TAP}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
-                        style={{ background: hexA(ROSE, 0.1), color: '#C0184A', border: `1px solid ${hexA(ROSE, 0.28)}` }}
+                        style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.28)}` }}
                     >
                         <Link2 size={13} />
                         הוסף קישור
@@ -532,44 +533,34 @@ export default function AdminMedia() {
                 )}
             </div>
 
-            {/* Tab switcher */}
-            <div className="flex items-center gap-2">
-                {[
-                    { id: 'library',  label: 'ספרייה', Icon: FolderOpen },
-                    { id: 'products', label: 'תמונות מוצרים', Icon: Image },
-                    { id: 'vod',      label: 'סרטוני VOD', Icon: Film },
-                ].map(t => (
-                    <motion.button key={t.id} onClick={() => setTab(t.id)} whileTap={TAP}
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all"
-                        style={{
-                            background: tab === t.id ? ROSE_GRAD : 'rgba(255,255,255,0.78)',
-                            color: tab === t.id ? 'white' : '#6E6E73',
-                            border: tab === t.id ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(0,0,0,0.07)',
-                            boxShadow: tab === t.id ? `0 4px 16px ${hexA(ROSE, 0.3)}` : 'none',
-                        }}>
-                        <t.Icon size={13} />
-                        {t.label}
-                    </motion.button>
-                ))}
-            </div>
+            {/* In-page sectors — filtered views of the same library, plus product/VOD browsers */}
+            <AdminTabs
+                tabs={[
+                    { id: 'images',   label: 'תמונות' },
+                    { id: 'videos',   label: 'וידאו' },
+                    { id: 'links',    label: 'קישורים חיצוניים' },
+                    { id: 'products', label: 'תמונות מוצרים' },
+                    { id: 'vod',      label: 'סרטוני VOD' },
+                ]}
+                active={tab} onChange={setTab} id="media-tabs"
+            />
 
             {/* VOD and Product tabs render their own content */}
             {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} />}
             {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} />}
 
-            {tab !== 'library' && null}
-            {tab === 'library' && (<>
+            {(tab === 'images' || tab === 'videos' || tab === 'links') && (<>
 
             {/* KPI band — total · images · videos · external links */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
-                <AdminKPICard title="סך פריטים" value={stats.total} subtitle="בספרייה" accent={ROSE} delay={0}
-                    icon={<FolderOpen size={20} color={ROSE} />} loading={loading} />
-                <AdminKPICard title="תמונות" value={stats.images} subtitle="קבצי תמונה" accent={PALETTE.green} delay={0.05}
-                    icon={<Image size={20} color={PALETTE.green} />} loading={loading} />
-                <AdminKPICard title="סרטונים" value={stats.videos} subtitle="קבצי וידאו" accent={PALETTE.indigo} delay={0.1}
-                    icon={<Film size={20} color={PALETTE.indigo} />} loading={loading} />
-                <AdminKPICard title="קישורים" value={stats.urls} subtitle="קישורים חיצוניים" accent={PALETTE.orange} delay={0.15}
-                    icon={<Link2 size={20} color={PALETTE.orange} />} loading={loading} />
+                <AdminKPICard title="סך פריטים" value={stats.total} subtitle="בספרייה" accent={BRAND} delay={0}
+                    icon={<FolderOpen size={20} color={BRAND} />} loading={loading} />
+                <AdminKPICard title="תמונות" value={stats.images} subtitle="קבצי תמונה" accent={BRAND} delay={0.05}
+                    icon={<Image size={20} color={BRAND} />} loading={loading} />
+                <AdminKPICard title="סרטונים" value={stats.videos} subtitle="קבצי וידאו" accent={BRAND} delay={0.1}
+                    icon={<Film size={20} color={BRAND} />} loading={loading} />
+                <AdminKPICard title="קישורים" value={stats.urls} subtitle="קישורים חיצוניים" accent={BRAND} delay={0.15}
+                    icon={<Link2 size={20} color={BRAND} />} loading={loading} />
             </div>
 
             {/* Upload progress */}
@@ -609,27 +600,6 @@ export default function AdminMedia() {
                     />
                 </div>
 
-                {/* Filter pills */}
-                <div className="flex items-center gap-1.5">
-                    {[
-                        { id: 'all', label: 'הכל' },
-                        { id: 'images', label: 'תמונות' },
-                        { id: 'videos', label: 'סרטונים' },
-                        { id: 'urls', label: 'קישורים' },
-                    ].map(f => (
-                        <button key={f.id} onClick={() => setFilter(f.id)}
-                            className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                            style={{
-                                background: filter === f.id ? ROSE_GRAD : 'rgba(255,255,255,0.78)',
-                                color: filter === f.id ? 'white' : '#6E6E73',
-                                border: filter === f.id ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(0,0,0,0.06)',
-                                boxShadow: filter === f.id ? `0 2px 10px ${hexA(ROSE, 0.28)}` : 'none',
-                            }}>
-                            {f.label}
-                        </button>
-                    ))}
-                </div>
-
                 {/* View toggle */}
                 <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
                     {[
@@ -651,7 +621,7 @@ export default function AdminMedia() {
             {loading ? (
                 <div className="py-20 text-center">
                     <div className="w-8 h-8 rounded-full animate-spin mx-auto mb-3"
-                        style={{ border: `2px solid ${hexA(ROSE, 0.3)}`, borderTopColor: ROSE }} />
+                        style={{ border: `2px solid ${hexA(BRAND, 0.3)}`, borderTopColor: BRAND }} />
                     <p className="text-[#AEAEB2] font-bold text-sm">טוען ספרייה...</p>
                 </div>
             ) : filtered.length === 0 ? (

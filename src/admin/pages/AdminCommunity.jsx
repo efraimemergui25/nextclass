@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
 
-// ─── Community domain accent (Heaven, green) ──────────────────────────────────
-const GREEN      = '#34C759';
-const GREEN_SOFT = 'linear-gradient(135deg, rgba(52,199,89,0.16) 0%, rgba(48,209,88,0.08) 100%)';
+// ─── Community domain accent (restrained azure brand) ─────────────────────────
+const GREEN      = '#007AFF';
+const GREEN_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(94,92,230,0.08) 100%)';
 
 function fmtDate(ts) {
     if (!ts) return '—';
@@ -195,7 +195,7 @@ export default function AdminCommunity() {
                         onClick={exportCSV}
                         whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(GREEN, 0.28)}` }} whileTap={TAP}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
-                        style={{ background: hexA(GREEN, 0.1), color: '#1A8C40', border: `1px solid ${hexA(GREEN, 0.28)}` }}
+                        style={{ background: hexA(GREEN, 0.1), color: '#005EC4', border: `1px solid ${hexA(GREEN, 0.28)}` }}
                     >
                         <Download size={13} />
                         ייצוא CSV
@@ -207,8 +207,8 @@ export default function AdminCommunity() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
                 <AdminKPICard title="סך מנויים" value={stats.total} subtitle={stats.growth} accent={GREEN} delay={0}
                     icon={<Users size={20} color={GREEN} />} loading={loading} />
-                <AdminKPICard title="הצטרפו השבוע" value={stats.thisWeek} subtitle="7 ימים אחרונים" accent={PALETTE.emerald} delay={0.05}
-                    icon={<TrendingUp size={20} color={PALETTE.emerald} />} loading={loading} />
+                <AdminKPICard title="הצטרפו השבוע" value={stats.thisWeek} subtitle="7 ימים אחרונים" accent={PALETTE.blue} delay={0.05}
+                    icon={<TrendingUp size={20} color={PALETTE.blue} />} loading={loading} />
                 <AdminKPICard title="הצטרפו החודש" value={stats.thisMonth} subtitle="30 ימים אחרונים" accent={PALETTE.indigo} delay={0.1}
                     icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} />
                 <AdminKPICard title="שיעור פתיחה" value="—" subtitle="בקרוב" accent={PALETTE.graphite} delay={0.15}
@@ -325,8 +325,8 @@ export default function AdminCommunity() {
                     <div className="rounded-[22px] p-5" style={panelStyle}>
                         <div className="flex items-center gap-2.5 mb-3">
                             <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.20)' }}>
-                                <Users size={12} className="text-[#34C759]" />
+                                style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.20)' }}>
+                                <Users size={12} className="text-[#007AFF]" />
                             </div>
                             <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הוסף מנוי ידנית</p>
                         </div>
@@ -335,7 +335,7 @@ export default function AdminCommunity() {
                                 type="submit"
                                 disabled={addingEmail || !addEmail.includes('@')}
                                 className="shrink-0 h-9 px-4 rounded-xl text-[12px] font-black text-white transition-all disabled:opacity-40"
-                                style={{ background: 'linear-gradient(135deg, #34C759, #30B851)' }}
+                                style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}
                             >
                                 {addingEmail ? '...' : 'הוסף'}
                             </button>
@@ -345,7 +345,7 @@ export default function AdminCommunity() {
                                 onChange={e => setAddEmail(e.target.value)}
                                 placeholder="email@example.com"
                                 dir="ltr"
-                                className="flex-1 h-9 px-3 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#34C759]/20 transition-all text-left"
+                                className="flex-1 h-9 px-3 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all text-left"
                             />
                         </form>
                     </div>

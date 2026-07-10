@@ -28,8 +28,8 @@ import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
 
-// ─── Content domain accent (Heaven, purple ★) ──────────────────────────────────
-const PURPLE = '#AF52DE';
+// ─── Content domain accent (restrained azure brand) ────────────────────────────
+const PURPLE = '#007AFF';
 
 // ─── Visibility Items ─────────────────────────────────────────────────────────
 const VISIBILITY_ITEMS = [
@@ -1486,7 +1486,7 @@ const VideosSection = ({ showToast }) => {
                     <div key={v.id} className="flex items-center justify-between p-3 rounded-xl border"
                         style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="flex items-center gap-4">
-                            <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg" alt="" />
+                            <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg bg-gray-100" alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
                             <div className="text-right"><p className="text-sm font-bold">{v.title}</p><p className="text-[10px] text-gray-400">{v.category} • {v.duration}</p></div>
                         </div>
                         <AdminToggle value={v.visible} onChange={() => toggleVideo(v.id)} />
@@ -2317,8 +2317,8 @@ export default function AdminContent({ showToast }) {
                             whileTap={{ scale: 0.98 }}
                             className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
                             style={{
-                                background: 'linear-gradient(145deg, #FF9500 0%, #FF375F 100%)',
-                                boxShadow: '0 24px 60px rgba(255,149,0,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
+                                background: 'linear-gradient(145deg, #0A84FF 0%, #5E5CE6 100%)',
+                                boxShadow: '0 24px 60px rgba(10,132,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
                                 minHeight: 300,
                             }}
                         >
@@ -2394,9 +2394,9 @@ export default function AdminContent({ showToast }) {
                                     onClick={() => handleSelectPlatform('mobile')}
                                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
                                     style={{
-                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #FF9500, #FF375F)' : 'transparent',
+                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #0A84FF, #5E5CE6)' : 'transparent',
                                         color: platform === 'mobile' ? 'white' : '#6E6E73',
-                                        boxShadow: platform === 'mobile' ? '0 2px 8px rgba(255,149,0,0.3)' : 'none',
+                                        boxShadow: platform === 'mobile' ? '0 2px 8px rgba(10,132,255,0.3)' : 'none',
                                     }}
                                 >
                                     <Smartphone size={13} />
@@ -2436,7 +2436,7 @@ export default function AdminContent({ showToast }) {
                         <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} />
                         <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5856D6" subtitle="ניתנים לעריכה" delay={0.05} />
                         <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} />
-                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#34C759" subtitle="קבוצות ניווט" delay={0.15} />
+                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#8E8E93" subtitle="קבוצות ניווט" delay={0.15} />
                     </div>
 
                     {renderContentPanel()}

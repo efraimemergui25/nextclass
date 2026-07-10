@@ -12,8 +12,8 @@ import {
     GLASS as GLASS_TOKENS, RADIUS, SHADOW, SPRING, hexA, glow, accentSurface,
 } from '../theme/tokens';
 
-// ── Integrations domain accent (deep indigo ★) ─────────────────────────────────
-const INDIGO = '#5856D6';
+// ── Integrations domain accent (restrained azure brand) ────────────────────────
+const INDIGO = '#007AFF';
 
 // ── Token-driven liquid-glass surfaces (one system everywhere) ─────────────────
 const GLASS = { ...GLASS_TOKENS.base, borderRadius: RADIUS.cardLg };
@@ -131,7 +131,7 @@ function AnalyticsLinks() {
     return (
         <div style={GLASS} className="p-5">
             <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#007AFF,#34C759,#FF9500)' }} />
+                style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div className="text-right">
                     <h3 className="font-black text-[#1D1D1F] text-[15px] tracking-tight">כלי אנליטיקס ודשבורדים</h3>
@@ -472,7 +472,7 @@ export default function AdminIntegrations() {
             {/* ── Services grid ─────────────────────────────────────────────── */}
             <div style={GLASS} className="p-5">
                 <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: `linear-gradient(90deg,${INDIGO},#007AFF)` }} />
+                    style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">סטטוס שירותים</h3>

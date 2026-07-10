@@ -20,13 +20,14 @@ function PopupCartBtn({ product }) {
  const { state, trigger } = useCartPop();
  const isInCart = (cartItems ?? []).some(i => i.id === product?.id);
 
- if (!product) return null;
-
  const handleAdd = useCallback((e) => {
  e.preventDefault();
  e.stopPropagation();
  if (!isInCart) trigger(() => addToCart(product))();
  }, [isInCart, product, addToCart, trigger]);
+
+ // Early return AFTER all hooks (rules-of-hooks).
+ if (!product) return null;
 
  return (
  <motion.button

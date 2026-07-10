@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { useState, useEffect, useCallback } from 'react';
-import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
@@ -57,7 +56,7 @@ const TABS = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const BROWN = DOMAIN_ACCENTS.fulfillment; // #AC8E68 ★
+const BROWN = DOMAIN_ACCENTS.fulfillment; // restrained brand accent — azure #007AFF (de-rainbowed)
 const card = { ...GLASS.base, borderRadius: RADIUS.card };
 
 function StatusPill({ statusId }) {
@@ -904,7 +903,8 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
 
 // ── Supplier Orders Tab ───────────────────────────────────────────────────────
 
-function exportSupplierOrdersXLSX(supplierOrders, suppliers) {
+async function exportSupplierOrdersXLSX(supplierOrders, suppliers) {
+    const XLSX = await import('xlsx'); // dynamic — keeps ~900KB out of the eager bundle
     const STATUS_HE = {
         pending: 'ממתין', forwarded: 'הועבר', confirmed: 'אושר',
         in_transit: 'בדרך', arrived: 'הגיע', shipped: 'נשלח',
@@ -1641,7 +1641,7 @@ function ProductMappingTab({ suppliers, showToast }) {
     useEffect(() => {
         return onSnapshot(query(collection(db, 'products'), orderBy('title')), snap => {
             setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        }, err => { console.error(err); setProducts([]); showToast('שגיאה בטעינת מוצרים', 'error'); });
     }, []);
 
     const setField  = (pid, key, val) => setEdits(p => ({ ...p, [pid]: { ...(p[pid] || {}), [key]: val } }));
@@ -1682,7 +1682,7 @@ function ProductMappingTab({ suppliers, showToast }) {
                                 style={{ ...card, borderColor: isDirty ? 'rgba(0,122,255,0.3)' : undefined }}>
                                 <div className="flex items-center gap-4 flex-wrap" dir="rtl">
                                     <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                                        {p.image && <img src={p.image} alt={p.title} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />}
+                                        {p.image && <img src={p.image} alt={p.title} onError={e => { e.target.style.display = 'none'; }} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />}
                                         <div className="text-right min-w-0">
                                             <p className="text-sm font-black text-[#1D1D1F] truncate">{p.title}</p>
                                             <p className="text-[10px] text-[#86868B]">{p.category}</p>
@@ -1752,13 +1752,13 @@ export default function AdminFulfillment() {
     useEffect(() => {
         const u1 = onSnapshot(query(collection(db, 'suppliers'), orderBy('name')), snap => {
             setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        }, err => { console.error(err); setSuppliers([]); showToast('שגיאה בטעינת ספקים', 'error'); });
         const u2 = onSnapshot(query(collection(db, 'supplier_orders'), orderBy('createdAt', 'desc')), snap => {
             setSupplierOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        }, err => { console.error(err); setSupplierOrders([]); showToast('שגיאה בטעינת הזמנות ספקים', 'error'); });
         const u3 = onSnapshot(query(collection(db, 'orders'), orderBy('dateTs', 'desc')), snap => {
             setCustomerOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        }, err => { console.error(err); setCustomerOrders([]); showToast('שגיאה בטעינת הזמנות', 'error'); });
         return () => { u1(); u2(); u3(); };
     }, []);
 

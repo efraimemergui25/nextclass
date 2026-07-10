@@ -1502,7 +1502,7 @@ function InventoryCheckPanel({ quote, onUpdateStatus, updateQuoteFields, showToa
 
     useEffect(() => {
         const q = query(collection(db, 'suppliers'), orderBy('name'));
-        return onSnapshot(q, snap => setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+        return onSnapshot(q, snap => setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setSuppliers([]));
     }, []);
 
     useEffect(() => {
@@ -2205,7 +2205,7 @@ function KanbanView({ quotes, onUpdateStatus, onOpen, showToast }) {
                                     )}
                                     {QUOTE_STATUS_FLOW.indexOf(stage) < QUOTE_STATUS_FLOW.length - 1 && (
                                         <motion.button whileTap={{ scale: 0.9 }}
-                                            onClick={e => { e.stopPropagation(); const next = QUOTE_STATUS_FLOW[QUOTE_STATUS_FLOW.indexOf(stage) + 1]; onUpdateStatus(q.id, next); showToast(`עבר ל"${next}"`, 'success'); }}
+                                            onClick={async e => { e.stopPropagation(); const next = QUOTE_STATUS_FLOW[QUOTE_STATUS_FLOW.indexOf(stage) + 1]; try { await onUpdateStatus(q.id, next); } catch (err) { showToast('שגיאה בעדכון הסטטוס', 'error'); } }}
                                             style={{ width: '100%', marginTop: 8, padding: '5px', borderRadius: 8, border: `1px solid ${color}30`, background: `${color}08`, color: color, fontSize: 10, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
                                             → {QUOTE_STATUS_FLOW[QUOTE_STATUS_FLOW.indexOf(stage) + 1]}
                                         </motion.button>
@@ -2535,11 +2535,15 @@ function QuotesPipeline() {
         finally { setPreviewSending(false); }
     };
 
-    const handleQuickStatus = (id, status) => {
-        updateQuoteStatus(id, status);
-        showToast(`הצעה עודכנה ל"${status}"`, 'success');
-        setFlashId(id);
-        setTimeout(() => setFlashId(null), 600);
+    const handleQuickStatus = async (id, status) => {
+        try {
+            await updateQuoteStatus(id, status);
+            showToast(`הצעה עודכנה ל"${status}"`, 'success');
+            setFlashId(id);
+            setTimeout(() => setFlashId(null), 600);
+        } catch (e) {
+            showToast('שגיאה בעדכון הסטטוס', 'error');
+        }
     };
 
     const handleStatusSave = async () => {
@@ -2558,10 +2562,14 @@ function QuotesPipeline() {
             const prev = selected.versions || [];
             await updateQuoteFields(selected.id, { versions: [...prev, snapshot] });
         }
-        updateQuoteStatus(selected.id, newStatus);
-        setSelected(prev => ({ ...prev, status: newStatus }));
-        setSaved(true);
-        setTimeout(() => { setSaved(false); setNewStatus(''); }, 1200);
+        try {
+            await updateQuoteStatus(selected.id, newStatus);
+            setSelected(prev => ({ ...prev, status: newStatus }));
+            setSaved(true);
+            setTimeout(() => { setSaved(false); setNewStatus(''); }, 1200);
+        } catch (e) {
+            showToast('שגיאה בעדכון הסטטוס', 'error');
+        }
     };
 
     const handleAdminTyping = () => {
@@ -2751,10 +2759,10 @@ function QuotesPipeline() {
                             <motion.button key={`dup${i}`} whileTap={{ scale: 0.96 }} whileHover={{ y: -1 }}
                                 onClick={() => setSearch(g[0].institution || g[0].email || '')}
                                 title="מוסד עם מספר הצעות פתוחות — שקול איחוד"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 12, background: hexA('#AF52DE', 0.10), border: `1px solid ${hexA('#AF52DE', 0.24)}`, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 12, background: hexA('#007AFF', 0.10), border: `1px solid ${hexA('#007AFF', 0.24)}`, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
                                 <span style={{ fontSize: 13 }}>🗂️</span>
-                                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#AF52DE', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g[0].institution || g[0].email || '—'}</span>
-                                <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', background: '#AF52DE', borderRadius: 99, minWidth: 18, textAlign: 'center', padding: '1px 6px' }}>{g.length}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#007AFF', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g[0].institution || g[0].email || '—'}</span>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', background: '#007AFF', borderRadius: 99, minWidth: 18, textAlign: 'center', padding: '1px 6px' }}>{g.length}</span>
                             </motion.button>
                         ))}
                     </div>
@@ -3956,7 +3964,7 @@ function OrdersList() {
                                     const inv = inventory.find(p => String(p.id) === String(selected.productId));
                                     const backup = initialProducts.find(p => String(p.id) === String(selected.productId));
                                     const img = selected.productImage || inv?.image || backup?.image;
-                                    return img ? <img src={img} alt={selected.product} className="w-full h-full object-cover" /> : <Box size={32} className="text-[#AEAEB2] opacity-40" />;
+                                    return img ? <img src={img} alt={selected.product} onError={e => { e.target.style.display = 'none'; }} className="w-full h-full object-cover" /> : <Box size={32} className="text-[#AEAEB2] opacity-40" />;
                                 })()}
                             </div>
                             <div className="grid grid-cols-2 gap-3 flex-1">

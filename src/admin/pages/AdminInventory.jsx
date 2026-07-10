@@ -7,11 +7,12 @@ import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, InfoTooltip } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip } from '../components/AdminComponents';
 import { hexA, DOMAIN_ACCENTS } from '../theme/tokens';
 import initialProducts from '../../data/products';
 
-const ORANGE = DOMAIN_ACCENTS.inventory; // #FF9500 ★
+// Unified brand accent (azure) — DOMAIN_ACCENTS.inventory resolves to #007AFF
+const ORANGE = DOMAIN_ACCENTS.inventory;
 
 // ─── Smart Reorder Modal ──────────────────────────────────────────────────────
 function SmartReorderModal({ open, product, onClose, suppliers }) {
@@ -94,7 +95,7 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
     );
 }
 
-const FILTERS = ['הכל', 'נמוך', 'אזל', 'תקין'];
+const FILTERS = ['הכל', 'במלאי', 'נמוך', 'אזל'];
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -109,6 +110,7 @@ export default function AdminInventory() {
     const [viewMode, setViewMode] = useState('grid');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [reorderProduct, setReorderProduct]   = useState(null);
+    const [tab, setTab] = useState('all');
 
     useEffect(() => {
         const query = searchParams.get('search');
@@ -197,11 +199,17 @@ export default function AdminInventory() {
     const outCount  = inventory.filter(p => available(p) === 0).length;
     const okCount   = inventory.filter(p => available(p) > p.threshold).length;
 
+    // Below-threshold items (low + out) — drives the "order from supplier" sector
+    const belowThreshold = useMemo(
+        () => inventory.filter(p => available(p) <= p.threshold).sort((a, b) => available(a) - available(b)),
+        [inventory]
+    );
+
     const filtered = useMemo(() => {
         let list = [...inventory];
         if (filter === 'נמוך') list = list.filter(p => { const a = available(p); return a > 0 && a <= p.threshold; });
         if (filter === 'אזל') list = list.filter(p => available(p) === 0);
-        if (filter === 'תקין') list = list.filter(p => available(p) > p.threshold);
+        if (filter === 'במלאי') list = list.filter(p => available(p) > p.threshold);
         if (search) list = list.filter(p =>
             p.title?.toLowerCase().includes(search.toLowerCase()) ||
             (p.category || '').includes(search)
@@ -222,7 +230,7 @@ export default function AdminInventory() {
             <AdminSectionHeader
                 title="ניהול מלאי"
                 subtitle={`${inventory.length} מוצרים`}
-                action={
+                action={tab === 'all' ? (
                     <div className="flex items-center gap-2">
                         {/* View toggle */}
                         <div className="flex items-center rounded-xl overflow-hidden border border-black/08" style={{ background: 'rgba(0,0,0,0.03)' }}>
@@ -247,7 +255,7 @@ export default function AdminInventory() {
                             <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
                         )}
                     </div>
-                }
+                ) : undefined}
             />
 
             {/* ── KPI band ── */}
@@ -263,6 +271,16 @@ export default function AdminInventory() {
                 ))}
             </div>
 
+            {/* ── In-page sectors ── */}
+            <AdminTabs
+                tabs={[
+                    { id: 'all', label: 'כל המלאי', count: inventory.length },
+                    { id: 'reorder', label: 'להזמנה מספק', count: lowCount + outCount },
+                ]}
+                active={tab} onChange={setTab} id="inventory-tabs"
+            />
+
+            {tab === 'all' && (<>
             {/* ── Search + Filters ── */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
@@ -298,7 +316,7 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#FF9500]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
+                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
                                     >
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] bg-[#F5F5F7] overflow-hidden">
@@ -347,7 +365,7 @@ export default function AdminInventory() {
 
                                         {/* Card body */}
                                         <div className="p-3.5">
-                                            <p className="font-black text-[#1D1D1F] text-[12px] leading-snug truncate text-right group-hover:text-[#FF9500] transition-colors">
+                                            <p className="font-black text-[#1D1D1F] text-[12px] leading-snug truncate text-right group-hover:text-[#007AFF] transition-colors">
                                                 {product.title}
                                             </p>
 
@@ -444,7 +462,7 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.98 }}
                                         transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#FF9500]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
+                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
                                     >
                                         {/* Thumb */}
                                         <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
@@ -457,9 +475,9 @@ export default function AdminInventory() {
 
                                         {/* Name + category */}
                                         <div className="flex-1 min-w-0 text-right">
-                                            <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#FF9500] transition-colors">{product.title}</p>
+                                            <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#007AFF] transition-colors">{product.title}</p>
                                             <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                                                {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#FF9500]/10 text-[#FF9500]">נבחרת</span>}
+                                                {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#007AFF]/10 text-[#007AFF]">נבחרת</span>}
                                                 {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
                                             </div>
                                         </div>
@@ -509,6 +527,53 @@ export default function AdminInventory() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            </>)}
+
+            {/* ── להזמנה מספק — below-threshold items + order-from-supplier ── */}
+            {tab === 'reorder' && (
+                <div className="space-y-2">
+                    {belowThreshold.length === 0 ? (
+                        <AdminEmpty icon={<CheckCircle2 size={30} style={{ color: '#34C759' }} />}
+                            title="כל המוצרים מעל סף ההתרעה"
+                            subtitle="אין פריטים שדורשים חידוש מלאי כרגע" />
+                    ) : belowThreshold.map((product, i) => {
+                        const { avail, color, label } = stockMeta(product);
+                        return (
+                            <motion.div
+                                key={product.id}
+                                layout
+                                initial={{ opacity: 0, x: 8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
+                                className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all"
+                            >
+                                <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
+                                    {product.image
+                                        ? <img src={product.image} alt={product.title} className="w-full h-full object-cover"
+                                            onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                                        : <div className="w-full h-full flex items-center justify-center opacity-30"><Box size={16} className="text-[#86868B]" /></div>
+                                    }
+                                </div>
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="font-bold text-[#1D1D1F] text-[13px] truncate">{product.title}</p>
+                                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                        {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
+                                        <span className="text-[10px] text-[#86868B] font-bold">סף התרעה: {product.threshold}</span>
+                                    </div>
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <p className="text-[18px] font-black leading-none" style={{ color }}>{avail}</p>
+                                    <p className="text-[9px] text-[#AEAEB2] font-bold mt-0.5">במלאי</p>
+                                </div>
+                                <span className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0" style={{ background: `${color}15`, color }}>{label}</span>
+                                <AdminButton size="sm" accent={ORANGE} onClick={() => setReorderProduct(product)}>
+                                    <span className="flex items-center gap-1"><Package size={13} /> הזמן מספק</span>
+                                </AdminButton>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Product Detail Modal */}
             {createPortal(

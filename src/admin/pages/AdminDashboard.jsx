@@ -14,7 +14,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useSettings } from '../../context/SettingsContext';
-import { AdminKPICard, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
+import { AdminKPICard, AdminTabs, StatusBadge, HeatGrid, BarChart, GoalRing, AdminModal, InfoTooltip } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
 import initialProducts from '../../data/products';
 
@@ -294,6 +294,21 @@ function Card({ title, subtitle, accent, action, children, className = '', title
     );
 }
 
+// ─── In-tab loading placeholder ───────────────────────────────────────────────
+function DashLoading({ label = 'טוען נתונים…', height = 'h-28' }) {
+    return (
+        <div className={`${height} flex flex-col items-center justify-center gap-2 text-[#AEAEB2]`}>
+            <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="w-5 h-5 rounded-full"
+                style={{ border: '2px solid rgba(0,122,255,0.22)', borderTopColor: '#007AFF' }}
+            />
+            <span className="text-xs font-medium">{label}</span>
+        </div>
+    );
+}
+
 // ─── Period Selector ──────────────────────────────────────────────────────────
 function PeriodSelector({ value, onChange }) {
     const opts = [
@@ -345,6 +360,10 @@ export default function AdminDashboard() {
     const navigate = useNavigate();
     const [period, setPeriod] = useState('30');
     const [drilldown, setDrilldown] = useState(null);
+    const [dashTab, setDashTab] = useState('today');
+
+    // Loading proxy: analytics is null until the first Firestore snapshot resolves
+    const dataLoading = analytics == null;
 
     // Slice analytics by selected period
     const periodData = useMemo(() => {
@@ -447,7 +466,7 @@ export default function AdminDashboard() {
                     .map(d => d.data().sessionId).filter(Boolean)
             );
             setLiveVisitors(active.size);
-        }, () => {});
+        }, () => setLiveVisitors(0));
         return unsub;
     }, []);
 
@@ -571,11 +590,11 @@ export default function AdminDashboard() {
                 </motion.div>
             )}
 
-            {/* ── Primary KPIs ───────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {/* ── KPI band — 4 headline metrics only (no card sprawl) ───────── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {[
                     {
-                        title: 'הכנסות', icon: 'revenue', color: '#34C759', delay: 0,
+                        title: 'מחזור הכנסות', icon: 'revenue', color: '#34C759', delay: 0,
                         value: `₪${kpis.totalRevenue.toLocaleString()}`,
                         subtitle: `₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`,
                         trend: trendRevenue.value, trendUp: trendRevenue.up,
@@ -584,434 +603,400 @@ export default function AdminDashboard() {
                         onClick: () => setDrilldown('revenue'),
                     },
                     {
-                        title: 'עסקאות', icon: 'orders', color: '#007AFF', delay: 0.05,
-                        value: kpis.totalOrders,
-                        subtitle: `${kpis.pendingOrders} ממתינות · ${periodSales} בתקופה`,
-                        trend: trendSales.value, trendUp: trendSales.up,
-                        sparkData: periodData && periodData.sales.length >= 2 ? periodData.sales : (analytics?.sales?.slice(-7) || []),
-                        tooltip: { text: 'מספר הזמנות שנקלטו. כולל ממתינות, הושלמו ובוטלו.', source: 'Firestore · orders', link: '/admin/orders', linkLabel: 'ניהול הזמנות' },
+                        title: 'הזמנות ממתינות', icon: 'orders', color: '#FF9500', delay: 0.05,
+                        value: kpis.allPendingOrders,
+                        subtitle: 'ממתינות לאישור',
+                        tooltip: { text: 'הזמנות שטרם אושרו או טופלו — דורשות תשומת לב.', source: 'Firestore · orders (status: ממתין/חדש)', link: '/admin/orders', linkLabel: 'ניהול הזמנות' },
                         onClick: () => setDrilldown('orders'),
                     },
                     {
-                        title: 'יחס המרה', icon: 'traffic', color: '#5856D6', delay: 0.1,
-                        value: `${kpis.conversionRate}%`,
-                        subtitle: 'מכניסות ייחודיות',
-                        trend: trendVisits.value, trendUp: trendVisits.up,
-                        sparkData: conversionSpark.length >= 2 ? conversionSpark : (analytics ? analytics.visits.map((v, i) => v > 0 ? parseFloat(((analytics.sales[i] || 0) / v * 100).toFixed(2)) : 0).slice(-7) : []),
-                        tooltip: { text: 'אחוז הגולשים שביצעו רכישה. מחושב: הזמנות ÷ כניסות ייחודיות × 100.', source: 'analytics.sales ÷ analytics.visits', link: '/admin/analytics', linkLabel: 'דוח אנליטיקה' },
-                        onClick: () => setDrilldown('conversion'),
+                        title: 'שווי Pipeline', icon: 'traffic', color: '#007AFF', delay: 0.1,
+                        value: `₪${Math.round(pipelineForecast.totalPipeline).toLocaleString()}`,
+                        subtitle: `${pipelineForecast.count} עסקאות פתוחות`,
+                        tooltip: { text: 'סך שווי כל ההצעות הפתוחות בצינור המכירות (לפני שקלול הסתברות).', source: 'Firestore · quotes (פתוחות) · subtotal', link: '/admin/orders', linkLabel: 'ניהול הצעות' },
+                        onClick: () => navigate('/admin/orders'),
                     },
                     {
-                        title: 'ממוצע עסקה', icon: 'products', color: '#FF9500', delay: 0.15,
-                        value: `₪${kpis.avgOrderValue.toLocaleString()}`,
-                        subtitle: `${kpis.completedOrders} הזמנות הושלמו`,
-                        sparkData: avgOrderSpark.length >= 2 ? avgOrderSpark : (analytics?.revenue?.slice(-7) || []),
-                        tooltip: { text: 'ממוצע ערך הזמנה: סך הכנסות ÷ מספר הזמנות שהושלמו.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
-                        onClick: () => setDrilldown('avg'),
-                    },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 28 }}
-                    >
-                        <AdminKPICard {...kpi} />
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* ── Secondary KPIs ──────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                {[
-                    {
-                        title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.2,
+                        title: 'מלאי נמוך', icon: 'alert', color: '#FF3B30', delay: 0.15,
                         value: kpis.lowStockCount,
                         subtitle: 'מוצרים תחת סף',
                         tooltip: { text: 'מוצרים שמלאיהם נמוך מסף ההתרעה שהוגדר לכל מוצר בנפרד.', source: 'Firestore · inventory · stock ≤ threshold', link: '/admin/inventory', linkLabel: 'ניהול מלאי' },
                         onClick: () => setDrilldown('lowStock'),
                     },
-                    {
-                        title: 'פניות חדשות', icon: 'empty', color: '#FF9500', delay: 0.25,
-                        value: kpis.contactsNew,
-                        subtitle: 'ממתינות לטיפול',
-                        tooltip: { text: 'פניות שנשלחו דרך טופס יצירת קשר באתר ועדיין לא טופלו.', source: 'Firestore · contacts (status: חדש)', link: '/admin/communications', linkLabel: 'טיפול בפניות' },
-                        onClick: () => setDrilldown('contacts'),
-                    },
-                    {
-                        title: 'כניסות', icon: 'traffic', color: '#007AFF', delay: 0.3,
-                        value: periodVisits,
-                        subtitle: period === '1' ? 'היום' : `${period} ימים`,
-                        tooltip: { text: 'ביקורים ייחודיים לאתר בתקופה הנבחרת. נרשם ב-Firestore בכל כניסת session.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' },
-                        sparkData: periodData && periodData.visits.length >= 2 ? periodData.visits : (analytics?.visits?.slice(-7) || []),
-                        onClick: () => setDrilldown('visits'),
-                    },
-                    {
-                        title: 'קטלוג פעיל', icon: 'products', color: '#5856D6', delay: 0.35,
-                        value: inventory.filter(p => p.isActive !== false).length,
-                        subtitle: `מתוך ${inventory.length} מוצרים`,
-                        tooltip: { text: 'מוצרים המוצגים לגולשים בחנות. מוצרים שהוסתרו (isActive=false) אינם נספרים.', source: 'Firestore · inventory (isActive ≠ false)', link: '/admin/inventory', linkLabel: 'ניהול קטלוג' },
-                        onClick: () => setDrilldown('catalog'),
-                    },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.title}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.08, type: 'spring', stiffness: 400, damping: 28 }}
-                    >
-                        <AdminKPICard {...kpi} />
-                    </motion.div>
+                ].map((kpi) => (
+                    <AdminKPICard key={kpi.title} {...kpi} loading={dataLoading} />
                 ))}
             </div>
 
-            {/* ── Charts Row ──────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-
-                {/* Traffic Chart — 2/3 width */}
-                <Card
-                    title="תנועה לאתר"
-                    subtitle={period === '1' ? 'היום' : `${period} ימים אחרונים`}
-                    accent="linear-gradient(90deg,#007AFF,#5856D6)"
-                    className="lg:col-span-2"
-                    titleTooltip={{ text: 'מפת חום של כניסות ייחודיות לאתר לפי יום. כל תא = יום אחד. עוצמת הצבע = כמות הכניסות.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
-                    action={
-                        <span className="text-[#007AFF] text-xs font-black">
-                            {periodVisits.toLocaleString()} כניסות
-                        </span>
-                    }
-                >
-                    {periodData && periodData.visits.some(v => v > 0) ? (
-                        <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
-                    ) : (
-                        <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
-                            <Activity size={22} className="opacity-40" />
-                            <span className="text-sm font-medium">טרם הצטברו נתוני תנועה</span>
-                        </div>
-                    )}
-                </Card>
-
-                {/* Top Products — 1/3 width */}
-                <Card title="מוצרים מובילים" subtitle="לפי הכנסות כוללות"
-                    accent="linear-gradient(90deg,#5856D6,#007AFF)"
-                    titleTooltip={{ text: 'המוצרים שייצרו את ההכנסה הגבוהה ביותר. מחושב ממסד ההזמנות.', source: 'Firestore · orders · productId + total', link: '/admin/inventory', linkLabel: 'ניהול מוצרים' }}>
-                    <div className="space-y-3.5">
-                        {topProducts.length === 0 && (
-                            <div className="py-8 text-center flex flex-col items-center gap-2">
-                                <Package size={24} className="text-[#AEAEB2] opacity-50" />
-                                <p className="text-[#AEAEB2] text-sm">אין הזמנות עדיין</p>
-                            </div>
-                        )}
-                        {topProducts.map((p, i) => (
-                            <Link key={i} to={`/admin/inventory?open=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
-                                <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
-                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
-                                    {p.image
-                                        ? <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover/row:scale-110 transition-transform duration-500"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
-                                        : <Box size={13} className="text-[#AEAEB2]" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[#1D1D1F] text-[11px] font-bold line-clamp-1 text-right group-hover/row:text-[#007AFF] transition-colors">{p.title}</p>
-                                    <div className="w-full h-1.5 bg-[#F5F5F7] rounded-full mt-1.5 overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
-                                            transition={{ delay: i * 0.08, duration: 0.8, ease: [0.22,1,0.36,1] }}
-                                            className="h-full rounded-full"
-                                            style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }}
-                                        />
-                                    </div>
-                                </div>
-                                <span className="text-[#6E6E73] text-[11px] font-bold shrink-0">₪{p.revenue.toLocaleString()}</span>
-                            </Link>
-                        ))}
-                    </div>
-                </Card>
+            {/* ── In-page tabs — curated to kill the endless scroll ─────────── */}
+            <div className="flex justify-center sm:justify-start">
+                <AdminTabs
+                    id="dashboard-tab-pill"
+                    tabs={[{ id: 'today', label: 'היום' }, { id: 'trends', label: 'מגמות' }]}
+                    active={dashTab}
+                    onChange={setDashTab}
+                />
             </div>
 
-            {/* ── Revenue + Daily Sales Row ──────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                <Card
-                    title="מחזור הכנסות"
-                    subtitle={`${period === '1' ? 'היום' : `${period} ימים`} · ₪ ביחידה`}
-                    accent="linear-gradient(90deg,#34C759,#30D158)"
-                    className="lg:col-span-2"
-                    titleTooltip={{ text: 'הכנסות כספיות לפי יום. כל תא מייצג יום אחד — עוצמת הצבע = סכום ההכנסות באותו יום.', source: 'Firestore · analytics · revenue[]', link: '/admin/orders', linkLabel: 'ראה הזמנות' }}
-                    action={
-                        <span className="text-xs font-black text-[#34C759]">
-                            ₪{periodRevenue.toLocaleString()}
-                        </span>
-                    }
-                >
-                    {periodData && periodData.revenue.some(v => v > 0) ? (
-                        <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
-                    ) : (
-                        <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
-                            טרם בוצעו עסקאות
-                        </div>
-                    )}
-                </Card>
-
-                {/* Monthly Goal Ring */}
-                <Card title="יעד חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#34C759,#007AFF)"
-                    titleTooltip={{ text: 'יעד חודשי ניתן לקביעה בהגדרות. אם לא הוגדר — מחושב אוטומטית ×1.5 מחודש קודם.', source: 'Firestore · cms_settings · monthly_revenue_target', link: '/admin/settings', linkLabel: 'הגדר יעד' }}>
-                    <GoalRing
-                        value={monthlyGoal.current}
-                        target={monthlyGoal.target}
-                        color="#34C759"
-                        label="הכנסות החודש"
-                        subtitle={monthlyGoal.isManual ? `יעד ידני: ₪${monthlyGoal.target.toLocaleString()}` : `אוטומטי: ×1.5 מהחודש הקודם`}
-                        size={100}
-                    />
-                    {!monthlyGoal.isManual && (
-                        <button
-                            onClick={() => navigate('/admin/settings')}
-                            className="mt-3 w-full text-center text-[10px] font-bold text-[#007AFF] hover:underline"
-                        >
-                            הגדר יעד ידני בהגדרות
-                        </button>
-                    )}
-                </Card>
-            </div>
-
-            {/* ── Daily Sales Bar Chart ──────────────────────────────────────── */}
-            <Card
-                title="מכירות יומיות"
-                subtitle="כמות עסקאות לפי יום"
-                accent="linear-gradient(90deg,#FF9500,#FF3B30)"
-                titleTooltip={{ text: 'כמות העסקאות שנסגרו בכל יום. כל עמודה = יום אחד. מקור: נתוני analytics מ-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}
-                action={<span className="text-xs font-black text-[#FF9500]">{periodSales} עסקאות</span>}
-            >
-                {periodData && periodData.sales.some(v => v > 0) ? (
-                    <BarChart data={periodData.sales} color="#FF9500" labels={periodData.labels} height={80} />
-                ) : (
-                    <div className="h-20 flex items-center justify-center text-[#AEAEB2] text-sm">
-                        טרם בוצעו עסקאות
-                    </div>
-                )}
-            </Card>
-
-            {/* ── Pipeline Forecast ────────────────────────────────────────── */}
-            {pipelineForecast.count > 0 && (
-                <RevenueForecastWidget forecast={pipelineForecast} navigate={navigate} />
-            )}
-
-            {/* ── Bottom Row ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-
-                {/* Recent Orders */}
-                <Card
-                    title="הזמנות אחרונות"
-                    accent="linear-gradient(90deg,#34C759,#30D158)"
-                    className="lg:col-span-2"
-                    action={
-                        <Link to="/admin/orders" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
-                            צפה בכולן <ChevronLeft size={12} strokeWidth={2.5} />
-                        </Link>
-                    }
-                >
-                    <div className="space-y-0.5">
-                        {recentOrders.length === 0 && (
-                            <div className="py-10 text-center flex flex-col items-center gap-2">
-                                <ShoppingCart size={24} className="text-[#AEAEB2] opacity-40" />
-                                <p className="text-[#AEAEB2] text-sm">אין הזמנות עדיין</p>
-                            </div>
-                        )}
-                        {recentOrders.map((order, i) => (
-                            <motion.div
-                                key={order.id}
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.03 }}
-                                onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
-                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors"
-                            >
-                                <StatusBadge status={order.status} />
-                                <div className="flex-1 min-w-0 text-right">
-                                    <p className="text-[#007AFF] text-[12px] font-bold truncate hover:underline"
-                                        onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(order.customer)}`); }}>
-                                        {order.customer}
-                                    </p>
-                                    <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
-                                        onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?open=${encodeURIComponent(order.product)}`); }}>
-                                        {order.product}
-                                    </p>
-                                </div>
-                                <div className="shrink-0 text-right">
-                                    <p className="text-[#1D1D1F] font-black text-sm">₪{order.total.toLocaleString()}</p>
-                                    <p className="text-[#AEAEB2] text-[9px] font-mono">{order.id}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </Card>
-
-                {/* Right column — Low Stock + Activity */}
-                <div className="space-y-5">
-                    {/* Low Stock */}
-                    <Card
-                        title="מלאי נמוך"
-                        accent="linear-gradient(90deg,#FF3B30,#FF9500)"
-                        action={
-                            <Link to="/admin/inventory" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
-                                ניהול <ChevronLeft size={12} strokeWidth={2.5} />
-                            </Link>
-                        }
+            <AnimatePresence mode="wait">
+                {dashTab === 'today' && (
+                    <motion.div key="today"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                        className="space-y-5"
                     >
-                        {lowStock.length === 0 ? (
-                            <div className="flex items-center gap-2 py-2">
-                                <span className="w-2 h-2 rounded-full bg-[#34C759]" />
-                                <p className="text-[#34C759] text-sm font-bold">כל המלאי תקין</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {lowStock.map(p => (
-                                    <div key={p.id} onClick={() => navigate(`/admin/inventory?open=${encodeURIComponent(p.title)}`)} className="flex items-center justify-between cursor-pointer hover:text-[#007AFF] transition-colors">
-                                        <span className={`font-black text-[12px] shrink-0 ${p.stock === 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'}`}>
-                                            {p.stock === 0 ? 'אזל' : `${p.stock} יח׳`}
-                                        </span>
-                                        <span className="text-[#6E6E73] text-[11px] font-medium truncate flex-1 text-right mr-3 ml-2">
-                                            {p.title}
-                                        </span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                            {/* Recent Orders */}
+                            <Card
+                                title="הזמנות אחרונות"
+                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                className="lg:col-span-2"
+                                action={
+                                    <Link to="/admin/orders" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
+                                        צפה בכולן <ChevronLeft size={12} strokeWidth={2.5} />
+                                    </Link>
+                                }
+                            >
+                                {dataLoading ? (
+                                    <DashLoading height="h-40" />
+                                ) : recentOrders.length === 0 ? (
+                                    <div className="py-10 text-center flex flex-col items-center gap-2">
+                                        <ShoppingCart size={24} className="text-[#AEAEB2] opacity-40" />
+                                        <p className="text-[#AEAEB2] text-sm">אין הזמנות עדיין</p>
                                     </div>
+                                ) : (
+                                    <div className="space-y-0.5">
+                                        {recentOrders.map((order, i) => (
+                                            <motion.div
+                                                key={order.id}
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.03 }}
+                                                onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
+                                                className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors"
+                                            >
+                                                <StatusBadge status={order.status} />
+                                                <div className="flex-1 min-w-0 text-right">
+                                                    <p className="text-[#007AFF] text-[12px] font-bold truncate hover:underline"
+                                                        onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(order.customer)}`); }}>
+                                                        {order.customer}
+                                                    </p>
+                                                    <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
+                                                        onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?open=${encodeURIComponent(order.product)}`); }}>
+                                                        {order.product}
+                                                    </p>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    <p className="text-[#1D1D1F] font-black text-sm">₪{order.total.toLocaleString()}</p>
+                                                    <p className="text-[#AEAEB2] text-[9px] font-mono">{order.id}</p>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </Card>
+
+                            {/* Right column — Monthly Goal Ring + Activity Feed */}
+                            <div className="space-y-5">
+                                {/* Monthly Goal Ring */}
+                                <Card title="יעד הכנסות חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                    titleTooltip={{ text: 'יעד חודשי ניתן לקביעה בהגדרות. אם לא הוגדר — מחושב אוטומטית ×1.5 מחודש קודם.', source: 'Firestore · cms_settings · monthly_revenue_target', link: '/admin/settings', linkLabel: 'הגדר יעד' }}>
+                                    {dataLoading ? (
+                                        <DashLoading height="h-40" label="טוען יעד…" />
+                                    ) : (
+                                        <>
+                                            <GoalRing
+                                                value={monthlyGoal.current}
+                                                target={monthlyGoal.target}
+                                                color="#34C759"
+                                                label="הכנסות החודש"
+                                                subtitle={monthlyGoal.isManual ? `יעד ידני: ₪${monthlyGoal.target.toLocaleString()}` : `אוטומטי: ×1.5 מהחודש הקודם`}
+                                                size={100}
+                                            />
+                                            {!monthlyGoal.isManual && (
+                                                <button
+                                                    onClick={() => navigate('/admin/settings')}
+                                                    className="mt-3 w-full text-center text-[10px] font-bold text-[#007AFF] hover:underline"
+                                                >
+                                                    הגדר יעד ידני בהגדרות
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </Card>
+
+                                {/* Activity Feed */}
+                                <Card
+                                    title="יומן פעילות"
+                                    accent="linear-gradient(90deg,#5E5CE6,#007AFF)"
+                                    action={
+                                        <span className="text-[10px] font-black text-[#AEAEB2] tracking-widest">
+                                            {activityLog.length} רשומות
+                                        </span>
+                                    }
+                                >
+                                    {dataLoading ? (
+                                        <DashLoading height="h-40" label="טוען פעילות…" />
+                                    ) : activityLog.length === 0 ? (
+                                        <p className="text-[#AEAEB2] text-sm text-center py-4">אין פעילות עדיין</p>
+                                    ) : (
+                                        <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar -mr-1 pr-1">
+                                            {activityLog.slice(0, 15).map((entry, i) => {
+                                                const meta = ACTIVITY_ICONS[entry.type] || ACTIVITY_ICONS.info;
+                                                const IconComp = meta.Icon;
+                                                return (
+                                                    <motion.div
+                                                        key={entry.id}
+                                                        initial={{ opacity: 0, x: 8 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: i * 0.02 }}
+                                                        className="flex items-center gap-2.5 py-1.5 border-b border-black/04 last:border-0"
+                                                    >
+                                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                                                            style={{ background: `${meta.color}12` }}>
+                                                            <IconComp size={12} style={{ color: meta.color }} />
+                                                        </span>
+                                                        <span className="text-[#1D1D1F] text-[11px] flex-1 text-right leading-snug">{entry.message}</span>
+                                                        <span className="text-[#AEAEB2] text-[10px] shrink-0 font-mono">{entry.date || '—'}</span>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <Card title="פעולות מהירות" subtitle="ניהול האתר בלחיצה אחת" accent="linear-gradient(90deg,#5E5CE6,#007AFF)">
+                            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+                                {[
+                                    {
+                                        label: 'תחזוקה', icon: <Wrench className="w-5 h-5" />,
+                                        desc: getSetting('maintenance_mode', false) ? 'כבה מצב תחזוקה' : 'הפעל מצב תחזוקה',
+                                        color: getSetting('maintenance_mode', false) ? '#FF3B30' : '#007AFF',
+                                        active: getSetting('maintenance_mode', false),
+                                        onClick: () => {
+                                            updateGlobalSettings({ maintenance_mode: !getSetting('maintenance_mode', false) });
+                                            showToast(getSetting('maintenance_mode', false) ? 'מצב תחזוקה כובה' : 'מצב תחזוקה הופעל', 'info');
+                                        }
+                                    },
+                                    {
+                                        label: 'הסתר מחירים', icon: <Tag className="w-5 h-5" />,
+                                        desc: getSetting('show_prices', true) ? 'הסתר מחירים' : 'הצג מחירים',
+                                        color: '#FF9500',
+                                        active: !getSetting('show_prices', true),
+                                        onClick: () => {
+                                            updateGlobalSettings({ show_prices: !getSetting('show_prices', true) });
+                                            showToast('הגדרת מחירים עודכנה', 'success');
+                                        }
+                                    },
+                                    {
+                                        label: 'תקן תמונות', icon: <Image className="w-5 h-5" />,
+                                        desc: 'סנכרן תמונות מוצרים',
+                                        color: '#007AFF',
+                                        active: false,
+                                        onClick: async () => {
+                                            const count = await repairProductImages();
+                                            showToast(count ? `תוקנו ${count} תמונות` : 'כל התמונות תקינות', 'success');
+                                        }
+                                    },
+                                    {
+                                        label: 'סנכרן מוצרים', icon: <RefreshCw className="w-5 h-5" />,
+                                        desc: 'רענן נתוני קטלוג',
+                                        color: '#34C759',
+                                        active: false,
+                                        onClick: async () => {
+                                            await reseedDatabase();
+                                            showToast('הקטלוג סונכרן בהצלחה', 'success');
+                                        }
+                                    },
+                                    {
+                                        label: 'הזמנות', icon: <Package className="w-5 h-5" />,
+                                        desc: `${kpis.pendingOrders} ממתינות לטיפול`,
+                                        color: kpis.pendingOrders > 0 ? '#FF3B30' : '#34C759',
+                                        active: kpis.pendingOrders > 0,
+                                        href: '/admin/orders'
+                                    },
+                                    {
+                                        label: 'HubSpot', icon: <ExternalLink className="w-5 h-5" />,
+                                        desc: 'פתח CRM חיצוני',
+                                        color: '#FF7A59',
+                                        active: false,
+                                        href: 'https://app-eu1.hubspot.com',
+                                        external: true
+                                    },
+                                ].map((action, i) => (
+                                    <motion.button
+                                        key={action.label}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        whileHover={{ y: -3, scale: 1.03 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={action.onClick || (action.href ? () => {
+                                            if (action.external) window.open(action.href, '_blank');
+                                            else window.location.href = action.href;
+                                        } : undefined)}
+                                        className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center cursor-pointer"
+                                        style={{
+                                            background: action.active ? `${action.color}14` : 'rgba(255,255,255,0.72)',
+                                            backdropFilter: 'blur(12px)',
+                                            WebkitBackdropFilter: 'blur(12px)',
+                                            border: `1px solid ${action.active ? action.color + '35' : 'rgba(255,255,255,0.7)'}`,
+                                            boxShadow: action.active ? `0 4px 16px ${action.color}20` : '0 2px 8px rgba(0,0,0,0.05)',
+                                        }}
+                                    >
+                                        <div className="w-9 h-9 rounded-2xl flex items-center justify-center"
+                                            style={{ background: `${action.color}18`, color: action.color }}>
+                                            {action.icon}
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black text-[#1D1D1F] leading-tight">{action.label}</p>
+                                            <p className="hidden sm:block text-[9px] text-[#AEAEB2] mt-0.5 leading-snug">{action.desc}</p>
+                                        </div>
+                                        {action.active && (
+                                            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: action.color }} />
+                                        )}
+                                    </motion.button>
                                 ))}
                             </div>
-                        )}
-                    </Card>
+                        </Card>
+                    </motion.div>
+                )}
 
-                    {/* Activity Feed */}
-                    <Card
-                        title="יומן פעילות"
-                        accent="linear-gradient(90deg,#5856D6,#007AFF)"
-                        action={
-                            <span className="text-[10px] font-black text-[#AEAEB2] tracking-widest">
-                                {activityLog.length} רשומות
-                            </span>
-                        }
+                {dashTab === 'trends' && (
+                    <motion.div key="trends"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                        className="space-y-5"
                     >
-                        <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar -mr-1 pr-1">
-                            {activityLog.length === 0 && (
-                                <p className="text-[#AEAEB2] text-sm text-center py-4">אין פעילות עדיין</p>
-                            )}
-                            {activityLog.slice(0, 15).map((entry, i) => {
-                                const meta = ACTIVITY_ICONS[entry.type] || ACTIVITY_ICONS.info;
-                                const IconComp = meta.Icon;
-                                return (
-                                    <motion.div
-                                        key={entry.id}
-                                        initial={{ opacity: 0, x: 8 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.02 }}
-                                        className="flex items-center gap-2.5 py-1.5 border-b border-black/04 last:border-0"
-                                    >
-                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                                            style={{ background: `${meta.color}12` }}>
-                                            <IconComp size={12} style={{ color: meta.color }} />
-                                        </span>
-                                        <span className="text-[#1D1D1F] text-[11px] flex-1 text-right leading-snug">{entry.message}</span>
-                                        <span className="text-[#AEAEB2] text-[10px] shrink-0 font-mono">{entry.date || '—'}</span>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-                    </Card>
-                </div>
-            </div>
+                        {/* Traffic + Top Products */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                            {/* Traffic Chart — 2/3 width */}
+                            <Card
+                                title="תנועה לאתר"
+                                subtitle={period === '1' ? 'היום' : `${period} ימים אחרונים`}
+                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                className="lg:col-span-2"
+                                titleTooltip={{ text: 'מפת חום של כניסות ייחודיות לאתר לפי יום. כל תא = יום אחד. עוצמת הצבע = כמות הכניסות.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
+                                action={
+                                    <span className="text-[#007AFF] text-xs font-black">
+                                        {periodVisits.toLocaleString()} כניסות
+                                    </span>
+                                }
+                            >
+                                {dataLoading ? (
+                                    <DashLoading />
+                                ) : periodData && periodData.visits.some(v => v > 0) ? (
+                                    <HeatGrid data={periodData.visits} color="#007AFF" labels={periodData.labels} />
+                                ) : (
+                                    <div className="h-28 flex flex-col items-center justify-center gap-2 text-[#AEAEB2]">
+                                        <Activity size={22} className="opacity-40" />
+                                        <span className="text-sm font-medium">טרם הצטברו נתוני תנועה</span>
+                                    </div>
+                                )}
+                            </Card>
 
-            {/* ── Quick Actions ─────────────────────────────────────────────── */}
-            <Card title="פעולות מהירות" subtitle="ניהול האתר בלחיצה אחת" accent="linear-gradient(90deg,#5856D6,#007AFF)">
-                <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-                    {[
-                        {
-                            label: 'תחזוקה', icon: <Wrench className="w-5 h-5" />,
-                            desc: getSetting('maintenance_mode', false) ? 'כבה מצב תחזוקה' : 'הפעל מצב תחזוקה',
-                            color: getSetting('maintenance_mode', false) ? '#FF3B30' : '#5856D6',
-                            active: getSetting('maintenance_mode', false),
-                            onClick: () => {
-                                updateGlobalSettings({ maintenance_mode: !getSetting('maintenance_mode', false) });
-                                showToast(getSetting('maintenance_mode', false) ? 'מצב תחזוקה כובה' : 'מצב תחזוקה הופעל', 'info');
-                            }
-                        },
-                        {
-                            label: 'הסתר מחירים', icon: <Tag className="w-5 h-5" />,
-                            desc: getSetting('show_prices', true) ? 'הסתר מחירים' : 'הצג מחירים',
-                            color: '#FF9500',
-                            active: !getSetting('show_prices', true),
-                            onClick: () => {
-                                updateGlobalSettings({ show_prices: !getSetting('show_prices', true) });
-                                showToast('הגדרת מחירים עודכנה', 'success');
-                            }
-                        },
-                        {
-                            label: 'תקן תמונות', icon: <Image className="w-5 h-5" />,
-                            desc: 'סנכרן תמונות מוצרים',
-                            color: '#007AFF',
-                            active: false,
-                            onClick: async () => {
-                                const count = await repairProductImages();
-                                showToast(count ? `תוקנו ${count} תמונות` : 'כל התמונות תקינות', 'success');
-                            }
-                        },
-                        {
-                            label: 'סנכרן מוצרים', icon: <RefreshCw className="w-5 h-5" />,
-                            desc: 'רענן נתוני קטלוג',
-                            color: '#34C759',
-                            active: false,
-                            onClick: async () => {
-                                await reseedDatabase();
-                                showToast('הקטלוג סונכרן בהצלחה', 'success');
-                            }
-                        },
-                        {
-                            label: 'הזמנות', icon: <Package className="w-5 h-5" />,
-                            desc: `${kpis.pendingOrders} ממתינות לטיפול`,
-                            color: kpis.pendingOrders > 0 ? '#FF3B30' : '#34C759',
-                            active: kpis.pendingOrders > 0,
-                            href: '/admin/orders'
-                        },
-                        {
-                            label: 'HubSpot', icon: <ExternalLink className="w-5 h-5" />,
-                            desc: 'פתח CRM חיצוני',
-                            color: '#FF7A59',
-                            active: false,
-                            href: 'https://app-eu1.hubspot.com',
-                            external: true
-                        },
-                    ].map((action, i) => (
-                        <motion.button
-                            key={action.label}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            whileHover={{ y: -3, scale: 1.03 }}
-                            whileTap={{ scale: 0.96 }}
-                            onClick={action.onClick || (action.href ? () => {
-                                if (action.external) window.open(action.href, '_blank');
-                                else window.location.href = action.href;
-                            } : undefined)}
-                            className="flex flex-col items-center gap-2 p-3 rounded-2xl text-center cursor-pointer"
-                            style={{
-                                background: action.active ? `${action.color}14` : 'rgba(255,255,255,0.72)',
-                                backdropFilter: 'blur(12px)',
-                                WebkitBackdropFilter: 'blur(12px)',
-                                border: `1px solid ${action.active ? action.color + '35' : 'rgba(255,255,255,0.7)'}`,
-                                boxShadow: action.active ? `0 4px 16px ${action.color}20` : '0 2px 8px rgba(0,0,0,0.05)',
-                            }}
-                        >
-                            <div className="w-9 h-9 rounded-2xl flex items-center justify-center"
-                                style={{ background: `${action.color}18`, color: action.color }}>
-                                {action.icon}
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-black text-[#1D1D1F] leading-tight">{action.label}</p>
-                                <p className="hidden sm:block text-[9px] text-[#AEAEB2] mt-0.5 leading-snug">{action.desc}</p>
-                            </div>
-                            {action.active && (
-                                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: action.color }} />
-                            )}
-                        </motion.button>
-                    ))}
-                </div>
-            </Card>
+                            {/* Top Products — 1/3 width */}
+                            <Card title="מוצרים מובילים" subtitle="לפי הכנסות כוללות"
+                                accent="linear-gradient(90deg,#5E5CE6,#007AFF)"
+                                titleTooltip={{ text: 'המוצרים שייצרו את ההכנסה הגבוהה ביותר. מחושב ממסד ההזמנות.', source: 'Firestore · orders · productId + total', link: '/admin/inventory', linkLabel: 'ניהול מוצרים' }}>
+                                {dataLoading ? (
+                                    <DashLoading label="טוען מוצרים…" />
+                                ) : topProducts.length === 0 ? (
+                                    <div className="py-8 text-center flex flex-col items-center gap-2">
+                                        <Package size={24} className="text-[#AEAEB2] opacity-50" />
+                                        <p className="text-[#AEAEB2] text-sm">אין הזמנות עדיין</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3.5">
+                                        {topProducts.map((p, i) => (
+                                            <Link key={i} to={`/admin/inventory?open=${encodeURIComponent(p.title)}`} className="flex items-center gap-3 group/row transition-all hover:translate-x-[-4px]">
+                                                <span className="text-[#AEAEB2] text-xs font-black w-4 shrink-0 text-center">{i + 1}</span>
+                                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
+                                                    {p.image
+                                                        ? <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover/row:scale-110 transition-transform duration-500"
+                                                            onError={(e) => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                                                        : <Box size={13} className="text-[#AEAEB2]" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[#1D1D1F] text-[11px] font-bold line-clamp-1 text-right group-hover/row:text-[#007AFF] transition-colors">{p.title}</p>
+                                                    <div className="w-full h-1.5 bg-[#F5F5F7] rounded-full mt-1.5 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
+                                                            transition={{ delay: i * 0.08, duration: 0.8, ease: [0.22,1,0.36,1] }}
+                                                            className="h-full rounded-full"
+                                                            style={{ background: 'linear-gradient(90deg,#007AFF,#5E5CE6)' }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <span className="text-[#6E6E73] text-[11px] font-bold shrink-0">₪{p.revenue.toLocaleString()}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+
+                        {/* Revenue Heat + Daily Sales */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                            <Card
+                                title="מחזור הכנסות"
+                                subtitle={`${period === '1' ? 'היום' : `${period} ימים`} · ₪ ביחידה`}
+                                accent="linear-gradient(90deg,#34C759,#30D158)"
+                                className="lg:col-span-2"
+                                titleTooltip={{ text: 'הכנסות כספיות לפי יום. כל תא מייצג יום אחד — עוצמת הצבע = סכום ההכנסות באותו יום.', source: 'Firestore · analytics · revenue[]', link: '/admin/orders', linkLabel: 'ראה הזמנות' }}
+                                action={
+                                    <span className="text-xs font-black text-[#34C759]">
+                                        ₪{periodRevenue.toLocaleString()}
+                                    </span>
+                                }
+                            >
+                                {dataLoading ? (
+                                    <DashLoading label="טוען הכנסות…" />
+                                ) : periodData && periodData.revenue.some(v => v > 0) ? (
+                                    <HeatGrid data={periodData.revenue} color="#34C759" labels={periodData.labels} />
+                                ) : (
+                                    <div className="h-24 flex items-center justify-center text-[#AEAEB2] text-sm">
+                                        טרם בוצעו עסקאות
+                                    </div>
+                                )}
+                            </Card>
+
+                            {/* Daily Sales Bar Chart */}
+                            <Card
+                                title="מכירות יומיות"
+                                subtitle="כמות עסקאות לפי יום"
+                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                titleTooltip={{ text: 'כמות העסקאות שנסגרו בכל יום. כל עמודה = יום אחד. מקור: נתוני analytics מ-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}
+                                action={<span className="text-xs font-black text-[#007AFF]">{periodSales} עסקאות</span>}
+                            >
+                                {dataLoading ? (
+                                    <DashLoading height="h-20" label="טוען מכירות…" />
+                                ) : periodData && periodData.sales.some(v => v > 0) ? (
+                                    <BarChart data={periodData.sales} color="#007AFF" labels={periodData.labels} height={80} />
+                                ) : (
+                                    <div className="h-20 flex items-center justify-center text-[#AEAEB2] text-sm">
+                                        טרם בוצעו עסקאות
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+
+                        {/* Pipeline Forecast */}
+                        {pipelineForecast.count > 0 && (
+                            <RevenueForecastWidget forecast={pipelineForecast} navigate={navigate} />
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
 
             {/* ── KPI Drilldown Modal ────────────────────────────────────────── */}
             {(() => {

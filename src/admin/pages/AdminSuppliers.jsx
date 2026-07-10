@@ -1,6 +1,5 @@
 /* eslint-disable */
 import React, { useState, useEffect, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
@@ -26,10 +25,10 @@ import {
 } from '../theme/tokens';
 import { AdminKPICard } from '../components/AdminComponents';
 
-// ─── Suppliers domain accent (Heaven, gold ★) ──────────────────────────────────
-const GOLD      = '#FF9F0A';                                     // suppliers accent
-const GOLD_GRAD = 'linear-gradient(135deg, #FFC062 0%, #FF9F0A 100%)';
-const GOLD_SOFT = 'linear-gradient(135deg, rgba(255,159,10,0.14) 0%, rgba(255,179,64,0.08) 100%)';
+// ─── Suppliers domain accent (restrained brand — azure, de-rainbowed) ──────────
+const GOLD      = '#007AFF';                                     // suppliers accent (azure)
+const GOLD_GRAD = 'linear-gradient(135deg,#007AFF,#5856D6)';
+const GOLD_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.14) 0%, rgba(88,86,214,0.08) 100%)';
 
 // ─── Liquid-glass surface recipes (token-driven — one system everywhere) ───────
 const G    = { ...GLASS.base,    borderRadius: RADIUS.card };    // workhorse card
@@ -1488,6 +1487,7 @@ function SupplierScorecard({ quotes }) {
 
 // ─── SupplierView ──────────────────────────────────────────────────────────────
 function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSupplier }) {
+    const { showToast } = useAdminToast();
     const totalVal = quotes.reduce((s, q) => s + calcTotal(q.products), 0);
     const [quotesView, setQuotesView] = useState('grid'); // 'grid' | 'kanban'
     const [selected, setSelected] = useState(new Set()); // Set of quote IDs
@@ -1502,7 +1502,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
         const phone = (supplier.agentPhone || '').replace(/\D/g,'').replace(/^0/,'972');
         if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         else if (supplier.agentEmail) window.open(`mailto:${supplier.agentEmail}?subject=${encodeURIComponent('בקשת הצעת מחיר – NextClass')}&body=${encodeURIComponent(msg)}`, '_blank');
-        else alert('אין פרטי קשר לספק זה');
+        else showToast('אין פרטי קשר לספק זה', 'error');
     };
 
     const applyBulkStatus = async () => {
@@ -1569,7 +1569,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                     <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: 9, border: '1px solid rgba(0,0,0,0.05)' }}>
                         {[{ id: 'grid', label: 'רשימה' }, { id: 'kanban', label: 'סטטוס' }].map(v => (
                             <button key={v.id} onClick={() => setQuotesView(v.id)}
-                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? `1px solid ${hexA(GOLD, 0.3)}` : '1px solid transparent', background: quotesView === v.id ? GOLD_SOFT : 'transparent', color: quotesView === v.id ? '#B86A00' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 800 : 600, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? `0 2px 8px ${hexA(GOLD, 0.15)}` : 'none' }}>
+                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? `1px solid ${hexA(GOLD, 0.3)}` : '1px solid transparent', background: quotesView === v.id ? GOLD_SOFT : 'transparent', color: quotesView === v.id ? '#005EC4' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 800 : 600, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? `0 2px 8px ${hexA(GOLD, 0.15)}` : 'none' }}>
                                 {v.label}
                             </button>
                         ))}
@@ -3891,7 +3891,7 @@ export default function AdminSuppliers() {
                         </div>
                         <div style={{ flex: 1 }} />
                         <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -1 }} whileTap={TAP}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: RADIUS.button, border: `1px solid ${hexA(GOLD, 0.28)}`, background: hexA(GOLD, 0.08), cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#B86A00', fontSize: 12.5, fontWeight: 700 }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: RADIUS.button, border: `1px solid ${hexA(GOLD, 0.28)}`, background: hexA(GOLD, 0.08), cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#005EC4', fontSize: 12.5, fontWeight: 700 }}>
                             <Plus size={13} />ספק מהיר
                         </motion.button>
                     </div>
@@ -3909,9 +3909,9 @@ export default function AdminSuppliers() {
                                         style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
                                     <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
                                         <SupplierAvatar domain={s.domain} name={s.name} size={20} color={s.color} logoUrl={s.logoUrl} />
-                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
                                         {cnt > 0 && (
-                                            <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? hexA(GOLD, 0.18) : 'rgba(0,0,0,0.05)', fontSize: 10, fontWeight: 800, color: on ? '#B86A00' : '#8E8E93' }}>
+                                            <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? hexA(GOLD, 0.18) : 'rgba(0,0,0,0.05)', fontSize: 10, fontWeight: 800, color: on ? '#005EC4' : '#8E8E93' }}>
                                                 {cnt}
                                             </span>
                                         )}
@@ -3937,7 +3937,7 @@ export default function AdminSuppliers() {
                                         style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
                                     <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <Layers size={13} color={on ? GOLD : '#8E8E93'} />
-                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
                                     </span>
                                 </motion.button>
                             );
@@ -3953,7 +3953,7 @@ export default function AdminSuppliers() {
                                         style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
                                     <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <User size={13} color={on ? GOLD : '#8E8E93'} />
-                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#B86A00' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
                                     </span>
                                 </motion.button>
                             );

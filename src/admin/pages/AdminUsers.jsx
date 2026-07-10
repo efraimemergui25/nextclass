@@ -14,9 +14,9 @@ import {
     Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2
 } from 'lucide-react';
 
-// ── Users domain accent (Heaven · cyan) ───────────────────────────────────────
-const ACCENT      = '#32ADE6';
-const ACCENT_DARK = '#1B7BB0';
+// ── Users accent — unified brand azure (de-rainbowed) ─────────────────────────
+const ACCENT      = '#007AFF';
+const ACCENT_DARK = '#005EC4';
 
 // ── Liquid-glass surface (token-driven — one system everywhere) ────────────────
 const glass = { ...GLASS.base };
@@ -417,7 +417,7 @@ function UserRow({ user, index, onClick, rfmSegment }) {
             transition={{ delay: index * 0.03 }}
             onClick={onClick}
             style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="hover:bg-[#32ADE6]/[0.05] transition-colors"
+            className="hover:bg-[#007AFF]/[0.05] transition-colors"
         >
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

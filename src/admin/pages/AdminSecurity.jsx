@@ -11,8 +11,8 @@ import {
     AdminSectionHeader, AdminButton, AdminEmpty, AdminSkeleton, AdminFilterPills,
 } from '../components/AdminComponents';
 
-// ─── Security domain accent (seafoam shield ★) ─────────────────────────────────
-const SEAFOAM = '#30B0C7';
+// ─── Security domain accent (restrained azure brand) ───────────────────────────
+const SEAFOAM = '#007AFF';
 
 const EVENT_LABELS = {
     rate_limited:      { label: 'Rate Limited',      color: '#FF3B30' },
@@ -70,6 +70,7 @@ export default function AdminSecurity() {
     const [loading, setLoading] = useState(true);
     const [lastRefresh, setLastRefresh] = useState(null);
     const [filter, setFilter] = useState('הכל');
+    const [error, setError] = useState(null);
 
     const fetchLogs = useCallback(async () => {
         setLoading(true);
@@ -83,8 +84,10 @@ export default function AdminSecurity() {
             const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setLogs(items);
             setLastRefresh(new Date());
+            setError(null);
         } catch (e) {
             console.error('[AdminSecurity]', e);
+            setError(e);
         } finally {
             setLoading(false);
         }
@@ -178,7 +181,23 @@ export default function AdminSecurity() {
                         )}
                     </div>
 
-                    {filteredLogs.length === 0 ? (
+                    {error ? (
+                        <div className="flex flex-col items-center justify-center text-center px-6 py-14 gap-4">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                style={{ background: hexA('#FF3B30', 0.1), border: `1px solid ${hexA('#FF3B30', 0.24)}` }}>
+                                <ShieldCheck size={26} style={{ color: '#FF3B30' }} />
+                            </div>
+                            <div>
+                                <p className="text-[15px] font-black text-[#1D1D1F]">שגיאה בטעינת יומני האבטחה</p>
+                                <p className="text-[12px] text-[#86868B] font-medium mt-1 max-w-[420px]">
+                                    לא ניתן לקרוא את הרשומות מ-Firestore. ייתכן שאין הרשאה או שהחיבור נכשל — זהו אינו מצב "נקי".
+                                </p>
+                            </div>
+                            <AdminButton onClick={fetchLogs} accent="#FF3B30" loading={loading}>
+                                <span className="flex items-center gap-1.5"><RefreshCw size={14} /> נסה שוב</span>
+                            </AdminButton>
+                        </div>
+                    ) : filteredLogs.length === 0 ? (
                         <AdminEmpty
                             title={filter === 'הכל' ? 'אין אירועי אבטחה' : 'אין אירועים מסוג זה'}
                             subtitle="הרשומות האחרונות נקיות — כל המערכות תקינות"
