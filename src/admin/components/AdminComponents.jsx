@@ -207,15 +207,13 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
     // ── Loading state ──
     if (loading) {
         return (
-            <div className="relative overflow-hidden flex flex-col h-full min-h-[140px]"
-                style={accentSurface(c, { radius: RADIUS.kpi })}>
-                <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${hexA(c, 0.4)}, ${hexA(c, 0.15)})` }} />
-                <div className="p-5 flex flex-col gap-3 flex-1">
-                    <motion.div className="h-3 w-24 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ background: hexA(c, 0.14) }} />
-                    <motion.div className="h-8 w-32 rounded-lg" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.15 }} style={{ background: hexA(c, 0.16) }} />
-                    <div className="flex-1" />
-                    <motion.div className="h-3 w-20 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.3 }} style={{ background: 'rgba(0,0,0,0.05)' }} />
+            <div className="relative overflow-hidden flex flex-col h-full min-h-[132px] p-5"
+                style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}>
+                <div className="flex items-start justify-between mb-4">
+                    <motion.div className="h-3 w-24 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ background: 'rgba(0,0,0,0.06)' }} />
+                    <motion.div className="w-12 h-12 rounded-full" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.1 }} style={{ background: hexA(c, 0.10) }} />
                 </div>
+                <motion.div className="h-9 w-28 rounded-lg" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.15 }} style={{ background: 'rgba(0,0,0,0.07)' }} />
             </div>
         );
     }
@@ -242,61 +240,48 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, ...SPRING.soft }}
-            whileHover={{ y: -3, scale: 1.015, boxShadow: `0 22px 52px ${hexA(c, 0.24)}, 0 0 0 1px ${hexA(c, 0.14)}, ${SHADOW.specular}` }}
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
             whileTap={onClick ? TAP : undefined}
             onClick={onClick}
-            className={`relative overflow-hidden transition-shadow flex flex-col h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-            style={accentSurface(c, { radius: RADIUS.kpi })}
+            className={`relative overflow-hidden transition-shadow flex flex-col h-full p-5 ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+            style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}
         >
-            {/* Colored top accent bar */}
-            <div className="h-[3px] w-full pointer-events-none"
-                style={{ background: `linear-gradient(90deg, ${c}, ${hexA(c, 0.6)})`, borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
-            <div className="p-5 flex flex-col flex-1 relative">
-            {/* Top specular edge */}
-            <div className="absolute -top-[1px] left-[10%] right-[10%] h-px pointer-events-none"
-                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
-            {/* Corner glow orb — vivid Heaven halo behind the glass */}
-            <div className="absolute -top-14 -left-12 w-44 h-44 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${hexA(c, 0.26)} 0%, ${hexA(c, 0.05)} 45%, transparent 68%)`, filter: 'blur(6px)' }} />
-
-            <div className="flex items-start justify-between mb-3 relative z-10">
-                <div className="flex flex-col">
-                    <span className="flex items-center gap-0.5 mb-1.5">
-                        <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em]">{title}</p>
-                        {tooltip && (() => {
-                            const t = typeof tooltip === 'object' && tooltip !== null ? tooltip : { text: tooltip };
-                            return <InfoTooltip text={t.text} source={t.source} link={t.link} linkLabel={t.linkLabel} />;
-                        })()}
-                    </span>
-                    <CountUp value={value} color={c} />
-                </div>
-                <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
-                    style={{ background: hexA(c, 0.14), border: `1px solid ${hexA(c, 0.28)}`, boxShadow: `0 4px 14px ${hexA(c, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.7)` }}>
+            {/* Header: eyebrow label + the ONLY splash of color — the icon circle */}
+            <div className="flex items-start justify-between mb-3">
+                <span className="flex items-center gap-1 pt-1.5">
+                    <p className="text-[#86868B] text-[11px] font-bold tracking-[0.14em]">{title}</p>
+                    {tooltip && (() => {
+                        const t = typeof tooltip === 'object' && tooltip !== null ? tooltip : { text: tooltip };
+                        return <InfoTooltip text={t.text} source={t.source} link={t.link} linkLabel={t.linkLabel} />;
+                    })()}
+                </span>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: hexA(c, 0.12), border: `1px solid ${hexA(c, 0.20)}` }}>
                     {typeof icon === 'string' && ICONS[icon] ? (
-                        <svg className="w-5 h-5" style={{ color: c }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>{ICONS[icon]}</svg>
+                        <svg className="w-[22px] h-[22px]" style={{ color: c }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>{ICONS[icon]}</svg>
                     ) : (
-                        <span className="text-lg">{icon}</span>
+                        <span className="text-lg" style={{ color: c }}>{icon}</span>
                     )}
                 </div>
             </div>
 
-            {/* Sparkline */}
+            {/* Neutral ink headline number — no color */}
+            <CountUp value={value} color="#1D1D1F" />
+
             {sparkData && sparkData.length >= 2 && (
-                <div className="mb-3 opacity-70 relative z-10">
-                    <MiniSparkline data={sparkData} color={c} />
+                <div className="mt-3 opacity-50">
+                    <MiniSparkline data={sparkData} color="#C7C7CC" />
                 </div>
             )}
 
-            {/* Push bottom row to card bottom */}
             <div className="flex-1" />
 
-            <div className="flex items-center justify-between pt-3 relative z-10" style={{ borderTop: `1px solid ${hexA(c, 0.1)}` }}>
+            <div className="flex items-center justify-between pt-3 mt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                 {subtitle ? (
                     <p className="text-[#86868B] text-[11px] font-medium">{subtitle}</p>
                 ) : <div />}
-
                 {trend !== undefined && (
-                    <div className={`flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg ${trendUp ? 'bg-[#34C759]/12 text-[#248A3D]' : 'bg-[#FF3B30]/10 text-[#D12B22]'}`}>
+                    <div className={`flex items-center gap-1 text-[11px] font-bold ${trendUp ? 'text-[#248A3D]' : 'text-[#D12B22]'}`}>
                         {trendUp ? (
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>
                         ) : (
@@ -306,7 +291,6 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                     </div>
                 )}
             </div>
-            </div>{/* end inner padding div */}
         </motion.div>
     );
 }
