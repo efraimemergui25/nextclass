@@ -130,8 +130,6 @@ function ServiceCard({ service, isActive, i }) {
 function AnalyticsLinks() {
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div className="text-right">
                     <h3 className="font-black text-[#1D1D1F] text-[15px] tracking-tight">כלי אנליטיקס ודשבורדים</h3>
@@ -182,8 +180,6 @@ function CRMPipeline({ data, loading, refetch }) {
     if (loading) {
         return (
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -205,8 +201,6 @@ function CRMPipeline({ data, loading, refetch }) {
     if (!data?.configured) {
         return (
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -258,8 +252,6 @@ function CRMPipeline({ data, loading, refetch }) {
 
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -356,8 +348,6 @@ function GeneralInfo() {
 
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#5856D6,#007AFF)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-black text-[#1D1D1F] text-[15px]">מידע תשתית</h3>
@@ -404,31 +394,26 @@ function GeneralInfo() {
     );
 }
 
-// ── StatTile — oversized colored numbers (real counts only) ────────────────────
+// ── StatTile — white glass, ink number, color only in the icon circle ──────────
 function StatTile({ label, value, color, Icon, delay }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay, ...SPRING.soft }}
-            whileHover={{ y: -3, boxShadow: `0 18px 44px ${hexA(color, 0.2)}, ${SHADOW.specular}` }}
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
             className="relative overflow-hidden p-5 flex flex-col min-h-[118px] transition-shadow"
-            style={accentSurface(color, { radius: RADIUS.kpi })}
+            style={{ ...GLASS_TOKENS.base, borderRadius: RADIUS.kpi }}
         >
-            <div className="h-[3px] w-full absolute top-0 left-0 pointer-events-none"
-                style={{ background: `linear-gradient(90deg, ${color}, ${hexA(color, 0.6)})`, borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
-            <div className="absolute -top-12 -left-10 w-40 h-40 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${hexA(color, 0.22)} 0%, transparent 66%)`, filter: 'blur(6px)' }} />
-            <div className="flex items-start justify-between relative z-10">
-                <p className="text-[40px] font-black tracking-tighter leading-none"
-                    style={{ background: `linear-gradient(160deg, ${color} 0%, ${hexA(color, 0.7)} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <div className="flex items-start justify-between">
+                <p className="text-[40px] font-black tracking-tighter leading-none" style={{ color: '#1D1D1F' }}>
                     {value}
                 </p>
-                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0"
-                    style={{ background: hexA(color, 0.14), border: `1px solid ${hexA(color, 0.28)}` }}>
-                    <Icon className="w-4 h-4" style={{ color }} strokeWidth={2} />
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: hexA(color, 0.12), border: `1px solid ${hexA(color, 0.20)}` }}>
+                    <Icon className="w-[18px] h-[18px]" style={{ color }} strokeWidth={2} />
                 </div>
             </div>
-            <p className="text-[12px] text-[#6E6E73] font-bold mt-auto pt-3 relative z-10">{label}</p>
+            <p className="text-[12px] text-[#6E6E73] font-bold mt-auto pt-3">{label}</p>
         </motion.div>
     );
 }
@@ -454,7 +439,7 @@ export default function AdminIntegrations() {
                 icon={Link2}
                 action={
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                        style={{ background: hexA(INDIGO, 0.1), border: `1px solid ${hexA(INDIGO, 0.24)}`, boxShadow: glow(INDIGO, 0.1, 14) }}>
+                        style={{ background: hexA(INDIGO, 0.1), border: `1px solid ${hexA(INDIGO, 0.24)}` }}>
                         <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
                         <span className="text-[12px] font-black text-[#1D1D1F]">{activeCount} / {SERVICES.length} שירותים פעילים</span>
                     </div>
@@ -471,8 +456,6 @@ export default function AdminIntegrations() {
 
             {/* ── Services grid ─────────────────────────────────────────────── */}
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">סטטוס שירותים</h3>

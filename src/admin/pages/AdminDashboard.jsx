@@ -41,36 +41,32 @@ function DailyBriefing({ kpis, pipelineForecast, liveVisitors, navigate }) {
         if (kpis.contactsNew > 0)
             list.push({ color: '#007AFF', label: `${kpis.contactsNew} פניות חדשות מחכות לטיפול`, link: '/admin/communications' });
         if (kpis.stalledLeads > 0)
-            list.push({ color: '#5856D6', label: `${kpis.stalledLeads} עסקאות מעוכבות בצינור`, link: '/admin/orders' });
+            list.push({ color: '#FF9500', label: `${kpis.stalledLeads} עסקאות מעוכבות בצינור`, link: '/admin/orders' });
         return list;
     }, [kpis]);
 
     const allGood = items.length === 0;
+    const briefTone = allGood ? '#34C759' : '#007AFF';
 
     return (
         <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-            className="rounded-[22px] overflow-hidden"
-            style={{
-                background: 'linear-gradient(135deg, rgba(0,122,255,0.06) 0%, rgba(255,255,255,0.88) 60%, rgba(88,86,214,0.04) 100%)',
-                border: '1px solid rgba(0,122,255,0.15)',
-                boxShadow: '0 4px 24px rgba(0,122,255,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
+            className="overflow-hidden"
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
-            <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)' }} />
-            <div className="p-4">
+            <div className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                        <motion.div
-                            animate={{ rotate: [0, 5, -5, 0] }}
-                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
-                            className="w-7 h-7 rounded-[9px] flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}
+                    <div className="flex items-center gap-2.5">
+                        <div
+                            className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                            style={{ background: hexA(briefTone, 0.12), border: `1px solid ${hexA(briefTone, 0.22)}` }}
                         >
-                            <Sparkles size={14} className="text-white" />
-                        </motion.div>
+                            {allGood
+                                ? <CheckCircle2 size={15} style={{ color: briefTone }} />
+                                : <Sparkles size={15} style={{ color: briefTone }} />}
+                        </div>
                         <span className="text-[13px] font-black text-[#1D1D1F] tracking-tight">
                             {allGood ? 'הכל תקין — עסק מעולה!' : `${items.length} פעולות מחכות לך`}
                         </span>
@@ -163,18 +159,11 @@ function RevenueForecastWidget({ forecast, navigate }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ type: 'spring', stiffness: 360, damping: 28, delay: 0.1 }}
-            className="rounded-[22px] overflow-hidden cursor-pointer"
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
+            className="overflow-hidden cursor-pointer"
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
             onClick={() => navigate('/admin/orders')}
-            whileHover={{ y: -3, boxShadow: '0 16px 48px rgba(52,199,89,0.14)' }}
+            whileHover={{ y: -3, boxShadow: SHADOW.lg }}
         >
-            <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#34C759,#30D158,#007AFF)' }} />
             <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -188,7 +177,7 @@ function RevenueForecastWidget({ forecast, navigate }) {
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-[22px] font-black tracking-tighter text-[#34C759] leading-none">
+                        <p className="text-[22px] font-black tracking-tighter text-[#1D1D1F] leading-none">
                             ₪{Math.round(forecast.weighted).toLocaleString()}
                         </p>
                         <p className="text-[9px] font-bold text-[#AEAEB2] mt-0.5">צפי משוקלל</p>
@@ -206,7 +195,7 @@ function RevenueForecastWidget({ forecast, navigate }) {
                                     animate={{ width: `${(s.value / maxVal) * 100}%` }}
                                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                     className="h-full rounded-full"
-                                    style={{ background: `hsl(${Math.round(s.weight * 120)}, 70%, 50%)` }}
+                                    style={{ background: hexA('#007AFF', 0.35 + s.weight * 0.5) }}
                                 />
                             </div>
                             <span className="text-[9px] font-black text-[#1D1D1F] w-16 text-left">
@@ -274,7 +263,6 @@ function Card({ title, subtitle, accent, action, children, className = '', title
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
-            {accent && <div className="h-[3px] rounded-t-[22px]" style={{ background: accent }} />}
             <div className="p-5">
                 {(title || action) && (
                     <div className="flex items-center justify-between mb-4">
@@ -324,7 +312,7 @@ function PeriodSelector({ value, onChange }) {
                     style={{ color: value === o.v ? '#007AFF' : '#86868B' }}>
                     {value === o.v && (
                         <motion.div layoutId="period-pill" className="absolute inset-0 rounded-xl"
-                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
+                            style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.12)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
                     <span className="relative z-10">{o.label}</span>
@@ -494,7 +482,7 @@ export default function AdminDashboard() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3.5">
-                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(PALETTE.azure, 0.16)}, ${hexA(PALETTE.azure, 0.06)})`, border: `1px solid ${hexA(PALETTE.azure, 0.22)}`, boxShadow: `${glow(PALETTE.azure, 0.18, 20)}, ${SHADOW.specular}` }}>
+                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(PALETTE.azure, 0.12), border: `1px solid ${hexA(PALETTE.azure, 0.22)}`, boxShadow: `${SHADOW.sm}, ${SHADOW.specular}` }}>
                         <Activity size={22} color={PALETTE.azure} />
                     </div>
                     <div className="text-right">
@@ -525,19 +513,20 @@ export default function AdminDashboard() {
                 <motion.div
                     initial={{ opacity: 0, y: -8, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className="rounded-[20px] overflow-hidden"
-                    style={{
-                        background: 'linear-gradient(135deg, rgba(255,59,48,0.08) 0%, rgba(255,149,0,0.06) 100%)',
-                        border: '1px solid rgba(255,59,48,0.22)',
-                        boxShadow: '0 4px 20px rgba(255,59,48,0.12)',
-                    }}
+                    className="overflow-hidden"
+                    style={{ ...GLASS.base, borderRadius: RADIUS.card }}
                 >
-                    <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#FF3B30,#FF9500)' }} />
-                    <div className="p-4">
+                    <div className="p-5">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-[10px] font-black text-[#FF3B30] uppercase tracking-widest">
-                                {kpis.dueReminders.length} תזכורות לטיפול
-                            </span>
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                                    style={{ background: 'rgba(255,59,48,0.12)', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                    <AlertTriangle size={15} className="text-[#FF3B30]" />
+                                </div>
+                                <span className="text-[10px] font-black text-[#FF3B30] uppercase tracking-widest">
+                                    {kpis.dueReminders.length} תזכורות לטיפול
+                                </span>
+                            </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inset-0 rounded-full bg-[#FF3B30] opacity-60" />
@@ -932,7 +921,7 @@ export default function AdminDashboard() {
                                                             animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
                                                             transition={{ delay: i * 0.08, duration: 0.8, ease: [0.22,1,0.36,1] }}
                                                             className="h-full rounded-full"
-                                                            style={{ background: 'linear-gradient(90deg,#007AFF,#5E5CE6)' }}
+                                                            style={{ background: '#007AFF' }}
                                                         />
                                                     </div>
                                                 </div>

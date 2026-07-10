@@ -7,7 +7,7 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
 import {
     GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS
 } from '../theme/tokens';
@@ -203,13 +203,10 @@ function DropZone({ onFiles, uploading }) {
                 background: isDragActive ? hexA(VAULT, 0.07) : 'rgba(255,255,255,0.5)',
                 backdropFilter: 'blur(18px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                boxShadow: isDragActive ? `0 0 0 4px ${hexA(VAULT, 0.12)}, ${glow(VAULT, 0.18, 30)}` : SHADOW.sm,
+                boxShadow: isDragActive ? `0 0 0 4px ${hexA(VAULT, 0.12)}` : SHADOW.sm,
                 padding: 28,
             }}
         >
-            {/* Ambient halo */}
-            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-56 h-56 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${hexA(VAULT, isDragActive ? 0.22 : 0.1)} 0%, transparent 68%)`, filter: 'blur(8px)' }} />
             {uploading ? (
                 <div className="flex flex-col items-center gap-3 relative z-10">
                     <div className="w-11 h-11 rounded-full animate-spin" style={{ border: `2px solid ${hexA(VAULT, 0.25)}`, borderTopColor: VAULT }} />
@@ -220,7 +217,7 @@ function DropZone({ onFiles, uploading }) {
                     <motion.div
                         animate={{ y: isDragActive ? -4 : 0 }}
                         className="w-14 h-14 rounded-2xl flex items-center justify-center relative z-10"
-                        style={{ background: hexA(VAULT, 0.12), border: `1px solid ${hexA(VAULT, 0.24)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 6px 18px ${hexA(VAULT, 0.18)}` }}
+                        style={{ background: hexA(VAULT, 0.12), border: `1px solid ${hexA(VAULT, 0.2)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
                     >
                         <Upload size={22} style={{ color: VAULT }} />
                     </motion.div>
@@ -290,7 +287,7 @@ function VaultDocRow({ item, folders, expanded, onToggle, onUpdate, onDelete, on
                 borderRadius: RADIUS.md,
                 background: expanded ? hexA(VAULT, 0.04) : 'rgba(255,255,255,0.55)',
                 border: `1px solid ${expanded ? hexA(VAULT, 0.22) : 'rgba(0,0,0,0.05)'}`,
-                boxShadow: expanded ? `${glow(VAULT, 0.08, 26)}, ${SHADOW.sm}` : 'none',
+                boxShadow: expanded ? SHADOW.sm : 'none',
             }}
             className="overflow-hidden"
         >
@@ -412,7 +409,7 @@ function VaultDocCard({ item, onOpen, onCopy, copied, index }) {
             onClick={() => onOpen(item)}
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }}
             transition={{ delay: Math.min(index * 0.02, 0.25), ...SPRING.soft }}
-            whileHover={{ y: -3, boxShadow: `${glow(VAULT, 0.12, 30)}, ${SHADOW.lg}` }}
+            whileHover={{ y: -3, boxShadow: SHADOW.lg }}
             className="p-4 flex flex-col justify-between cursor-pointer group relative text-right overflow-hidden"
             style={{ ...CARD }}
         >
@@ -825,6 +822,14 @@ export default function AdminVault() {
 
     const activeFolderObj = folders.find(f => f.id === activeFolder);
 
+    // Folder-state tabs — filter the document grid by review state (reuses classificationFilter)
+    const vaultStateTabs = [
+        { id: 'all',      label: 'הכל',          count: folderDocs.length },
+        { id: 'pending',  label: 'ממתין לבדיקה', count: folderDocs.filter(d => d.classification === 'pending').length },
+        { id: 'approved', label: 'מאושר',        count: folderDocs.filter(d => d.classification === 'approved').length },
+        { id: 'archived', label: 'דורש סיווג',   count: folderDocs.filter(d => d.classification === 'archived').length },
+    ];
+
     return (
         <div dir="rtl" className="space-y-6 font-sans">
             <AdminSectionHeader
@@ -857,16 +862,14 @@ export default function AdminVault() {
 
                 {/* Storage tile (KPI-styled with quota bar) */}
                 {loading ? (
-                    <div className="relative overflow-hidden flex flex-col min-h-[140px]" style={accentSurface('#007AFF', { radius: RADIUS.kpi })}>
-                        <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg,#007AFF,rgba(0,122,255,0.4))' }} />
+                    <div className="relative overflow-hidden flex flex-col min-h-[140px]" style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}>
                         <div className="p-5 flex-1 flex items-center justify-center">
                             <motion.div className="h-8 w-24 rounded-lg" animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ background: 'rgba(0,122,255,0.14)' }} />
                         </div>
                     </div>
                 ) : (
                     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, ...SPRING.soft }}
-                        className="relative overflow-hidden flex flex-col min-h-[140px]" style={accentSurface('#007AFF', { radius: RADIUS.kpi })}>
-                        <div className="h-[3px] w-full pointer-events-none" style={{ background: 'linear-gradient(90deg,#007AFF,rgba(0,122,255,0.6))', borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
+                        className="relative overflow-hidden flex flex-col min-h-[140px]" style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}>
                         <div className="p-5 flex flex-col flex-1">
                             <div className="flex items-start justify-between mb-3">
                                 <div>
@@ -874,7 +877,7 @@ export default function AdminVault() {
                                     <p className="text-[26px] font-black tracking-tighter leading-none text-[#1D1D1F]">{formatSize(totalVaultSize)}</p>
                                 </div>
                                 <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
-                                    style={{ background: 'rgba(0,122,255,0.14)', border: '1px solid rgba(0,122,255,0.28)', boxShadow: '0 4px 14px rgba(0,122,255,0.18), inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                                    style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.2)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
                                     <HardDrive size={20} color="#007AFF" />
                                 </div>
                             </div>
@@ -925,7 +928,7 @@ export default function AdminVault() {
                                         borderRadius: RADIUS.md,
                                         background: active ? hexA(VAULT, 0.1) : 'rgba(255,255,255,0.6)',
                                         border: `1px solid ${active ? hexA(VAULT, 0.24) : 'rgba(0,0,0,0.05)'}`,
-                                        boxShadow: active ? glow(VAULT, 0.1, 22) : 'none',
+                                        boxShadow: active ? SHADOW.sm : 'none',
                                     }}>
                                     <button onClick={() => { setActiveFolder(f.id); setClassificationFilter('all'); setTypeFilter('all'); setExpandedId(null); }}
                                         className="flex-1 p-3 text-right flex items-center gap-3"
@@ -993,20 +996,6 @@ export default function AdminVault() {
                                 onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.7)'; e.target.style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)'; }} />
                         </div>
 
-                        {/* Classification segment pills */}
-                        <div className="flex items-center gap-1 p-1 rounded-2xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
-                            {CLASSIFICATIONS.map(c => {
-                                const active = classificationFilter === c.id;
-                                return (
-                                    <motion.button key={c.id} onClick={() => setClassificationFilter(c.id)} whileTap={TAP_SOFT}
-                                        className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-colors"
-                                        style={{ color: active ? '#fff' : '#86868B', background: active ? c.color : 'transparent', boxShadow: active ? `0 2px 8px ${hexA(c.color, 0.35)}` : 'none' }}>
-                                        {c.label}
-                                    </motion.button>
-                                );
-                            })}
-                        </div>
-
                         {/* View switcher */}
                         <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
                             {[{ id: 'grid', Icon: Grid }, { id: 'list', Icon: List }].map(v => (
@@ -1037,6 +1026,11 @@ export default function AdminVault() {
                             })}
                         </div>
                     )}
+
+                    {/* Folder-state tabs — filter grid so it isn't one long scroll */}
+                    <div className="flex items-center justify-end">
+                        <AdminTabs tabs={vaultStateTabs} active={classificationFilter} onChange={setClassificationFilter} id="vault-state-tabs" />
+                    </div>
 
                     {/* Files display */}
                     {loading ? (
@@ -1106,8 +1100,6 @@ export default function AdminVault() {
                             className="w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col font-sans"
                             style={{ ...GLASS.sheet, borderRadius: RADIUS.sheetLg }}
                         >
-                            {/* Accent strip */}
-                            <div className="h-[3px]" style={{ background: VGRAD }} />
                             {/* Header */}
                             <div className="flex items-center justify-between px-6 py-4"
                                 style={{ background: 'rgba(248,248,252,0.92)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>

@@ -59,7 +59,6 @@ function BannerManager() {
 
     return (
         <div className="rounded-[22px] overflow-hidden" style={glass}>
-            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${banner.color}, ${banner.color}30)` }} />
             <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
                 style={{ background: 'rgba(248,248,250,0.85)' }}>
                 <AdminToggle label="" value={banner.visible} onChange={v => setBanner(b => ({ ...b, visible: v }))} />
@@ -210,7 +209,7 @@ export default function AdminMarketing() {
         <div dir="rtl" className="space-y-5">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: BRAND_SOFT, border: `1px solid ${hexA(BRAND, 0.22)}`, boxShadow: `${glow(BRAND, 0.18, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(BRAND, 0.10), border: `1px solid ${hexA(BRAND, 0.18)}`, boxShadow: SHADOW.specular }}>
                     <Megaphone size={22} color={BRAND} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>

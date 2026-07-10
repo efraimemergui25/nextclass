@@ -143,7 +143,7 @@ export default function AdminMagazine() {
         <div className="p-6 md:p-8 max-w-5xl mx-auto" dir="rtl">
             {/* Header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: BRAND_SOFT, border: `1px solid ${hexA(BRAND, 0.28)}`, boxShadow: `${glow(BRAND, 0.2, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(BRAND, 0.10), border: `1px solid ${hexA(BRAND, 0.18)}`, boxShadow: SHADOW.specular }}>
                     <Newspaper size={22} color={BRAND} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>

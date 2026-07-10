@@ -42,25 +42,23 @@ function formatTs(ts) {
     return d.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-// ─── Oversized-number stat tile ────────────────────────────────────────────────
+// ─── Stat tile — white glass, ink number, small colored severity dot ───────────
 function StatTile({ label, value, color, delay }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay, ...SPRING.soft }}
-            whileHover={{ y: -3, boxShadow: `0 18px 44px ${hexA(color, 0.2)}, ${SHADOW.specular}` }}
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
             className="relative overflow-hidden p-5 flex flex-col justify-between min-h-[120px] transition-shadow"
-            style={accentSurface(color, { radius: RADIUS.kpi })}
+            style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}
         >
-            <div className="h-[3px] w-full absolute top-0 left-0 pointer-events-none"
-                style={{ background: `linear-gradient(90deg, ${color}, ${hexA(color, 0.6)})`, borderRadius: `${RADIUS.kpi}px ${RADIUS.kpi}px 0 0` }} />
-            <div className="absolute -top-12 -left-10 w-40 h-40 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${hexA(color, 0.22)} 0%, transparent 66%)`, filter: 'blur(6px)' }} />
-            <p className="text-[42px] font-black tracking-tighter leading-none relative z-10"
-                style={{ background: `linear-gradient(160deg, ${color} 0%, ${hexA(color, 0.7)} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <p className="text-[42px] font-black tracking-tighter leading-none" style={{ color: '#1D1D1F' }}>
                 {value}
             </p>
-            <p className="text-[12px] text-[#6E6E73] font-bold mt-2 relative z-10">{label}</p>
+            <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                <p className="text-[12px] text-[#6E6E73] font-bold">{label}</p>
+            </div>
         </motion.div>
     );
 }

@@ -8,7 +8,7 @@ import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, wher
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminEmpty, AdminSkeleton } from '../components/AdminComponents';
-import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+import { PALETTE, GLASS, RADIUS, TAP, hexA } from '../theme/tokens';
 import {
     Users, Search, Download, Mail, Building2,
     Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2
@@ -536,16 +536,16 @@ export default function AdminUsers() {
 
     return (
         <div className="p-6 space-y-6 font-heebo" dir="rtl">
-            {/* ── Header — cyan accent icon box + gradient ink title ── */}
+            {/* ── Header — azure icon circle (only color) + ink title, no glow ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.22)}`, boxShadow: `${glow(ACCENT, 0.18, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(ACCENT, 0.12), border: `1px solid ${hexA(ACCENT, 0.20)}` }}>
                     <Users size={22} color={ACCENT} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>משתמשים רשומים</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{users.length} משתמשים רשומים באתר · ניהול דרגות מנוי</p>
                 </div>
-                <motion.button onClick={() => exportCSV(filtered)} whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(ACCENT, 0.28)}` }} whileTap={TAP}
+                <motion.button onClick={() => exportCSV(filtered)} whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }} whileTap={TAP}
                     style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: RADIUS.button, border: `1.5px solid ${hexA(ACCENT, 0.32)}`, background: hexA(ACCENT, 0.08), color: ACCENT_DARK, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Heebo, sans-serif' }}>
                     <Download size={15} /> ייצוא CSV
                 </motion.button>
@@ -602,7 +602,7 @@ export default function AdminUsers() {
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                                     {['משתמש', 'מוסד / תפקיד', 'ספק', 'דרגה', 'הצטרף', 'כניסה אחרונה'].map(h => (
-                                        <th key={h} style={{ padding: '13px 16px', textAlign: 'right', fontSize: 11, fontWeight: 800, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', background: hexA(ACCENT, 0.03) }}>
+                                        <th key={h} style={{ padding: '13px 16px', textAlign: 'right', fontSize: 11, fontWeight: 800, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.02)' }}>
                                             {h}
                                         </th>
                                     ))}

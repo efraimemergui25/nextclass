@@ -170,7 +170,7 @@ export default function AdminCommunity() {
         <div dir="rtl" className="space-y-5">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GREEN_SOFT, border: `1px solid ${hexA(GREEN, 0.24)}`, boxShadow: `${glow(GREEN, 0.18, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(GREEN, 0.10), border: `1px solid ${hexA(GREEN, 0.18)}`, boxShadow: SHADOW.specular }}>
                     <Users size={22} color={GREEN} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>

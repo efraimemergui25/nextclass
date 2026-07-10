@@ -339,10 +339,7 @@ function LeadHero({ lead, onStatusChange }) {
 
     return (
         <div style={{ ...CARD, padding: '18px 20px', position: 'relative', overflow: 'hidden' }}>
-            {/* Accent bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${scoreColor(score)},${score >= 4 ? '#FF2D55' : '#5856D6'})`, borderRadius: '20px 20px 0 0' }} />
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, paddingTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 {/* Avatar */}
                 <Avatar name={lead.contactName} size={52} score={score} />
 
@@ -1112,7 +1109,7 @@ export default function AdminCommunications() {
                                     <motion.button key={status} whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
                                         onClick={() => setFilterStatus(status)}
                                         style={{ ...CARD, padding: '14px 14px', textAlign: 'right', border: 'none', cursor: 'pointer' }}>
-                                        <p style={{ fontSize: 28, fontWeight: 900, color: meta.color, fontFamily: SF, margin: '0 0 2px', lineHeight: 1 }}>{count}</p>
+                                        <p style={{ fontSize: 28, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: '0 0 2px', lineHeight: 1 }}>{count}</p>
                                         <p style={{ fontSize: 11, fontWeight: 700, color: meta.color, fontFamily: SF, margin: 0, opacity: 0.8 }}>{status}</p>
                                     </motion.button>
                                 );
@@ -1213,10 +1210,10 @@ export default function AdminCommunications() {
                                             position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
                                             padding: '8px 18px', borderRadius: 99, fontSize: 13, fontWeight: 800, fontFamily: SF,
                                             cursor: 'pointer', transition: 'all 0.18s',
-                                            background: isActive ? ch.color + '12' : 'rgba(255,255,255,0.8)',
-                                            border: `2px solid ${isActive ? ch.color : 'rgba(0,0,0,0.08)'}`,
-                                            color: isActive ? ch.color : '#86868B',
-                                            boxShadow: isActive ? `0 2px 14px ${ch.color}22` : 'none',
+                                            background: isActive ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.8)',
+                                            border: `1.5px solid ${isActive ? '#007AFF' : 'rgba(0,0,0,0.08)'}`,
+                                            color: isActive ? '#007AFF' : '#86868B',
+                                            boxShadow: 'none',
                                         }}>
                                         <ch.Icon size={14} strokeWidth={2} />
                                         {ch.label}
@@ -1387,7 +1384,7 @@ export default function AdminCommunications() {
                     !selectedEmail ? (
                         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', paddingTop: 60, fontFamily: SF }}>
                             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING.soft}
-                                style={{ width: 80, height: 80, borderRadius: 24, background: hexA(CORAL, 0.12), border: `1px solid ${hexA(CORAL, 0.24)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: CORAL, boxShadow: `0 8px 24px ${hexA(CORAL, 0.18)}` }}>
+                                style={{ width: 80, height: 80, borderRadius: 24, background: hexA(CORAL, 0.12), border: `1px solid ${hexA(CORAL, 0.24)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: CORAL, boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)' }}>
                                 <Mail size={40} />
                             </motion.div>
                             <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 8px' }}>תור אישור מיילים</h2>
@@ -1395,12 +1392,12 @@ export default function AdminCommunications() {
                                 כל מייל יוצא — ללקוחות, לספקים ופנימי לצוות — נעצר כאן לאישור ידני (וניתן לעריכה) לפני השליחה. שום מייל לא נשלח אוטומטית.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-                                <div style={{ ...accentSurface(CORAL, { radius: RADIUS.smCard }), padding: '16px 26px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 34, fontWeight: 900, color: CORAL, margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{pendingEmails.length}</p>
+                                <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{pendingEmails.length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>ממתינים לאישור</p>
                                 </div>
-                                <div style={{ ...accentSurface('#34C759', { radius: RADIUS.smCard }), padding: '16px 26px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#248A3D', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{emailLog.filter(e => e.status === 'sent').length}</p>
+                                <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{emailLog.filter(e => e.status === 'sent').length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>נשלחו בהצלחה</p>
                                 </div>
                             </div>

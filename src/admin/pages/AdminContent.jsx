@@ -1740,12 +1740,12 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-right transition-all relative overflow-hidden"
                         style={{
                             background: isActive
-                                ? `linear-gradient(135deg, ${group.accent} 0%, ${group.accent}CC 100%)`
+                                ? `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE}CC 100%)`
                                 : 'rgba(255,255,255,0.78)',
                             backdropFilter: 'blur(24px) saturate(200%)',
                             WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                             boxShadow: isActive
-                                ? `0 8px 24px ${group.accent}35, 0 0 0 1px ${group.accent}20`
+                                ? `0 8px 24px ${PURPLE}35, 0 0 0 1px ${PURPLE}20`
                                 : '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
                             border: isActive ? 'none' : '1px solid rgba(255,255,255,0.72)',
                         }}
@@ -1757,8 +1757,8 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                         )}
                         <span className="shrink-0 relative z-10 w-5 h-5 flex items-center justify-center rounded-md text-[10px] font-black"
                             style={{
-                                background: isActive ? 'rgba(255,255,255,0.2)' : `${group.accent}15`,
-                                color: isActive ? 'white' : group.accent,
+                                background: isActive ? 'rgba(255,255,255,0.2)' : `${PURPLE}15`,
+                                color: isActive ? 'white' : PURPLE,
                             }}>
                             {gi + 1}
                         </span>
@@ -1810,9 +1810,9 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                 background: isOpen ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.72)',
                 backdropFilter: 'blur(24px) saturate(200%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: `1px solid ${isOpen ? sec.accent + '28' : 'rgba(255,255,255,0.72)'}`,
+                border: `1px solid ${isOpen ? PURPLE + '28' : 'rgba(255,255,255,0.72)'}`,
                 boxShadow: isOpen
-                    ? `0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1px ${sec.accent}12`
+                    ? `0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1px ${PURPLE}12`
                     : '0 1px 3px rgba(0,0,0,0.04)',
             }}
         >
@@ -1823,9 +1823,9 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
             >
                 <div
                     className="w-1 h-7 rounded-full shrink-0 transition-all duration-300"
-                    style={{ background: isOpen ? sec.accent : '#E5E5EA' }}
+                    style={{ background: isOpen ? PURPLE : '#E5E5EA' }}
                 />
-                <span className="text-[#6E6E73] shrink-0" style={{ color: isOpen ? sec.accent : undefined }}>{SECTION_ICON_COMPONENTS[sec.id] || <Settings size={13} />}</span>
+                <span className="text-[#6E6E73] shrink-0" style={{ color: isOpen ? PURPLE : undefined }}>{SECTION_ICON_COMPONENTS[sec.id] || <Settings size={13} />}</span>
                 <div className="flex-1 text-right">
                     <p className={`text-[13px] font-bold leading-snug transition-colors ${isOpen ? 'text-[#1D1D1F]' : 'text-[#3C3C43]'}`}>
                         {sec.label}
@@ -1836,14 +1836,14 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                 </div>
                 {location && (
                     <span className="hidden sm:inline-flex text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
-                        style={{ background: `${sec.accent}10`, color: sec.accent, border: `1px solid ${sec.accent}20` }}>
+                        style={{ background: `${PURPLE}10`, color: PURPLE, border: `1px solid ${PURPLE}20` }}>
                         {location}
                     </span>
                 )}
                 {badge && (
                     <span
                         className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap"
-                        style={{ background: `${sec.accent}12`, color: sec.accent }}
+                        style={{ background: `${PURPLE}12`, color: PURPLE }}
                     >
                         {badge}
                     </span>
@@ -1863,7 +1863,7 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                         transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
                         className="overflow-hidden"
                     >
-                        <div className="border-t" style={{ borderColor: `${sec.accent}15` }}>
+                        <div className="border-t" style={{ borderColor: `${PURPLE}15` }}>
                             {/* Special sections */}
                             {sec.type === 'visibility' && <VisibilitySection content={content} onChange={onChange} />}
                             {sec.type === 'menu_reorder' && <NavMenuManager showToast={showToast} />}
@@ -2226,8 +2226,8 @@ export default function AdminContent({ showToast }) {
                                                 <div className="h-px flex-1 bg-black/[0.06]" />
                                                 <span className="text-[9px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
                                                     style={{
-                                                        background: `${currentGroupDef?.accent}12`,
-                                                        color: currentGroupDef?.accent || '#86868B',
+                                                        background: `${PURPLE}12`,
+                                                        color: PURPLE,
                                                     }}>
                                                     {sub.label}
                                                 </span>

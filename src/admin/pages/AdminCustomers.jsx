@@ -6,7 +6,7 @@ import { InboxIcon, Trash2, Check, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
-import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+import { PALETTE, GLASS, RADIUS, hexA } from '../theme/tokens';
 
 // ─── Customers accent — unified brand azure (de-rainbowed) ────────────────────
 const ACCENT = '#007AFF';
@@ -184,9 +184,9 @@ export default function AdminCustomers() {
 
     return (
         <div dir="rtl" className="space-y-5">
-            {/* ── Header — teal accent icon box + gradient ink title ── */}
+            {/* ── Header — azure icon circle (only color) + ink title, no glow ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.24)}`, boxShadow: `${glow(ACCENT, 0.2, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(ACCENT, 0.12), border: `1px solid ${hexA(ACCENT, 0.20)}` }}>
                     <Users size={22} color={ACCENT} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>

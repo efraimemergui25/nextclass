@@ -269,31 +269,20 @@ function Stat({ label, value, color = '#007AFF', Icon, tooltip, onClick, delay =
         <motion.div
             initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay, ...SPRING.soft }}
-            whileHover={{ y: -3, boxShadow: `0 20px 46px ${hexA(c, 0.22)}, 0 0 0 1px ${hexA(c, 0.14)}, ${SHADOW.specular}` }}
+            whileHover={{ y: -3, boxShadow: SHADOW.lg }}
             whileTap={onClick ? { scale: 0.97 } : undefined}
             onClick={onClick}
             className={`relative overflow-hidden text-right transition-shadow ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
-            style={accentSurface(c, { radius: RADIUS.kpi })}
+            style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}
         >
-            {/* Colored top accent bar */}
-            <div className="h-[3px] w-full pointer-events-none"
-                style={{ background: `linear-gradient(90deg, ${c}, ${hexA(c, 0.55)})`, borderTopLeftRadius: RADIUS.kpi, borderTopRightRadius: RADIUS.kpi }} />
             <div className="p-4 relative">
-                {/* Corner glow orb — vivid halo behind the glass */}
-                <div className="absolute -top-12 -left-10 w-36 h-36 rounded-full pointer-events-none"
-                    style={{ background: `radial-gradient(circle, ${hexA(c, 0.24)} 0%, ${hexA(c, 0.04)} 46%, transparent 68%)`, filter: 'blur(6px)' }} />
                 <div className="flex items-start justify-between mb-2.5 relative z-10">
                     <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0"
-                        style={{ background: hexA(c, 0.14), border: `1px solid ${hexA(c, 0.26)}`, boxShadow: `0 4px 12px ${hexA(c, 0.16)}, inset 0 1px 0 rgba(255,255,255,0.7)` }}>
+                        style={{ background: hexA(c, 0.12), border: `1px solid ${hexA(c, 0.2)}` }}>
                         {Icon && <Icon size={16} style={{ color: c }} />}
                     </div>
-                    <span className="relative flex w-2 h-2 mt-1">
-                        <span className="absolute inset-0 rounded-full" style={{ background: c, opacity: 0.32 }} />
-                        <span className="relative w-2 h-2 rounded-full" style={{ background: c }} />
-                    </span>
                 </div>
-                <p className="text-[30px] font-black tracking-tighter leading-none relative z-10"
-                    style={{ background: `linear-gradient(160deg, ${c} 0%, ${hexA(c, 0.7)} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                <p className="text-[30px] font-black tracking-tighter leading-none relative z-10 text-[#1D1D1F]">
                     {num}
                 </p>
                 <p className="text-[#86868B] text-[10px] font-bold tracking-[0.14em] mt-1.5 flex items-center gap-0.5 relative z-10">
@@ -2736,7 +2725,7 @@ function QuotesPipeline() {
             {(alerts.length > 0 || duplicateGroups.length > 0) && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                     className="relative overflow-hidden"
-                    style={{ ...GLASS.frosted, borderRadius: RADIUS.panel, border: `1px solid ${hexA('#FF9500', 0.22)}`, boxShadow: `${GLASS.frosted.boxShadow}, ${glow('#FF9500', 0.10, 30)}`, padding: '14px 16px' }} dir="rtl">
+                    style={{ ...GLASS.frosted, borderRadius: RADIUS.panel, border: `1px solid ${hexA('#FF9500', 0.22)}`, boxShadow: GLASS.frosted.boxShadow, padding: '14px 16px' }} dir="rtl">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11 }}>
                         <div style={{ width: 26, height: 26, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hexA('#FF9500', 0.14), border: `1px solid ${hexA('#FF9500', 0.26)}` }}>
                             <AlertCircle size={14} style={{ color: '#FF9500' }} />
@@ -3256,13 +3245,13 @@ function QuotesPipeline() {
                                     if (!rows.length && !hasVat && !q.fileUrl && !q.ocrIntakeId && !catItems.length) return null;
                                     return (
                                         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                                            style={{ ...GLASS.base, borderRadius: RADIUS.card, border: `1px solid ${hexA('#00C7BE', 0.22)}`, boxShadow: `${SHADOW.sm}, ${glow('#00C7BE', 0.10, 26)}`, overflow: 'hidden' }} dir="rtl">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.05)', background: hexA('#00C7BE', 0.06) }}>
-                                                <div style={{ width: 26, height: 26, borderRadius: 9, background: hexA('#00C7BE', 0.14), border: `1px solid ${hexA('#00C7BE', 0.26)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <FileText size={13} style={{ color: '#00A79E' }} />
+                                            style={{ ...GLASS.base, borderRadius: RADIUS.card, border: '1px solid rgba(0,0,0,0.06)', boxShadow: SHADOW.sm, overflow: 'hidden' }} dir="rtl">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'rgba(0,0,0,0.02)' }}>
+                                                <div style={{ width: 26, height: 26, borderRadius: 9, background: hexA('#007AFF', 0.12), border: `1px solid ${hexA('#007AFF', 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <FileText size={13} style={{ color: '#007AFF' }} />
                                                 </div>
                                                 <span style={{ fontSize: 12, fontWeight: 900, color: '#1D1D1F' }}>פרטי הזמנת רכש</span>
-                                                <span style={{ fontSize: 9, fontWeight: 800, color: '#00A79E', background: hexA('#00C7BE', 0.12), borderRadius: 99, padding: '2px 8px', letterSpacing: '0.04em' }}>מסמך סרוק</span>
+                                                <span style={{ fontSize: 9, fontWeight: 800, color: '#005EC4', background: hexA('#007AFF', 0.12), borderRadius: 99, padding: '2px 8px', letterSpacing: '0.04em' }}>מסמך סרוק</span>
                                             </div>
                                             <div style={{ padding: 14 }}>
                                                 {rows.length > 0 && (

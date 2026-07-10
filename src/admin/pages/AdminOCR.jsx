@@ -366,7 +366,7 @@ export default function AdminOCR() {
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,122,255,0.35)', fontSize: 22 }}>🔍</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)', fontSize: 22 }}>🔍</div>
                     <div>
                         <h1 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>קליטת הזמנות — OCR AI</h1>
                         <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontWeight: 600 }}>העלה הזמנת רכש (עמל / ספק) ו-Gemini יחלץ, ואתה מאשר ופותח הזמנה</p>
@@ -477,7 +477,7 @@ export default function AdminOCR() {
 
                         {/* Purchase-order details */}
                         <div style={{ ...glass, borderRadius: 20, padding: 20, marginBottom: 16 }}>
-                            <p style={{ fontSize: 12, fontWeight: 800, color: '#5856D6', letterSpacing: '0.06em', margin: '0 0 14px' }}>📋 פרטי הזמנת רכש</p>
+                            <p style={{ fontSize: 12, fontWeight: 800, color: '#86868B', letterSpacing: '0.06em', margin: '0 0 14px' }}>📋 פרטי הזמנת רכש</p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                                 <Field label='מספר הזמנה' value={ocrData.orderNumber} onChange={v => setOcrData(p => ({ ...p, orderNumber: v }))} />
                                 <Field label='סעיף תקציבי' value={ocrData.budgetCode} onChange={v => setOcrData(p => ({ ...p, budgetCode: v }))} />

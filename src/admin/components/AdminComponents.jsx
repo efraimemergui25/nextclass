@@ -460,14 +460,11 @@ export function AdminSearchBar({ value, onChange, placeholder }) {
 export function AdminSectionHeader({ title, subtitle, action, icon: Icon }) {
     return (
         <div className="flex items-end justify-between mb-8 pb-5 relative" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-            {/* Gradient underline accent */}
-            <div className="absolute bottom-0 right-0 h-[2px] w-16 rounded-full"
-                style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
             <div className="text-right flex items-center gap-3">
                 {Icon && (
-                    <div className="w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0"
-                        style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.1),rgba(88,86,214,0.08))', border: '1px solid rgba(0,122,255,0.14)' }}>
-                        <Icon size={18} style={{ color: '#007AFF' }} />
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)' }}>
+                        <Icon size={19} style={{ color: '#007AFF' }} />
                     </div>
                 )}
                 <div>

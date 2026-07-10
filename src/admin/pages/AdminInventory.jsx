@@ -650,10 +650,10 @@ function ProductModal({ product, onClose, onSave }) {
                 </div>
 
                 <div className="px-7 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-                    {/* Stock */}
-                    <div className="rounded-2xl p-4 border-2 border-[#FF9500]/25 bg-[#FF9500]/04">
+                    {/* Stock — neutral panel; color lives only in the semantic status badge */}
+                    <div className="rounded-2xl p-4 border border-black/[0.06] bg-[#F5F5F7]">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-[11px] font-black tracking-widest text-[#FF9500]">ניהול מלאי</span>
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B]">ניהול מלאי</span>
                             <span className="text-[11px] font-black px-2.5 py-1 rounded-full" style={{ background: `${stockColor}15`, color: stockColor }}>{stockLabel}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -669,7 +669,7 @@ function ProductModal({ product, onClose, onSave }) {
                                 <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">סף התרעה (נמוך)</label>
                                 <input type="number" min="0" value={threshold}
                                     onChange={e => setThreshold(Math.max(0, Number(e.target.value)))}
-                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#FF9500] text-center outline-none focus:ring-2 focus:ring-[#FF9500]/30 transition-all border-2 border-[#FF9500]/20"
+                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#1D1D1F] text-center outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all border-2 border-black/10"
                                 />
                             </div>
                         </div>

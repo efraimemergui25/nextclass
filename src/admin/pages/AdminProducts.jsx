@@ -68,7 +68,7 @@ function ProductCard({ product, onEdit }) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={SPRING.soft}
-            whileHover={{ y: -3, scale: 1.01, boxShadow: `0 18px 44px ${hexA(INDIGO, 0.20)}, 0 0 0 1px ${hexA(INDIGO, 0.14)}, ${SHADOW.specular}` }}
+            whileHover={{ y: -3, scale: 1.01, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
             whileTap={TAP}
             className="overflow-hidden cursor-pointer group relative transition-shadow"
             style={{
@@ -114,7 +114,7 @@ function ProductCard({ product, onEdit }) {
             </div>
             <div className="p-4">
                 {(product.brand || product.model) ? (
-                    <p className="text-[9px] font-black tracking-widest uppercase mb-1 truncate" style={{ color: INDIGO }}>
+                    <p className="text-[9px] font-black tracking-widest uppercase mb-1 truncate" style={{ color: '#86868B' }}>
                         {[product.brand, product.model].filter(Boolean).join(' · ')}
                     </p>
                 ) : (
@@ -129,7 +129,7 @@ function ProductCard({ product, onEdit }) {
                                 <span className="text-[#AEAEB2] text-xs line-through">₪{Number(product.price).toLocaleString()}</span>
                             </div>
                         ) : (
-                            <span style={{ color: INDIGO, fontWeight: 900 }} className="text-base">₪{Number(product.price).toLocaleString()}</span>
+                            <span style={{ color: '#1D1D1F', fontWeight: 900 }} className="text-base">₪{Number(product.price).toLocaleString()}</span>
                         )}
                     </div>
                     <div className="text-right">
@@ -156,7 +156,7 @@ function ProductRow({ product, onEdit }) {
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             whileHover={{ y: -2 }}
             onClick={() => onEdit(product)}
-            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/25 hover:shadow-[0_14px_40px_rgba(0,122,255,0.12)] cursor-pointer transition-all group"
+            className="flex items-center gap-4 px-6 py-4 rounded-[20px] bg-white/60 hover:bg-white border border-black/04 hover:border-black/10 hover:shadow-[0_8px_28px_rgba(0,0,0,0.08)] cursor-pointer transition-all group"
         >
             <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#F5F5F7] shrink-0">
                 {product.image
@@ -180,7 +180,7 @@ function ProductRow({ product, onEdit }) {
                 <p className="text-[#1D1D1F] font-bold text-sm line-clamp-1 transition-colors group-hover:text-[#007AFF]">{product.title}</p>
                 <p className="text-[#AEAEB2] text-xs mt-0.5 truncate">
                     {(product.brand || product.model) && (
-                        <span className="font-black" style={{ color: INDIGO }}>{[product.brand, product.model].filter(Boolean).join(' · ')}</span>
+                        <span className="font-black" style={{ color: '#86868B' }}>{[product.brand, product.model].filter(Boolean).join(' · ')}</span>
                     )}
                     {(product.brand || product.model) ? ' · ' : ''}{product.category}{product.sku ? ` · ${product.sku}` : ''}
                 </p>

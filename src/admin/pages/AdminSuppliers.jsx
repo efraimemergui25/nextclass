@@ -1667,8 +1667,8 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
 
 function KPIBox({ label, value, color = GOLD, small }) {
     return (
-        <div style={{ ...accentSurface(color, { radius: RADIUS.smCard }), padding: '12px 18px', textAlign: 'center', minWidth: 80 }}>
-            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, color, letterSpacing: '-0.6px', lineHeight: 1 }}>{value}</div>
+        <div style={{ ...GLASS.base, borderRadius: RADIUS.smCard, padding: '12px 18px', textAlign: 'center', minWidth: 80 }}>
+            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.6px', lineHeight: 1 }}>{value}</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, color: '#86868B', marginTop: 3 }}>{label}</div>
         </div>
     );
@@ -3834,7 +3834,7 @@ export default function AdminSuppliers() {
         <div dir="rtl">
             {/* Page header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: `${glow(GOLD, 0.18, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: SHADOW.specular }}>
                     <Briefcase size={22} color={GOLD} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
@@ -3983,8 +3983,8 @@ export default function AdminSuppliers() {
                 ) : (
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ type: 'spring', stiffness: 340, damping: 30 }}>
                     {suppliers.length === 0 ? (
-                        <div style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18, boxShadow: `${G.boxShadow}, ${glow(GOLD, 0.1, 40)}` }}>
-                            <div style={{ width: 88, height: 88, borderRadius: RADIUS.hero, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: glow(GOLD, 0.16, 30) }}>
+                        <div style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18 }}>
+                            <div style={{ width: 88, height: 88, borderRadius: RADIUS.hero, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: SHADOW.specular }}>
                                 <Briefcase size={38} color={GOLD} />
                             </div>
                             <div style={{ textAlign: 'center' }}>

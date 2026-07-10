@@ -6,7 +6,7 @@ import { BarChart2, Box, TrendingDown, Clock, ArrowDown, TrendingUp, AlertTriang
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, InfoTooltip } from '../components/AdminComponents';
-import { GLASS, RADIUS, SHADOW, hexA, glow } from '../theme/tokens';
+import { GLASS, RADIUS, hexA } from '../theme/tokens';
 import initialProducts from '../../data/products';
 
 // ─── Analytics accent — unified brand azure (de-rainbowed) ────────────────────
@@ -18,7 +18,7 @@ function Card({ title, subtitle, accent, action, children, className = '', title
         <div className={`rounded-[22px] overflow-hidden ${className}`}
             style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
-            {accent && <div className="h-[3px]" style={{ background: accent }} />}
+            {/* Restrained: decorative colored top-accent bar removed — white glass only */}
             <div className="p-5">
                 {(title || action) && (
                     <div className="flex items-center justify-between mb-4">
@@ -463,7 +463,7 @@ export default function AdminAnalytics() {
             {/* ── Header — emerald accent icon box + gradient ink title ── */}
             <div className="flex items-start justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3.5">
-                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)}, ${hexA(ACCENT, 0.06)})`, border: `1px solid ${hexA(ACCENT, 0.24)}`, boxShadow: `${glow(ACCENT, 0.2, 20)}, ${SHADOW.specular}` }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(ACCENT, 0.12), border: `1px solid ${hexA(ACCENT, 0.20)}` }}>
                         <BarChart2 size={22} color={ACCENT} />
                     </div>
                     <div className="text-right">
@@ -582,8 +582,8 @@ export default function AdminAnalytics() {
                                 <motion.div key={i}
                                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                                     className="rounded-[16px] p-4 text-right cursor-pointer group"
-                                    style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid ${kpi.color}22`, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'box-shadow 0.15s, transform 0.15s' }}
-                                    whileHover={{ y: -2, boxShadow: `0 6px 20px ${kpi.color}22` }}
+                                    style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'box-shadow 0.15s, transform 0.15s' }}
+                                    whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => setDrillKpi(kpi.key)}
                                 >
@@ -591,7 +591,7 @@ export default function AdminAnalytics() {
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `${kpi.color}15`, color: kpi.color }}><ChevronLeft size={12} /></div>
                                         <span className="flex items-center gap-0.5"><p className="text-[11px] text-[#AEAEB2] font-semibold">{kpi.label}</p><InfoTooltip text={kpi.tooltip.text} source={kpi.tooltip.source} link={kpi.tooltip.link} linkLabel={kpi.tooltip.linkLabel} /></span>
                                     </div>
-                                    <p className="font-black text-[20px] leading-none mb-1" style={{ color: kpi.color, fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</p>
+                                    <p className="font-black text-[20px] leading-none mb-1" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</p>
                                     <p className="text-[10px] text-[#AEAEB2] font-semibold">{kpi.sub}</p>
                                 </motion.div>
                             ))}
@@ -763,7 +763,7 @@ export default function AdminAnalytics() {
                                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                                     className="rounded-[18px] p-4 text-right" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
                                     <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span>
-                                    <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: k.color, fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
+                                    <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                     <p className="text-[10px] text-[#C7C7CC] font-medium mt-1.5">{k.sub}</p>
                                 </motion.div>
                             ))}
@@ -1008,10 +1008,10 @@ export default function AdminAnalytics() {
                                     ].map((k, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                                             className="rounded-[18px] p-3 text-right cursor-pointer group"
-                                            style={{ background: 'rgba(255,255,255,0.9)', border: `1px solid ${i > 0 ? k.color + '22' : 'rgba(0,0,0,0.06)'}`, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
+                                            style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
                                             onClick={() => navigate(k.route)}>
                                             <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span>
-                                            <p className="font-black text-[22px] leading-none" style={{ color: k.color, fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
+                                            <p className="font-black text-[22px] leading-none" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                         </motion.div>
                                     ))}
                                 </div>
@@ -1114,9 +1114,9 @@ export default function AdminAnalytics() {
                                         { label: 'ממתינות · אבדו', value: `${active} · ${lost}`, color: '#FF9500', tooltip: { text: 'ממתינות = הצעות פתוחות עדיין. אבדו = הצעות שבוטלו או סומנו כ"אבד". שתיהן בנפרד.', source: 'Firestore · quotes · status (פתוחות vs אבד+בוטל)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                     ].map((s, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                            className="rounded-[18px] p-4 text-right" style={{ background: 'rgba(255,255,255,0.9)', border: `1px solid ${s.color}22`, boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+                                            className="rounded-[18px] p-4 text-right" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
                                             <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{s.label}</p><InfoTooltip text={s.tooltip.text} source={s.tooltip.source} link={s.tooltip.link} linkLabel={s.tooltip.linkLabel} /></span>
-                                            <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: s.color, fontVariantNumeric: 'tabular-nums' }}>{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
+                                            <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
                                         </motion.div>
                                     ))}
                                 </div>

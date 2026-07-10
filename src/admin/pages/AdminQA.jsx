@@ -71,7 +71,7 @@ export default function AdminQA() {
         <div dir="rtl" className="space-y-6">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: AMBER_SOFT, border: `1px solid ${hexA(AMBER, 0.24)}`, boxShadow: `${glow(AMBER, 0.18, 20)}, ${SHADOW.specular}` }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(AMBER, 0.10), border: `1px solid ${hexA(AMBER, 0.18)}`, boxShadow: SHADOW.specular }}>
                     <MessageSquare size={22} color={AMBER} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
