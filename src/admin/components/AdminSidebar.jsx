@@ -169,7 +169,6 @@ const NAV_GROUPS = [
         accent: '#007AFF',
         items: [
             { path: '/admin/integrations', icon: 'integrations', label: 'אינטגרציות', badge: null },
-            { path: '/admin/security',     icon: 'security',     label: 'אבטחה',      badge: null },
             { path: '/admin/settings',     icon: 'settings',     label: 'הגדרות',     badge: null },
         ],
     },

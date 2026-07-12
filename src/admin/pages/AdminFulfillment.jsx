@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { useAdminData } from '../context/AdminDataContext';
 import {
     AdminSectionHeader, AdminInput, AdminTextArea,
     AdminToggle, AdminModal, AdminKPICard, AdminEmpty
@@ -47,6 +48,43 @@ const NEXT_STATUS = {
     in_transit: 'arrived',
     arrived:    'shipped',
 };
+
+// ── Pipeline (quotes) fulfillment stages ──────────────────────────────────────
+// SINGLE SOURCE OF TRUTH for order fulfillment. These Hebrew statuses live on the
+// `quotes` collection and are advanced via updateQuoteStatus() from useAdminData —
+// reaching 'סופק' writes the sale record + settles inventory (see AdminDataContext).
+const PIPELINE_STATUS = {
+    'הועבר לספק': { label: 'הועבר לספק', color: '#0891B2', bg: 'rgba(8,145,178,0.10)',  Icon: Send,        next: 'בדרך', nextLabel: 'עדכן ל: בדרך' },
+    'בדרך':        { label: 'בדרך',        color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', Icon: Truck,       next: 'סופק', nextLabel: 'סמן כסופק' },
+    'סופק':        { label: 'סופק',        color: '#1DB954', bg: 'rgba(29,185,84,0.10)',  Icon: CheckCircle, next: null,   nextLabel: null },
+};
+const PIPELINE_ORDER = ['הועבר לספק', 'בדרך', 'סופק'];
+
+// A quote belongs in fulfillment if it's in a supplier stage OR carries a
+// supplierOrder object (set by AdminOrders' SupplierTransferForm).
+const isPipelineQuote = (q) =>
+    PIPELINE_ORDER.includes(q?.status) ||
+    (q?.supplierOrder && typeof q.supplierOrder === 'object');
+
+// Compact "מוצר × כמות" summary for a quote's line items.
+const quoteItemsLabel = (q) => {
+    const items = q?.items || [];
+    if (!items.length) return '—';
+    const first = items[0].title || items[0].name || 'מוצר';
+    const totalQty = items.reduce((s, it) => s + (Number(it.qty ?? it.quantity) || 1), 0);
+    return items.length > 1 ? `${first} +${items.length - 1} · ${totalQty} יח׳` : `${first} × ${totalQty}`;
+};
+
+function PipelineStatusPill({ status }) {
+    const meta = PIPELINE_STATUS[status] || PIPELINE_STATUS['הועבר לספק'];
+    return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black"
+            style={{ background: meta.bg, color: meta.color }}>
+            <meta.Icon size={10} />
+            {meta.label}
+        </span>
+    );
+}
 
 const TABS = [
     { id: 'dashboard', label: 'דשבורד',        Icon: TrendingUp },
@@ -1125,8 +1163,145 @@ async function exportSupplierOrdersXLSX(supplierOrders, suppliers) {
     XLSX.writeFile(wb, `NextClass-הצעות-ספקים-${now.toISOString().slice(0,10)}.xlsx`);
 }
 
-function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToast, selectedOrder, onSelectOrder }) {
+// ── Pipeline Orders View (quotes → single source of truth) ────────────────────
+
+function PipelineOrdersView({ quotes, updateQuoteStatus, showToast }) {
+    const [advancingId, setAdvancingId] = useState(null);
+    const [filter, setFilter] = useState('all');
+
+    const counts = {
+        all: quotes.length,
+        'הועבר לספק': quotes.filter(q => q.status === 'הועבר לספק').length,
+        'בדרך':        quotes.filter(q => q.status === 'בדרך').length,
+        'סופק':        quotes.filter(q => q.status === 'סופק').length,
+    };
+
+    const displayed = filter === 'all' ? quotes : quotes.filter(q => q.status === filter);
+
+    const advance = async (quote) => {
+        const meta = PIPELINE_STATUS[quote.status];
+        if (!meta?.next) return;
+        setAdvancingId(quote.id);
+        try {
+            // updateQuoteStatus is the ONE call that reaches 'סופק' → writes the sale
+            // record + settles inventory. Never bypass it with a parallel flag.
+            await updateQuoteStatus(quote.id, meta.next);
+            showToast(
+                meta.next === 'סופק'
+                    ? 'סומן כסופק — מכירה ומלאי עודכנו אוטומטית'
+                    : `סטטוס עודכן ל: ${meta.next}`,
+                'success'
+            );
+        } catch {
+            showToast('שגיאה בעדכון סטטוס', 'error');
+        }
+        setAdvancingId(null);
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Info banner — explains the bridge */}
+            <div className="p-4 rounded-2xl text-right text-[12px] font-medium text-[#0891B2]"
+                style={{ background: 'rgba(8,145,178,0.06)', border: '1px solid rgba(8,145,178,0.14)' }} dir="rtl">
+                הזמנות אלו מגיעות ישירות מצינור הצעות המחיר (הזמנות שהועברו לספק). קידום הסטטוס כאן מתעדכן חזרה בצינור — סימון "סופק" רושם את המכירה ומעדכן מלאי אוטומטית.
+            </div>
+
+            {/* Status filter pills */}
+            <div className="flex items-center gap-2 flex-wrap" dir="rtl">
+                {['all', ...PIPELINE_ORDER].map(sid => {
+                    const meta = PIPELINE_STATUS[sid];
+                    const active = filter === sid;
+                    return (
+                        <button key={sid} onClick={() => setFilter(sid)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${active ? 'text-white' : 'text-[#86868B] border border-black/10 hover:border-[#0891B2]/30'}`}
+                            style={active ? { background: meta ? meta.color : '#0891B2' } : { background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                            {meta ? meta.label : 'הכל'}
+                            {counts[sid] > 0 && <span className="opacity-70">{counts[sid]}</span>}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {displayed.length === 0 ? (
+                <div className="rounded-[24px] overflow-hidden" style={card}>
+                    <AdminEmpty icon={<Package size={30} style={{ color: BROWN }} />}
+                        title="אין הזמנות מהצינור בסטטוס זה"
+                        subtitle="הזמנות שיועברו לספק ממסך ההזמנות/הצעות המחיר יופיעו כאן עם מעקב עד למסירה" />
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {displayed.map(q => {
+                        const meta = PIPELINE_STATUS[q.status] || PIPELINE_STATUS['הועבר לספק'];
+                        const so = q.supplierOrder || {};
+                        const supplierName = so.supplierName || '—';
+                        const tracking = q.trackingInfo?.trackingNumber || so.orderNumber || '';
+                        const isAdvancing = advancingId === q.id;
+                        return (
+                            <motion.div key={q.id} layout
+                                whileHover={{ y: -1, boxShadow: '0 8px 28px rgba(0,0,0,0.08)' }}
+                                className="rounded-[1.5rem] p-5 transition-all"
+                                style={card} dir="rtl">
+                                <div className="flex items-start justify-between gap-4">
+                                    {/* Actions column */}
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        <PipelineStatusPill status={q.status} />
+                                        {meta.next ? (
+                                            <motion.button whileTap={{ scale: 0.95 }}
+                                                onClick={() => advance(q)} disabled={isAdvancing}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black text-white cursor-pointer whitespace-nowrap transition-opacity"
+                                                style={{ background: `linear-gradient(135deg, ${PIPELINE_STATUS[meta.next].color}, ${PIPELINE_STATUS[meta.next].color}BB)`, opacity: isAdvancing ? 0.7 : 1 }}>
+                                                <ArrowRight size={11} />
+                                                {isAdvancing ? 'מעדכן...' : meta.nextLabel}
+                                            </motion.button>
+                                        ) : (
+                                            <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black"
+                                                style={{ background: 'rgba(29,185,84,0.10)', color: '#1DB954' }}>
+                                                <CheckCircle size={11} />
+                                                הושלם
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Info column */}
+                                    <div className="flex-1 text-right min-w-0">
+                                        <p className="font-black text-[#1D1D1F] text-[15px] mb-1">{q.institution || q.contactName || '—'}</p>
+                                        <div className="flex items-center gap-3 justify-end flex-wrap">
+                                            {q.contactName && q.institution && (
+                                                <span className="text-[11px] text-[#86868B] flex items-center gap-1"><User size={10} />{q.contactName}</span>
+                                            )}
+                                            <span className="text-[11px] text-[#86868B] flex items-center gap-1"><ShoppingCart size={10} />{quoteItemsLabel(q)}</span>
+                                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: '#0891B2' }}><Factory size={10} />{supplierName}</span>
+                                        </div>
+                                        {tracking && (
+                                            <p className="text-[10px] text-[#0891B2] font-bold mt-1.5 flex items-center gap-1 justify-end">
+                                                <Hash size={9} />
+                                                {tracking}
+                                            </p>
+                                        )}
+                                        {so.estimatedDelivery && (
+                                            <p className="text-[11px] text-[#86868B] mt-1 flex items-center gap-1 justify-end"><Clock size={10} />אספקה: {so.estimatedDelivery}</p>
+                                        )}
+                                        {so.notes && (
+                                            <p className="text-[11px] text-[#86868B] mt-1.5 rounded-xl px-3 py-1.5 text-right" style={{ background: 'rgba(0,0,0,0.03)' }}>{so.notes}</p>
+                                        )}
+                                        <p className="text-[10px] text-[#0891B2]/60 mt-2 text-right flex items-center gap-1 justify-end">
+                                            <Link2 size={9} />
+                                            מקושר להצעת מחיר {q.id}
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToast, selectedOrder, onSelectOrder, pipelineQuotes, updateQuoteStatus }) {
     const confirm = useAdminConfirm();
+    const [view, setView] = useState('pipeline'); // 'pipeline' (quotes) | 'manual' (supplier_orders)
     const [filterStatus, setFilterStatus] = useState('all');
     const [showForwardModal, setShowForwardModal] = useState(false);
 
@@ -1156,6 +1331,37 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
 
     return (
         <div className="space-y-4">
+            {/* Source toggle — pipeline (quotes, single source of truth) vs manual supplier_orders */}
+            <div className="flex items-center gap-1.5 p-1.5 rounded-2xl w-fit" style={{ ...GLASS.frosted, borderRadius: RADIUS.panel }} dir="rtl">
+                {[
+                    { id: 'pipeline', label: 'הזמנות מהצינור', Icon: Link2, count: pipelineQuotes.length, color: '#0891B2' },
+                    { id: 'manual',   label: 'הזמנות ידניות',  Icon: Package, count: supplierOrders.length, color: BROWN },
+                ].map(t => {
+                    const active = view === t.id;
+                    return (
+                        <motion.button key={t.id} onClick={() => setView(t.id)} whileTap={TAP}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-colors cursor-pointer"
+                            style={active
+                                ? { color: t.color, background: hexA(t.color, 0.12), border: `1px solid ${hexA(t.color, 0.24)}`, boxShadow: `0 2px 10px ${hexA(t.color, 0.2)}` }
+                                : { color: '#86868B', border: '1px solid transparent' }}>
+                            <t.Icon size={14} />
+                            {t.label}
+                            {t.count > 0 && (
+                                <span className="min-w-4 h-4 px-1 rounded-full text-white text-[9px] font-black flex items-center justify-center"
+                                    style={{ background: active ? t.color : '#AEAEB2' }}>
+                                    {t.count}
+                                </span>
+                            )}
+                        </motion.button>
+                    );
+                })}
+            </div>
+
+            {view === 'pipeline' && (
+                <PipelineOrdersView quotes={pipelineQuotes} updateQuoteStatus={updateQuoteStatus} showToast={showToast} />
+            )}
+
+            {view === 'manual' && (<>
             {/* Action bar */}
             <div className="flex items-center justify-between gap-4 flex-wrap" dir="rtl">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1274,6 +1480,7 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                 suppliers={suppliers}
                 showToast={showToast}
             />
+            </>)}
         </div>
     );
 }
@@ -1751,6 +1958,10 @@ export default function AdminFulfillment() {
     const [selectedOrder,  setSelectedOrder]  = useState(null);
     const [forwardOrder,   setForwardOrder]   = useState(null); // customer order pending forward
     const { showToast } = useAdminToast();
+    // Quotes pipeline = SINGLE source of truth for fulfillment (bridge for H4).
+    const { quotes, updateQuoteStatus } = useAdminData();
+    const pipelineQuotes = quotes.filter(isPipelineQuote);
+    const pipelineActive = pipelineQuotes.filter(q => q.status === 'הועבר לספק' || q.status === 'בדרך').length;
 
     useEffect(() => {
         const u1 = onSnapshot(query(collection(db, 'suppliers'), orderBy('name')), snap => {
@@ -1803,9 +2014,9 @@ export default function AdminFulfillment() {
                                 : { color: '#86868B', border: '1px solid transparent' }}>
                             <tab.Icon size={14} />
                             {tab.label}
-                            {tab.id === 'orders' && pendingCount > 0 && (
-                                <span className="w-4 h-4 rounded-full bg-[#FF9500] text-white text-[9px] font-black flex items-center justify-center">
-                                    {pendingCount}
+                            {tab.id === 'orders' && (pendingCount + pipelineActive) > 0 && (
+                                <span className="min-w-4 h-4 px-1 rounded-full bg-[#FF9500] text-white text-[9px] font-black flex items-center justify-center">
+                                    {pendingCount + pipelineActive}
                                 </span>
                             )}
                         </motion.button>
@@ -1835,6 +2046,8 @@ export default function AdminFulfillment() {
                             showToast={showToast}
                             selectedOrder={selectedOrder}
                             onSelectOrder={setSelectedOrder}
+                            pipelineQuotes={pipelineQuotes}
+                            updateQuoteStatus={updateQuoteStatus}
                         />
                     )}
                     {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} supplierOrders={supplierOrders} showToast={showToast} />}

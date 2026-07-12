@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench, Check, X } from 'lucide-react';
+import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench, Check, X, ShieldCheck } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle, AdminTabs } from '../components/AdminComponents';
@@ -10,6 +10,7 @@ import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { useSettings } from '../../context/SettingsContext';
 import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow } from '../theme/tokens';
+import AdminSecurity from './AdminSecurity';
 
 // ─── Unified brand accent (restrained azure — no per-card rainbow) ─────────────
 const BRAND = '#007AFF';
@@ -328,6 +329,21 @@ export default function AdminSettings() {
                             <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת · נתונים ב-Firestore</p>
                         </div>
                     </motion.div>
+
+                    {/* ── יומן אבטחה — live Firestore event log (folded-in AdminSecurity) ── */}
+                    <div className="pt-2">
+                        <div className="flex items-center gap-2 mb-4 px-1">
+                            <div className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
+                                style={{ background: hexA(BRAND, 0.12), border: `1px solid ${hexA(BRAND, 0.20)}` }}>
+                                <ShieldCheck size={14} style={{ color: BRAND }} />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-[#1D1D1F] font-black text-base tracking-tight leading-none">יומן אבטחה</h3>
+                                <p className="text-[#AEAEB2] text-[11px] font-medium mt-0.5">ניטור אירועי אבטחה בזמן-אמת מתוך Firestore · מתרענן כל 30 שניות</p>
+                            </div>
+                        </div>
+                        <AdminSecurity embedded />
+                    </div>
                 </>
             )}
 

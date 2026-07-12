@@ -63,7 +63,7 @@ function StatTile({ label, value, color, delay }) {
     );
 }
 
-export default function AdminSecurity() {
+export default function AdminSecurity({ embedded = false }) {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefresh, setLastRefresh] = useState(null);
@@ -122,31 +122,11 @@ export default function AdminSecurity() {
 
     const showSkeleton = loading && logs.length === 0;
 
-    return (
-        <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader
-                title="אבטחת מידע ומעקב אירועים"
-                subtitle={lastRefresh
-                    ? `עודכן לאחרונה: ${lastRefresh.toLocaleTimeString('he-IL')} · מתרענן אוטומטית כל 30 שניות`
-                    : 'ניטור אירועי אבטחה בזמן-אמת מתוך Firestore'}
-                icon={ShieldCheck}
-                action={
-                    <div className="flex items-center gap-2.5">
-                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-                            style={{ background: hexA(SEAFOAM, 0.1), border: `1px solid ${hexA(SEAFOAM, 0.24)}` }}>
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: SEAFOAM }} />
-                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: SEAFOAM }} />
-                            </span>
-                            <span className="text-[11px] font-black" style={{ color: SEAFOAM }}>ניטור פעיל</span>
-                        </div>
-                        <AdminButton onClick={fetchLogs} accent={SEAFOAM} loading={loading}>
-                            <span className="flex items-center gap-1.5"><RefreshCw size={14} /> רענן</span>
-                        </AdminButton>
-                    </div>
-                }
-            />
-
+    // ─── Shared body: stats band + filter + event table + states ────────────────
+    // Rendered inside a page wrapper when standalone, or bare when embedded in the
+    // Settings → אבטחה tab (no page header, no outer chrome).
+    const body = (
+        <>
             {/* Summary stat band — oversized colored numbers */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((s, i) => (
@@ -244,6 +224,40 @@ export default function AdminSecurity() {
                     )}
                 </div>
             )}
+        </>
+    );
+
+    // Embedded (inside Settings tab): render bare, no page header / outer chrome.
+    if (embedded) {
+        return <div className="space-y-5">{body}</div>;
+    }
+
+    // Standalone page: full header + section chrome (unchanged behavior).
+    return (
+        <div dir="rtl" className="space-y-6">
+            <AdminSectionHeader
+                title="אבטחת מידע ומעקב אירועים"
+                subtitle={lastRefresh
+                    ? `עודכן לאחרונה: ${lastRefresh.toLocaleTimeString('he-IL')} · מתרענן אוטומטית כל 30 שניות`
+                    : 'ניטור אירועי אבטחה בזמן-אמת מתוך Firestore'}
+                icon={ShieldCheck}
+                action={
+                    <div className="flex items-center gap-2.5">
+                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+                            style={{ background: hexA(SEAFOAM, 0.1), border: `1px solid ${hexA(SEAFOAM, 0.24)}` }}>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: SEAFOAM }} />
+                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: SEAFOAM }} />
+                            </span>
+                            <span className="text-[11px] font-black" style={{ color: SEAFOAM }}>ניטור פעיל</span>
+                        </div>
+                        <AdminButton onClick={fetchLogs} accent={SEAFOAM} loading={loading}>
+                            <span className="flex items-center gap-1.5"><RefreshCw size={14} /> רענן</span>
+                        </AdminButton>
+                    </div>
+                }
+            />
+            {body}
         </div>
     );
 }
