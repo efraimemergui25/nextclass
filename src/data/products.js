@@ -22,7 +22,7 @@ const defaultProducts = [
         price: 305,
         stock: 24,
         threshold: 5,
-        image: "https://dlcdnwebimgs.asus.com/files/media/a4f01add-168c-47ae-b857-eb47f861ba2c/v1/img/kv/VAEHF_KV.png",
+        image: "https://dlcdnwebimgs.asus.com/gain/c4173a00-c786-43cf-91fc-8e342ece9394/w692",
         description: "מסך IPS בגודל 23.8 אינץ' ברזולוציית Full HD עם קצב רענון 100Hz וטכנולוגיית Adaptive-Sync. מסגרת דקה במיוחד, סינון אור כחול ותצוגה נטולת הבהובים לנוחות צפייה לאורך זמן.",
         specs: [
             { label: "טכנולוגיית פאנל", value: "IPS" },
@@ -55,9 +55,7 @@ const defaultProducts = [
         price: 460,
         stock: 18,
         threshold: 5,
-        // Live Firestore catalog supplies the product photo; official HP image URL not
-        // publicly resolvable, so the seed falls back to the branded NextClass placeholder.
-        image: "",
+        image: "https://c1.neweggimages.com/ProductImage/AR0TD2507150OX0PG60.jpg",
         description: "מסך IPS מקצועי בגודל 24 אינץ' ביחס 16:10 וברזולוציית WUXGA ‏(1920×1200) המספק שטח עבודה אנכי גדול יותר. כיסוי 100% sRGB, מעמד ארגונומי מלא (גובה, הטיה, סיבוב וסבסוב) ורכזת USB מובנית.",
         specs: [
             { label: "טכנולוגיית פאנל", value: "IPS" },

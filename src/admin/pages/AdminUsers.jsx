@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,9 +10,10 @@ import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminEmpty, AdminSkeleton } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, TAP, hexA } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import {
     Users, Search, Download, Mail, Building2,
-    Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2
+    Chrome, Lock, Star, ShieldCheck, Clock, RefreshCw, X, FileText, Trash2, ChevronLeft
 } from 'lucide-react';
 
 // ── Users accent — unified brand azure (de-rainbowed) ─────────────────────────
@@ -411,6 +412,58 @@ function RFMBadge({ segment }) {
     );
 }
 
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 function UserRow({ user, index, onClick, rfmSegment }) {
     const tier = TIER_CONFIG[user.memberTier] || TIER_CONFIG.free;
     return (
@@ -418,8 +471,10 @@ function UserRow({ user, index, onClick, rfmSegment }) {
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
             onClick={onClick}
+            tabIndex={0} role="button"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
             style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="hover:bg-[#007AFF]/[0.05] transition-colors"
+            className="hover:bg-[#007AFF]/[0.05] focus:outline-none focus:bg-[#007AFF]/[0.07] transition-colors"
         >
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -474,6 +529,15 @@ export default function AdminUsers() {
     const [filterProv, setFilterProv] = useState('all');
     const [selected, setSelected] = useState(null);
     const [searchParams] = useSearchParams();
+
+    // ── Babushka drill stack — each entry is one nested detail level ──────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const openUser   = (u) => { closeDrill(); setSelected(u); };
 
     useEffect(() => {
         const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
@@ -556,13 +620,13 @@ export default function AdminUsers() {
             {/* ── KPI band — cyan primary + semantic accents ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <AdminKPICard title="סה״כ משתמשים" value={users.length} subtitle="רשומים באתר" accent={ACCENT} delay={0}
-                    icon={<Users size={20} color={ACCENT} />} loading={loading} />
+                    icon={<Users size={20} color={ACCENT} />} loading={loading} onClick={() => openDrill({ type: 'usersKpi' })} />
                 <AdminKPICard title="דרך Google" value={googleCount} subtitle={`${Math.round(googleCount / (users.length || 1) * 100)}% מהסך הכל`} accent="#4285F4" delay={0.05}
-                    icon={<Chrome size={20} color="#4285F4" />} loading={loading} />
+                    icon={<Chrome size={20} color="#4285F4" />} loading={loading} onClick={() => openDrill({ type: 'providerKpi' })} />
                 <AdminKPICard title="מנויים פעילים" value={memberCount} subtitle="חבר / Premium" accent={PALETTE.orange} delay={0.1}
-                    icon={<Star size={20} color={PALETTE.orange} />} loading={loading} />
+                    icon={<Star size={20} color={PALETTE.orange} />} loading={loading} onClick={() => openDrill({ type: 'tierKpi' })} />
                 <AdminKPICard title="נרשמו היום" value={todayCount} subtitle="24 שעות אחרונות" accent={PALETTE.emerald} delay={0.15}
-                    icon={<Clock size={20} color={PALETTE.emerald} />} loading={loading} />
+                    icon={<Clock size={20} color={PALETTE.emerald} />} loading={loading} onClick={() => openDrill({ type: 'todayKpi' })} />
             </div>
 
             {/* ── Filters — search + accent segmented pills ── */}
@@ -628,6 +692,235 @@ export default function AdminUsers() {
                 </AnimatePresence>,
                 document.body
             )}
+
+            {/* ── Babushka Drill Drawer — nested glass detail view ───────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const usersOfTier = (t) => users.filter(u => (u.memberTier || 'free') === t);
+                const usersOfProvider = (p) => users.filter(u => (u.provider === 'google.com') === (p === 'google'));
+                const todayUsers = users.filter(u => { const d = u.createdAt?.toDate ? u.createdAt.toDate() : null; return d && (Date.now() - d.getTime()) < 86400000; });
+                const pct = (n) => users.length ? Math.round(n / users.length * 100) : 0;
+
+                // A user record rendered as a clickable drill row → opens the full modal.
+                const userRow = (u, i) => {
+                    const tier = TIER_CONFIG[u.memberTier] || TIER_CONFIG.free;
+                    return (
+                        <DrillRow key={u.uid} delay={i * 0.03}
+                            onClick={() => openUser(u)}
+                            leading={<UserAvatar user={u} size={32} />}
+                            title={u.displayName || '(ללא שם)'}
+                            subtitle={u.email || u.institution || '—'}
+                            trailing={<span className="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0" style={{ background: tier.bg, color: tier.color }}>{tier.label}</span>}
+                        />
+                    );
+                };
+
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
+
+                if (shown.type === 'usersKpi') {
+                    title = 'משתמשים רשומים'; subtitle = `${users.length} סה״כ`; accent = ACCENT;
+                    icon = <Users size={17} color={ACCENT} />;
+                    footer = { label: 'ייצוא CSV מלא', onClick: () => { exportCSV(users); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: users.length, color: ACCENT },
+                                { label: 'Google', value: googleCount, color: '#4285F4' },
+                                { label: 'מנויים', value: memberCount, color: PALETTE.orange },
+                                { label: 'היום', value: todayCount, color: PALETTE.emerald },
+                            ]} />
+                            {users.length === 0 ? (
+                                <DrillEmpty icon={Users} text="אין משתמשים רשומים עדיין" />
+                            ) : (
+                                <>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי דרגת מנוי — לחץ לצלילה</p>
+                                        {Object.entries(TIER_CONFIG).map(([key, cfg], i) => {
+                                            const n = usersOfTier(key).length;
+                                            return (
+                                                <DrillRow key={key} delay={i * 0.03} tone={cfg.color}
+                                                    onClick={n > 0 ? () => pushDrill({ type: 'tierGroup', tier: key }) : undefined}
+                                                    leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-black" style={{ background: cfg.bg, color: cfg.color }}>{n}</span>}
+                                                    title={cfg.label}
+                                                    subtitle={`${pct(n)}% מהמשתמשים`}
+                                                    trailing={<span className="text-[11px] font-black shrink-0" style={{ color: cfg.color }}>{n}</span>}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי ספק כניסה — לחץ לצלילה</p>
+                                        {[{ p: 'google', label: 'Google', color: '#4285F4', n: googleCount }, { p: 'email', label: 'מייל / סיסמה', color: '#8E8E93', n: users.length - googleCount }].map((r, i) => (
+                                            <DrillRow key={r.p} delay={i * 0.03} tone={r.color}
+                                                onClick={r.n > 0 ? () => pushDrill({ type: 'providerGroup', provider: r.p }) : undefined}
+                                                leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(r.color, 0.12) }}>{r.p === 'google' ? <Chrome size={14} color={r.color} /> : <Lock size={14} color={r.color} />}</span>}
+                                                title={r.label}
+                                                subtitle={`${pct(r.n)}% מהמשתמשים`}
+                                                trailing={<span className="text-[11px] font-black shrink-0" style={{ color: r.color }}>{r.n}</span>}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'providerKpi') {
+                    const emailCount = users.length - googleCount;
+                    title = 'ספקי כניסה'; subtitle = `${googleCount} Google · ${emailCount} מייל`; accent = '#4285F4';
+                    icon = <Chrome size={17} color="#4285F4" />;
+                    footer = { label: 'ייצוא CSV מלא', onClick: () => { exportCSV(users); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'Google', value: googleCount, color: '#4285F4' },
+                                { label: 'מייל / סיסמה', value: emailCount, color: '#8E8E93' },
+                                { label: 'אחוז Google', value: `${pct(googleCount)}%`, color: ACCENT },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">בחר ספק — לחץ לצלילה</p>
+                                {[{ p: 'google', label: 'Google', color: '#4285F4', n: googleCount }, { p: 'email', label: 'מייל / סיסמה', color: '#8E8E93', n: emailCount }].map((r, i) => (
+                                    <DrillRow key={r.p} delay={i * 0.03} tone={r.color}
+                                        onClick={r.n > 0 ? () => pushDrill({ type: 'providerGroup', provider: r.p }) : undefined}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(r.color, 0.12) }}>{r.p === 'google' ? <Chrome size={14} color={r.color} /> : <Lock size={14} color={r.color} />}</span>}
+                                        title={r.label}
+                                        subtitle={`${r.n} משתמשים`}
+                                        trailing={<span className="text-[11px] font-black shrink-0" style={{ color: r.color }}>{r.n}</span>}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'tierKpi') {
+                    const freeCount = usersOfTier('free').length;
+                    const memCount = usersOfTier('member').length;
+                    const premCount = usersOfTier('premium').length;
+                    title = 'דרגות מנוי'; subtitle = `${memberCount} מנויים פעילים`; accent = PALETTE.orange;
+                    icon = <Star size={17} color={PALETTE.orange} />;
+                    footer = { label: 'ייצוא CSV מלא', onClick: () => { exportCSV(users); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'Premium', value: premCount, color: TIER_CONFIG.premium.color },
+                                { label: 'חבר', value: memCount, color: TIER_CONFIG.member.color },
+                                { label: 'פרטי', value: freeCount, color: TIER_CONFIG.free.color },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">בחר דרגה — לחץ לצלילה</p>
+                                {['premium', 'member', 'free'].map((key, i) => {
+                                    const cfg = TIER_CONFIG[key];
+                                    const n = usersOfTier(key).length;
+                                    return (
+                                        <DrillRow key={key} delay={i * 0.03} tone={cfg.color}
+                                            onClick={n > 0 ? () => pushDrill({ type: 'tierGroup', tier: key }) : undefined}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-black" style={{ background: cfg.bg, color: cfg.color }}>{n}</span>}
+                                            title={cfg.label}
+                                            subtitle={`${pct(n)}% מהמשתמשים`}
+                                            trailing={<span className="text-[11px] font-black shrink-0" style={{ color: cfg.color }}>{n}</span>}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'todayKpi') {
+                    title = 'נרשמו היום'; subtitle = '24 שעות אחרונות'; accent = PALETTE.emerald;
+                    icon = <Clock size={17} color={PALETTE.emerald} />;
+                    footer = { label: 'ייצוא רשימה', onClick: () => { exportCSV(todayUsers.length ? todayUsers : users); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'נרשמו היום', value: todayCount, color: PALETTE.emerald },
+                                { label: 'סה״כ', value: users.length, color: ACCENT },
+                                { label: 'אחוז', value: `${pct(todayCount)}%`, color: '#5856D6' },
+                            ]} />
+                            {todayUsers.length === 0 ? (
+                                <DrillEmpty icon={Clock} text="לא נרשמו משתמשים חדשים היום" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">משתמשים חדשים — לחץ לפרטים</p>
+                                    {todayUsers.map((u, i) => userRow(u, i))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'tierGroup') {
+                    const cfg = TIER_CONFIG[shown.tier] || TIER_CONFIG.free;
+                    const list = usersOfTier(shown.tier);
+                    const googleIn = list.filter(u => u.provider === 'google.com').length;
+                    const verifiedIn = list.filter(u => u.emailVerified).length;
+                    title = `דרגה: ${cfg.label}`; subtitle = `${list.length} משתמשים`; accent = cfg.color;
+                    icon = <Star size={17} color={cfg.color} />;
+                    footer = { label: 'ייצוא רשימה', onClick: () => { exportCSV(list); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'משתמשים', value: list.length, color: cfg.color },
+                                { label: 'דרך Google', value: googleIn, color: '#4285F4' },
+                                { label: 'מאומתים', value: verifiedIn, color: '#34C759' },
+                            ]} />
+                            {list.length === 0 ? (
+                                <DrillEmpty icon={Users} text="אין משתמשים בדרגה זו" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">משתמשים — לחץ לפרטים</p>
+                                    {list.slice(0, 20).map((u, i) => userRow(u, i))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'providerGroup') {
+                    const isGoogle = shown.provider === 'google';
+                    const list = usersOfProvider(shown.provider);
+                    const membersIn = list.filter(u => (u.memberTier || 'free') !== 'free').length;
+                    title = isGoogle ? 'ספק: Google' : 'ספק: מייל / סיסמה'; subtitle = `${list.length} משתמשים`; accent = isGoogle ? '#4285F4' : '#8E8E93';
+                    icon = isGoogle ? <Chrome size={17} color="#4285F4" /> : <Lock size={17} color="#8E8E93" />;
+                    footer = { label: 'ייצוא רשימה', onClick: () => { exportCSV(list); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'משתמשים', value: list.length, color: isGoogle ? '#4285F4' : '#8E8E93' },
+                                { label: 'מנויים', value: membersIn, color: PALETTE.orange },
+                                { label: 'אחוז מהסך', value: `${pct(list.length)}%`, color: ACCENT },
+                            ]} />
+                            {list.length === 0 ? (
+                                <DrillEmpty icon={Users} text="אין משתמשים לספק זה" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">משתמשים — לחץ לפרטים</p>
+                                    {list.slice(0, 20).map((u, i) => userRow(u, i))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else {
+                    title = 'פרטים'; icon = <Users size={17} color={ACCENT} />;
+                    body = <DrillEmpty icon={Users} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.tier ?? shown.provider ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }

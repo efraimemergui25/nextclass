@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
@@ -8,12 +8,60 @@ import {
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import {
     Users, Trash2, Download, Search, TrendingUp,
     Calendar, Star, Zap, Send,
-    CheckSquare, Square
+    CheckSquare, Square, ChevronLeft, Mail, Copy, Hash, Clock
 } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+
+// ─── Babushka drill helpers (shared visual grammar with the dashboard) ─────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
 
 // ─── Community domain accent (restrained azure brand) ─────────────────────────
 const GREEN      = '#007AFF';
@@ -48,6 +96,14 @@ function SourceBadge({ source }) {
 
 export default function AdminCommunity() {
     const { showToast } = useAdminToast();
+
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     const [subs, setSubs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -206,13 +262,13 @@ export default function AdminCommunity() {
             {/* KPI band — total · this week · this month · open rate */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
                 <AdminKPICard title="סך מנויים" value={stats.total} subtitle={stats.growth} accent={GREEN} delay={0}
-                    icon={<Users size={20} color={GREEN} />} loading={loading} />
+                    icon={<Users size={20} color={GREEN} />} loading={loading} onClick={() => openDrill({ type: 'kpi-total' })} />
                 <AdminKPICard title="הצטרפו השבוע" value={stats.thisWeek} subtitle="7 ימים אחרונים" accent={PALETTE.blue} delay={0.05}
-                    icon={<TrendingUp size={20} color={PALETTE.blue} />} loading={loading} />
+                    icon={<TrendingUp size={20} color={PALETTE.blue} />} loading={loading} onClick={() => openDrill({ type: 'kpi-week' })} />
                 <AdminKPICard title="הצטרפו החודש" value={stats.thisMonth} subtitle="30 ימים אחרונים" accent={PALETTE.indigo} delay={0.1}
-                    icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} />
+                    icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} onClick={() => openDrill({ type: 'kpi-month' })} />
                 <AdminKPICard title="שיעור פתיחה" value="—" subtitle="בקרוב" accent={PALETTE.graphite} delay={0.15}
-                    icon={<Star size={20} color={PALETTE.graphite} />} />
+                    icon={<Star size={20} color={PALETTE.graphite} />} onClick={() => openDrill({ type: 'kpi-open' })} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -287,8 +343,11 @@ export default function AdminCommunity() {
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 text-right">
-                                            <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{sub.email}</p>
+                                        <div role="button" tabIndex={0}
+                                            onClick={() => openDrill({ type: 'subscriber', sub })}
+                                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'subscriber', sub }); } }}
+                                            className="flex-1 min-w-0 text-right cursor-pointer focus:outline-none">
+                                            <p className="text-[13px] font-bold text-[#1D1D1F] truncate group-hover:text-[#007AFF] transition-colors">{sub.email}</p>
                                             <div className="flex items-center gap-2 justify-end mt-0.5">
                                                 <span className="text-[10px] text-[#AEAEB2] font-medium">{fmtDate(sub.timestamp)}</span>
                                                 <SourceBadge source={sub.source} />
@@ -378,7 +437,10 @@ export default function AdminCommunity() {
                                         initial={{ opacity: 0, x: 8 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: i * 0.035 }}
-                                        className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors"
+                                        role="button" tabIndex={0}
+                                        onClick={() => openDrill({ type: 'subscriber', sub })}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'subscriber', sub }); } }}
+                                        className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors cursor-pointer focus:outline-none"
                                     >
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center text-white text-[10px] font-black shrink-0"
                                             style={{ background: `hsl(${(sub.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>
@@ -538,6 +600,127 @@ export default function AdminCommunity() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const subRow = (s, i) => (
+                    <DrillRow key={s.id} delay={i * 0.03}
+                        onClick={() => pushDrill({ type: 'subscriber', sub: s })}
+                        leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
+                            style={{ background: `hsl(${(s.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
+                        title={s.email}
+                        subtitle={`${fmtDate(s.timestamp)} · לפני ${daysSince(s.timestamp)} ימים`}
+                        trailing={<SourceBadge source={s.source} />}
+                    />
+                );
+                const subList = (arr) => arr.length === 0
+                    ? <DrillEmpty icon={Users} text="אין מנויים להצגה" />
+                    : <div className="space-y-2">{arr.map(subRow)}</div>;
+
+                let title = '', subtitle = '', icon = null, footer = null, body = null;
+
+                if (shown.type === 'kpi-total') {
+                    title = 'סך מנויים'; subtitle = `${stats.total} מנויים ברשימת התפוצה`;
+                    icon = <Users size={17} color={GREEN} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סך הכל', value: stats.total, color: GREEN },
+                                { label: 'השבוע', value: stats.thisWeek, color: PALETTE.blue },
+                                { label: 'החודש', value: stats.thisMonth, color: PALETTE.indigo },
+                            ]} />
+                            {sourceCounts.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מקורות הרשמה — לחץ לצלילה</p>
+                                    {sourceCounts.map(([src, count], i) => {
+                                        const color = sourceColors[src] || '#86868B';
+                                        return (
+                                            <DrillRow key={src} delay={i * 0.04} tone={color}
+                                                onClick={() => pushDrill({ type: 'source', src })}
+                                                leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                                                    style={{ background: hexA(color, 0.14) }}><Hash size={13} style={{ color }} /></div>}
+                                                title={src}
+                                                subtitle={`${subs.length ? Math.round(count / subs.length * 100) : 0}% מהרשימה`}
+                                                trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{count}</span>}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">כל המנויים</p>
+                                {subList(subs)}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'kpi-week') {
+                    const arr = subs.filter(s => daysSince(s.timestamp) <= 7);
+                    title = 'הצטרפו השבוע'; subtitle = `${arr.length} מנויים · 7 ימים אחרונים`;
+                    icon = <TrendingUp size={17} color={PALETTE.blue} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'kpi-month') {
+                    const arr = subs.filter(s => daysSince(s.timestamp) <= 30);
+                    title = 'הצטרפו החודש'; subtitle = `${arr.length} מנויים · 30 ימים אחרונים`;
+                    icon = <Calendar size={17} color={PALETTE.indigo} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'kpi-open') {
+                    title = 'שיעור פתיחה'; subtitle = 'מדד דיוור';
+                    icon = <Star size={17} color={PALETTE.graphite} />;
+                    body = <DrillEmpty icon={Star} text="שיעור הפתיחה יתווסף עם חיבור מערכת הדיוור (SendGrid / Resend)" />;
+                } else if (shown.type === 'source') {
+                    const arr = subs.filter(s => (s.source || 'website') === shown.src);
+                    const color = sourceColors[shown.src] || '#86868B';
+                    title = shown.src; subtitle = `${arr.length} מנויים ממקור זה`;
+                    icon = <Hash size={17} color={color} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'subscriber') {
+                    const s = shown.sub;
+                    title = s.email; subtitle = 'פרטי מנוי'; icon = <Mail size={17} color={GREEN} />;
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-[20px] font-black shrink-0"
+                                    style={{ background: `hsl(${(s.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>{(s.email?.[0] || '?').toUpperCase()}</div>
+                                <div className="min-w-0 text-right flex-1">
+                                    <p className="text-[15px] font-black text-[#1D1D1F] truncate" dir="ltr">{s.email}</p>
+                                    <div className="mt-1"><SourceBadge source={s.source} /></div>
+                                </div>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'ימים ברשימה', value: daysSince(s.timestamp), color: GREEN },
+                                { label: 'תאריך הצטרפות', value: fmtDate(s.timestamp) },
+                            ]} />
+                            <div className="space-y-2">
+                                <button onClick={() => navigator.clipboard.writeText(s.email).then(() => showToast('המייל הועתק', 'success'))}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer transition-colors"
+                                    style={{ background: hexA(GREEN, 0.1), color: '#005EC4', border: `1px solid ${hexA(GREEN, 0.24)}` }}>
+                                    <Copy size={14} /> העתק כתובת מייל
+                                </button>
+                                <button onClick={() => { closeDrill(); setShowDeleteConfirm(s.id); }}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer transition-colors"
+                                    style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                    <Trash2 size={14} /> הסר מהרשימה
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={GREEN}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.sub?.id ?? shown.src ?? ''}:${drillStack.length}`}
+                    >{body}</DashDrillView>
+                );
+            })()}
         </div>
     );
 }

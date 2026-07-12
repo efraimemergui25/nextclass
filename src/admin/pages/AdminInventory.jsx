@@ -582,6 +582,7 @@ export default function AdminInventory() {
                 <AnimatePresence>
                     {selectedProduct && (
                         <ProductModal
+                            key={selectedProduct.id}
                             product={selectedProduct}
                             onClose={() => setSelectedProduct(null)}
                             onSave={handleSaveProduct}

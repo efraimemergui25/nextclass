@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, storage } from '../../firebase';
 import {
@@ -10,11 +11,60 @@ import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
-    FolderOpen, X, Search, Grid, List, ExternalLink, Plus
+    FolderOpen, X, Search, Grid, List, ExternalLink, Plus,
+    ChevronLeft, Download, HardDrive, Calendar, Package
 } from 'lucide-react';
 import { GLASS as GLASS_TOKENS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
+
+// ─── Babushka drill helpers ────────────────────────────────────────────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
 
 // ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
 const BRAND      = '#007AFF';
@@ -32,7 +82,7 @@ function formatSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function MediaCard({ item, onDelete, onCopy, copied }) {
+function MediaCard({ item, onDelete, onCopy, copied, onOpen }) {
     const isVideo = item.type?.startsWith('video') || item.url?.match(/\.(mp4|webm|mov)$/i);
     const [hovered, setHovered] = useState(false);
 
@@ -44,6 +94,7 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
             exit={{ opacity: 0, scale: 0.92 }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            onClick={() => onOpen?.(item, 'library')}
             className="relative rounded-2xl overflow-hidden group cursor-pointer"
             style={CARD}
         >
@@ -70,7 +121,7 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                         >
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => onCopy(item.url)}
+                                onClick={(e) => { e.stopPropagation(); onCopy(item.url); }}
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black transition-all"
                             >
                                 {copied === item.url ? <Check size={12} /> : <Copy size={12} />}
@@ -78,14 +129,14 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                             </motion.button>
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => window.open(item.url, '_blank')}
+                                onClick={(e) => { e.stopPropagation(); window.open(item.url, '_blank'); }}
                                 className="p-2 rounded-xl text-white"
                             >
                                 <ExternalLink size={12} />
                             </motion.button>
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => onDelete(item)}
+                                onClick={(e) => { e.stopPropagation(); onDelete(item); }}
                                 className="p-2 rounded-xl text-white"
                             >
                                 <Trash2 size={12} />
@@ -272,7 +323,7 @@ function AddUrlDialog({ onAdd, onClose }) {
 }
 
 // ── ProductImages tab ─────────────────────────────────────────────────────────
-function ProductImagesTab({ onCopy, copied }) {
+function ProductImagesTab({ onCopy, copied, onOpen }) {
     const { inventory } = useAdminData();
     const [search, setSearch] = useState('');
     const items = inventory.filter(p => p.image).filter(p =>
@@ -290,6 +341,7 @@ function ProductImagesTab({ onCopy, copied }) {
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {items.map(p => (
                     <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => onOpen?.({ url: p.image, name: p.title || p.name, type: 'image', source: 'product', id: p.id }, 'product')}
                         className="relative rounded-2xl overflow-hidden group cursor-pointer" style={CARD}>
                         <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
                             <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -297,7 +349,7 @@ function ProductImagesTab({ onCopy, copied }) {
                             <AnimatePresence>
                                 <motion.div initial={{ opacity: 0 }} whileHover={{ opacity: 1 }}
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <button onClick={() => onCopy(p.image)}
+                                    <button onClick={(e) => { e.stopPropagation(); onCopy(p.image); }}
                                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
                                         style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)' }}>
                                         {copied === p.image ? <Check size={12} /> : <Copy size={12} />}
@@ -318,7 +370,7 @@ function ProductImagesTab({ onCopy, copied }) {
 }
 
 // ── VodTab ────────────────────────────────────────────────────────────────────
-function VodTab({ onCopy, copied }) {
+function VodTab({ onCopy, copied, onOpen }) {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -364,7 +416,8 @@ function VodTab({ onCopy, copied }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(v => (
                     <motion.div key={v.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-2xl overflow-hidden" style={CARD}>
+                        onClick={() => onOpen?.({ url: v.videoUrl || v.thumbnail, name: v.title || v.name, type: 'video', source: 'vod', id: v.id, thumbnail: v.thumbnail, lessonsCount: v.lessonsCount || v.lessons?.length || 0 }, 'vod')}
+                        className="rounded-2xl overflow-hidden cursor-pointer" style={CARD}>
                         {v.thumbnail && (
                             <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
                                 <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover"
@@ -380,7 +433,7 @@ function VodTab({ onCopy, copied }) {
                             <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{v.title || v.name}</p>
                             <p className="text-[11px] text-[#86868B] mt-0.5">{v.lessonsCount || v.lessons?.length || 0} שיעורים</p>
                             {v.videoUrl && (
-                                <button onClick={() => onCopy(v.videoUrl)}
+                                <button onClick={(e) => { e.stopPropagation(); onCopy(v.videoUrl); }}
                                     className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[#007AFF] hover:underline">
                                     {copied === v.videoUrl ? <Check size={10} /> : <Copy size={10} />}
                                     העתק URL
@@ -397,6 +450,18 @@ function VodTab({ onCopy, copied }) {
 export default function AdminMedia() {
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
+    const navigate = useNavigate();
+
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };
+    const openMedia  = (item, kind = 'library') => openDrill({ type: 'media', item, kind });
+
     const [tab, setTab] = useState('images'); // images | videos | links | products | vod
     const [media, setMedia] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -548,21 +613,21 @@ export default function AdminMedia() {
             />
 
             {/* VOD and Product tabs render their own content */}
-            {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} />}
-            {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} />}
+            {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} onOpen={openMedia} />}
+            {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} onOpen={openMedia} />}
 
             {(tab === 'images' || tab === 'videos' || tab === 'links') && (<>
 
             {/* KPI band — total · images · videos · external links */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
                 <AdminKPICard title="סך פריטים" value={stats.total} subtitle="בספרייה" accent={BRAND} delay={0}
-                    icon={<FolderOpen size={20} color={BRAND} />} loading={loading} />
+                    icon={<FolderOpen size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-total' })} />
                 <AdminKPICard title="תמונות" value={stats.images} subtitle="קבצי תמונה" accent={BRAND} delay={0.05}
-                    icon={<Image size={20} color={BRAND} />} loading={loading} />
+                    icon={<Image size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-images' })} />
                 <AdminKPICard title="סרטונים" value={stats.videos} subtitle="קבצי וידאו" accent={BRAND} delay={0.1}
-                    icon={<Film size={20} color={BRAND} />} loading={loading} />
+                    icon={<Film size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-videos' })} />
                 <AdminKPICard title="קישורים" value={stats.urls} subtitle="קישורים חיצוניים" accent={BRAND} delay={0.15}
-                    icon={<Link2 size={20} color={BRAND} />} loading={loading} />
+                    icon={<Link2 size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-urls' })} />
             </div>
 
             {/* Upload progress */}
@@ -638,7 +703,7 @@ export default function AdminMedia() {
                 <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     <AnimatePresence>
                         {filtered.map(item => (
-                            <MediaCard key={item.id} item={item} onDelete={handleDelete} onCopy={handleCopy} copied={copied} />
+                            <MediaCard key={item.id} item={item} onDelete={handleDelete} onCopy={handleCopy} copied={copied} onOpen={openMedia} />
                         ))}
                     </AnimatePresence>
                 </motion.div>
@@ -647,22 +712,23 @@ export default function AdminMedia() {
                     <div className="divide-y divide-black/[0.04]">
                         {filtered.map(item => (
                             <motion.div key={item.id} layout
-                                className="flex items-center gap-4 px-5 py-3 hover:bg-black/[0.02] transition-colors group"
+                                onClick={() => openMedia(item, 'library')}
+                                className="flex items-center gap-4 px-5 py-3 hover:bg-black/[0.02] transition-colors group cursor-pointer"
                                 dir="rtl">
                                 <div className="w-14 h-10 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0">
                                     <img src={item.url} alt={item.name} className="w-full h-full object-cover"
                                         onError={e => { e.target.style.display = 'none'; }} />
                                 </div>
                                 <div className="flex-1 min-w-0 text-right">
-                                    <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{item.name}</p>
+                                    <p className="text-[13px] font-bold text-[#1D1D1F] truncate group-hover:text-[#007AFF] transition-colors">{item.name}</p>
                                     <p className="text-[10px] text-[#AEAEB2]">{formatSize(item.size)} · {item.source === 'url' ? 'קישור חיצוני' : 'קובץ'}</p>
                                 </div>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleCopy(item.url)}
+                                    <button onClick={(e) => { e.stopPropagation(); handleCopy(item.url); }}
                                         className="p-1.5 rounded-lg hover:bg-[#007AFF]/10 text-[#007AFF] transition-colors">
                                         {copied === item.url ? <Check size={13} /> : <Copy size={13} />}
                                     </button>
-                                    <button onClick={() => handleDelete(item)}
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
                                         className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 text-[#FF3B30] transition-colors">
                                         <Trash2 size={13} />
                                     </button>
@@ -678,6 +744,125 @@ export default function AdminMedia() {
                 {showUrlDialog && <AddUrlDialog onAdd={handleAddUrl} onClose={() => setShowUrlDialog(false)} />}
             </AnimatePresence>
             </>)}
+
+            {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const isVid = (m) => m.type?.startsWith('video') || m.url?.match(/\.(mp4|webm|mov)$/i);
+                const mediaRow = (m, i) => (
+                    <DrillRow key={m.id} delay={i * 0.03}
+                        onClick={() => pushDrill({ type: 'media', item: m, kind: 'library' })}
+                        leading={<div className="w-11 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
+                            {m.url && !isVid(m)
+                                ? <img src={m.url} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                                : <Film size={13} className="text-[#AEAEB2]" />}</div>}
+                        title={m.name || 'ללא שם'}
+                        subtitle={`${formatSize(m.size) || (m.source === 'url' ? 'קישור חיצוני' : '—')}`}
+                        trailing={<span className="text-[10px] font-black text-[#AEAEB2] shrink-0">{isVid(m) ? 'וידאו' : m.source === 'url' ? 'קישור' : 'תמונה'}</span>}
+                    />
+                );
+                const mediaList = (arr) => arr.length === 0
+                    ? <DrillEmpty icon={FolderOpen} text="אין פריטים להצגה" />
+                    : <div className="space-y-2">{arr.map(mediaRow)}</div>;
+
+                let title = '', subtitle = '', icon = null, footer = null, body = null;
+
+                if (shown.type === 'kpi-total') {
+                    title = 'סך פריטים'; subtitle = `${stats.total} פריטים בספרייה`;
+                    icon = <FolderOpen size={17} color={BRAND} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סך הכל', value: stats.total, color: BRAND },
+                                { label: 'תמונות', value: stats.images },
+                                { label: 'סרטונים', value: stats.videos },
+                                { label: 'קישורים', value: stats.urls },
+                            ]} />
+                            {mediaList(media)}
+                        </div>
+                    );
+                } else if (shown.type === 'kpi-images') {
+                    const arr = media.filter(m => !m.type?.startsWith('video') && m.source !== 'url');
+                    title = 'תמונות'; subtitle = `${arr.length} קבצי תמונה`;
+                    icon = <Image size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'kpi-videos') {
+                    const arr = media.filter(m => m.type?.startsWith('video'));
+                    title = 'סרטונים'; subtitle = `${arr.length} קבצי וידאו`;
+                    icon = <Film size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'kpi-urls') {
+                    const arr = media.filter(m => m.source === 'url');
+                    title = 'קישורים חיצוניים'; subtitle = `${arr.length} קישורים`;
+                    icon = <Link2 size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'media') {
+                    const m = shown.item;
+                    const vid = isVid(m);
+                    const kindLabel = shown.kind === 'product' ? 'תמונת מוצר' : shown.kind === 'vod' ? 'סרטון VOD' : m.source === 'url' ? 'קישור חיצוני' : vid ? 'וידאו' : 'תמונה';
+                    title = m.name || 'ללא שם'; subtitle = kindLabel;
+                    icon = vid ? <Film size={17} color={BRAND} /> : <Image size={17} color={BRAND} />;
+                    if (shown.kind === 'product') footer = { label: 'מעבר לניהול מוצרים', onClick: () => drillTo('/admin/products') };
+                    else if (shown.kind === 'vod') footer = { label: 'מעבר למרכז ה-VOD', onClick: () => drillTo('/vod') };
+                    body = (
+                        <div className="space-y-5">
+                            {/* Preview */}
+                            <div className="rounded-[16px] overflow-hidden bg-[#F5F5F7] aspect-video flex items-center justify-center">
+                                {m.url && vid
+                                    ? <video src={m.url} className="w-full h-full object-contain" controls />
+                                    : m.url
+                                        ? <img src={m.thumbnail || m.url} alt={m.name} className="w-full h-full object-contain" onError={e => { e.target.style.display = 'none'; }} />
+                                        : <FolderOpen size={30} className="text-[#AEAEB2] opacity-40" />}
+                            </div>
+                            <DrillStat items={[
+                                ...(m.size ? [{ label: 'גודל', value: formatSize(m.size) }] : []),
+                                ...(shown.kind === 'vod' ? [{ label: 'שיעורים', value: m.lessonsCount ?? 0 }] : []),
+                                { label: 'סוג', value: kindLabel },
+                                { label: 'נוסף', value: m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('he-IL') : '—' },
+                            ]} />
+                            {/* URL */}
+                            <div className="p-3 rounded-[14px] text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-1">כתובת</p>
+                                <p className="text-[11px] font-mono text-[#3C3C43] break-all" dir="ltr">{m.url || '—'}</p>
+                            </div>
+                            {/* Actions */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => handleCopy(m.url)}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}` }}>
+                                    {copied === m.url ? <Check size={14} /> : <Copy size={14} />} {copied === m.url ? 'הועתק' : 'העתק URL'}
+                                </button>
+                                <button onClick={() => { const a = document.createElement('a'); a.href = m.url; a.download = m.name || 'media'; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}` }}>
+                                    <Download size={14} /> הורדה
+                                </button>
+                            </div>
+                            {shown.kind === 'library' && (
+                                <button onClick={() => { handleDelete(m); closeDrill(); }}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                    <Trash2 size={14} /> מחק מהספרייה
+                                </button>
+                            )}
+                        </div>
+                    );
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={BRAND}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.item?.id ?? ''}:${drillStack.length}`}
+                    >{body}</DashDrillView>
+                );
+            })()}
         </div>
     );
 }

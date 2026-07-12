@@ -1,13 +1,81 @@
 /* eslint-disable */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart2, Box, TrendingDown, Clock, ArrowDown, TrendingUp, AlertTriangle, CheckCircle2, Zap, Target, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart2, Box, TrendingDown, Clock, ArrowDown, TrendingUp, AlertTriangle, CheckCircle2, Zap, Target, ChevronLeft, ChevronRight, Activity, Layers, Users, Package, ShoppingCart, Percent, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, InfoTooltip } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import { GLASS, RADIUS, hexA } from '../theme/tokens';
 import initialProducts from '../../data/products';
+
+// ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
+const computeStats = (data) => {
+    if (!data || data.length === 0) return { total: 0, avg: 0, peak: 0, trend: 0, activeDays: 0 };
+    const nonZero = data.filter(v => v > 0);
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = nonZero.length > 0 ? Math.round(total / nonZero.length) : 0;
+    const peak = Math.max(...data);
+    const half = Math.floor(data.length / 2);
+    const firstHalf = data.slice(0, half).reduce((a, b) => a + b, 0);
+    const secondHalf = data.slice(half).reduce((a, b) => a + b, 0);
+    const trend = firstHalf > 0 ? Math.round((secondHalf - firstHalf) / firstHalf * 100) : (secondHalf > 0 ? 100 : 0);
+    return { total, avg, peak, trend, activeDays: nonZero.length };
+};
+
+// A tidy stat grid used across every drill level.
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+// A clickable/inert record row. Clickable rows push a deeper (babushka) level.
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
 
 // ─── Analytics accent — unified brand azure (de-rainbowed) ────────────────────
 const ACCENT = '#007AFF';
@@ -39,11 +107,16 @@ function Card({ title, subtitle, accent, action, children, className = '', title
 }
 
 // ─── Stat Row ─────────────────────────────────────────────────────────────────
-function StatRow({ label, value, pct, color }) {
+function StatRow({ label, value, pct, color, onClick }) {
+    const clickable = !!onClick;
     return (
-        <div className="space-y-1.5">
+        <div className={`space-y-1.5 rounded-[10px] -mx-2 px-2 py-1 transition-colors ${clickable ? 'cursor-pointer hover:bg-black/03 group' : ''}`}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}>
             <div className="flex justify-between items-center">
-                <span className="text-[#1D1D1F] font-black text-sm">{value}</span>
+                <span className="text-[#1D1D1F] font-black text-sm flex items-center gap-1">{value}{clickable && <ChevronLeft size={12} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" />}</span>
                 <span className="text-[#6E6E73] text-xs font-medium">{label}</span>
             </div>
             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
@@ -81,10 +154,17 @@ export default function AdminAnalytics() {
     const navigate = useNavigate();
     const [tab,         setTab]         = useState('overview');
     const [range,       setRange]       = useState('30');
-    const [drillKpi,    setDrillKpi]    = useState(null);
-    const [funnelStage, setFunnelStage] = useState(null);
     const [monthPage,   setMonthPage]   = useState(0);
     const [weekPage,    setWeekPage]    = useState(0);
+
+    // ── Babushka drill stack — each entry is one nested detail level ──────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null); // retains last level through the exit animation
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };
 
     // Filtered analytics by date range
     const rangeData = useMemo(() => {
@@ -457,6 +537,38 @@ export default function AdminAnalytics() {
         return map;
     }, [quotes]);
 
+    // ── Drill resolution helpers (real data only) ─────────────────────────────
+    const productSalesMap = useMemo(() => {
+        const m = {};
+        topByCount.forEach(p => { m[String(p.productId)] = { revenue: p.revenue, count: p.count }; });
+        return m;
+    }, [topByCount]);
+    const findProduct = (id) =>
+        inventory.find(p => String(p.id) === String(id)) ||
+        initialProducts.find(p => String(p.id) === String(id)) || null;
+
+    const catalogLists = useMemo(() => {
+        const th = (p) => Number(p.stockThreshold ?? p.minStock ?? 3);
+        return {
+            all:    inventory,
+            active: inventory.filter(p => p.isActive !== false),
+            low:    inventory.filter(p => Number(p.stock ?? 0) > 0 && Number(p.stock ?? 0) <= th(p)),
+            out:    inventory.filter(p => Number(p.stock ?? 0) === 0 && p.isActive !== false),
+            dead:   deadProducts,
+        };
+    }, [inventory, deadProducts]);
+
+    const ordersByCategory = useMemo(() => {
+        const m = {};
+        orders.forEach(o => { const c = o.category || 'אחר'; (m[c] = m[c] || []).push(o); });
+        return m;
+    }, [orders]);
+
+    const visitArr = analytics?.visits || [];
+    const salesArr = analytics?.sales || [];
+    const revArr   = analytics?.revenue || [];
+    const labArr   = analytics?.labels || [];
+
     return (
         <div dir="rtl" className="space-y-5">
 
@@ -499,20 +611,20 @@ export default function AdminAnalytics() {
                 <AdminKPICard title="כניסות ייחודיות" icon="traffic" value={totalVisits}
                     trend={weekTrend.visits !== null ? Math.abs(weekTrend.visits) : undefined}
                     trendUp={weekTrend.visits === null || weekTrend.visits >= 0}
-                    color="#007AFF" delay={0} onClick={() => setDrillKpi('visits')}
+                    color="#007AFF" delay={0} onClick={() => openDrill({ type: 'visits' })}
                     tooltip={{ text: 'סך כל הביקורים הייחודיים באתר. session חדש = כניסה חדשה. השוואה: 7 ימים אחרונים לעומת 7 לפניהם.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }} />
                 <AdminKPICard title="עסקאות מוצלחות" icon="orders" value={totalSales}
                     trend={weekTrend.sales !== null ? Math.abs(weekTrend.sales) : undefined}
                     trendUp={weekTrend.sales === null || weekTrend.sales >= 0}
-                    color="#34C759" delay={0.05} onClick={() => setDrillKpi('sales')}
+                    color="#34C759" delay={0.05} onClick={() => openDrill({ type: 'sales' })}
                     tooltip={{ text: 'כמות ה-sessions שהסתיימו ברכישה. מחושב מנתוני analytics.sales ב-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }} />
                 <AdminKPICard title="יחס המרה" icon="traffic" value={`${avgConv}%`}
-                    color="#5856D6" delay={0.1} onClick={() => setDrillKpi('conversion')}
+                    color="#5856D6" delay={0.1} onClick={() => openDrill({ type: 'conversion' })}
                     tooltip={{ text: 'אחוז הגולשים שהפכו ללקוחות. מחושב: עסקאות ÷ כניסות × 100. ממוצע כל-הזמן.', source: 'analytics.sales ÷ analytics.visits × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' }} />
                 <AdminKPICard title="הכנסות ברוטו" icon="revenue" value={`₪${kpis.totalRevenue.toLocaleString()}`}
                     trend={weekTrend.revenue !== null ? Math.abs(weekTrend.revenue) : undefined}
                     trendUp={weekTrend.revenue === null || weekTrend.revenue >= 0}
-                    color="#FF9500" delay={0.15} onClick={() => setDrillKpi('revenue')}
+                    color="#FF9500" delay={0.15} onClick={() => openDrill({ type: 'revenue' })}
                     tooltip={{ text: 'סך כל ההכנסות הגולמיות מהזמנות שנסגרו. לפני ניכוי עמלות ועלויות ספק.', source: 'Firestore · orders · total (סכום כולל)', link: '/admin/orders', linkLabel: 'ראה הזמנות' }} />
             </div>
 
@@ -557,7 +669,7 @@ export default function AdminAnalytics() {
                                             transition={{ delay: i * 0.05 }}
                                             className="flex items-center gap-3 rounded-[14px] p-3 cursor-pointer group"
                                             style={{ background: item.type === 'win' ? 'rgba(52,199,89,0.06)' : item.type === 'pending' ? 'rgba(88,86,214,0.06)' : 'rgba(255,149,0,0.06)', border: `1px solid ${item.color}18` }}
-                                            onClick={() => navigate(`/admin/orders?quoteId=${item.quoteId}`)}
+                                            onClick={() => openDrill({ type: 'quote', id: item.quoteId })}
                                         >
                                             <span className="text-[18px] shrink-0">{item.icon}</span>
                                             <div className="flex-1 min-w-0 text-right">
@@ -585,7 +697,7 @@ export default function AdminAnalytics() {
                                     style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'box-shadow 0.15s, transform 0.15s' }}
                                     whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={() => setDrillKpi(kpi.key)}
+                                    onClick={() => openDrill({ type: kpi.key })}
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `${kpi.color}15`, color: kpi.color }}><ChevronLeft size={12} /></div>
@@ -642,7 +754,7 @@ export default function AdminAnalytics() {
                                                 initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.06 }}
                                                 className="flex items-center gap-3 cursor-pointer group"
-                                                onClick={() => navigate('/admin/orders')}
+                                                onClick={() => openDrill({ type: 'stage', stage: stage.key })}
                                             >
                                                 <div className="w-24 text-right shrink-0">
                                                     <p className="text-[11px] font-black text-[#1D1D1F] truncate">{stage.label}</p>
@@ -694,7 +806,10 @@ export default function AdminAnalytics() {
                                         initial={{ opacity: 0, x: 12 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: i * 0.06 }}
-                                        className="grid grid-cols-4 gap-4 py-3.5 first:pt-0 last:pb-0 text-right"
+                                        className="grid grid-cols-4 gap-4 py-3.5 first:pt-0 last:pb-0 text-right cursor-pointer group rounded-[10px] hover:bg-black/02 transition-colors -mx-1 px-1"
+                                        onClick={() => openDrill({ type: 'week', week: w })}
+                                        role="button" tabIndex={0}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'week', week: w }); } }}
                                     >
                                         <p className="text-[#6E6E73] text-sm font-bold">{w.label}</p>
                                         <p className="text-[#1D1D1F] text-sm font-bold">{w.visits.toLocaleString()} כניסות</p>
@@ -735,13 +850,13 @@ export default function AdminAnalytics() {
                                 titleTooltip={{ text: 'מדדי תנועה מסכמים: ממוצע יומי, שיא, ימים פעילים ויחס המרה — כולם מחושבים ממאגר analytics ב-Firestore.', source: 'Firestore · analytics · visits[] + sales[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}>
                                 <div className="space-y-4 mt-1">
                                     <StatRow label="ממוצע יומי" value={`${(totalVisits / 30).toFixed(0)} כניסות`}
-                                        pct={Math.min((totalVisits / 30) / 10 * 100, 100)} color="#007AFF" />
+                                        pct={Math.min((totalVisits / 30) / 10 * 100, 100)} color="#007AFF" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="שיא יומי" value={`${Math.max(...(analytics?.visits || [0]))} כניסות`}
-                                        pct={100} color="#5856D6" />
+                                        pct={100} color="#5856D6" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="ימים עם תנועה" value={`${(analytics?.visits || []).filter(v => v > 0).length} ימים`}
-                                        pct={((analytics?.visits || []).filter(v => v > 0).length / 30) * 100} color="#34C759" />
+                                        pct={((analytics?.visits || []).filter(v => v > 0).length / 30) * 100} color="#34C759" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="יחס המרה כולל" value={`${avgConv}%`}
-                                        pct={parseFloat(avgConv) * 10} color="#FF9500" />
+                                        pct={parseFloat(avgConv) * 10} color="#FF9500" onClick={() => openDrill({ type: 'conversion' })} />
                                 </div>
                             </Card>
                         </div>
@@ -755,14 +870,16 @@ export default function AdminAnalytics() {
                         {/* ── KPI strip ── */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                             {[
-                                { label: 'הכנסות כוללות', value: `₪${kpis.totalRevenue.toLocaleString()}`, color: '#34C759', sub: `${closedStats.total} עסקאות`, tooltip: { text: 'סך כל ההכנסות הגולמיות מכלל הזמנות שנסגרו. לפני ניכויים.', source: 'Firestore · orders · total (מצטבר)', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
-                                { label: 'החודש הנוכחי', value: `₪${kpis.thisMonthRevenue.toLocaleString()}`, color: '#007AFF', sub: kpis.totalRevenue > 0 ? `${Math.round(kpis.thisMonthRevenue / kpis.totalRevenue * 100)}% מהסה"כ` : '—', tooltip: { text: 'הכנסות שנרשמו מתחילת החודש הנוכחי בלבד.', source: 'Firestore · kpis · thisMonthRevenue', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
-                                { label: 'ממוצע לעסקה (AOV)', value: `₪${kpis.avgOrderValue.toLocaleString()}`, color: '#5856D6', sub: 'ממוצע כל הזמנה', tooltip: { text: 'Average Order Value — כמה שווה כל עסקה בממוצע. מחושב: הכנסות ÷ מספר הזמנות.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
-                                { label: 'רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: closedStats.avgProfit >= 20 ? '#34C759' : '#FF9500', sub: 'מהגזמאות עם נתוני עלות', tooltip: { text: 'ממוצע שיעור הרווח (%) מהצעות שנסגרו ושיש להן נתוני עלות ספק ב-ProfitCalculator.', source: 'Firestore · quotes · pricingData.profitPct', link: '/admin/orders', linkLabel: 'ראה הצעות' } },
+                                { dk: 'revenue', label: 'הכנסות כוללות', value: `₪${kpis.totalRevenue.toLocaleString()}`, color: '#34C759', sub: `${closedStats.total} עסקאות`, tooltip: { text: 'סך כל ההכנסות הגולמיות מכלל הזמנות שנסגרו. לפני ניכויים.', source: 'Firestore · orders · total (מצטבר)', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
+                                { dk: 'revenue', label: 'החודש הנוכחי', value: `₪${kpis.thisMonthRevenue.toLocaleString()}`, color: '#007AFF', sub: kpis.totalRevenue > 0 ? `${Math.round(kpis.thisMonthRevenue / kpis.totalRevenue * 100)}% מהסה"כ` : '—', tooltip: { text: 'הכנסות שנרשמו מתחילת החודש הנוכחי בלבד.', source: 'Firestore · kpis · thisMonthRevenue', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
+                                { dk: 'winrate', label: 'ממוצע לעסקה (AOV)', value: `₪${kpis.avgOrderValue.toLocaleString()}`, color: '#5856D6', sub: 'ממוצע כל הזמנה', tooltip: { text: 'Average Order Value — כמה שווה כל עסקה בממוצע. מחושב: הכנסות ÷ מספר הזמנות.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
+                                { dk: 'cycle', label: 'רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: closedStats.avgProfit >= 20 ? '#34C759' : '#FF9500', sub: 'מהגזמאות עם נתוני עלות', tooltip: { text: 'ממוצע שיעור הרווח (%) מהצעות שנסגרו ושיש להן נתוני עלות ספק ב-ProfitCalculator.', source: 'Firestore · quotes · pricingData.profitPct', link: '/admin/orders', linkLabel: 'ראה הצעות' } },
                             ].map((k, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                    className="rounded-[18px] p-4 text-right" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
-                                    <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span>
+                                    whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
+                                    onClick={() => openDrill({ type: k.dk })}
+                                    className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+                                    <span className="flex items-center justify-between mb-1"><ChevronLeft size={12} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span></span>
                                     <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                     <p className="text-[10px] text-[#C7C7CC] font-medium mt-1.5">{k.sub}</p>
                                 </motion.div>
@@ -806,7 +923,10 @@ export default function AdminAnalytics() {
                                             const pct = (m.value / maxM) * 100;
                                             const isLatest = monthPage === 0 && i === monthlyRevenue.data.length - 1;
                                             return (
-                                                <div key={m.label} className="flex items-center gap-3">
+                                                <div key={m.label} className="flex items-center gap-3 cursor-pointer group rounded-[8px] -mx-1 px-1 hover:bg-black/02 transition-colors"
+                                                    onClick={() => openDrill({ type: 'month', month: m })}
+                                                    role="button" tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'month', month: m }); } }}>
                                                     <span className="text-[11px] font-black text-[#86868B] w-14 shrink-0 text-right">{m.short}</span>
                                                     <div className="flex-1 h-7 rounded-[8px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.04)' }}>
                                                         <motion.div className="h-full rounded-[8px] flex items-center justify-end pr-2.5"
@@ -832,7 +952,7 @@ export default function AdminAnalytics() {
                                         {topCustomers.map((c, i) => (
                                             <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                                                 className="flex items-center gap-3 py-2.5 px-1 cursor-pointer group rounded-[10px] hover:bg-black/02 transition-colors"
-                                                onClick={() => navigate(`/admin/orders?quoteId=${c.quoteId}`)}>
+                                                onClick={() => openDrill({ type: 'quote', id: c.quoteId })}>
                                                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black text-white"
                                                     style={{ background: ['#007AFF','#5856D6','#34C759','#FF9500','#FF3B30','#AF52DE'][i] }}>
                                                     {(c.name || c.institution || '?')[0]}
@@ -861,7 +981,10 @@ export default function AdminAnalytics() {
                                     {categoryRevenue.map(([cat, rev], i) => {
                                         const pct = Math.round((rev / (kpis.totalRevenue || 1)) * 100);
                                         return (
-                                            <div key={cat} className="space-y-1.5">
+                                            <div key={cat} className="space-y-1.5 cursor-pointer group rounded-[8px] -mx-1 px-1 py-0.5 hover:bg-black/02 transition-colors"
+                                                onClick={() => openDrill({ type: 'category', cat, rev })}
+                                                role="button" tabIndex={0}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'category', cat, rev }); } }}>
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[11px] font-black" style={{ color: DONUT_COLORS[i % DONUT_COLORS.length], fontVariantNumeric: 'tabular-nums' }}>₪{rev.toLocaleString()}</span>
@@ -961,7 +1084,7 @@ export default function AdminAnalytics() {
                                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
                                                 className="grid items-center gap-2 px-2 py-3 cursor-pointer group hover:bg-black/02 rounded-[10px] transition-colors"
                                                 style={{ gridTemplateColumns: '1fr 1fr 80px 70px 60px 16px' }}
-                                                onClick={() => navigate(`/admin/orders?quoteId=${deal.id}`)}>
+                                                onClick={() => openDrill({ type: 'quote', id: deal.id })}>
                                                 <p className="text-[12px] font-bold text-[#1D1D1F] truncate text-right">{deal.contactName || '—'}</p>
                                                 <p className="text-[11px] text-[#6E6E73] truncate text-right">{deal.institution || '—'}</p>
                                                 <p className="text-[12px] font-black text-[#1D1D1F] text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>₪{deal.revenue.toLocaleString()}</p>
@@ -1000,17 +1123,18 @@ export default function AdminAnalytics() {
                             return (
                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                                     {[
-                                        { label: 'סה"כ מוצרים', value: inventory.length, color: '#1D1D1F', route: '/admin/inventory', tooltip: { text: 'כלל המוצרים במאגר — פעילים ולא פעילים יחד.', source: 'Firestore · inventory (כולל isActive=false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
-                                        { label: 'פעילים', value: active, color: '#34C759', route: '/admin/inventory', tooltip: { text: 'מוצרים המוצגים כעת בחנות לגולשים. מוצרים שהוסתרו ידנית לא נספרים.', source: 'Firestore · inventory (isActive !== false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
-                                        { label: 'מלאי נמוך', value: lowStockCount, color: '#FF9500', route: '/admin/inventory', tooltip: { text: 'מוצרים עם מלאי גדול מ-0 אבל נמוך מהסף שהוגדר (stockThreshold). דורשים הזמנה מהספק.', source: 'Firestore · inventory (0 < stock ≤ stockThreshold)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
-                                        { label: 'אזל מהמלאי', value: outOfStock, color: '#FF3B30', route: '/admin/inventory', tooltip: { text: 'מוצרים פעילים שמלאיהם = 0. גולשים רואים אותם אבל לא יכולים לרכוש.', source: 'Firestore · inventory (stock === 0, isActive !== false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
-                                        { label: 'ללא מכירות', value: neverSold, color: '#86868B', route: '/admin/inventory', tooltip: { text: 'מוצרים פעילים שלא נמכרו אף פעם — אין להם שום הזמנה בכל הזמן.', source: 'inventory (פעילים) MINUS orders · productId', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
+                                        { kind: 'all', label: 'סה"כ מוצרים', value: inventory.length, color: '#1D1D1F', tooltip: { text: 'כלל המוצרים במאגר — פעילים ולא פעילים יחד.', source: 'Firestore · inventory (כולל isActive=false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
+                                        { kind: 'active', label: 'פעילים', value: active, color: '#34C759', tooltip: { text: 'מוצרים המוצגים כעת בחנות לגולשים. מוצרים שהוסתרו ידנית לא נספרים.', source: 'Firestore · inventory (isActive !== false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
+                                        { kind: 'low', label: 'מלאי נמוך', value: lowStockCount, color: '#FF9500', tooltip: { text: 'מוצרים עם מלאי גדול מ-0 אבל נמוך מהסף שהוגדר (stockThreshold). דורשים הזמנה מהספק.', source: 'Firestore · inventory (0 < stock ≤ stockThreshold)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
+                                        { kind: 'out', label: 'אזל מהמלאי', value: outOfStock, color: '#FF3B30', tooltip: { text: 'מוצרים פעילים שמלאיהם = 0. גולשים רואים אותם אבל לא יכולים לרכוש.', source: 'Firestore · inventory (stock === 0, isActive !== false)', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
+                                        { kind: 'dead', label: 'ללא מכירות', value: neverSold, color: '#86868B', tooltip: { text: 'מוצרים פעילים שלא נמכרו אף פעם — אין להם שום הזמנה בכל הזמן.', source: 'inventory (פעילים) MINUS orders · productId', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
                                     ].map((k, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                                            whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
                                             className="rounded-[18px] p-3 text-right cursor-pointer group"
                                             style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
-                                            onClick={() => navigate(k.route)}>
-                                            <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span>
+                                            onClick={() => openDrill({ type: 'catalog', kind: k.kind, label: k.label, color: k.color })}>
+                                            <span className="flex items-center justify-between mb-1"><ChevronLeft size={11} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span></span>
                                             <p className="font-black text-[22px] leading-none" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                         </motion.div>
                                     ))}
@@ -1034,7 +1158,7 @@ export default function AdminAnalytics() {
                                                 initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                                                 className="grid items-center gap-2 px-2 py-2.5 cursor-pointer group hover:bg-black/02 rounded-[10px] transition-colors"
                                                 style={{ gridTemplateColumns: '24px 32px 1fr 60px 80px 70px 16px' }}
-                                                onClick={() => navigate(`/admin/inventory?open=${encodeURIComponent(p.productId || p.title)}`)}>
+                                                onClick={() => openDrill({ type: 'product', id: p.productId, fallback: { title: p.title, image: p.image } })}>
                                                 <span className="text-[10px] font-black text-[#AEAEB2] text-center">{i + 1}</span>
                                                 <div className="w-8 h-8 rounded-[9px] overflow-hidden shrink-0 flex items-center justify-center" style={{ background: '#F5F5F7' }}>
                                                     {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} /> : <Box size={13} className="text-[#AEAEB2]" />}
@@ -1066,7 +1190,7 @@ export default function AdminAnalytics() {
                                         {deadProducts.slice(0, 6).map((p, i) => (
                                             <motion.div key={p.id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
                                                 className="flex items-center gap-2.5 p-2 rounded-[10px] cursor-pointer hover:bg-black/02 transition-colors group"
-                                                onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.title || p.name || '')}`)}>
+                                                onClick={() => openDrill({ type: 'product', id: p.id, fallback: { title: p.title || p.name, image: p.image } })}>
                                                 <div className="w-7 h-7 rounded-[8px] overflow-hidden shrink-0 flex items-center justify-center" style={{ background: '#F5F5F7' }}>
                                                     {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} /> : <Box size={11} className="text-[#AEAEB2]" />}
                                                 </div>
@@ -1108,14 +1232,16 @@ export default function AdminAnalytics() {
                             return (
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                     {[
-                                        { label: 'סה"כ לידים', value: total, color: '#007AFF', tooltip: { text: 'כמות הצעות המחיר שנוצרו בסיסטם. כל הצעה = ליד אחד שנכנס למשפך.', source: 'Firestore · quotes (כל הסטטוסים)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
-                                        { label: 'עסקאות נסגרו', value: closed, color: '#34C759', tooltip: { text: 'הצעות שהגיעו לסטטוס "נסגר" או "סופק". אלה ההכנסות בפועל.', source: 'Firestore · quotes (status: נסגר, סופק)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
-                                        { label: 'יחס המרה', value: `${total > 0 ? Math.round(closed / total * 100) : 0}%`, color: '#5856D6', tooltip: { text: 'אחוז הלידים שהתסיימו בעסקה. מחושב: נסגרו ÷ סה"כ לידים × 100.', source: 'quotes (נסגר+סופק) ÷ quotes (הכל) × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' } },
-                                        { label: 'ממתינות · אבדו', value: `${active} · ${lost}`, color: '#FF9500', tooltip: { text: 'ממתינות = הצעות פתוחות עדיין. אבדו = הצעות שבוטלו או סומנו כ"אבד". שתיהן בנפרד.', source: 'Firestore · quotes · status (פתוחות vs אבד+בוטל)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
+                                        { dk: 'leads', label: 'סה"כ לידים', value: total, color: '#007AFF', tooltip: { text: 'כמות הצעות המחיר שנוצרו בסיסטם. כל הצעה = ליד אחד שנכנס למשפך.', source: 'Firestore · quotes (כל הסטטוסים)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
+                                        { dk: 'closedList', label: 'עסקאות נסגרו', value: closed, color: '#34C759', tooltip: { text: 'הצעות שהגיעו לסטטוס "נסגר" או "סופק". אלה ההכנסות בפועל.', source: 'Firestore · quotes (status: נסגר, סופק)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
+                                        { dk: 'conversion', label: 'יחס המרה', value: `${total > 0 ? Math.round(closed / total * 100) : 0}%`, color: '#5856D6', tooltip: { text: 'אחוז הלידים שהתסיימו בעסקה. מחושב: נסגרו ÷ סה"כ לידים × 100.', source: 'quotes (נסגר+סופק) ÷ quotes (הכל) × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' } },
+                                        { dk: 'risk', label: 'ממתינות · אבדו', value: `${active} · ${lost}`, color: '#FF9500', tooltip: { text: 'ממתינות = הצעות פתוחות עדיין. אבדו = הצעות שבוטלו או סומנו כ"אבד". שתיהן בנפרד.', source: 'Firestore · quotes · status (פתוחות vs אבד+בוטל)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                     ].map((s, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                            className="rounded-[18px] p-4 text-right" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
-                                            <span className="flex items-center justify-end gap-0.5 mb-1"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{s.label}</p><InfoTooltip text={s.tooltip.text} source={s.tooltip.source} link={s.tooltip.link} linkLabel={s.tooltip.linkLabel} /></span>
+                                            whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
+                                            onClick={() => openDrill({ type: s.dk })}
+                                            className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+                                            <span className="flex items-center justify-between mb-1"><ChevronLeft size={12} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{s.label}</p><InfoTooltip text={s.tooltip.text} source={s.tooltip.source} link={s.tooltip.link} linkLabel={s.tooltip.linkLabel} /></span></span>
                                             <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
                                         </motion.div>
                                     ))}
@@ -1135,8 +1261,6 @@ export default function AdminAnalytics() {
                                     </div>
                                     {funnelData.map((stage, i) => {
                                         const stageVal = (stageQuotesMap[stage.key] || []).reduce((s, q) => s + (Number(q.subtotal) || 0), 0);
-                                        const isActive = funnelStage === stage.key;
-                                        const stageList = stageQuotesMap[stage.key] || [];
                                         return (
                                             <div key={stage.key}>
                                                 {i > 0 && stage.dropPct > 0 && (
@@ -1148,8 +1272,8 @@ export default function AdminAnalytics() {
                                                 <motion.div
                                                     initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
                                                     className="grid items-center gap-2 px-2 py-2.5 cursor-pointer group rounded-[10px] hover:bg-black/02 transition-colors"
-                                                    style={{ gridTemplateColumns: '120px 1fr 70px 50px 50px', background: isActive ? `${stage.color}08` : undefined }}
-                                                    onClick={() => setFunnelStage(isActive ? null : stage.key)}>
+                                                    style={{ gridTemplateColumns: '120px 1fr 70px 50px 50px' }}
+                                                    onClick={() => openDrill({ type: 'stage', stage: stage.key })}>
                                                     <div className="flex items-center gap-2 text-right">
                                                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: stage.color }} />
                                                         <p className="text-[11px] font-bold text-[#1D1D1F] truncate">{stage.label}</p>
@@ -1165,28 +1289,6 @@ export default function AdminAnalytics() {
                                                     <p className="text-[10px] font-bold text-[#6E6E73] text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>{stageVal > 0 ? `₪${(stageVal / 1000).toFixed(0)}k` : '—'}</p>
                                                     <p className="text-[10px] text-[#AEAEB2] text-right">{stage.avgDays !== null ? `${stage.avgDays}י` : '—'}</p>
                                                 </motion.div>
-                                                {/* Stage drilldown */}
-                                                <AnimatePresence>
-                                                    {isActive && stageList.length > 0 && (
-                                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                                                            className="overflow-hidden mx-2 mb-1 rounded-[12px]" style={{ background: `${stage.color}06`, border: `1px solid ${stage.color}18` }}>
-                                                            {stageList.slice(0, 5).map((q, qi) => (
-                                                                <motion.div key={q.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: qi * 0.03 }}
-                                                                    className="flex items-center gap-3 px-3 py-2 border-b last:border-0 cursor-pointer hover:bg-black/02 transition-colors group"
-                                                                    style={{ borderColor: `${stage.color}12` }}
-                                                                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders?quoteId=${q.id}`); }}>
-                                                                    <div className="flex-1 min-w-0 text-right">
-                                                                        <p className="text-[11px] font-bold text-[#1D1D1F] truncate">{q.contactName || q.institution || q.id}</p>
-                                                                        <p className="text-[9px] text-[#AEAEB2]">{q.institution && q.contactName ? q.institution : ''}</p>
-                                                                    </div>
-                                                                    <p className="text-[11px] font-black shrink-0" style={{ color: stage.color, fontVariantNumeric: 'tabular-nums' }}>₪{(Number(q.subtotal) || 0).toLocaleString()}</p>
-                                                                    <ChevronLeft size={11} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2] shrink-0" />
-                                                                </motion.div>
-                                                            ))}
-                                                            {stageList.length > 5 && <p className="text-[10px] text-[#AEAEB2] text-center py-1.5 font-semibold">+{stageList.length - 5} נוספות</p>}
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
                                             </div>
                                         );
                                     })}
@@ -1208,10 +1310,13 @@ export default function AdminAnalytics() {
                                         <div className="space-y-3 mt-1">
                                             {bns.map((s, i) => (
                                                 <motion.div key={s.key} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                                                    className="space-y-1.5">
+                                                    className="space-y-1.5 cursor-pointer group rounded-[8px] -mx-1 px-1 py-0.5 hover:bg-black/02 transition-colors"
+                                                    onClick={() => openDrill({ type: 'stage', stage: s.key })}
+                                                    role="button" tabIndex={0}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'stage', stage: s.key }); } }}>
                                                     <div className="flex justify-between">
                                                         <span className="text-[12px] font-black" style={{ color: s.dropPct >= 50 ? '#FF3B30' : '#FF9500' }}>-{s.dropPct}%</span>
-                                                        <span className="text-[11px] font-semibold text-[#1D1D1F]">{s.label}</span>
+                                                        <span className="text-[11px] font-semibold text-[#1D1D1F] flex items-center gap-1"><ChevronLeft size={11} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" />{s.label}</span>
                                                     </div>
                                                     <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
                                                         <motion.div className="h-full rounded-full" initial={{ width: 0 }}
@@ -1243,7 +1348,7 @@ export default function AdminAnalytics() {
                                             return (
                                                 <motion.div key={q.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
                                                     className="flex items-center gap-2 py-1.5 cursor-pointer group hover:bg-black/02 rounded-[8px] px-1 transition-colors"
-                                                    onClick={() => navigate(`/admin/orders?quoteId=${q.id}`)}>
+                                                    onClick={() => openDrill({ type: 'quote', id: q.id })}>
                                                     <span className="text-[10px] font-black shrink-0 w-8 text-right" style={{ color: Number(days) > 14 ? '#FF3B30' : '#FF9500', fontVariantNumeric: 'tabular-nums' }}>{days}י</span>
                                                     <div className="flex-1 min-w-0 text-right">
                                                         <p className="text-[11px] font-bold text-[#1D1D1F] truncate">{q.contactName || q.institution || q.id}</p>
@@ -1263,207 +1368,501 @@ export default function AdminAnalytics() {
 
             </AnimatePresence>
 
-            {/* ── KPI Drilldown Modal ──────────────────────────────────────────── */}
+            {/* ── Babushka Drill Drawer — nested glass detail view ─────────────── */}
             {(() => {
-                const kpiMeta = {
-                    visits:     { title: 'כניסות ייחודיות',    color: '#007AFF', route: '/admin/analytics', routeLabel: 'דוח תנועה מלא', tabKey: 'traffic' },
-                    sales:      { title: 'עסקאות מוצלחות',     color: '#34C759', route: '/admin/analytics', routeLabel: 'דוח מכירות',     tabKey: 'funnel' },
-                    conversion: { title: 'יחס המרה',            color: '#5856D6', route: '/admin/analytics', routeLabel: 'משפך המרה',       tabKey: 'funnel' },
-                    revenue:    { title: 'הכנסות ברוטו',        color: '#FF9500', route: '/admin/analytics', routeLabel: 'דוח הכנסות',      tabKey: 'revenue' },
-                    pipeline:   { title: 'שווי Pipeline',       color: '#007AFF', route: '/admin/orders',    routeLabel: 'ניהול הזמנות',    tabKey: null },
-                    winrate:    { title: 'שיעור סגירה',          color: '#34C759', route: '/admin/analytics', routeLabel: 'משפך המרה',       tabKey: 'funnel' },
-                    cycle:      { title: 'זמן ממוצע לסגירה',    color: '#5856D6', route: '/admin/orders',    routeLabel: 'ניהול הזמנות',    tabKey: null },
-                    risk:       { title: 'הצעות ב-Risk',         color: '#FF3B30', route: '/admin/orders',    routeLabel: 'ניהול הזמנות',    tabKey: null },
-                };
-                const m = drillKpi ? kpiMeta[drillKpi] : null;
-                if (!m) return null;
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
 
-                const statCard = (label, value, color) => (
-                    <div className="rounded-[14px] p-3 text-center" style={{ background: `${color || m.color}0C`, border: `1px solid ${color || m.color}20` }}>
-                        <p className="font-black text-[15px]" style={{ color: color || m.color }}>{value}</p>
-                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-0.5">{label}</p>
-                    </div>
-                );
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
 
-                const visitArr = analytics?.visits || [];
-                const salesArr = analytics?.sales || [];
-                const revArr   = analytics?.revenue || [];
-                const labArr   = analytics?.labels || [];
+                const dateShort = (ts) => ts ? new Date(ts).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '—';
+                const qVal = (q) => Number(q?.subtotal) || 0;
+                const goFunnel = () => { setTab('funnel'); closeDrill(); };
+                const goRevenueTab = () => { setTab('revenue'); closeDrill(); };
+                const goTrafficTab = () => { setTab('traffic'); closeDrill(); };
 
-                const computeTrend = (arr) => {
-                    const h = Math.floor(arr.length / 2);
-                    const f = arr.slice(0, h).reduce((a, b) => a + b, 0);
-                    const s = arr.slice(h).reduce((a, b) => a + b, 0);
-                    return f > 0 ? Math.round((s - f) / f * 100) : (s > 0 ? 100 : 0);
-                };
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
 
-                let content = null;
-                if (drillKpi === 'visits') {
-                    const total = visitArr.reduce((a, b) => a + b, 0);
-                    const nonZ  = visitArr.filter(v => v > 0);
-                    const avg   = nonZ.length ? Math.round(total / nonZ.length) : 0;
-                    const peak  = Math.max(...visitArr, 0);
-                    const trend = computeTrend(visitArr);
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-4 gap-3">{statCard('סה״כ', total.toLocaleString())}{statCard('ממוצע יומי', avg)}{statCard('שיא', peak)}{statCard('מגמה', `${trend >= 0 ? '+' : ''}${trend}%`, trend >= 0 ? '#34C759' : '#FF3B30')}</div>
-                            {total > 0 && <div><p className="text-[#86868B] text-[11px] font-bold mb-2">30 ימים אחרונים</p><BarChart data={visitArr.slice(-30)} color={m.color} labels={labArr.slice(-30)} height={130} /></div>}
+                if (shown.type === 'visits' || shown.type === 'traffic') {
+                    const s = computeStats(visitArr);
+                    title = 'כניסות ייחודיות'; subtitle = 'תנועה לאתר · Firestore'; accent = '#007AFF';
+                    icon = <Activity size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לדוח תנועה', onClick: goTrafficTab };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: s.total.toLocaleString(), color: '#007AFF' },
+                                { label: 'ממוצע יומי', value: s.avg.toLocaleString() },
+                                { label: 'שיא', value: s.peak.toLocaleString() },
+                                { label: 'מגמה', value: `${s.trend >= 0 ? '+' : ''}${s.trend}%`, color: s.trend >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {s.total > 0
+                                ? <div><p className="text-[11px] font-bold text-[#86868B] mb-3">30 ימים אחרונים</p><BarChart data={visitArr.slice(-30)} color="#007AFF" labels={labArr.slice(-30)} height={140} /></div>
+                                : <DrillEmpty icon={Activity} text="טרם הצטברו נתוני תנועה" />}
                         </div>
                     );
-                } else if (drillKpi === 'sales') {
-                    const total = salesArr.reduce((a, b) => a + b, 0);
-                    const nonZ  = salesArr.filter(v => v > 0);
-                    const avg   = nonZ.length ? Math.round(total / nonZ.length) : 0;
-                    const peak  = Math.max(...salesArr, 0);
-                    const trend = computeTrend(salesArr);
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-4 gap-3">{statCard('עסקאות', total)}{statCard('ממוצע', avg)}{statCard('שיא', peak)}{statCard('מגמה', `${trend >= 0 ? '+' : ''}${trend}%`, trend >= 0 ? '#34C759' : '#FF3B30')}</div>
-                            {total > 0 && <div><p className="text-[#86868B] text-[11px] font-bold mb-2">30 ימים אחרונים</p><BarChart data={salesArr.slice(-30)} color={m.color} labels={labArr.slice(-30)} height={130} /></div>}
+                } else if (shown.type === 'sales') {
+                    const s = computeStats(salesArr);
+                    title = 'עסקאות מוצלחות'; subtitle = 'מכירות יומיות · Firestore'; accent = '#34C759';
+                    icon = <BarChart2 size={17} color="#34C759" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'עסקאות', value: s.total.toLocaleString(), color: '#34C759' },
+                                { label: 'ממוצע יומי', value: s.avg.toLocaleString() },
+                                { label: 'שיא', value: s.peak.toLocaleString() },
+                                { label: 'מגמה', value: `${s.trend >= 0 ? '+' : ''}${s.trend}%`, color: s.trend >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {s.total > 0
+                                ? <div><p className="text-[11px] font-bold text-[#86868B] mb-3">30 ימים אחרונים</p><BarChart data={salesArr.slice(-30)} color="#34C759" labels={labArr.slice(-30)} height={140} /></div>
+                                : <DrillEmpty icon={BarChart2} text="טרם בוצעו עסקאות" />}
+                            {topByCount.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים מובילים — לחץ לצלילה</p>
+                                    {topByCount.slice(0, 5).map((p, i) => (
+                                        <DrillRow key={p.productId || i} delay={i * 0.04} tone="#34C759"
+                                            onClick={() => pushDrill({ type: 'product', id: p.productId, fallback: { title: p.title, image: p.image } })}
+                                            leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
+                                            title={p.title} subtitle={`${p.count} יח׳ נמכרו`}
+                                            trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{p.revenue.toLocaleString()}</span>} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     );
-                } else if (drillKpi === 'conversion') {
-                    const topFunnel = funnelData.slice(0, 5);
-                    const topCount  = topFunnel[0]?.count || 1;
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-3 gap-3">{statCard('יחס המרה', `${avgConv}%`)}{statCard('כניסות', visitArr.reduce((a, b) => a + b, 0))}{statCard('רכישות', salesArr.reduce((a, b) => a + b, 0))}</div>
-                            <div className="space-y-2.5 mt-1">
-                                {topFunnel.map((s, i) => (
-                                    <div key={s.key} className="flex items-center gap-3">
-                                        <div className="w-24 text-right shrink-0"><p className="text-[11px] font-black text-[#1D1D1F] truncate">{s.label}</p><p className="text-[9px] text-[#AEAEB2]">{s.count}</p></div>
-                                        <div className="flex-1 h-7 rounded-[7px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.04)' }}>
-                                            <motion.div className="h-full rounded-[7px]" initial={{ width: 0 }} animate={{ width: `${(s.count / topCount) * 100}%` }} transition={{ delay: i * 0.06, duration: 0.7, ease: [0.22, 1, 0.36, 1] }} style={{ background: s.color }} />
-                                        </div>
-                                        {s.dropPct > 0 && i > 0 && <span className="text-[10px] font-bold text-[#FF3B30] shrink-0 w-10 text-left">-{s.dropPct}%</span>}
-                                    </div>
+                } else if (shown.type === 'conversion') {
+                    const topFunnel = funnelData.slice(0, 6);
+                    title = 'יחס המרה'; subtitle = 'משפך המכירות · לחץ שלב לצלילה'; accent = '#5856D6';
+                    icon = <TrendingUp size={17} color="#5856D6" />;
+                    footer = { label: 'מעבר למשפך המרה', onClick: goFunnel };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'יחס המרה', value: `${avgConv}%`, color: '#5856D6' },
+                                { label: 'כניסות', value: totalVisits.toLocaleString(), color: '#007AFF' },
+                                { label: 'רכישות', value: totalSales.toLocaleString(), color: '#34C759' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שלבי המשפך — לחץ לצלילה</p>
+                                {topFunnel.map((st, i) => (
+                                    <DrillRow key={st.key} delay={i * 0.04} tone={st.color}
+                                        onClick={() => pushDrill({ type: 'stage', stage: st.key })}
+                                        leading={<span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: st.color }} />}
+                                        title={st.label}
+                                        subtitle={st.dropPct > 0 && i > 0 ? `-${st.dropPct}% נשירה` : (st.avgDays !== null ? `${st.avgDays} ימים בשלב` : ' ')}
+                                        trailing={<span className="text-[12px] font-black shrink-0" style={{ color: st.color }}>{st.count}</span>} />
                                 ))}
                             </div>
                         </div>
                     );
-                } else if (drillKpi === 'revenue') {
-                    const total = revArr.reduce((a, b) => a + b, 0);
-                    const nonZ  = revArr.filter(v => v > 0);
-                    const avg   = nonZ.length ? Math.round(total / nonZ.length) : 0;
-                    const peak  = Math.max(...revArr, 0);
-                    const trend = computeTrend(revArr);
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-4 gap-3">{statCard('סה״כ', `₪${total.toLocaleString()}`)}{statCard('ממוצע', `₪${avg.toLocaleString()}`)}{statCard('שיא', `₪${peak.toLocaleString()}`)}{statCard('מגמה', `${trend >= 0 ? '+' : ''}${trend}%`, trend >= 0 ? '#34C759' : '#FF3B30')}</div>
-                            {total > 0 && <div><p className="text-[#86868B] text-[11px] font-bold mb-2">30 ימים אחרונים</p><BarChart data={revArr.slice(-30)} color={m.color} labels={labArr.slice(-30)} height={130} /></div>}
+                } else if (shown.type === 'revenue') {
+                    const s = computeStats(revArr);
+                    title = 'הכנסות ברוטו'; subtitle = 'מחזור הכנסות · Firestore'; accent = '#FF9500';
+                    icon = <TrendingUp size={17} color="#FF9500" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: `₪${s.total.toLocaleString()}`, color: '#FF9500' },
+                                { label: 'ממוצע יומי', value: `₪${s.avg.toLocaleString()}` },
+                                { label: 'שיא יומי', value: `₪${s.peak.toLocaleString()}` },
+                                { label: 'מגמה', value: `${s.trend >= 0 ? '+' : ''}${s.trend}%`, color: s.trend >= 0 ? '#34C759' : '#FF3B30' },
+                            ]} />
+                            {s.total > 0
+                                ? <div><p className="text-[11px] font-bold text-[#86868B] mb-3">30 ימים אחרונים</p><BarChart data={revArr.slice(-30)} color="#FF9500" labels={labArr.slice(-30)} height={140} /></div>
+                                : <DrillEmpty icon={TrendingUp} text="טרם נרשמו הכנסות" />}
                             {topByCount.length > 0 && (
-                                <div><p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2">מוצרים מובילים</p>
-                                <div className="space-y-2">{topByCount.slice(0, 4).map((p, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <span className="text-[10px] text-[#AEAEB2] w-4 text-center font-black">{i + 1}</span>
-                                        <div className="flex-1"><div className="flex justify-between mb-1"><span className="text-[11px] font-black" style={{ color: m.color }}>₪{p.revenue.toLocaleString()}</span><span className="text-[11px] text-[#1D1D1F] truncate max-w-[130px]">{p.title}</span></div>
-                                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}><motion.div initial={{ width: 0 }} animate={{ width: `${(p.revenue / (topByCount[0]?.revenue || 1)) * 100}%` }} transition={{ delay: i * 0.06, duration: 0.6 }} className="h-full rounded-full" style={{ background: m.color }} /></div></div>
-                                    </div>
-                                ))}</div></div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פירוט לפי מוצר — לחץ לצלילה</p>
+                                    {topByCount.slice(0, 5).map((p, i) => (
+                                        <DrillRow key={p.productId || i} delay={i * 0.04} tone="#FF9500"
+                                            onClick={() => pushDrill({ type: 'product', id: p.productId, fallback: { title: p.title, image: p.image } })}
+                                            leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
+                                            title={p.title} subtitle={`${p.count} יח׳ נמכרו`}
+                                            trailing={<span className="text-[12px] font-black text-[#FF9500] shrink-0">₪{p.revenue.toLocaleString()}</span>} />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     );
-                } else if (drillKpi === 'pipeline') {
+                } else if (shown.type === 'pipeline') {
                     const stages = Object.entries(pipelineStats.stageValues).filter(([, v]) => v.count > 0);
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-3 gap-3">{statCard('שווי', `₪${pipelineStats.pipelineValue.toLocaleString()}`)}{statCard('הצעות פתוחות', pipelineStats.openCount)}{statCard('שלבים פעילים', stages.length)}</div>
-                            {stages.length > 0 && <div className="space-y-2">{stages.map(([stageName, sv], i) => {
-                                const pct = pipelineStats.pipelineValue > 0 ? (sv.value / pipelineStats.pipelineValue) * 100 : 0;
-                                return (
-                                    <div key={stageName} className="flex items-center gap-3">
-                                        <div className="w-24 text-right shrink-0"><p className="text-[11px] font-black text-[#1D1D1F] truncate">{stageName}</p><p className="text-[9px] text-[#AEAEB2]">{sv.count} הצעות</p></div>
-                                        <div className="flex-1 h-7 rounded-[7px] overflow-hidden" style={{ background: 'rgba(0,0,0,0.04)' }}><motion.div className="h-full rounded-[7px]" initial={{ width: 0 }} animate={{ width: `${Math.max(pct, 5)}%` }} transition={{ delay: i * 0.06, duration: 0.7, ease: [0.22, 1, 0.36, 1] }} style={{ background: m.color }} /></div>
-                                        <span className="text-[11px] font-black shrink-0 w-20 text-left" style={{ color: m.color }}>₪{sv.value.toLocaleString()}</span>
-                                    </div>
-                                );
-                            })}</div>}
-                        </div>
-                    );
-                } else if (drillKpi === 'winrate') {
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-3 gap-3">{statCard('שיעור סגירה', pipelineStats.winRate !== null ? `${pipelineStats.winRate}%` : '—')}{statCard('עסקאות סגורות', closedStats.total)}{statCard('ממוצע לעסקה', `₪${closedStats.avgDeal.toLocaleString()}`)}</div>
-                            {closedDeals.length > 0 && (
-                                <div><p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2">עסקאות אחרונות</p>
-                                <div className="space-y-2">{closedDeals.slice(0, 5).map((d, i) => (
-                                    <motion.div key={d.id} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                                        className="flex items-center justify-between rounded-[12px] p-3 cursor-pointer"
-                                        style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}
-                                        onClick={() => { navigate(`/admin/orders?quoteId=${d.id}`); setDrillKpi(null); }}>
-                                        <span className="text-[12px] font-black" style={{ color: '#34C759' }}>₪{d.revenue.toLocaleString()}</span>
-                                        <div className="text-right"><p className="text-[12px] font-bold text-[#1D1D1F]">{d.contactName}</p><p className="text-[10px] text-[#AEAEB2]">{d.institution}</p></div>
-                                    </motion.div>
-                                ))}</div></div>
+                    title = 'שווי Pipeline'; subtitle = `${pipelineStats.openCount} הצעות פתוחות`; accent = '#007AFF';
+                    icon = <Target size={17} color="#007AFF" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שווי', value: `₪${pipelineStats.pipelineValue.toLocaleString()}`, color: '#007AFF' },
+                                { label: 'הצעות פתוחות', value: pipelineStats.openCount, color: '#5856D6' },
+                                { label: 'שלבים פעילים', value: stages.length, color: '#34C759' },
+                            ]} />
+                            {stages.length === 0 ? <DrillEmpty icon={Target} text="אין הצעות פתוחות בצינור" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שלבים — לחץ לצלילה</p>
+                                    {stages.map(([stageName, sv], i) => (
+                                        <DrillRow key={stageName} delay={i * 0.04} tone="#007AFF"
+                                            onClick={() => pushDrill({ type: 'stage', stage: stageName })}
+                                            leading={<span className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-[12px] font-black" style={{ background: hexA('#007AFF', 0.12), color: '#007AFF' }}>{sv.count}</span>}
+                                            title={stageName} subtitle={`${sv.count} הצעות`}
+                                            trailing={<span className="text-[12px] font-black text-[#007AFF] shrink-0">₪{sv.value.toLocaleString()}</span>} />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     );
-                } else if (drillKpi === 'cycle') {
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-3 gap-3">{statCard('ממוצע ימים', pipelineStats.avgCycle ?? '—')}{statCard('עסקאות שנמדדו', closedStats.total)}{statCard('% רווח ממוצע', closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—')}</div>
-                            {closedDeals.length > 0 && (
-                                <div><p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2">עסקאות אחרונות</p>
-                                <div className="space-y-2">{closedDeals.slice(0, 5).map((d, i) => (
-                                    <motion.div key={d.id} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                                        className="flex items-center justify-between rounded-[12px] p-3 cursor-pointer"
-                                        style={{ background: 'rgba(88,86,214,0.06)', border: '1px solid rgba(88,86,214,0.15)' }}
-                                        onClick={() => { navigate(`/admin/orders?quoteId=${d.id}`); setDrillKpi(null); }}>
-                                        <span className="text-[12px] font-black" style={{ color: '#5856D6' }}>{d.closedAt ? `${Math.round((Date.now() - d.closedAt.getTime()) / 86400000)} ימים` : '—'}</span>
-                                        <div className="text-right"><p className="text-[12px] font-bold text-[#1D1D1F]">{d.contactName}</p><p className="text-[10px] text-[#AEAEB2]">₪{d.revenue.toLocaleString()}</p></div>
-                                    </motion.div>
-                                ))}</div></div>
+                } else if (shown.type === 'winrate') {
+                    title = 'שיעור סגירה'; subtitle = `${closedStats.total} עסקאות נסגרו`; accent = '#34C759';
+                    icon = <TrendingUp size={17} color="#34C759" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שיעור סגירה', value: pipelineStats.winRate !== null ? `${pipelineStats.winRate}%` : '—', color: '#34C759' },
+                                { label: 'עסקאות סגורות', value: closedStats.total, color: '#007AFF' },
+                                { label: 'ממוצע לעסקה', value: `₪${closedStats.avgDeal.toLocaleString()}`, color: '#5856D6' },
+                            ]} />
+                            {closedDeals.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין עסקאות סגורות עדיין" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">עסקאות אחרונות — לחץ לפרטים</p>
+                                    {closedDeals.slice(0, 6).map((d, i) => (
+                                        <DrillRow key={d.id} delay={i * 0.04} tone="#34C759"
+                                            onClick={() => pushDrill({ type: 'quote', id: d.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.1) }}><Users size={13} color="#34C759" /></span>}
+                                            title={d.contactName || d.institution || d.id} subtitle={d.institution || '—'}
+                                            trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{d.revenue.toLocaleString()}</span>} />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     );
-                } else if (drillKpi === 'risk') {
-                    content = (
-                        <div className="space-y-4" dir="rtl">
-                            <div className="grid grid-cols-3 gap-3">{statCard('סכום בסיכון', `₪${pipelineStats.atRiskValue.toLocaleString()}`, '#FF3B30')}{statCard('הצעות', pipelineStats.atRisk.length, '#FF3B30')}{statCard('ממתינות לאישור', pipelineStats.pendingApproval.length)}</div>
-                            {pipelineStats.atRisk.length === 0 ? (
-                                <div className="text-center py-6 text-[#34C759] font-bold text-sm">אין הצעות בסיכון 🎉</div>
-                            ) : (
-                                <div><p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2">הצעות מעל 21 יום</p>
-                                <div className="space-y-2">{pipelineStats.atRisk.slice(0, 6).map((q, i) => {
-                                    const days = Math.round((Date.now() - q.dateTs) / 86400000);
-                                    return (
-                                        <motion.div key={q.id} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                                            className="flex items-center justify-between rounded-[12px] p-3 cursor-pointer group"
-                                            style={{ background: 'rgba(255,59,48,0.05)', border: '1px solid rgba(255,59,48,0.15)' }}
-                                            onClick={() => { navigate(`/admin/orders?quoteId=${q.id}`); setDrillKpi(null); }}>
-                                            <span className="text-[11px] font-black text-[#FF3B30]">{days} ימים</span>
-                                            <div className="flex-1 mx-3 text-right"><p className="text-[12px] font-bold text-[#1D1D1F] truncate">{q.contactName || q.institution || q.id}</p><p className="text-[10px] text-[#AEAEB2]">{q.status} · ₪{(Number(q.subtotal) || 0).toLocaleString()}</p></div>
-                                            <ChevronLeft size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#FF3B30]" />
-                                        </motion.div>
-                                    );
-                                })}</div></div>
+                } else if (shown.type === 'cycle') {
+                    title = 'זמן ממוצע לסגירה'; subtitle = 'מליד לעסקה'; accent = '#5856D6';
+                    icon = <Clock size={17} color="#5856D6" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ממוצע ימים', value: pipelineStats.avgCycle ?? '—', color: '#5856D6' },
+                                { label: 'עסקאות שנמדדו', value: closedStats.total, color: '#007AFF' },
+                                { label: '% רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: '#34C759' },
+                            ]} />
+                            {closedDeals.length === 0 ? <DrillEmpty icon={Clock} text="אין עסקאות סגורות עדיין" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">עסקאות אחרונות — לחץ לפרטים</p>
+                                    {closedDeals.slice(0, 6).map((d, i) => (
+                                        <DrillRow key={d.id} delay={i * 0.04} tone="#5856D6"
+                                            onClick={() => pushDrill({ type: 'quote', id: d.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5856D6', 0.1) }}><Clock size={13} color="#5856D6" /></span>}
+                                            title={d.contactName || d.institution || d.id}
+                                            subtitle={d.closedAt ? `נסגר לפני ${Math.round((Date.now() - d.closedAt.getTime()) / 86400000)} ימים` : '—'}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{d.revenue.toLocaleString()}</span>} />
+                                    ))}
+                                </div>
                             )}
                         </div>
                     );
+                } else if (shown.type === 'risk') {
+                    title = 'הכנסה בסיכון'; subtitle = `${pipelineStats.atRisk.length} הצעות מעל 21 יום`; accent = '#FF3B30';
+                    icon = <AlertTriangle size={17} color="#FF3B30" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סכום בסיכון', value: `₪${pipelineStats.atRiskValue.toLocaleString()}`, color: '#FF3B30' },
+                                { label: 'הצעות', value: pipelineStats.atRisk.length, color: '#FF9500' },
+                                { label: 'ממתינות לאישור', value: pipelineStats.pendingApproval.length, color: '#5856D6' },
+                            ]} />
+                            {pipelineStats.atRisk.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין הצעות בסיכון 🎉" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הצעות מעל 21 יום — לחץ לפרטים</p>
+                                    {pipelineStats.atRisk.slice(0, 8).map((q, i) => {
+                                        const days = Math.round((Date.now() - q.dateTs) / 86400000);
+                                        return (
+                                            <DrillRow key={q.id} delay={i * 0.04} tone="#FF3B30"
+                                                onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                                leading={<span className="text-[11px] font-black shrink-0 w-9 text-center" style={{ color: '#FF3B30' }}>{days}י</span>}
+                                                title={q.contactName || q.institution || q.id} subtitle={q.status}
+                                                trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{qVal(q).toLocaleString()}</span>} />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'stage') {
+                    const list = stageQuotesMap[shown.stage] || [];
+                    const stageTotal = list.reduce((s, q) => s + qVal(q), 0);
+                    const meta = funnelData.find(f => f.key === shown.stage);
+                    title = meta?.label || shown.stage; subtitle = `${list.length} הצעות בשלב`; accent = meta?.color || '#007AFF';
+                    icon = <Layers size={17} color={meta?.color || '#007AFF'} />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'שווי כולל', value: `₪${Math.round(stageTotal).toLocaleString()}`, color: '#34C759' },
+                                { label: 'זמן ממוצע', value: meta?.avgDays !== null && meta?.avgDays !== undefined ? `${meta.avgDays}י` : '—', color: '#5856D6' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={Layers} text="אין הצעות בשלב זה" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הצעות — לחץ לפרטים</p>
+                                    {list.map((q, i) => (
+                                        <DrillRow key={q.id} delay={i * 0.03} tone={accent}
+                                            onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.1) }}><Users size={13} color={accent} /></span>}
+                                            title={q.contactName || q.institution || q.id} subtitle={q.institution || dateShort(q.dateTs)}
+                                            trailing={<span className="text-[12px] font-black shrink-0" style={{ color: accent }}>₪{qVal(q).toLocaleString()}</span>} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'leads' || shown.type === 'closedList') {
+                    const isClosed = shown.type === 'closedList';
+                    const list = isClosed
+                        ? closedDeals
+                        : [...quotes].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+                    const totalVal = list.reduce((s, q) => s + (isClosed ? q.revenue : qVal(q)), 0);
+                    title = isClosed ? 'עסקאות שנסגרו' : 'כל הלידים'; subtitle = `${list.length} הצעות`; accent = isClosed ? '#34C759' : '#007AFF';
+                    icon = <Layers size={17} color={accent} />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'שווי כולל', value: `₪${Math.round(totalVal).toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={Layers} text="אין הצעות להצגה" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימה — לחץ לפרטים</p>
+                                    {list.slice(0, 20).map((q, i) => (
+                                        <DrillRow key={q.id} delay={i * 0.02} tone={accent}
+                                            onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.1) }}><Users size={13} color={accent} /></span>}
+                                            title={q.contactName || q.institution || q.id} subtitle={q.status || q.institution || dateShort(q.dateTs)}
+                                            trailing={<span className="text-[12px] font-black shrink-0" style={{ color: accent }}>₪{(isClosed ? q.revenue : qVal(q)).toLocaleString()}</span>} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'quote') {
+                    const q = quotes.find(x => String(x.id) === String(shown.id));
+                    title = q ? (q.contactName || q.institution || 'הצעה') : 'הצעה';
+                    subtitle = q ? `${q.status || ''} · ₪${qVal(q).toLocaleString()}` : String(shown.id);
+                    accent = '#5856D6'; icon = <Layers size={17} color="#5856D6" />;
+                    footer = { label: 'פתח בניהול הזמנות', onClick: () => drillTo(`/admin/orders?quoteId=${shown.id}`) };
+                    body = q ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA('#5856D6', 0.1), color: '#5856D6' }}>{q.status || '—'}</span>
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{qVal(q).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'מוסד', value: q.institution || '—', color: '#5856D6' },
+                                { label: 'פריטים', value: (q.items || []).length, color: '#007AFF' },
+                                { label: 'תאריך', value: dateShort(q.dateTs) },
+                            ]} />
+                            {(q.items || []).length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטי ההצעה — לחץ למוצר</p>
+                                    {q.items.map((it, i) => {
+                                        const pid = it.id || it.catalogNumber;
+                                        return (
+                                            <DrillRow key={i} delay={i * 0.03}
+                                                onClick={pid ? () => pushDrill({ type: 'product', id: pid, fallback: { title: it.title || it.name, image: it.image } }) : undefined}
+                                                leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{it.image ? <img src={it.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                                title={it.title || it.name || `פריט ${i + 1}`}
+                                                subtitle={`${it.qty || it.quantity || 1} × ₪${(Number(it.salePrice || it.price) || 0).toLocaleString()}`}
+                                                trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1)).toLocaleString()}</span>} />
+                                        );
+                                    })}
+                                </div>
+                            ) : <DrillEmpty icon={Layers} text="אין פריטים מפורטים בהצעה" />}
+                        </div>
+                    ) : <DrillEmpty icon={Layers} text="ההצעה לא נמצאה" />;
+                } else if (shown.type === 'order') {
+                    const o = orders.find(x => String(x.id) === String(shown.id));
+                    const units = o ? ((o.items || []).reduce((s, it) => s + (Number(it.qty) || 1), 0) || (o.items || []).length) : 0;
+                    title = o ? (o.customer || 'הזמנה') : 'הזמנה';
+                    subtitle = o ? `#${o.id} · ${dateShort(o.dateTs)}` : String(shown.id);
+                    accent = '#007AFF'; icon = <ShoppingCart size={17} color="#007AFF" />;
+                    footer = { label: 'פתח בניהול הזמנות', onClick: () => drillTo(`/admin/orders?orderId=${shown.id}`) };
+                    body = o ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA('#007AFF', 0.1), color: '#007AFF' }}>{o.status || '—'}</span>
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{(o.total || 0).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'פריטים', value: units, color: '#007AFF' },
+                                { label: 'סכום', value: `₪${(o.total || 0).toLocaleString()}`, color: '#34C759' },
+                                { label: 'תאריך', value: dateShort(o.dateTs) },
+                            ]} />
+                            {(o.items || []).length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטים בהזמנה — לחץ למוצר</p>
+                                    {o.items.map((it, i) => (
+                                        <DrillRow key={i} delay={i * 0.03}
+                                            onClick={it.id ? () => pushDrill({ type: 'product', id: it.id, fallback: { title: it.title, image: it.image } }) : undefined}
+                                            leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{it.image ? <img src={it.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                            title={it.title || it.name || `פריט ${i + 1}`}
+                                            subtitle={`${it.qty || 1} × ₪${(Number(it.price) || 0).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.price) || 0) * (Number(it.qty) || 1)).toLocaleString()}</span>} />
+                                    ))}
+                                </div>
+                            ) : <DrillEmpty icon={Package} text="אין פריטים מפורטים בהזמנה" />}
+                        </div>
+                    ) : <DrillEmpty icon={ShoppingCart} text="ההזמנה לא נמצאה" />;
+                } else if (shown.type === 'product') {
+                    const prod = findProduct(shown.id);
+                    const sales = productSalesMap[String(shown.id)] || { revenue: 0, count: 0 };
+                    const pTitle = prod?.title || prod?.name || shown.fallback?.title || 'מוצר';
+                    const pImage = prod?.image || shown.fallback?.image;
+                    const stock = prod ? Number(prod.stock ?? prod.quantity ?? 0) : null;
+                    const threshold = prod ? Number(prod.stockThreshold ?? prod.minStock ?? 3) : null;
+                    title = pTitle; subtitle = prod?.category || 'מוצר'; accent = '#007AFF';
+                    icon = <Box size={17} color="#007AFF" />;
+                    footer = { label: 'פתח בניהול מלאי', onClick: () => drillTo(`/admin/inventory?open=${encodeURIComponent(shown.id ?? pTitle)}`) };
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center" style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    {pImage ? <img src={pImage} alt={pTitle} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /> : <Box size={26} className="text-[#AEAEB2]" />}
+                                </div>
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="text-[15px] font-black text-[#1D1D1F] leading-tight">{pTitle}</p>
+                                    {prod?.price != null && <p className="text-[13px] font-bold text-[#34C759] mt-1">₪{Number(prod.price).toLocaleString()}</p>}
+                                    {prod?.category && <p className="text-[11px] text-[#AEAEB2] mt-0.5">{prod.category}</p>}
+                                </div>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'הכנסות', value: `₪${sales.revenue.toLocaleString()}`, color: '#34C759' },
+                                { label: 'יח׳ נמכרו', value: sales.count, color: '#007AFF' },
+                                ...(stock != null ? [{ label: 'במלאי', value: `${stock}${threshold != null ? `/${threshold}` : ''}`, color: stock <= (threshold ?? 0) ? '#FF3B30' : '#34C759' }] : []),
+                            ]} />
+                            {!prod && (
+                                <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                                    המוצר לא נמצא בקטלוג הנוכחי — הנתונים מבוססים על היסטוריית ההזמנות.
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'catalog') {
+                    const list = catalogLists[shown.kind] || [];
+                    title = shown.label || 'מוצרים'; subtitle = `${list.length} מוצרים`; accent = shown.color || '#007AFF';
+                    icon = <Package size={17} color={accent} />;
+                    footer = { label: 'מעבר לניהול מלאי', onClick: () => drillTo('/admin/inventory') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: shown.label || 'מוצרים', value: list.length, color: accent },
+                                { label: 'סה״כ בקטלוג', value: inventory.length, color: '#8E8E93' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין מוצרים בקטגוריה זו 🎉" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים — לחץ לצלילה</p>
+                                    {list.slice(0, 20).map((p, i) => {
+                                        const sales = productSalesMap[String(p.id)] || { revenue: 0, count: 0 };
+                                        return (
+                                            <DrillRow key={p.id || i} delay={i * 0.02} tone={accent}
+                                                onClick={() => pushDrill({ type: 'product', id: p.id, fallback: { title: p.title || p.name, image: p.image } })}
+                                                leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                                title={p.title || p.name || p.id}
+                                                subtitle={`${p.category || 'ללא קטגוריה'} · מלאי: ${p.stock ?? '—'}`}
+                                                trailing={sales.count > 0 ? <span className="text-[11px] font-black text-[#34C759] shrink-0">₪{sales.revenue.toLocaleString()}</span> : undefined} />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'category') {
+                    const cat = shown.cat;
+                    const list = ordersByCategory[cat] || [];
+                    const pct = kpis.totalRevenue > 0 ? Math.round((shown.rev / kpis.totalRevenue) * 100) : 0;
+                    title = cat; subtitle = 'הכנסות לפי קטגוריה'; accent = '#FF9500';
+                    icon = <Percent size={17} color="#FF9500" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הכנסות', value: `₪${(shown.rev || 0).toLocaleString()}`, color: '#FF9500' },
+                                { label: 'הזמנות', value: list.length, color: '#007AFF' },
+                                { label: 'מסך הכנסות', value: `${pct}%`, color: '#5856D6' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={ShoppingCart} text="אין הזמנות בקטגוריה זו" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הזמנות — לחץ לפרטים</p>
+                                    {list.slice(0, 12).map((o, i) => (
+                                        <DrillRow key={o.id || i} delay={i * 0.03} tone="#FF9500"
+                                            onClick={() => pushDrill({ type: 'order', id: o.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#FF9500', 0.1) }}><ShoppingCart size={13} color="#FF9500" /></span>}
+                                            title={o.customer || `הזמנה #${o.id}`} subtitle={dateShort(o.dateTs)}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'month') {
+                    const mo = shown.month || {};
+                    title = mo.label || 'חודש'; subtitle = 'הכנסות חודשיות'; accent = '#5856D6';
+                    icon = <BarChart2 size={17} color="#5856D6" />;
+                    footer = { label: 'מעבר לדוח הכנסות', onClick: goRevenueTab };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הכנסות בחודש', value: `₪${(mo.value || 0).toLocaleString()}`, color: '#5856D6' },
+                                { label: 'מסך שנתי', value: kpis.totalRevenue > 0 ? `${Math.round((mo.value || 0) / kpis.totalRevenue * 100)}%` : '—', color: '#007AFF' },
+                            ]} />
+                            <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                                נתוני ההכנסה מחושבים מרשומות analytics.revenue ב-Firestore עבור {mo.label}.
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'week') {
+                    const w = shown.week || {};
+                    title = w.label || 'שבוע'; subtitle = 'סיכום שבועי'; accent = '#FF9500';
+                    icon = <BarChart2 size={17} color="#FF9500" />;
+                    footer = { label: 'מעבר לדוח אנליטיקה', onClick: () => drillTo('/admin/analytics') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'כניסות', value: (w.visits || 0).toLocaleString(), color: '#007AFF' },
+                                { label: 'מכירות', value: (w.sales || 0).toLocaleString(), color: '#34C759' },
+                                { label: 'הכנסות', value: `₪${(w.rev || 0).toLocaleString()}`, color: '#FF9500' },
+                            ]} />
+                            <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                                נתוני השבוע ({w.label}) מחושבים מרשומות analytics ב-Firestore.
+                            </div>
+                        </div>
+                    );
+                } else {
+                    title = 'פרטים'; icon = <Activity size={17} color="#007AFF" />;
+                    body = <DrillEmpty icon={Activity} text="אין נתונים להצגה" />;
                 }
 
                 return (
-                    <AdminModal open={!!drillKpi} onClose={() => setDrillKpi(null)} title={m.title} size="lg">
-                        <div className="space-y-5">
-                            {content}
-                            <div className="flex items-center justify-between pt-1 border-t border-black/06">
-                                <span className="text-[10px] text-[#AEAEB2] font-medium">לחץ לצלילה עמוקה →</span>
-                                <motion.button
-                                    whileHover={{ x: -3 }} whileTap={{ scale: 0.96 }}
-                                    onClick={() => {
-                                        if (m.tabKey) setTab(m.tabKey);
-                                        navigate(m.route);
-                                        setDrillKpi(null);
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-[12px] font-black"
-                                    style={{ background: `${m.color}14`, color: m.color, border: `1px solid ${m.color}28` }}
-                                >
-                                    <span>{m.routeLabel}</span>
-                                    <ChevronLeft size={14} />
-                                </motion.button>
-                            </div>
-                        </div>
-                    </AdminModal>
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.id ?? shown.stage ?? shown.kind ?? shown.cat ?? shown.month?.label ?? shown.week?.label ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
                 );
             })()}
         </div>

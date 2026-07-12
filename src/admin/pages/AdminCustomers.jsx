@@ -1,13 +1,14 @@
 /* eslint-disable */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InboxIcon, Trash2, Check, Users } from 'lucide-react';
+import { InboxIcon, Trash2, Check, Users, ShoppingCart, TrendingUp, ChevronLeft, Box, MapPin, Package } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, hexA } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 
 // ─── Customers accent — unified brand azure (de-rainbowed) ────────────────────
 const ACCENT = '#007AFF';
@@ -29,77 +30,61 @@ function Avatar({ name, size = 9 }) {
     );
 }
 
-function CustomerDetailModal({ customer, onClose, navigate }) {
-    if (!customer) return null;
-    const phone = customer.phone?.replace(/\D/g, '');
-    const waLink = phone ? `https://wa.me/972${phone.replace(/^0/, '')}` : null;
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+// A tidy stat grid used across every drill level.
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
     return (
-        <AdminModal open={!!customer} onClose={onClose} title={customer.name} size="md">
-            <div className="space-y-5" dir="rtl">
-                {/* Info grid */}
-                <div className="grid grid-cols-2 gap-3">
-                    {[
-                        ['מייל', customer.email],
-                        ['טלפון', customer.phone],
-                        ['עיר', customer.city],
-                        ['הזמנות', customer.orders.length],
-                        ['סה״כ רכישות', `₪${customer.total.toLocaleString()}`],
-                    ].map(([label, val]) => val ? (
-                        <div key={label} className="rounded-xl p-3 text-right" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                            <p className="text-[#AEAEB2] text-[10px] font-black tracking-widest">{label}</p>
-                            <p className="text-[#1D1D1F] font-bold text-sm mt-0.5">{val}</p>
-                        </div>
-                    ) : null)}
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex gap-2">
-                    {waLink && (
-                        <a href={waLink} target="_blank" rel="noopener noreferrer"
-                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white"
-                            style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', boxShadow: '0 6px 20px rgba(37,211,102,0.3)' }}>
-                            WhatsApp
-                        </a>
-                    )}
-                    {customer.phone && (
-                        <a href={`tel:${customer.phone}`}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-sm text-white"
-                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 6px 20px rgba(0,122,255,0.25)' }}>
-                            התקשר
-                        </a>
-                    )}
-                </div>
-
-                {/* Order history */}
-                <div>
-                    <p className="text-[#86868B] text-[10px] font-black tracking-widest mb-3 text-right">היסטוריית הזמנות</p>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {customer.orders.map(order => (
-                            <div key={order.id}
-                                className="flex items-center justify-between p-3 rounded-xl text-right cursor-pointer transition-all"
-                                style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
-                                onClick={() => navigate && navigate(`/admin/orders?orderId=${order.id}`)}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.18)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.05)'; }}>
-                                <div>
-                                    <p className="text-[#007AFF] font-bold text-sm hover:underline cursor-pointer"
-                                        onClick={e => { e.stopPropagation(); navigate && navigate(`/admin/inventory?open=${encodeURIComponent(order.product)}`); }}>
-                                        {order.product}
-                                    </p>
-                                    <p className="text-[#AEAEB2] text-xs">{order.date} · {order.qty} יח׳</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-black text-sm text-[#1D1D1F]">₪{(order.total || 0).toLocaleString()}</p>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>{order.status}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </AdminModal>
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
     );
 }
+
+// A clickable/inert record row inside a drill level. Clickable rows push a deeper level.
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
+const custDateStr = (o) => o?.date || (o?.dateTs ? new Date(o.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 export default function AdminCustomers() {
     const { contacts, orders, updateContactStatus, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
@@ -110,9 +95,17 @@ export default function AdminCustomers() {
     const [search, setSearch] = useState('');
     const [dateFilter, setDateFilter] = useState('all');
     const [selected, setSelected] = useState(null);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [reply, setReply] = useState('');
     const [replyDone, setReplyDone] = useState(false);
+
+    // ── Babushka drill stack — each entry is one nested detail level ──────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null); // retains last level through the exit animation
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };
 
     const customers = useMemo(() => {
         const map = {};
@@ -200,11 +193,11 @@ export default function AdminCustomers() {
             {/* ── KPI band — teal primary + semantic accents ── */}
             <div className="grid grid-cols-3 gap-4">
                 <AdminKPICard title="לקוחות" value={customers.length} subtitle="לקוחות פעילים" accent={ACCENT} delay={0}
-                    icon={<Users size={20} color={ACCENT} />} />
+                    icon={<Users size={20} color={ACCENT} />} onClick={() => openDrill({ type: 'customersKpi' })} />
                 <AdminKPICard title="פניות חדשות" value={newContacts} subtitle="ממתינות לטיפול" accent={PALETTE.red} delay={0.05}
-                    icon={<InboxIcon size={20} color={PALETTE.red} />} />
+                    icon={<InboxIcon size={20} color={PALETTE.red} />} onClick={() => openDrill({ type: 'contactsKpi' })} />
                 <AdminKPICard title="הכנסה כוללת" value={`₪${totalRevenue.toLocaleString()}`} subtitle="מכלל הלקוחות" accent={PALETTE.green} delay={0.1}
-                    icon="revenue" />
+                    icon="revenue" onClick={() => openDrill({ type: 'revenueKpi' })} />
             </div>
 
             {/* Tabs + Search */}
@@ -240,7 +233,9 @@ export default function AdminCustomers() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                 onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] group"
+                                tabIndex={0} role="button"
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); setReply(''); setReplyDone(false); } }}
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 group"
                             >
                                 <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
                                 <div className="flex items-center gap-3 justify-end">
@@ -284,8 +279,10 @@ export default function AdminCustomers() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
-                                onClick={() => setSelectedCustomer(c)}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] group" dir="rtl"
+                                onClick={() => openDrill({ type: 'customer', name: c.name })}
+                                tabIndex={0} role="button"
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'customer', name: c.name }); } }}
+                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 group" dir="rtl"
                             >
                                 <Avatar name={c.name} size={11} />
                                 <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>
@@ -426,7 +423,297 @@ export default function AdminCustomers() {
                 )}
             </AdminModal>
 
-            <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} navigate={navigate} />
+            {/* ── Babushka Drill Drawer — nested glass detail view ───────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const custByRevenue = [...customers].sort((a, b) => b.total - a.total);
+                const avgOrders = customers.length ? Math.round(customers.reduce((s, c) => s + c.orders.length, 0) / customers.length) : 0;
+
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
+
+                if (shown.type === 'customersKpi') {
+                    title = 'לקוחות'; subtitle = `${customers.length} לקוחות פעילים`; accent = ACCENT;
+                    icon = <Users size={17} color={ACCENT} />;
+                    footer = { label: 'הצג רשימת לקוחות', onClick: () => { setTab('customers'); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'לקוחות', value: customers.length, color: ACCENT },
+                                { label: 'הזמנות בממוצע', value: avgOrders, color: '#5856D6' },
+                                { label: 'הכנסה כוללת', value: `₪${totalRevenue.toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {customers.length === 0 ? (
+                                <DrillEmpty icon={Users} text="אין לקוחות עדיין — ייווצרו אוטומטית מהזמנות" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מובילים לפי רכישות — לחץ לצלילה</p>
+                                    {custByRevenue.slice(0, 12).map((c, i) => (
+                                        <DrillRow key={c.name} delay={i * 0.03} tone={ACCENT}
+                                            onClick={() => pushDrill({ type: 'customer', name: c.name })}
+                                            leading={<div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>{c.name?.[0] || '?'}</div>}
+                                            title={c.name}
+                                            subtitle={`${c.orders.length} הזמנות · ${c.city || '—'}`}
+                                            trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{c.total.toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'contactsKpi') {
+                    const byNew = contacts.filter(c => c.status === 'חדש');
+                    const byWork = contacts.filter(c => c.status === 'בטיפול').length;
+                    const byClosed = contacts.filter(c => c.status === 'נסגר').length;
+                    const list = [...contacts].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+                    title = 'פניות'; subtitle = `${newContacts} חדשות מתוך ${contacts.length}`; accent = PALETTE.red;
+                    icon = <InboxIcon size={17} color={PALETTE.red} />;
+                    footer = { label: 'הצג רשימת פניות', onClick: () => { setTab('contacts'); closeDrill(); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'חדשות', value: byNew.length, color: PALETTE.red },
+                                { label: 'בטיפול', value: byWork, color: '#007AFF' },
+                                { label: 'נסגרו', value: byClosed, color: '#34C759' },
+                            ]} />
+                            {contacts.length === 0 ? (
+                                <DrillEmpty icon={InboxIcon} text="אין פניות עדיין" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פניות אחרונות — לחץ לפרטים</p>
+                                    {list.slice(0, 12).map((c, i) => (
+                                        <DrillRow key={c.id} delay={i * 0.03} tone={PALETTE.red}
+                                            onClick={() => pushDrill({ type: 'contact', id: c.id })}
+                                            leading={<StatusBadge status={c.status} pulse={c.status === 'חדש'} />}
+                                            title={c.name || '—'}
+                                            subtitle={c.subject || c.email || '—'}
+                                            trailing={<span className="text-[10px] text-[#AEAEB2] shrink-0 whitespace-nowrap">{c.date || '—'}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'revenueKpi') {
+                    const avgPer = customers.length ? Math.round(totalRevenue / customers.length) : 0;
+                    title = 'הכנסה כוללת'; subtitle = 'מכלל הלקוחות'; accent = '#34C759';
+                    icon = <TrendingUp size={17} color="#34C759" />;
+                    footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הכנסה כוללת', value: `₪${totalRevenue.toLocaleString()}`, color: '#34C759' },
+                                { label: 'לקוחות', value: customers.length, color: ACCENT },
+                                { label: 'ממוצע ללקוח', value: `₪${avgPer.toLocaleString()}`, color: '#5856D6' },
+                            ]} />
+                            {custByRevenue.length === 0 ? (
+                                <DrillEmpty icon={TrendingUp} text="טרם נרשמו הכנסות" />
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">תרומה לפי לקוח — לחץ לצלילה</p>
+                                    {custByRevenue.slice(0, 12).map((c, i) => (
+                                        <DrillRow key={c.name} delay={i * 0.03} tone="#34C759"
+                                            onClick={() => pushDrill({ type: 'customer', name: c.name })}
+                                            leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
+                                            title={c.name}
+                                            subtitle={`${c.orders.length} הזמנות`}
+                                            trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{c.total.toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'customer') {
+                    const c = customers.find(x => x.name === shown.name);
+                    title = c ? c.name : 'לקוח'; accent = ACCENT;
+                    subtitle = c ? `${c.orders.length} הזמנות · ₪${c.total.toLocaleString()}` : shown.name;
+                    icon = <Users size={17} color={ACCENT} />;
+                    const firstOrderId = c?.orders?.[0]?.id;
+                    footer = { label: 'פתח בהזמנות', onClick: () => drillTo(firstOrderId ? `/admin/orders?orderId=${firstOrderId}` : '/admin/orders') };
+                    const phone = c?.phone?.replace(/\D/g, '');
+                    const waLink = phone ? `https://wa.me/972${phone.replace(/^0/, '')}` : null;
+                    body = c ? (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הזמנות', value: c.orders.length, color: ACCENT },
+                                { label: 'סה״כ רכישות', value: `₪${c.total.toLocaleString()}`, color: '#34C759' },
+                                { label: 'הזמנה ממוצעת', value: `₪${(c.orders.length ? Math.round(c.total / c.orders.length) : 0).toLocaleString()}`, color: '#5856D6' },
+                            ]} />
+                            <div className="space-y-2">
+                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(ACCENT, 0.1) }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
+                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.1) }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
+                                {c.city && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#FF9500', 0.1) }}><MapPin size={13} color="#FF9500" /></span>} title={c.city} subtitle="עיר" />}
+                            </div>
+                            {(waLink || c.phone) && (
+                                <div className="flex gap-2">
+                                    {waLink && (
+                                        <a href={waLink} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-black text-[12px] text-white"
+                                            style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', boxShadow: '0 4px 12px rgba(37,211,102,0.28)' }}>WhatsApp</a>
+                                    )}
+                                    {c.phone && (
+                                        <a href={`tel:${c.phone}`}
+                                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-black text-[12px] text-white"
+                                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.25)' }}>התקשר</a>
+                                    )}
+                                </div>
+                            )}
+                            {c.orders.length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">היסטוריית הזמנות — לחץ לפרטים</p>
+                                    {c.orders.map((o, i) => (
+                                        <DrillRow key={o.id || i} delay={i * 0.03}
+                                            onClick={() => pushDrill({ type: 'order', id: o.id })}
+                                            leading={<StatusBadge status={o.status} />}
+                                            title={o.product || `הזמנה ${o.id || ''}`}
+                                            subtitle={`${custDateStr(o)} · ${o.qty || 1} יח׳`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            ) : <DrillEmpty icon={ShoppingCart} text="אין הזמנות ללקוח זה" />}
+                        </div>
+                    ) : <DrillEmpty icon={Users} text="הלקוח לא נמצא" />;
+                } else if (shown.type === 'contact') {
+                    const c = contacts.find(x => x.id === shown.id);
+                    const notes = c ? loadNotes(c.id) : [];
+                    title = c ? (c.name || 'פנייה') : 'פנייה'; subtitle = c?.email || ''; accent = PALETTE.red;
+                    icon = <InboxIcon size={17} color={PALETTE.red} />;
+                    footer = c ? { label: 'פתח לטיפול', onClick: () => { closeDrill(); setSelected(c); setReply(''); setReplyDone(false); } } : null;
+                    body = c ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
+                                <span className="text-[11px] text-[#AEAEB2] font-medium">{c.date || '—'}</span>
+                            </div>
+                            {c.subject && (
+                                <div className="rounded-[14px] p-4 text-right" style={{ background: hexA(ACCENT, 0.05), border: `1px solid ${hexA(ACCENT, 0.1)}` }}>
+                                    <p className="text-[#86868B] text-[10px] font-black tracking-tight mb-1">נושא</p>
+                                    <p className="text-[#1D1D1F] font-bold text-sm">{c.subject}</p>
+                                </div>
+                            )}
+                            {c.message && (
+                                <div className="rounded-[14px] p-4 text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    <p className="text-[#AEAEB2] text-[10px] font-black tracking-tight mb-2">הודעה</p>
+                                    <p className="text-[#1D1D1F] text-sm leading-relaxed whitespace-pre-line">{c.message}</p>
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(ACCENT, 0.1) }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
+                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.1) }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
+                            </div>
+                            {notes.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">היסטוריית הערות</p>
+                                    {notes.map((n, i) => (
+                                        <div key={i} className="rounded-[12px] px-3 py-2.5 text-right" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <p className="text-[#1D1D1F] text-xs leading-relaxed">{n.text}</p>
+                                            <p className="text-[#AEAEB2] text-[10px] mt-1">{n.date} · {n.time}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : <DrillEmpty icon={InboxIcon} text="הפנייה לא נמצאה" />;
+                } else if (shown.type === 'order') {
+                    const o = orders.find(x => String(x.id) === String(shown.id));
+                    const items = o?.items || [];
+                    const units = o ? (items.reduce((s, it) => s + (Number(it.qty) || 1), 0) || o.qty || items.length) : 0;
+                    title = o ? (o.customer || o.product || 'הזמנה') : 'הזמנה';
+                    subtitle = o ? `#${o.id} · ${custDateStr(o)}` : String(shown.id); accent = ACCENT;
+                    icon = <ShoppingCart size={17} color={ACCENT} />;
+                    footer = { label: 'פתח בהזמנות', onClick: () => drillTo(`/admin/orders?orderId=${shown.id}`) };
+                    body = o ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <StatusBadge status={o.status} />
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{(o.total || 0).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'פריטים', value: units, color: ACCENT },
+                                { label: 'סכום', value: `₪${(o.total || 0).toLocaleString()}`, color: '#34C759' },
+                                { label: 'תאריך', value: o.dateTs ? new Date(o.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : (o.date || '—') },
+                            ]} />
+                            {items.length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטים בהזמנה — לחץ למוצר</p>
+                                    {items.map((it, i) => (
+                                        <DrillRow key={i} delay={i * 0.03}
+                                            onClick={() => pushDrill({ type: 'orderItem', name: it.title || it.name, image: it.image, qty: it.qty, price: it.price })}
+                                            leading={<div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">{it.image ? <img src={it.image} alt="" className="w-full h-full object-cover" /> : <Box size={13} className="text-[#AEAEB2]" />}</div>}
+                                            title={it.title || it.name || `פריט ${i + 1}`}
+                                            subtitle={`${it.qty || 1} × ₪${(Number(it.price) || 0).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.price) || 0) * (Number(it.qty) || 1)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            ) : o.product ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצר — לחץ למלאי</p>
+                                    <DrillRow
+                                        onClick={() => pushDrill({ type: 'orderItem', name: o.product, qty: o.qty, price: o.total })}
+                                        leading={<div className="w-8 h-8 rounded-lg bg-[#F5F5F7] shrink-0 flex items-center justify-center"><Box size={13} className="text-[#AEAEB2]" /></div>}
+                                        title={o.product}
+                                        subtitle={`${o.qty || 1} יח׳`}
+                                        trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>}
+                                    />
+                                </div>
+                            ) : <DrillEmpty icon={Package} text="אין פריטים מפורטים בהזמנה זו" />}
+                        </div>
+                    ) : <DrillEmpty icon={ShoppingCart} text="ההזמנה לא נמצאה" />;
+                } else if (shown.type === 'orderItem') {
+                    title = shown.name || 'מוצר'; subtitle = 'פריט בהזמנה'; accent = ACCENT;
+                    icon = <Box size={17} color={ACCENT} />;
+                    footer = { label: 'פתח במלאי', onClick: () => drillTo(`/admin/inventory?open=${encodeURIComponent(shown.name || '')}`) };
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center" style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    {shown.image ? <img src={shown.image} alt={shown.name} className="w-full h-full object-cover" /> : <Box size={26} className="text-[#AEAEB2]" />}
+                                </div>
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="text-[15px] font-black text-[#1D1D1F] leading-tight">{shown.name || 'מוצר'}</p>
+                                    {shown.price != null && <p className="text-[13px] font-bold text-[#34C759] mt-1">₪{(Number(shown.price) || 0).toLocaleString()}</p>}
+                                </div>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'כמות', value: shown.qty || 1, color: ACCENT },
+                                { label: 'מחיר', value: `₪${(Number(shown.price) || 0).toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
+                                לפרטי מלאי, מחיר עדכני ותמונה — פתח את המוצר בניהול המלאי.
+                            </div>
+                        </div>
+                    );
+                } else {
+                    title = 'פרטים'; icon = <Users size={17} color={ACCENT} />;
+                    body = <DrillEmpty icon={Users} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.name ?? shown.id ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
 
             {/* Trash Tab */}
             {tab === 'trash' && (

@@ -1,5 +1,6 @@
 /* eslint-disable */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
@@ -9,7 +10,8 @@ import {
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminTabs, AdminEmpty } from '../components/AdminComponents';
-import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent } from 'lucide-react';
+import DashDrillView from '../components/DashDrillView';
+import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent, ChevronLeft, Package } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
 
 // ─── Q&A domain accent (restrained azure brand) ────────────────────────────────
@@ -18,6 +20,64 @@ const AMBER_GRAD = 'linear-gradient(135deg, #007AFF 0%, #5E5CE6 100%)';
 const AMBER_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(94,92,230,0.08) 100%)';
 const glass      = { ...GLASS.base };
 
+// ─── Babushka drill helpers ────────────────────────────────────────────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+function StatusPill({ answered }) {
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black"
+            style={answered
+                ? { background: 'rgba(52,199,89,0.12)', color: '#1A8C40', border: '1px solid rgba(52,199,89,0.24)' }
+                : { background: 'rgba(255,149,0,0.12)', color: '#B86A00', border: '1px solid rgba(255,149,0,0.24)' }}>
+            {answered ? <CheckCircle size={10} /> : <HelpCircle size={10} />}
+            {answered ? 'נענתה' : 'ממתינה'}
+        </span>
+    );
+}
+
 export default function AdminQA() {
     const [activeTab, setActiveTab] = useState('pending');
     const [questions, setQuestions] = useState([]);
@@ -25,7 +85,17 @@ export default function AdminQA() {
     const [error, setError] = useState(null);
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
+    const navigate = useNavigate();
     const [answerTexts, setAnswerTexts] = useState({});
+
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };
 
     // Real-time listener on product_questions (same collection as public site)
     useEffect(() => {
@@ -85,13 +155,13 @@ export default function AdminQA() {
             {/* KPI band — total · pending · answered · response rate */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
                 <AdminKPICard title="סך שאלות" value={questions.length} subtitle="על דפי מוצרים" accent={AMBER} delay={0}
-                    icon={<MessageSquare size={20} color={AMBER} />} loading={loading} />
+                    icon={<MessageSquare size={20} color={AMBER} />} loading={loading} onClick={() => openDrill({ type: 'kpi-total' })} />
                 <AdminKPICard title="ממתינות" value={pending.length} subtitle="דורשות מענה" accent={PALETTE.orange} delay={0.05}
-                    icon={<HelpCircle size={20} color={PALETTE.orange} />} loading={loading} />
+                    icon={<HelpCircle size={20} color={PALETTE.orange} />} loading={loading} onClick={() => openDrill({ type: 'kpi-pending' })} />
                 <AdminKPICard title="נענו" value={answered.length} subtitle="קיבלו תשובה" accent={PALETTE.green} delay={0.1}
-                    icon={<CheckCircle size={20} color={PALETTE.green} />} loading={loading} />
+                    icon={<CheckCircle size={20} color={PALETTE.green} />} loading={loading} onClick={() => openDrill({ type: 'kpi-answered' })} />
                 <AdminKPICard title="שיעור מענה" value={`${responseRate}%`} subtitle="מכלל השאלות" accent={PALETTE.azure} delay={0.15}
-                    icon={<Percent size={20} color={PALETTE.azure} />} loading={loading} />
+                    icon={<Percent size={20} color={PALETTE.azure} />} loading={loading} onClick={() => openDrill({ type: 'kpi-rate' })} />
             </div>
 
             {/* Tabs */}
@@ -171,7 +241,10 @@ export default function AdminQA() {
                                                 <ExternalLink size={9} />
                                             </a>
                                         </div>
-                                        <p className="font-black text-[#1D1D1F] text-[17px] leading-snug">{item.question}</p>
+                                        <p role="button" tabIndex={0}
+                                            onClick={() => openDrill({ type: 'question', id: item.id })}
+                                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'question', id: item.id }); } }}
+                                            className="font-black text-[#1D1D1F] text-[17px] leading-snug cursor-pointer hover:text-[#007AFF] transition-colors focus:outline-none">{item.question}</p>
                                     </div>
                                 </div>
 
@@ -218,6 +291,156 @@ export default function AdminQA() {
                     </AnimatePresence>
                 </div>
             )}
+
+            {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const qRow = (item, i) => {
+                    const isAns = item.answers?.length > 0;
+                    return (
+                        <DrillRow key={item.id} delay={i * 0.03} tone={isAns ? '#34C759' : '#FF9500'}
+                            onClick={() => pushDrill({ type: 'question', id: item.id })}
+                            leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                                style={{ background: isAns ? 'rgba(52,199,89,0.12)' : 'rgba(255,149,0,0.12)' }}>
+                                {isAns ? <CheckCircle size={14} className="text-[#34C759]" /> : <HelpCircle size={14} className="text-[#FF9500]" />}</div>}
+                            title={item.question}
+                            subtitle={`${item.author || 'אנונימי'} · ${item.productId || '—'}`}
+                            trailing={<StatusPill answered={isAns} />}
+                        />
+                    );
+                };
+                const qList = (arr) => arr.length === 0
+                    ? <DrillEmpty icon={MessageSquare} text="אין שאלות להצגה" />
+                    : <div className="space-y-2">{arr.map(qRow)}</div>;
+
+                let title = '', subtitle = '', icon = null, accent = AMBER, footer = null, body = null;
+
+                if (shown.type === 'kpi-total') {
+                    title = 'סך שאלות'; subtitle = `${questions.length} שאלות על דפי מוצרים`;
+                    icon = <MessageSquare size={17} color={AMBER} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סך הכל', value: questions.length, color: AMBER },
+                                { label: 'ממתינות', value: pending.length, color: PALETTE.orange },
+                                { label: 'נענו', value: answered.length, color: PALETTE.green },
+                            ]} />
+                            {qList(questions)}
+                        </div>
+                    );
+                } else if (shown.type === 'kpi-pending') {
+                    title = 'שאלות ממתינות'; subtitle = `${pending.length} דורשות מענה`; accent = PALETTE.orange;
+                    icon = <HelpCircle size={17} color={PALETTE.orange} />;
+                    body = qList(pending);
+                } else if (shown.type === 'kpi-answered') {
+                    title = 'שאלות שנענו'; subtitle = `${answered.length} קיבלו תשובה`; accent = PALETTE.green;
+                    icon = <CheckCircle size={17} color={PALETTE.green} />;
+                    body = qList(answered);
+                } else if (shown.type === 'kpi-rate') {
+                    title = 'שיעור מענה'; subtitle = `${responseRate}% מכלל השאלות`; accent = PALETTE.azure;
+                    icon = <Percent size={17} color={PALETTE.azure} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שיעור מענה', value: `${responseRate}%`, color: PALETTE.azure },
+                                { label: 'נענו', value: answered.length, color: PALETTE.green },
+                                { label: 'ממתינות', value: pending.length, color: PALETTE.orange },
+                            ]} />
+                            {pending.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">ממתינות לתשובה — לחץ למענה</p>
+                                    {qList(pending)}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'question') {
+                    const q = questions.find(x => x.id === shown.id);
+                    if (!q) {
+                        title = 'שאלה'; icon = <MessageSquare size={17} color={AMBER} />;
+                        body = <DrillEmpty icon={MessageSquare} text="השאלה נמחקה או אינה זמינה" />;
+                    } else {
+                        const isAns = q.answers?.length > 0;
+                        accent = isAns ? '#34C759' : '#FF9500';
+                        title = q.question; subtitle = 'שאלה על דף מוצר';
+                        icon = <MessageSquare size={17} color={accent} />;
+                        if (q.productId) footer = { label: `מעבר לדף המוצר ${q.productId}`, onClick: () => drillTo(`/catalog/${q.productId}`) };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center gap-2 flex-wrap justify-end">
+                                    <StatusPill answered={isAns} />
+                                    <span className="text-[11px] text-[#86868B] font-medium flex items-center gap-1"><User size={11} />{q.author || 'אנונימי'}</span>
+                                    <span className="text-[11px] text-[#AEAEB2] font-medium flex items-center gap-1"><Clock size={11} />{q.timestamp?.toDate?.().toLocaleDateString('he-IL') ?? '—'}</span>
+                                    {q.productId && (
+                                        <span className="text-[11px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                                            <Package size={11} />{q.productId}</span>
+                                    )}
+                                </div>
+                                <div className="p-4 rounded-[16px] text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                    <p className="font-black text-[#1D1D1F] text-[16px] leading-snug">{q.question}</p>
+                                </div>
+
+                                {isAns && (
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">תשובות שפורסמו</p>
+                                        {q.answers.map((ans, i) => (
+                                            <div key={i} className="p-4 rounded-2xl text-right"
+                                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}>
+                                                <div className="flex items-center gap-1 justify-end mb-1">
+                                                    <span className="text-[10px] font-black text-[#34C759]">תשובת NextClass</span>
+                                                    <CheckCircle size={11} className="text-[#34C759]" />
+                                                </div>
+                                                <p className="text-[#1D1D1F] text-sm font-medium leading-relaxed">{ans.text}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Answer input (same action as the page list) */}
+                                <div className="space-y-2" dir="rtl">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">{isAns ? 'הוסף תשובה נוספת' : 'כתוב תשובה'}</p>
+                                    <textarea
+                                        value={answerTexts[q.id] ?? ''}
+                                        onChange={e => setAnswerTexts(p => ({ ...p, [q.id]: e.target.value }))}
+                                        placeholder={isAns ? 'הוסף תשובה נוספת...' : 'כתוב תשובה...'}
+                                        rows={3}
+                                        className="w-full px-4 py-3 rounded-2xl text-sm font-medium text-right resize-none focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                                        style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
+                                    />
+                                    <div className="flex gap-2">
+                                        <motion.button
+                                            whileTap={TAP}
+                                            onClick={() => handleAnswer(q.id)}
+                                            className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white cursor-pointer"
+                                            style={{ background: AMBER_GRAD, boxShadow: `0 4px 16px ${hexA(AMBER, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                                            <Send size={15} /> פרסם תשובה
+                                        </motion.button>
+                                        <button onClick={() => { handleDelete(q.id); closeDrill(); }}
+                                            className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl font-bold text-sm cursor-pointer"
+                                            style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.id ?? ''}:${drillStack.length}`}
+                    >{body}</DashDrillView>
+                );
+            })()}
         </div>
     );
 }
