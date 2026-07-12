@@ -14,6 +14,7 @@ import {
     AdminSectionHeader, AdminInput, AdminTextArea,
     AdminToggle, AdminModal, AdminKPICard, AdminEmpty
 } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import { GLASS, RADIUS, TAP, hexA, DOMAIN_ACCENTS } from '../theme/tokens';
 import {
     Truck, Package, Building2, Link2, Plus, Trash2, Edit2,
@@ -21,7 +22,7 @@ import {
     Mail, TrendingUp, ChevronDown, ArrowRight, Factory, Box,
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
     Copy, Check, Tag, ExternalLink, Star, MessageSquare,
-    DollarSign, ChevronRight, Activity, Printer, Download
+    DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download
 } from 'lucide-react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -836,7 +837,59 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
 
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
-function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder, onForwardOrder }) {
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
+function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder, onForwardOrder, pipelineQuotes = [], onGoToPipeline }) {
     const pending   = supplierOrders.filter(o => o.status === 'pending').length;
     const inTransit = supplierOrders.filter(o => o.status === 'in_transit').length;
     const forwarded = supplierOrders.filter(o => o.status === 'forwarded' || o.status === 'confirmed').length;
@@ -846,18 +899,26 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
     const needsAction = customerOrders.filter(o => o.status !== 'בוטל' && !forwardedOrderIds.has(o.id));
 
     const kpis = [
-        { label: 'ממתינות להעברה',  value: pending,   color: '#FF9500', icon: Clock,       sub: 'דורשות פעולה' },
-        { label: 'בתהליך אצל ספק', value: forwarded,  color: '#007AFF', icon: Send,        sub: 'מחכות לאישור' },
-        { label: 'בדרך',            value: inTransit, color: '#FF9F0A', icon: Truck,       sub: 'בהובלה' },
-        { label: 'הושלמו',          value: shipped,   color: '#34C759', icon: CheckCircle, sub: 'כל ההזמנות' },
+        { label: 'ממתינות להעברה',  value: pending,   color: '#FF9500', icon: Clock,       sub: 'דורשות פעולה', scope: 'pending' },
+        { label: 'בתהליך אצל ספק', value: forwarded,  color: '#007AFF', icon: Send,        sub: 'מחכות לאישור', scope: 'forwarded' },
+        { label: 'בדרך',            value: inTransit, color: '#FF9F0A', icon: Truck,       sub: 'בהובלה',       scope: 'in_transit' },
+        { label: 'הושלמו',          value: shipped,   color: '#34C759', icon: CheckCircle, sub: 'כל ההזמנות',   scope: 'shipped' },
     ];
+
+    // ── Babushka drill stack (KPI / summary → breakdown → order detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {kpis.map((k, i) => (
                     <AdminKPICard key={k.label} title={k.label} value={k.value} subtitle={k.sub}
-                        icon={<k.icon size={20} color={k.color} />} accent={k.color} delay={i * 0.05} />
+                        icon={<k.icon size={20} color={k.color} />} accent={k.color} delay={i * 0.05}
+                        onClick={() => openDrill({ type: 'status', scope: k.scope })} />
                 ))}
             </div>
 
@@ -865,7 +926,10 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                 {/* Needs Action */}
                 <div className="rounded-[1.5rem] overflow-hidden" style={card}>
                     <div className="px-6 py-4 border-b border-black/[0.04] flex items-center justify-between">
-                        <span className="text-[10px] font-black text-[#86868B] tracking-widest">{needsAction.length} הזמנות</span>
+                        <button type="button" onClick={() => openDrill({ type: 'needsAction' })}
+                            className="text-[10px] font-black text-[#86868B] hover:text-[#FF9500] tracking-widest inline-flex items-center gap-1 cursor-pointer transition-colors">
+                            {needsAction.length} הזמנות<ChevronLeft size={12} />
+                        </button>
                         <div className="flex items-center gap-2">
                             <AlertTriangle size={14} className="text-[#FF9500]" />
                             <h3 className="text-sm font-black text-[#1D1D1F]">דורש העברה לספק</h3>
@@ -905,7 +969,10 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                 {/* Recent Supplier Orders */}
                 <div className="rounded-[1.5rem] overflow-hidden" style={card}>
                     <div className="px-6 py-4 border-b border-black/[0.04] flex items-center justify-between">
-                        <span className="text-[10px] font-black text-[#86868B] tracking-widest">{supplierOrders.length} סה״כ</span>
+                        <button type="button" onClick={() => openDrill({ type: 'allOrders' })}
+                            className="text-[10px] font-black text-[#86868B] hover:text-[#007AFF] tracking-widest inline-flex items-center gap-1 cursor-pointer transition-colors">
+                            {supplierOrders.length} סה״כ<ChevronLeft size={12} />
+                        </button>
                         <div className="flex items-center gap-2">
                             <Truck size={14} className="text-[#007AFF]" />
                             <h3 className="text-sm font-black text-[#1D1D1F]">הזמנות אחרונות</h3>
@@ -936,6 +1003,184 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                     )}
                 </div>
             </div>
+
+            {/* ── Babushka Drill Drawer — KPI / summary → breakdown → detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const dstr = (ts) => ts?.toDate ? ts.toDate().toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '';
+                const money = (n) => `₪${(Number(n) || 0).toLocaleString('he-IL')}`;
+                const statusMeta = (id) => STATUSES.find(s => s.id === id) || STATUSES[0];
+                const supOrderList = (list) => (
+                    list.length === 0 ? <DrillEmpty icon={Package} text="אין הזמנות ספקים להצגה" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הזמנות ספקים — לחץ לפרטים</p>
+                            {list.slice(0, 40).map((o, i) => (
+                                <DrillRow key={o.id} delay={i * 0.02} tone={statusMeta(o.status).color}
+                                    onClick={() => pushDrill({ type: 'order', id: o.id })}
+                                    leading={<StatusPill statusId={o.status} />}
+                                    title={o.customerName || 'לקוח'}
+                                    subtitle={`${o.productTitle || 'מוצר'} × ${o.qty || 1}${o.supplierName ? ` · ${o.supplierName}` : ''}`}
+                                    trailing={o.totalCost ? <span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{money(o.totalCost)}</span> : undefined}
+                                />
+                            ))}
+                        </div>
+                    )
+                );
+
+                let title = '', subtitle = '', icon = null, accent = BROWN, footer = null, body = null;
+
+                if (current.type === 'status') {
+                    const meta = kpis.find(k => k.scope === current.scope) || kpis[0];
+                    const list = current.scope === 'forwarded'
+                        ? supplierOrders.filter(o => o.status === 'forwarded' || o.status === 'confirmed')
+                        : supplierOrders.filter(o => o.status === current.scope);
+                    accent = meta.color; icon = <meta.icon size={17} color={meta.color} />;
+                    title = meta.label; subtitle = `${list.length} הזמנות ספקים`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ממתינות', value: pending, color: '#FF9500' },
+                                { label: 'אצל ספק', value: forwarded, color: '#007AFF' },
+                                { label: 'בדרך', value: inTransit, color: '#FF9F0A' },
+                                { label: 'הושלמו', value: shipped, color: '#34C759' },
+                            ]} />
+                            {supOrderList(list)}
+                        </div>
+                    );
+                } else if (current.type === 'allOrders') {
+                    accent = BROWN; icon = <Package size={17} color={BROWN} />;
+                    title = 'כל ההזמנות'; subtitle = `${supplierOrders.length} ידניות · ${pipelineQuotes.length} מהצינור`;
+                    const openTotal = supplierOrders.reduce((s, o) => s + (Number(o.totalCost) || 0), 0);
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הזמנות ידניות', value: supplierOrders.length, color: BROWN },
+                                { label: 'מהצינור', value: pipelineQuotes.length, color: '#0891B2' },
+                                { label: 'ערך כולל', value: money(openTotal), color: '#34C759' },
+                            ]} />
+                            {supOrderList(supplierOrders)}
+                            {pipelineQuotes.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הזמנות מהצינור — לחץ לפרטים</p>
+                                    {pipelineQuotes.slice(0, 40).map((q, i) => (
+                                        <DrillRow key={q.id} delay={i * 0.02} tone="#0891B2"
+                                            onClick={() => pushDrill({ type: 'pipeQuote', id: q.id })}
+                                            leading={<PipelineStatusPill status={q.status} />}
+                                            title={q.customer || q.contactName || q.institution || 'לקוח'}
+                                            subtitle={quoteItemsLabel(q)}
+                                            trailing={q.total ? <span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{money(q.total)}</span> : undefined}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'needsAction') {
+                    accent = '#FF9500'; icon = <AlertTriangle size={17} color="#FF9500" />;
+                    title = 'דורש העברה לספק'; subtitle = `${needsAction.length} הזמנות ממתינות`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ממתינות', value: needsAction.length, color: '#FF9500' },
+                                { label: 'הועברו', value: supplierOrders.length, color: '#007AFF' },
+                                { label: 'הושלמו', value: shipped, color: '#34C759' },
+                            ]} />
+                            {needsAction.length === 0 ? <DrillEmpty icon={CheckCircle} text="כל ההזמנות טופלו 🎉" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הזמנות לקוח — לחץ להעברה</p>
+                                    {needsAction.slice(0, 40).map((o, i) => (
+                                        <DrillRow key={o.id} delay={i * 0.02} tone="#FF9500"
+                                            onClick={() => pushDrill({ type: 'custOrder', id: o.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255,149,0,0.12)' }}><Send size={13} color="#FF9500" /></span>}
+                                            title={o.customer || 'לקוח'}
+                                            subtitle={`${o.product || 'מוצר'} × ${o.qty || 1} · ${o.date || '—'}`}
+                                            trailing={o.total ? <span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{money(o.total)}</span> : undefined}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'order') {
+                    const o = supplierOrders.find(x => x.id === current.id);
+                    if (!o) {
+                        title = 'הזמנת ספק'; icon = <Package size={17} color={BROWN} />;
+                        body = <DrillEmpty icon={Package} text="ההזמנה נמחקה או אינה זמינה" />;
+                    } else {
+                        const meta = statusMeta(o.status);
+                        accent = meta.color; icon = <meta.icon size={17} color={meta.color} />;
+                        title = o.customerName || 'הזמנת ספק'; subtitle = `${o.supplierName || 'ספק'} · ${dstr(o.createdAt) || '—'}`;
+                        footer = { label: 'פתח הזמנה מלאה', onClick: () => { closeDrill(); onSelectOrder(o); } };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <StatusPill statusId={o.status} />
+                                    {o.totalCost ? <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">{money(o.totalCost)}</p> : null}
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'מוצר', value: o.productTitle || '—', color: BROWN },
+                                    { label: 'כמות', value: o.qty || 1, color: '#007AFF' },
+                                    { label: 'ETA', value: o.eta || '—', color: '#5856D6' },
+                                ]} />
+                            </div>
+                        );
+                    }
+                } else if (current.type === 'custOrder') {
+                    const o = customerOrders.find(x => x.id === current.id);
+                    if (!o) {
+                        title = 'הזמנת לקוח'; icon = <ShoppingCart size={17} color="#FF9500" />;
+                        body = <DrillEmpty icon={ShoppingCart} text="ההזמנה נמחקה או אינה זמינה" />;
+                    } else {
+                        accent = '#FF9500'; icon = <ShoppingCart size={17} color="#FF9500" />;
+                        title = o.customer || 'הזמנת לקוח'; subtitle = o.date || '—';
+                        footer = { label: 'העבר לספק', onClick: () => { closeDrill(); onForwardOrder(o); } };
+                        body = (
+                            <div className="space-y-5">
+                                <DrillStat items={[
+                                    { label: 'מוצר', value: o.product || '—', color: '#FF9500' },
+                                    { label: 'כמות', value: o.qty || 1, color: '#007AFF' },
+                                    { label: 'סכום', value: o.total ? money(o.total) : '—', color: '#34C759' },
+                                ]} />
+                            </div>
+                        );
+                    }
+                } else if (current.type === 'pipeQuote') {
+                    const q = pipelineQuotes.find(x => x.id === current.id);
+                    if (!q) {
+                        title = 'הזמנה מהצינור'; icon = <Link2 size={17} color="#0891B2" />;
+                        body = <DrillEmpty icon={Link2} text="ההזמנה נמחקה או אינה זמינה" />;
+                    } else {
+                        accent = '#0891B2'; icon = <Link2 size={17} color="#0891B2" />;
+                        title = q.customer || q.contactName || q.institution || 'הזמנה מהצינור'; subtitle = quoteItemsLabel(q);
+                        footer = onGoToPipeline ? { label: 'מעבר להזמנות ספקים', onClick: () => { closeDrill(); onGoToPipeline(); } } : null;
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <PipelineStatusPill status={q.status} />
+                                    {q.total ? <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">{money(q.total)}</p> : null}
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'פריטים', value: (q.items || []).length, color: '#0891B2' },
+                                    { label: 'סטטוס', value: (PIPELINE_STATUS[q.status] || {}).label || q.status || '—', color: '#7C3AED' },
+                                    { label: 'סכום', value: q.total ? money(q.total) : '—', color: '#34C759' },
+                                ]} />
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }
@@ -2036,6 +2281,8 @@ export default function AdminFulfillment() {
                             suppliers={suppliers}
                             onSelectOrder={setSelectedOrder}
                             onForwardOrder={handleForwardOrder}
+                            pipelineQuotes={pipelineQuotes}
+                            onGoToPipeline={() => setActiveTab('orders')}
                         />
                     )}
                     {activeTab === 'orders' && (

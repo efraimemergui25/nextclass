@@ -9,6 +9,7 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject }
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSectionHeader, AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import {
     GLASS, RADIUS, SHADOW, SPRING, TAP, TAP_SOFT, hexA, glow, accentSurface, DOMAIN_ACCENTS
 } from '../theme/tokens';
@@ -17,7 +18,7 @@ import {
     FolderOpen, FolderPlus, X, Search, Grid, List, ExternalLink, Plus,
     Archive, Download, Eye, Tag, CheckCircle, ShieldAlert, ArrowLeftRight,
     Clock, Edit, ArrowRight, Sparkles, Printer, ChevronDown, HardDrive,
-    Image as ImageIcon, FileSpreadsheet, ShieldCheck, Zap
+    Image as ImageIcon, FileSpreadsheet, ShieldCheck, Zap, ChevronLeft
 } from 'lucide-react';
 
 // ─── Vault accent (restrained brand — azure, de-rainbowed) + liquid-glass surfaces ─
@@ -610,6 +611,58 @@ function DocumentDetailDrawer({ item, folders, onClose, onUpdate, onDelete }) {
     );
 }
 
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 export default function AdminVault() {
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
@@ -628,6 +681,13 @@ export default function AdminVault() {
     const [copied, setCopied] = useState('');
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+
+    // ── Babushka drill stack (KPI → breakdown → doc detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     // Smart document state
     const [showSmartDoc, setShowSmartDoc] = useState(false);
@@ -857,12 +917,15 @@ export default function AdminVault() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <AdminKPICard title="סה״כ מסמכים" value={documents.length}
                     subtitle={recentCount > 0 ? `${recentCount} הועלו השבוע` : 'כספת מאובטחת'}
-                    icon={<FolderOpen size={20} color={VAULT} />} accent={VAULT} loading={loading} error={error} delay={0} />
+                    icon={<FolderOpen size={20} color={VAULT} />} accent={VAULT} loading={loading} error={error} delay={0}
+                    onClick={documents.length ? () => openDrill({ type: 'docs', scope: 'all' }) : undefined} />
                 <AdminKPICard title="מאושרים" value={approvedCount}
                     subtitle={archivedCount > 0 ? `${archivedCount} בארכיון` : 'מוכנים לשליחה'}
-                    icon={<CheckCircle size={20} color="#30D158" />} accent="#30D158" loading={loading} error={error} delay={0.05} />
+                    icon={<CheckCircle size={20} color="#30D158" />} accent="#30D158" loading={loading} error={error} delay={0.05}
+                    onClick={() => openDrill({ type: 'docs', scope: 'approved' })} />
                 <AdminKPICard title="ממתינים לבדיקה" value={pendingCount}
-                    subtitle="דורשים סיווג" icon={<Clock size={20} color="#FF9500" />} accent="#FF9500" loading={loading} error={error} delay={0.1} />
+                    subtitle="דורשים סיווג" icon={<Clock size={20} color="#FF9500" />} accent="#FF9500" loading={loading} error={error} delay={0.1}
+                    onClick={() => openDrill({ type: 'docs', scope: 'pending' })} />
 
                 {/* Storage tile (KPI-styled with quota bar) */}
                 {loading ? (
@@ -873,7 +936,11 @@ export default function AdminVault() {
                     </div>
                 ) : (
                     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, ...SPRING.soft }}
-                        className="relative overflow-hidden flex flex-col min-h-[140px]" style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}>
+                        onClick={() => openDrill({ type: 'storage' })}
+                        whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }} whileTap={TAP}
+                        role="button" tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'storage' }); } }}
+                        className="relative overflow-hidden flex flex-col min-h-[140px] cursor-pointer transition-shadow focus:outline-none" style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}>
                         <div className="p-5 flex flex-col flex-1">
                             <div className="flex items-start justify-between mb-3">
                                 <div>
@@ -1092,6 +1159,139 @@ export default function AdminVault() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* ── Babushka Drill Drawer — KPI → breakdown → doc detail ───────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const folderName = (id) => folders.find(f => f.id === id)?.name || id || 'ללא תיקייה';
+                const classColor = (id) => (CLASSIFICATIONS.find(c => c.id === id) || CLASSIFICATIONS[0]).color;
+                const classLabel = (id) => (CLASSIFICATIONS.find(c => c.id === id) || CLASSIFICATIONS[0]).label;
+                const docLeading = (d) => {
+                    const k = fileKind(d);
+                    return <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(k.color, 0.12) }}><k.Icon size={14} style={{ color: k.color }} /></span>;
+                };
+                const DocList = ({ docs }) => (
+                    docs.length === 0 ? <DrillEmpty icon={FolderOpen} text="אין מסמכים להצגה" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימת מסמכים — לחץ לפרטים</p>
+                            {docs.slice(0, 40).map((d, i) => (
+                                <DrillRow key={d.id} delay={i * 0.02} tone={classColor(d.classification)}
+                                    onClick={() => pushDrill({ type: 'doc', id: d.id })}
+                                    leading={docLeading(d)}
+                                    title={d.name || 'מסמך'}
+                                    subtitle={`${folderName(d.folder)} · ${classLabel(d.classification)}`}
+                                    trailing={<span className="text-[11px] font-black text-[#AEAEB2] shrink-0">{formatSize(d.size)}</span>}
+                                />
+                            ))}
+                        </div>
+                    )
+                );
+
+                let title = '', subtitle = '', icon = null, accent = VAULT, footer = null, body = null;
+
+                if (current.type === 'docs') {
+                    const scopeMap = {
+                        all:      { label: 'כל המסמכים', color: VAULT,      Icon: FolderOpen, filter: () => true },
+                        approved: { label: 'מסמכים מאושרים', color: '#30D158', Icon: CheckCircle, filter: (d) => d.classification === 'approved' },
+                        pending:  { label: 'ממתינים לבדיקה', color: '#FF9500', Icon: Clock, filter: (d) => d.classification === 'pending' },
+                    };
+                    const sc = scopeMap[current.scope] || scopeMap.all;
+                    const list = documents.filter(sc.filter);
+                    accent = sc.color; icon = <sc.Icon size={17} color={sc.color} />;
+                    title = sc.label; subtitle = `${list.length} מסמכים`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: documents.length, color: VAULT },
+                                { label: 'מאושרים', value: approvedCount, color: '#30D158' },
+                                { label: 'ממתינים', value: pendingCount, color: '#FF9500' },
+                                { label: 'בארכיון', value: archivedCount, color: '#FF3B30' },
+                            ]} />
+                            <DocList docs={list} />
+                        </div>
+                    );
+                } else if (current.type === 'storage') {
+                    accent = VAULT; icon = <HardDrive size={17} color={VAULT} />;
+                    title = 'נפח אחסון'; subtitle = `${formatSize(totalVaultSize)} · ${quotaPct.toFixed(0)}% מהמכסה`;
+                    const nonEmpty = folderStats.filter(f => f.count > 0).sort((a, b) => b.size - a.size);
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'בשימוש', value: formatSize(totalVaultSize), color: VAULT },
+                                { label: 'מכסה', value: formatSize(vaultQuota), color: '#8E8E93' },
+                                { label: 'תיקיות', value: folderStats.filter(f => f.count > 0).length, color: '#5856D6' },
+                            ]} />
+                            {nonEmpty.length === 0 ? <DrillEmpty icon={HardDrive} text="הכספת ריקה — טרם הועלו מסמכים" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">נפח לפי תיקייה — לחץ לצלילה</p>
+                                    {nonEmpty.map((f, i) => (
+                                        <DrillRow key={f.id} delay={i * 0.03} tone={f.color || VAULT}
+                                            onClick={() => pushDrill({ type: 'folder', id: f.id })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(f.color || VAULT, 0.12) }}>{folderIcon(f, 14)}</span>}
+                                            title={f.name}
+                                            subtitle={`${f.count} מסמכים`}
+                                            trailing={<span className="text-[11px] font-black shrink-0" style={{ color: f.color || VAULT }}>{formatSize(f.size)}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'folder') {
+                    const f = folders.find(x => x.id === current.id);
+                    const list = documents.filter(d => d.folder === current.id);
+                    accent = f?.color || VAULT; icon = <span>{folderIcon(f || { color: VAULT }, 17)}</span>;
+                    title = f?.name || folderName(current.id); subtitle = `${list.length} מסמכים · ${formatSize(list.reduce((s, d) => s + (d.size || 0), 0))}`;
+                    body = <div className="space-y-5"><DocList docs={list} /></div>;
+                } else if (current.type === 'doc') {
+                    const d = documents.find(x => x.id === current.id);
+                    if (!d) {
+                        title = 'מסמך'; icon = <FileText size={17} color={VAULT} />;
+                        body = <DrillEmpty icon={FileText} text="המסמך נמחק או אינו זמין" />;
+                    } else {
+                        const k = fileKind(d);
+                        accent = classColor(d.classification); icon = <k.Icon size={17} style={{ color: k.color }} />;
+                        title = d.name || 'מסמך'; subtitle = `${k.label} · ${folderName(d.folder)}`;
+                        footer = { label: 'פתח מסמך מלא', onClick: () => { closeDrill(); setSelectedDoc(d); } };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black" style={{ background: hexA(classColor(d.classification), 0.12), color: classColor(d.classification) }}>
+                                        {classLabel(d.classification)}
+                                    </span>
+                                    <p className="text-[15px] font-black tracking-tight text-[#1D1D1F]">{formatSize(d.size)}</p>
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'סוג', value: k.label, color: k.color },
+                                    { label: 'תיקייה', value: folderName(d.folder), color: '#5856D6' },
+                                    { label: 'הועלה', value: formatDate(d.createdAt) || '—', color: '#8E8E93' },
+                                ]} />
+                                {(d.tags || []).length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {d.tags.map((t, i) => (
+                                            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold text-[#6E6E73]" style={{ background: 'rgba(0,0,0,0.05)' }}>
+                                                <Tag size={9} />{t}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
 
             {/* Smart document dialog */}
             <AnimatePresence>

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Phone, FileText, CheckCircle2, AlertCircle, Package, Send, Trash2, Truck } from 'lucide-react';
+import { Bell, Phone, FileText, CheckCircle2, AlertCircle, Package, Send, Trash2, Truck, ChevronLeft, Search, Layers, Clock, Users } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
@@ -14,6 +14,7 @@ import initialProducts from '../../data/products';
 import { db } from '../../firebase';
 import { doc, updateDoc, setDoc, arrayUnion, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import AdminKanbanBoard from '../components/AdminKanbanBoard';
+import DashDrillView from '../components/DashDrillView';
 
 // ─── AI reply templates & intent detection ────────────────────────────────────
 const EMOJI_RXNS = ['👍','✅','❓','⏰','😊'];
@@ -293,6 +294,84 @@ function Stat({ label, value, color = '#007AFF', Icon, tooltip, onClick, delay =
         </motion.div>
     );
 }
+
+// ─── Babushka drill helpers — shared with the dashboard's DashDrillView ───────
+// Numeric value of a quote (subtotal, else summed line items).
+const qVal = (q) => Number(q?.subtotal) || (q?.items || []).reduce(
+    (t, i) => t + ((Number(i.salePrice) || Number(i.price) || 0) * (Number(i.qty) || Number(i.quantity) || 1)), 0);
+// Short he-IL day/month for a ms timestamp.
+const dStr = (ts) => ts ? new Date(ts).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '—';
+// Status → statuses each KPI card in the quotes pipeline actually counts.
+const KPI_QUOTE_GROUPS = {
+    new:        ['חדש'],
+    contacting: ['ביצירת קשר'],
+    quoted:     ['בדיקת מלאי', 'הוצע מחיר', 'במשא ומתן', 'ממתין לאישור'],
+    closed:     ['נסגר'],
+    transit:    ['הועבר לספק', 'בדרך'],
+    delivered:  ['סופק'],
+};
+
+// Compact stat tiles at the top of a drill level.
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+
+// A clickable/inert record row inside a drill level. Clickable rows push a deeper level.
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
+// Small status pill used as the leading element of a drill row.
+const DrillStatusBadge = ({ status, colors }) => {
+    const c = colors[status] || '#AEAEB2';
+    return (
+        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black whitespace-nowrap"
+            style={{ background: hexA(c, 0.12), color: c }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
+            {status || '—'}
+        </span>
+    );
+};
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 function Avatar({ name }) {
@@ -2418,6 +2497,16 @@ function QuotesPipeline() {
     const typingTimerRef = useRef(null);
     const prevSelectedId = useRef(null);
 
+    // ── Babushka drill stack — summary KPIs & alert chips open nested glass levels ──
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    // Deepest level's footer hands off to the existing rich quote detail drawer.
+    const openQuoteDrawer = (q) => { closeDrill(); setSelected(q); setNewStatus(''); setSaved(false); setNoteText(''); };
+
     // Auto-open quote from URL param ?quoteId=xxx
     useEffect(() => {
         const id = searchParams.get('quoteId');
@@ -2662,15 +2751,15 @@ function QuotesPipeline() {
     const alerts = useMemo(() => {
         const a = [];
         if (stats.new > 0)
-            a.push({ icon: '🆕', label: 'בקשות חדשות ממתינות', count: stats.new, color: '#FF3B30', onClick: () => setStatusFilter('חדש') });
+            a.push({ icon: '🆕', label: 'בקשות חדשות ממתינות', count: stats.new, color: '#FF3B30', onClick: () => openDrill({ type: 'kpi', key: 'new' }) });
         if (staleQuotes > 0)
-            a.push({ icon: '⏰', label: 'הצעות תקועות מעבר לזמן', count: staleQuotes, color: '#FF9500', onClick: () => { setStatusFilter('הכל'); setDateFilter('all'); } });
+            a.push({ icon: '⏰', label: 'הצעות תקועות מעבר לזמן', count: staleQuotes, color: '#FF9500', onClick: () => openDrill({ type: 'stale' }) });
         const awaitingApproval = quotes.filter(q => q.status === 'ממתין לאישור').length;
         if (awaitingApproval > 0)
-            a.push({ icon: '✍️', label: 'ממתינות לאישור לקוח', count: awaitingApproval, color: '#5856D6', onClick: () => setStatusFilter('ממתין לאישור') });
+            a.push({ icon: '✍️', label: 'ממתינות לאישור לקוח', count: awaitingApproval, color: '#5856D6', onClick: () => openDrill({ type: 'awaiting' }) });
         const ocrLow = quotes.filter(q => q.ocrIntakeId && (typeof q.ocrConfidence === 'number' ? q.ocrConfidence < 0.75 : q.ocrNeedsReview === true)).length;
         if (ocrLow > 0)
-            a.push({ icon: '🔎', label: 'קליטות סריקה בוודאות נמוכה', count: ocrLow, color: '#00C7BE', onClick: () => navigate('/admin/ocr') });
+            a.push({ icon: '🔎', label: 'קליטות סריקה בוודאות נמוכה', count: ocrLow, color: '#00C7BE', onClick: () => openDrill({ type: 'ocrLow' }) });
         return a;
     }, [stats.new, staleQuotes, quotes]);
 
@@ -2697,28 +2786,29 @@ function QuotesPipeline() {
             {/* ── Top KPI band — the pipeline at a glance ──────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                 <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={Bell} delay={0}
-                    onClick={() => setStatusFilter('חדש')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'new' })}
                     tooltip="בקשות הצעת מחיר שנקלטו ועדיין לא טופלו." />
                 <Stat label="בטיפול" value={stats.contacting} color="#FF9500" Icon={Phone} delay={0.04}
-                    onClick={() => setStatusFilter('ביצירת קשר')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'contacting' })}
                     tooltip="בשלב יצירת קשר ובדיקת מלאי מספק." />
                 <Stat label="הוצאת מחיר" value={stats.quoted} color="#007AFF" Icon={FileText} delay={0.08}
-                    onClick={() => setStatusFilter('הוצע מחיר')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'quoted' })}
                     tooltip="הצעות בשלב בנאי המחיר, שליחה וממתין לאישור לקוח." />
                 <Stat label="נסגרו" value={stats.closed} color="#34C759" Icon={CheckCircle2} delay={0.12}
-                    onClick={() => setStatusFilter('נסגר')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'closed' })}
                     tooltip="עסקאות שנסגרו — ממתינות להעברה לספק." />
                 <Stat label="בדרך" value={stats.transit} color="#0891B2" Icon={Truck} delay={0.16}
-                    onClick={() => setStatusFilter('בדרך')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'transit' })}
                     tooltip="הזמנות שהועברו לספק ובדרך ללקוח." />
                 <Stat label="סופקו" value={stats.delivered} color="#1DB954" Icon={Package} delay={0.2}
-                    onClick={() => setStatusFilter('סופק')}
+                    onClick={() => openDrill({ type: 'kpi', key: 'delivered' })}
                     tooltip="עסקאות שסופקו בהצלחה — הכנסה נרשמה." />
                 <Stat label="שווי פתוח" value={`₪${totalValue.toLocaleString()}`} color="#5856D6" Icon={FileText} delay={0.24}
+                    onClick={() => openDrill({ type: 'openValue' })}
                     tooltip="שווי כולל של ההצעות המסוננות המוצגות כרגע." />
                 {staleQuotes > 0 && (
                     <Stat label="דורשות טיפול" value={staleQuotes} color="#FF3B30" Icon={AlertCircle} delay={0.28}
-                        onClick={() => { setStatusFilter('הכל'); setDateFilter('all'); }}
+                        onClick={() => openDrill({ type: 'stale' })}
                         tooltip="הצעות שלא התקדמו מעבר לזמן הצפוי לשלב." />
                 )}
             </div>
@@ -2748,7 +2838,7 @@ function QuotesPipeline() {
                         ))}
                         {duplicateGroups.map((g, i) => (
                             <motion.button key={`dup${i}`} whileTap={{ scale: 0.96 }} whileHover={{ y: -1 }}
-                                onClick={() => setSearch(g[0].institution || g[0].email || '')}
+                                onClick={() => openDrill({ type: 'dup', label: g[0].institution || g[0].email || '' })}
                                 title="מוסד עם מספר הצעות פתוחות — שקול איחוד"
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 12, background: hexA('#007AFF', 0.10), border: `1px solid ${hexA('#007AFF', 0.24)}`, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
                                 <span style={{ fontSize: 13 }}>🗂️</span>
@@ -3773,6 +3863,210 @@ function QuotesPipeline() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* ── Babushka Drill Drawer — KPI / alert breakdowns → record → detail ──── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                // Render a list of quotes as rows that push a per-quote detail level.
+                const quoteRows = (list, tone = '#007AFF') => (
+                    list.length === 0
+                        ? <DrillEmpty icon={FileText} text="אין הצעות תואמות כרגע" />
+                        : (
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימת הצעות — לחץ לפרטים</p>
+                                {list.slice(0, 30).map((q, i) => (
+                                    <DrillRow key={q.id || i} delay={i * 0.03} tone={tone}
+                                        onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                        leading={<DrillStatusBadge status={q.status} colors={QUOTE_STATUS_COLORS} />}
+                                        title={q.contactName || q.institution || q.id}
+                                        subtitle={q.institution ? `${q.institution} · ${dStr(q.dateTs)}` : `#${q.id} · ${dStr(q.dateTs)}`}
+                                        trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{Math.round(qVal(q)).toLocaleString()}</span>}
+                                    />
+                                ))}
+                            </div>
+                        )
+                );
+                const sumOf = (list) => list.reduce((s, q) => s + qVal(q), 0);
+
+                const KPI_META = {
+                    new:        { title: 'בקשות חדשות', color: '#FF3B30', Icon: Bell },
+                    contacting: { title: 'הצעות בטיפול', color: '#FF9500', Icon: Phone },
+                    quoted:     { title: 'הצעות — הוצא מחיר', color: '#007AFF', Icon: FileText },
+                    closed:     { title: 'עסקאות שנסגרו', color: '#34C759', Icon: CheckCircle2 },
+                    transit:    { title: 'הזמנות בדרך', color: '#0891B2', Icon: Truck },
+                    delivered:  { title: 'עסקאות שסופקו', color: '#1DB954', Icon: Package },
+                };
+
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
+
+                if (shown.type === 'kpi') {
+                    const meta = KPI_META[shown.key] || KPI_META.new;
+                    const list = quotes.filter(q => KPI_QUOTE_GROUPS[shown.key]?.includes(q.status));
+                    accent = meta.color; title = meta.title; subtitle = `${list.length} הצעות · שווי ₪${Math.round(sumOf(list)).toLocaleString()}`;
+                    icon = <meta.Icon size={17} color={meta.color} />;
+                    footer = { label: 'סנן רשימה לסטטוס זה', onClick: () => { const first = KPI_QUOTE_GROUPS[shown.key]?.[0]; closeDrill(); setStatusFilter(QUOTE_STATUSES.includes(first) ? first : 'הכל'); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: meta.color },
+                                { label: 'שווי כולל', value: `₪${Math.round(sumOf(list)).toLocaleString()}`, color: '#34C759' },
+                                { label: 'ממוצע', value: `₪${list.length ? Math.round(sumOf(list) / list.length).toLocaleString() : 0}`, color: '#5856D6' },
+                            ]} />
+                            {quoteRows(list, meta.color)}
+                        </div>
+                    );
+                } else if (shown.type === 'openValue') {
+                    const list = [...filtered].sort((a, b) => qVal(b) - qVal(a));
+                    accent = '#5856D6'; title = 'שווי פתוח'; subtitle = `${list.length} הצעות מסוננות · ₪${Math.round(totalValue).toLocaleString()}`;
+                    icon = <FileText size={17} color="#5856D6" />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ שווי', value: `₪${Math.round(totalValue).toLocaleString()}`, color: '#5856D6' },
+                                { label: 'הצעות', value: list.length, color: '#007AFF' },
+                                { label: 'ממוצע', value: `₪${list.length ? Math.round(totalValue / list.length).toLocaleString() : 0}`, color: '#34C759' },
+                            ]} />
+                            {quoteRows(list, '#5856D6')}
+                        </div>
+                    );
+                } else if (shown.type === 'stale') {
+                    const staleMap = { 'חדש': 1, 'ביצירת קשר': 3, 'בדיקת מלאי': 5, 'הוצע מחיר': 7, 'ממתין לאישור': 5 };
+                    const list = quotes.filter(q => {
+                        const threshold = staleMap[q.status];
+                        if (!threshold) return false;
+                        const age = q.dateTs ? Math.floor((Date.now() - q.dateTs) / 86400000) : 0;
+                        return age > threshold;
+                    }).sort((a, b) => (a.dateTs || 0) - (b.dateTs || 0));
+                    accent = '#FF9500'; title = 'הצעות דורשות טיפול'; subtitle = `${list.length} תקועות מעבר לזמן`;
+                    icon = <Clock size={17} color="#FF9500" />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'תקועות', value: list.length, color: '#FF9500' },
+                                { label: 'שווי בסיכון', value: `₪${Math.round(sumOf(list)).toLocaleString()}`, color: '#FF3B30' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין הצעות תקועות — הכל מתקדם 🎉" /> : quoteRows(list, '#FF9500')}
+                        </div>
+                    );
+                } else if (shown.type === 'awaiting') {
+                    const list = quotes.filter(q => q.status === 'ממתין לאישור').sort((a, b) => (a.dateTs || 0) - (b.dateTs || 0));
+                    accent = '#5856D6'; title = 'ממתינות לאישור לקוח'; subtitle = `${list.length} הצעות · ₪${Math.round(sumOf(list)).toLocaleString()}`;
+                    icon = <FileText size={17} color="#5856D6" />;
+                    footer = { label: 'סנן ל"ממתין לאישור"', onClick: () => { closeDrill(); setStatusFilter('ממתין לאישור'); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ממתינות', value: list.length, color: '#5856D6' },
+                                { label: 'שווי כולל', value: `₪${Math.round(sumOf(list)).toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין הצעות הממתינות לאישור" /> : quoteRows(list, '#5856D6')}
+                        </div>
+                    );
+                } else if (shown.type === 'ocrLow') {
+                    const list = quotes.filter(q => q.ocrIntakeId && (typeof q.ocrConfidence === 'number' ? q.ocrConfidence < 0.75 : q.ocrNeedsReview === true))
+                        .sort((a, b) => (a.ocrConfidence ?? 1) - (b.ocrConfidence ?? 1));
+                    accent = '#00C7BE'; title = 'קליטות סריקה בוודאות נמוכה'; subtitle = `${list.length} קליטות לבדיקה`;
+                    icon = <Search size={17} color="#00C7BE" />;
+                    footer = { label: 'מעבר למרכז הסריקות', onClick: () => { closeDrill(); navigate('/admin/ocr'); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'קליטות', value: list.length, color: '#00C7BE' },
+                                { label: 'שווי כולל', value: `₪${Math.round(sumOf(list)).toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין קליטות בוודאות נמוכה" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קליטות — לחץ לפרטים</p>
+                                    {list.slice(0, 30).map((q, i) => (
+                                        <DrillRow key={q.id || i} delay={i * 0.03} tone="#00C7BE"
+                                            onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                            leading={<DrillStatusBadge status={q.status} colors={QUOTE_STATUS_COLORS} />}
+                                            title={q.contactName || q.institution || q.id}
+                                            subtitle={typeof q.ocrConfidence === 'number' ? `ודאות ${Math.round(q.ocrConfidence * 100)}% · ${dStr(q.dateTs)}` : `סומן לבדיקה · ${dStr(q.dateTs)}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{Math.round(qVal(q)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'dup') {
+                    const key = (shown.label || '').trim().toLowerCase();
+                    const OPEN = new Set(['חדש','ביצירת קשר','בדיקת מלאי','הוצע מחיר','ממתין לאישור','הועבר לספק','בדרך']);
+                    const list = quotes.filter(q => OPEN.has(q.status) && ((q.institution || q.email || '').trim().toLowerCase() === key));
+                    accent = '#007AFF'; title = shown.label || 'מוסד כפול'; subtitle = `${list.length} הצעות פתוחות · שקול איחוד`;
+                    icon = <Layers size={17} color="#007AFF" />;
+                    footer = { label: 'חפש מוסד זה ברשימה', onClick: () => { closeDrill(); setSearch(shown.label || ''); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות פתוחות', value: list.length, color: '#007AFF' },
+                                { label: 'שווי מצטבר', value: `₪${Math.round(sumOf(list)).toLocaleString()}`, color: '#34C759' },
+                            ]} />
+                            {quoteRows(list, '#007AFF')}
+                        </div>
+                    );
+                } else if (shown.type === 'quote') {
+                    const q = quotes.find(x => String(x.id) === String(shown.id));
+                    const col = q ? (QUOTE_STATUS_COLORS[q.status] || '#007AFF') : '#007AFF';
+                    accent = col;
+                    title = q ? (q.contactName || q.institution || 'הצעה') : 'הצעה';
+                    subtitle = q ? `#${q.id} · ${dStr(q.dateTs)}` : String(shown.id);
+                    icon = <FileText size={17} color={col} />;
+                    footer = q ? { label: 'פתח בכרטיס ההצעה המלא', onClick: () => openQuoteDrawer(q) } : null;
+                    body = q ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <DrillStatusBadge status={q.status} colors={QUOTE_STATUS_COLORS} />
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{Math.round(qVal(q)).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'מוסד', value: q.institution || '—', color: col },
+                                { label: 'פריטים', value: (q.items || []).length, color: '#007AFF' },
+                                { label: 'תאריך', value: dStr(q.dateTs) },
+                            ]} />
+                            {(q.contactName || q.email || q.phone) && (
+                                <div className="rounded-[14px] p-3.5 text-right space-y-1" style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                    {q.contactName && <p className="text-[12px] font-bold text-[#1D1D1F]">{q.contactName}</p>}
+                                    {q.email && <p className="text-[11px] text-[#86868B]">{q.email}</p>}
+                                    {q.phone && <p className="text-[11px] text-[#86868B]" dir="ltr" style={{ textAlign: 'right' }}>{q.phone}</p>}
+                                </div>
+                            )}
+                            {(q.items || []).length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטי ההצעה</p>
+                                    {q.items.map((it, i) => (
+                                        <DrillRow key={i} delay={i * 0.03}
+                                            title={it.title || it.name || `פריט ${i + 1}`}
+                                            subtitle={`${it.qty || it.quantity || 1} × ₪${(Number(it.salePrice || it.price) || 0).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            ) : <DrillEmpty icon={Package} text="אין פריטים מפורטים בהצעה זו" />}
+                        </div>
+                    ) : <DrillEmpty icon={FileText} text="ההצעה לא נמצאה" />;
+                } else {
+                    title = 'פרטים'; icon = <FileText size={17} color="#007AFF" />;
+                    body = <DrillEmpty icon={FileText} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.key ?? shown.id ?? shown.label ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
         </>
     );
@@ -3795,6 +4089,15 @@ function OrdersList() {
     const [selected, setSelected]         = useState(null);
     const [newStatus, setNewStatus]       = useState('');
     const [saved, setSaved]               = useState(false);
+
+    // ── Babushka drill stack — order KPIs & revenue summary open nested levels ──
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const openOrderDrawer = (o) => { closeDrill(); setSelected(o); setNewStatus(''); setSaved(false); };
 
     useEffect(() => {
         sessionStorage.setItem('admin_orders_filters', JSON.stringify({ search, statusFilter, dateFilter }));
@@ -3846,12 +4149,16 @@ function OrdersList() {
         <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Stat label="חדשות" value={stats.new} color="#FF3B30" Icon={AlertCircle}
+                    onClick={() => openDrill({ type: 'kpi', status: 'חדש' })}
                     tooltip="הזמנות חדשות שנקלטו ועדיין לא טופלו." />
                 <Stat label="ממתינות" value={stats.pending} color="#FF9500" Icon={Bell}
+                    onClick={() => openDrill({ type: 'kpi', status: 'ממתין' })}
                     tooltip="הזמנות באישור — ממתינות לאישור פנימי לפני שילוח." />
                 <Stat label="נשלחו" value={stats.shipped} color="#5856D6" Icon={Package}
+                    onClick={() => openDrill({ type: 'kpi', status: 'נשלח' })}
                     tooltip="הזמנות שיצאו לשילוח — בדרך ללקוח." />
                 <Stat label="נמסרו" value={stats.delivered} color="#34C759" Icon={CheckCircle2}
+                    onClick={() => openDrill({ type: 'kpi', status: 'נמסר' })}
                     tooltip="הזמנות שנמסרו בהצלחה ללקוח." />
             </div>
 
@@ -3934,10 +4241,18 @@ function OrdersList() {
             </div>
 
             {filtered.length > 0 && (
-                <div className="flex justify-between items-center px-1">
-                    <span className="text-[#1D1D1F] font-black text-base">₪{totalRevenue.toLocaleString()}</span>
+                <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.99 }}
+                    onClick={() => openDrill({ type: 'revenue' })}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'revenue' }); } }}
+                    className="flex justify-between items-center px-4 py-2.5 rounded-[14px] cursor-pointer transition-colors focus:outline-none focus:ring-2"
+                    style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <span className="text-[#1D1D1F] font-black text-base flex items-center gap-1.5">
+                        ₪{totalRevenue.toLocaleString()}
+                        <ChevronLeft size={15} className="text-[#C7C7CC]" strokeWidth={2.5} />
+                    </span>
                     <span className="text-[#86868B] text-sm">{filtered.length} הזמנות מוצגות</span>
-                </div>
+                </motion.div>
             )}
 
             <AdminModal open={!!selected} onClose={() => setSelected(null)} title={`הזמנה ${selected?.id || ''}`} size="md">
@@ -4006,6 +4321,130 @@ function OrdersList() {
                     </div>
                 )}
             </AdminModal>
+
+            {/* ── Babushka Drill Drawer — KPI / revenue breakdown → order detail ──── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const oDateStr = (o) => o?.date || dStr(o?.dateTs);
+                const orderRows = (list, tone = '#007AFF') => (
+                    list.length === 0
+                        ? <DrillEmpty icon={Package} text="אין הזמנות תואמות" />
+                        : (
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">רשימת הזמנות — לחץ לפרטים</p>
+                                {list.slice(0, 30).map((o, i) => (
+                                    <DrillRow key={o.id || i} delay={i * 0.03} tone={tone}
+                                        onClick={() => pushDrill({ type: 'order', id: o.id })}
+                                        leading={<DrillStatusBadge status={o.status} colors={ORDER_STATUS_COLORS} />}
+                                        title={o.customer || 'לקוח'}
+                                        subtitle={`${o.product || `${(o.items || []).length} פריטים`} · ${oDateStr(o)}`}
+                                        trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>}
+                                    />
+                                ))}
+                            </div>
+                        )
+                );
+                const sumOf = (list) => list.reduce((s, o) => s + (o.total || 0), 0);
+                const KPI_ORDER_META = {
+                    'חדש':   { title: 'הזמנות חדשות', Icon: AlertCircle },
+                    'ממתין': { title: 'הזמנות ממתינות', Icon: Bell },
+                    'נשלח':  { title: 'הזמנות שנשלחו', Icon: Package },
+                    'נמסר':  { title: 'הזמנות שנמסרו', Icon: CheckCircle2 },
+                };
+
+                let title = '', subtitle = '', icon = null, accent = '#007AFF', footer = null, body = null;
+
+                if (shown.type === 'kpi') {
+                    const meta = KPI_ORDER_META[shown.status] || { title: shown.status, Icon: Package };
+                    const col = ORDER_STATUS_COLORS[shown.status] || '#007AFF';
+                    const list = orders.filter(o => o.status === shown.status).sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+                    accent = col; title = meta.title; subtitle = `${list.length} הזמנות · ₪${sumOf(list).toLocaleString()}`;
+                    icon = <meta.Icon size={17} color={col} />;
+                    footer = { label: 'סנן רשימה לסטטוס זה', onClick: () => { closeDrill(); setStatusFilter(shown.status); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הזמנות', value: list.length, color: col },
+                                { label: 'הכנסה', value: `₪${sumOf(list).toLocaleString()}`, color: '#34C759' },
+                                { label: 'ממוצע', value: `₪${list.length ? Math.round(sumOf(list) / list.length).toLocaleString() : 0}`, color: '#5856D6' },
+                            ]} />
+                            {orderRows(list, col)}
+                        </div>
+                    );
+                } else if (shown.type === 'revenue') {
+                    const list = [...filtered].sort((a, b) => (b.total || 0) - (a.total || 0));
+                    accent = '#34C759'; title = 'פירוט הכנסות'; subtitle = `${list.length} הזמנות מוצגות · ₪${totalRevenue.toLocaleString()}`;
+                    icon = <FileText size={17} color="#34C759" />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ הכנסה', value: `₪${totalRevenue.toLocaleString()}`, color: '#34C759' },
+                                { label: 'הזמנות', value: list.length, color: '#007AFF' },
+                                { label: 'ממוצע', value: `₪${list.length ? Math.round(totalRevenue / list.length).toLocaleString() : 0}`, color: '#5856D6' },
+                            ]} />
+                            {orderRows(list, '#34C759')}
+                        </div>
+                    );
+                } else if (shown.type === 'order') {
+                    const o = orders.find(x => String(x.id) === String(shown.id));
+                    const col = o ? (ORDER_STATUS_COLORS[o.status] || '#007AFF') : '#007AFF';
+                    accent = col;
+                    title = o ? (o.customer || 'הזמנה') : 'הזמנה';
+                    subtitle = o ? `#${o.id} · ${oDateStr(o)}` : String(shown.id);
+                    icon = <Package size={17} color={col} />;
+                    footer = o ? { label: 'פתח בכרטיס ההזמנה המלא', onClick: () => openOrderDrawer(o) } : null;
+                    body = o ? (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <DrillStatusBadge status={o.status} colors={ORDER_STATUS_COLORS} />
+                                <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{(o.total || 0).toLocaleString()}</p>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'לקוח', value: o.customer || '—', color: col },
+                                { label: 'פריטים', value: (o.items || []).length || (o.qty || 0), color: '#007AFF' },
+                                { label: 'תאריך', value: oDateStr(o) },
+                            ]} />
+                            {(o.items || []).length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פריטי ההזמנה</p>
+                                    {o.items.map((it, i) => (
+                                        <DrillRow key={i} delay={i * 0.03}
+                                            title={it.title || it.name || o.product || `פריט ${i + 1}`}
+                                            subtitle={`${it.qty || it.quantity || 1} × ₪${(Number(it.salePrice || it.price) || 0).toLocaleString()}`}
+                                            trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{((Number(it.salePrice || it.price) || 0) * (Number(it.qty || it.quantity) || 1)).toLocaleString()}</span>}
+                                        />
+                                    ))}
+                                </div>
+                            ) : o.product ? (
+                                <DrillRow
+                                    title={o.product}
+                                    subtitle={`${o.qty || 1} יח׳`}
+                                    trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{(o.total || 0).toLocaleString()}</span>}
+                                />
+                            ) : <DrillEmpty icon={Package} text="אין פריטים מפורטים בהזמנה זו" />}
+                        </div>
+                    ) : <DrillEmpty icon={Package} text="ההזמנה לא נמצאה" />;
+                } else {
+                    title = 'פרטים'; icon = <Package size={17} color="#007AFF" />;
+                    body = <DrillEmpty icon={Package} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.status ?? shown.id ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }

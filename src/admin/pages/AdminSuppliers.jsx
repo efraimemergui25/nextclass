@@ -16,7 +16,7 @@ import {
     FileText, Trash2, Check, Search, Building2, Package,
     Clock, CheckCircle2, ShoppingCart, RefreshCw,
     Globe, User, Hash, Truck, Box, CreditCard,
-    BarChart3, ArrowUpDown, Edit2, ChevronRight, Layers, Briefcase,
+    BarChart3, ArrowUpDown, Edit2, ChevronRight, ChevronLeft, Layers, Briefcase,
     Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
     Zap, Rocket, Crown, ClipboardList, MessageSquare, Download,
 } from 'lucide-react';
@@ -25,6 +25,7 @@ import {
     hexA, glow, accentSurface,
 } from '../theme/tokens';
 import { AdminKPICard } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 
 // ─── Suppliers domain accent (restrained brand — azure, de-rainbowed) ──────────
 const GOLD      = '#007AFF';                                     // suppliers accent (azure)
@@ -3749,6 +3750,58 @@ function exportQuotesXLSX(suppliers, quotes) {
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 export default function AdminSuppliers() {
     const { showToast } = useAdminToast();
     const [suppliers,    setSuppliers]    = useState([]);
@@ -3763,6 +3816,14 @@ export default function AdminSuppliers() {
     const [addQuote,     setAddQuote]     = useState(false);
     const [editSupplier, setEditSupplier] = useState(null);
     const [pendingOpenId, setPendingOpenId] = useState(null);
+
+    // ── Babushka drill stack (KPI → breakdown → supplier/quote detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const openQuoteDrawer = (q) => { closeDrill(); setActiveTab(q.supplierId); setTimeout(() => setSelectedQ(q), 60); };
 
     // Auto-open drawer when a freshly-created quote arrives via Firestore snapshot
     useEffect(() => {
@@ -3864,13 +3925,17 @@ export default function AdminSuppliers() {
             {/* KPI band — suppliers · active RFQs · pending quotes · total value */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14, marginBottom: 22 }}>
                 <AdminKPICard title="ספקים" value={kpis.suppliers} subtitle="ספקים במערכת" accent={GOLD} delay={0}
-                    icon={<Briefcase size={20} color={GOLD} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                    icon={<Briefcase size={20} color={GOLD} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={suppliers.length ? () => openDrill({ type: 'suppliers' }) : undefined} />
                 <AdminKPICard title="הצעות פעילות" value={kpis.activeRFQs} subtitle="במשא ומתן" accent={PALETTE.azure} delay={0.05}
-                    icon={<ClipboardList size={20} color={PALETTE.azure} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                    icon={<ClipboardList size={20} color={PALETTE.azure} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={() => openDrill({ type: 'quotes', scope: 'active' })} />
                 <AdminKPICard title="ממתינות לבדיקה" value={kpis.pendingQuotes} subtitle="הצעות חדשות" accent={PALETTE.orange} delay={0.1}
-                    icon={<Clock size={20} color={PALETTE.orange} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                    icon={<Clock size={20} color={PALETTE.orange} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={() => openDrill({ type: 'quotes', scope: 'pending' })} />
                 <AdminKPICard title="ערך כולל" value={fmt(kpis.totalValue)} subtitle="סך כל ההצעות" accent={PALETTE.green} delay={0.15}
-                    icon={<CreditCard size={20} color={PALETTE.green} />} loading={loading} error={error && !suppliers.length ? error : undefined} />
+                    icon={<CreditCard size={20} color={PALETTE.green} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={quotes.length ? () => openDrill({ type: 'value' }) : undefined} />
             </div>
 
             {/* Segment pills + search — Heaven organizing mechanism */}
@@ -4033,6 +4098,173 @@ export default function AdminSuppliers() {
                         focusProductKey={focusProductKey} />
                 )}
             </AnimatePresence>
+
+            {/* ── Babushka Drill Drawer — KPI → breakdown → supplier/quote detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const stageOf   = (q) => NEG_STAGES.find(s => s.id === (q.status || 'received')) || NEG_STAGES[0];
+                const supName   = (id) => suppliers.find(s => s.id === id)?.name || 'ספק לא ידוע';
+                const StatusChip = ({ q }) => {
+                    const st = stageOf(q);
+                    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black shrink-0" style={{ background: hexA(st.color, 0.12), color: st.color }}><st.icon size={9} />{st.label}</span>;
+                };
+                const QuoteList = ({ list }) => (
+                    list.length === 0 ? <DrillEmpty icon={ClipboardList} text="אין הצעות מחיר להצגה" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הצעות מחיר — לחץ לפרטים</p>
+                            {list.slice(0, 40).map((q, i) => (
+                                <DrillRow key={q.id} delay={i * 0.02} tone={stageOf(q).color}
+                                    onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                    leading={<StatusChip q={q} />}
+                                    title={supName(q.supplierId)}
+                                    subtitle={`${(q.products || []).length} מוצרים · ${fmtD(q.createdAt)}`}
+                                    trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{fmt(calcTotal(q.products || []))}</span>}
+                                />
+                            ))}
+                        </div>
+                    )
+                );
+                const SupplierList = ({ withValue }) => {
+                    const rows = suppliers.map(s => {
+                        const qs = quotes.filter(q => q.supplierId === s.id);
+                        return { s, count: qs.length, total: qs.reduce((sum, q) => sum + calcTotal(q.products || []), 0) };
+                    }).sort((a, b) => withValue ? b.total - a.total : b.count - a.count);
+                    return rows.length === 0 ? <DrillEmpty icon={Briefcase} text="אין ספקים במערכת" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">ספקים — לחץ לצלילה</p>
+                            {rows.map(({ s, count, total }, i) => (
+                                <DrillRow key={s.id} delay={i * 0.02} tone={s.color || GOLD}
+                                    onClick={() => pushDrill({ type: 'supplier', id: s.id })}
+                                    leading={<SupplierAvatar domain={s.domain} name={s.name} size={30} color={s.color} logoUrl={s.logoUrl} />}
+                                    title={s.name}
+                                    subtitle={`${count} הצעות${s.agentName ? ` · ${s.agentName}` : ''}`}
+                                    trailing={<span className="text-[12px] font-black shrink-0" style={{ color: withValue ? PALETTE.green : '#1D1D1F' }}>{withValue ? fmt(total) : count}</span>}
+                                />
+                            ))}
+                        </div>
+                    );
+                };
+
+                let title = '', subtitle = '', icon = null, accent = GOLD, footer = null, body = null;
+
+                if (current.type === 'suppliers') {
+                    accent = GOLD; icon = <Briefcase size={17} color={GOLD} />;
+                    title = 'ספקים'; subtitle = `${kpis.suppliers} ספקים במערכת`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ספקים', value: kpis.suppliers, color: GOLD },
+                                { label: 'הצעות פעילות', value: kpis.activeRFQs, color: PALETTE.azure },
+                                { label: 'ממתינות', value: kpis.pendingQuotes, color: PALETTE.orange },
+                                { label: 'ערך כולל', value: fmt(kpis.totalValue), color: PALETTE.green },
+                            ]} />
+                            <SupplierList withValue={false} />
+                        </div>
+                    );
+                } else if (current.type === 'value') {
+                    accent = PALETTE.green; icon = <CreditCard size={17} color={PALETTE.green} />;
+                    title = 'ערך כולל'; subtitle = `${fmt(kpis.totalValue)} · ${quotes.length} הצעות`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ערך כולל', value: fmt(kpis.totalValue), color: PALETTE.green },
+                                { label: 'הצעות', value: quotes.length, color: PALETTE.azure },
+                                { label: 'ספקים', value: kpis.suppliers, color: GOLD },
+                            ]} />
+                            <SupplierList withValue={true} />
+                        </div>
+                    );
+                } else if (current.type === 'quotes') {
+                    const isPending = current.scope === 'pending';
+                    const list = isPending
+                        ? quotes.filter(q => (q.status || 'received') === 'received')
+                        : quotes.filter(q => ['received', 'reviewing', 'negotiating'].includes(q.status || 'received'));
+                    accent = isPending ? PALETTE.orange : PALETTE.azure;
+                    icon = isPending ? <Clock size={17} color={PALETTE.orange} /> : <ClipboardList size={17} color={PALETTE.azure} />;
+                    title = isPending ? 'ממתינות לבדיקה' : 'הצעות פעילות';
+                    subtitle = `${list.length} הצעות · ${fmt(list.reduce((s, q) => s + calcTotal(q.products || []), 0))}`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'ערך', value: fmt(list.reduce((s, q) => s + calcTotal(q.products || []), 0)), color: PALETTE.green },
+                                { label: 'ספקים', value: new Set(list.map(q => q.supplierId)).size, color: GOLD },
+                            ]} />
+                            <QuoteList list={list} />
+                        </div>
+                    );
+                } else if (current.type === 'supplier') {
+                    const s = suppliers.find(x => x.id === current.id);
+                    const list = quotes.filter(q => q.supplierId === current.id);
+                    const total = list.reduce((sum, q) => sum + calcTotal(q.products || []), 0);
+                    accent = s?.color || GOLD;
+                    icon = s ? <SupplierAvatar domain={s.domain} name={s.name} size={26} color={s.color} logoUrl={s.logoUrl} /> : <Briefcase size={17} color={GOLD} />;
+                    title = s?.name || 'ספק'; subtitle = `${list.length} הצעות · ${fmt(total)}`;
+                    footer = { label: 'מעבר לספק', onClick: () => { closeDrill(); setActiveTab(current.id); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'ערך כולל', value: fmt(total), color: PALETTE.green },
+                                { label: 'איש קשר', value: s?.agentName || '—', color: '#5856D6' },
+                            ]} />
+                            <QuoteList list={list} />
+                        </div>
+                    );
+                } else if (current.type === 'quote') {
+                    const q = quotes.find(x => x.id === current.id);
+                    if (!q) {
+                        title = 'הצעת מחיר'; icon = <ClipboardList size={17} color={GOLD} />;
+                        body = <DrillEmpty icon={ClipboardList} text="ההצעה נמחקה או אינה זמינה" />;
+                    } else {
+                        const st = stageOf(q); const total = calcTotal(q.products || []);
+                        accent = st.color; icon = <st.icon size={17} color={st.color} />;
+                        title = supName(q.supplierId); subtitle = `${st.label} · ${fmtD(q.createdAt)}`;
+                        footer = { label: 'פתח הצעת מחיר', onClick: () => openQuoteDrawer(q) };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <StatusChip q={q} />
+                                    <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">{fmt(total)}</p>
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'מוצרים', value: (q.products || []).length, color: PALETTE.azure },
+                                    { label: 'ערך', value: fmt(total), color: PALETTE.green },
+                                    { label: 'מס׳ הצעה', value: q.quoteNumber || '—', color: '#5856D6' },
+                                ]} />
+                                {(q.products || []).length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים בהצעה</p>
+                                        {(q.products || []).slice(0, 30).map((p, i) => {
+                                            const line = (Number(p.pricePerUnit) || 0) * (Number(p.quantity) || 1) * (1 - (Number(p.discount) || 0) / 100);
+                                            return (
+                                                <DrillRow key={i} delay={i * 0.02}
+                                                    leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(catColor(p.category), 0.12) }}><Box size={13} style={{ color: catColor(p.category) }} /></span>}
+                                                    title={p.name || p.title || `מוצר ${i + 1}`}
+                                                    subtitle={`${p.quantity || 1} × ${fmt(Number(p.pricePerUnit) || 0)}${p.discount ? ` · ${p.discount}%-` : ''}`}
+                                                    trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{fmt(line)}</span>}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                ) : <DrillEmpty icon={Box} text="אין מוצרים בהצעה זו" />}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }
