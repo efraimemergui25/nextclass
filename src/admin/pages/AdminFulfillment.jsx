@@ -22,8 +22,10 @@ import {
     Mail, TrendingUp, ChevronDown, ArrowRight, Factory, Box,
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
     Copy, Check, Tag, ExternalLink, Star, MessageSquare,
-    DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download
+    DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download,
+    ScanLine
 } from 'lucide-react';
+import AdminOCR from './AdminOCR';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -90,6 +92,7 @@ function PipelineStatusPill({ status }) {
 const TABS = [
     { id: 'dashboard', label: 'דשבורד',        Icon: TrendingUp },
     { id: 'orders',    label: 'הזמנות ספקים',  Icon: Package },
+    { id: 'ocr',       label: 'סריקת מסמכים AI', Icon: ScanLine },
     { id: 'suppliers', label: 'ספקים',          Icon: Building2 },
     { id: 'mapping',   label: 'מיפוי מוצרים',   Icon: Link2 },
 ];
@@ -2297,6 +2300,7 @@ export default function AdminFulfillment() {
                             updateQuoteStatus={updateQuoteStatus}
                         />
                     )}
+                    {activeTab === 'ocr'       && <AdminOCR embedded />}
                     {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} supplierOrders={supplierOrders} showToast={showToast} />}
                     {activeTab === 'mapping'   && <ProductMappingTab suppliers={suppliers} showToast={showToast} />}
                 </motion.div>

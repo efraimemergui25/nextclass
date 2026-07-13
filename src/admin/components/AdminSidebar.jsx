@@ -124,7 +124,6 @@ const NAV_GROUPS = [
             { path: '/admin/fulfillment', icon: 'fulfillment', label: 'הספקה והזמנות ספק', badge: null },
             { path: '/admin/suppliers',   icon: 'suppliers',   label: 'הצעות ספקים',       badge: null },
             { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',              badge: 'lowStock' },
-            { path: '/admin/ocr',         icon: 'ocr',         label: 'סריקת מסמכים AI',   badge: null },
             { path: '/admin/vault',       icon: 'vault',       label: 'כספת מסמכים',       badge: null },
         ],
     },

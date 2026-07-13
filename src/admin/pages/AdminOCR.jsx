@@ -48,7 +48,7 @@ function Field({ label, value, onChange, type = 'text', placeholder, span }) {
     );
 }
 
-export default function AdminOCR() {
+export default function AdminOCR({ embedded = false }) {
     const navigate = useNavigate();
     const { showToast } = useAdminToast();
     const fileRef = useRef(null);
@@ -361,18 +361,22 @@ export default function AdminOCR() {
     const canPreviewImg = fileKind === 'image';
 
     return (
-        <div dir="rtl" style={{ maxWidth: 760, margin: '0 auto', padding: '0 0 60px' }}>
+        <div dir="rtl" style={embedded
+            ? { maxWidth: 760, margin: '0 auto' }
+            : { maxWidth: 760, margin: '0 auto', padding: '0 0 60px' }}>
 
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)', fontSize: 22 }}>🔍</div>
-                    <div>
-                        <h1 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>קליטת הזמנות — OCR AI</h1>
-                        <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontWeight: 600 }}>העלה הזמנת רכש (עמל / ספק) ו-Gemini יחלץ, ואתה מאשר ופותח הזמנה</p>
+            {/* Header — hidden when embedded inside the Fulfillment tab (that page owns the chrome) */}
+            {!embedded && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)', fontSize: 22 }}>🔍</div>
+                        <div>
+                            <h1 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>קליטת הזמנות — OCR AI</h1>
+                            <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontWeight: 600 }}>העלה הזמנת רכש (עמל / ספק) ו-Gemini יחלץ, ואתה מאשר ופותח הזמנה</p>
+                        </div>
                     </div>
-                </div>
-            </motion.div>
+                </motion.div>
+            )}
 
             <AnimatePresence mode="wait">
                 {/* Step: Upload / Ready */}
