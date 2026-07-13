@@ -3802,7 +3802,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
     </div>
 );
 
-export default function AdminSuppliers() {
+export default function AdminSuppliers({ embedded = false }) {
     const { showToast } = useAdminToast();
     const [suppliers,    setSuppliers]    = useState([]);
     const [quotes,       setQuotes]       = useState([]);
@@ -3897,15 +3897,20 @@ export default function AdminSuppliers() {
 
     return (
         <div dir="rtl">
-            {/* Page header */}
+            {/* Page header — icon+title hidden when embedded inside the Fulfillment tab
+                 (that page owns the chrome); action buttons are kept either way. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
-                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: SHADOW.specular }}>
-                    <Briefcase size={22} color={GOLD} />
-                </div>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>הצעות מחיר מספקים</h1>
-                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
-                </div>
+                {!embedded && (
+                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: SHADOW.specular }}>
+                        <Briefcase size={22} color={GOLD} />
+                    </div>
+                )}
+                {!embedded && (
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                        <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>הצעות מחיר מספקים</h1>
+                        <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
+                    </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                     {quotes.length > 0 && (
                         <motion.button

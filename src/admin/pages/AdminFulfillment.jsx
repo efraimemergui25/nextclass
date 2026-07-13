@@ -26,6 +26,7 @@ import {
     ScanLine
 } from 'lucide-react';
 import AdminOCR from './AdminOCR';
+import AdminSuppliers from './AdminSuppliers';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ function PipelineStatusPill({ status }) {
 const TABS = [
     { id: 'dashboard', label: 'דשבורד',        Icon: TrendingUp },
     { id: 'orders',    label: 'הזמנות ספקים',  Icon: Package },
+    { id: 'quotes',    label: 'הצעות ספקים',    Icon: FileText },
     { id: 'ocr',       label: 'סריקת מסמכים AI', Icon: ScanLine },
     { id: 'suppliers', label: 'ספקים',          Icon: Building2 },
     { id: 'mapping',   label: 'מיפוי מוצרים',   Icon: Link2 },
@@ -2300,6 +2302,7 @@ export default function AdminFulfillment() {
                             updateQuoteStatus={updateQuoteStatus}
                         />
                     )}
+                    {activeTab === 'quotes'    && <AdminSuppliers embedded />}
                     {activeTab === 'ocr'       && <AdminOCR embedded />}
                     {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} supplierOrders={supplierOrders} showToast={showToast} />}
                     {activeTab === 'mapping'   && <ProductMappingTab suppliers={suppliers} showToast={showToast} />}

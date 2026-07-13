@@ -121,10 +121,9 @@ const NAV_GROUPS = [
         icon: 'fulfillment',
         accent: '#007AFF',
         items: [
-            { path: '/admin/fulfillment', icon: 'fulfillment', label: 'הספקה והזמנות ספק', badge: null },
-            { path: '/admin/suppliers',   icon: 'suppliers',   label: 'הצעות ספקים',       badge: null },
-            { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',              badge: 'lowStock' },
-            { path: '/admin/vault',       icon: 'vault',       label: 'כספת מסמכים',       badge: null },
+            { path: '/admin/fulfillment', icon: 'fulfillment', label: 'הספקה, ספקים וסריקה', badge: null },
+            { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',               badge: 'lowStock' },
+            { path: '/admin/vault',       icon: 'vault',       label: 'כספת מסמכים',        badge: null },
         ],
     },
     {
