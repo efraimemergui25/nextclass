@@ -11,10 +11,11 @@ import {
     AdminKPICard
 } from '../components/AdminComponents';
 import { hexA, accentGradient } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import {
     Eye, Layout, Type, Image as ImageIcon, Search, Menu,
     ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw, Check,
-    ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X,
+    ChevronDown, ArrowRightLeft, ChevronRight, ChevronLeft, ExternalLink, Edit2, X,
     Palette, Navigation, Award, Layers, LayoutGrid, UserCircle, Package,
     Ruler, Shield, Headphones, HelpCircle, Info, Clock, Phone, Compass,
     Heart, BookOpen, Bot, MessageSquare, Video, Wrench, Settings, Home,
@@ -30,6 +31,58 @@ const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0
 
 // ─── Content domain accent (restrained azure brand) ────────────────────────────
 const PURPLE = '#007AFF';
+
+// ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
 
 // ─── Visibility Items ─────────────────────────────────────────────────────────
 const VISIBILITY_ITEMS = [
@@ -2042,6 +2095,13 @@ export default function AdminContent({ showToast }) {
     const [saved, setSaved] = useState(false);
     const { settings, updateGlobalSettings } = useSettings();
 
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+
     // Initialize form from live JSON settings — never from stale localStorage
     useEffect(() => {
         const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
@@ -2433,15 +2493,232 @@ export default function AdminContent({ showToast }) {
 
                     {/* KPI band — content-management overview */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} />
-                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5856D6" subtitle="ניתנים לעריכה" delay={0.05} />
-                        <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} />
-                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#8E8E93" subtitle="קבוצות ניווט" delay={0.15} />
+                        <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} onClick={() => openDrill({ type: 'sections' })} />
+                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5856D6" subtitle="ניתנים לעריכה" delay={0.05} onClick={() => openDrill({ type: 'fields' })} />
+                        <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} onClick={() => openDrill({ type: 'open' })} />
+                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#8E8E93" subtitle="קבוצות ניווט" delay={0.15} onClick={() => openDrill({ type: 'groups' })} />
                     </div>
 
                     {renderContentPanel()}
                 </>
             )}
+
+            {/* ── Babushka Drill Drawer — nested glass detail view ─────────────── */}
+            {(() => {
+                const shown = drillStack[drillStack.length - 1] || null;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                // ── Section metadata helpers ──────────────────────────────────
+                const typeLabel = { text: 'טקסט', textarea: 'טקסט ארוך', image: 'תמונה', boolean: 'מתג' };
+                const sectionTypeLabel = (sec) => {
+                    if (sec.type === 'visibility') return 'נראות רכיבים';
+                    if (sec.type === 'menu_reorder' || sec.type === 'mobile_menu_reorder') return 'סידור תפריט';
+                    if (sec.type === 'videos') return 'ספריית וידאו';
+                    if (sec.type === 'magazine') return 'כתבות מגזין';
+                    if (sec.type === 'users') return 'משתמשים';
+                    return 'שדות תוכן';
+                };
+                const sectionFieldCount = (sec) => sec.type === 'visibility' ? VISIBILITY_ITEMS.length : (sec.fields?.length || 0);
+                const groupSectionCount = (g) => g.subGroups.reduce((n, sg) => n + sg.sections.length, 0);
+                const secIcon = (sec, size = 13) => SECTION_ICON_COMPONENTS[sec.id] || <FileText size={size} />;
+                const totalFields = Object.keys(ALL_FIELD_DEFAULTS).length;
+
+                // ── Navigate the editor to a section / group ──────────────────
+                const goToSection = (id) => {
+                    const grp = currentGroups.find(g => g.subGroups.some(sg => sg.sections.includes(id)));
+                    setGlobalSearch('');
+                    if (grp) {
+                        setActiveGroup(grp.id);
+                        setOpenSections(new Set([id]));
+                    } else {
+                        const sec = ALL_SECTIONS.find(s => s.id === id);
+                        if (sec) setGlobalSearch(sec.label);
+                        setOpenSections(new Set([id]));
+                    }
+                    closeDrill();
+                };
+                const goToGroup = (id) => {
+                    setGlobalSearch('');
+                    setActiveGroup(id);
+                    setOpenSections(new Set());
+                    closeDrill();
+                };
+
+                let title = '', subtitle = '', icon = null, accent = PURPLE, footer = null, body = null;
+
+                const sectionRow = (sec, i) => (
+                    <DrillRow key={sec.id} delay={i * 0.025} tone={sec.accent || PURPLE}
+                        onClick={() => pushDrill({ type: 'section', id: sec.id })}
+                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(sec.accent || PURPLE, 0.12), color: sec.accent || PURPLE }}>{secIcon(sec)}</span>}
+                        title={sec.label}
+                        subtitle={`${sectionTypeLabel(sec)}${SECTION_LOCATIONS[sec.id] ? ` · ${SECTION_LOCATIONS[sec.id]}` : ''}`}
+                        trailing={openSections.has(sec.id)
+                            ? <span className="text-[9px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA('#34C759', 0.12), color: '#1A8C40' }}>פתוח</span>
+                            : (sectionFieldCount(sec) > 0 ? <span className="text-[12px] font-black shrink-0" style={{ color: sec.accent || PURPLE }}>{sectionFieldCount(sec)}</span> : null)} />
+                );
+
+                if (shown.type === 'sections') {
+                    title = 'קטעים לעריכה'; subtitle = `${ALL_SECTIONS.length} סקציות תוכן`; accent = PURPLE;
+                    icon = <span style={{ color: PURPLE, display: 'flex' }}><Layers size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סקציות', value: ALL_SECTIONS.length, color: PURPLE },
+                                { label: 'שדות', value: totalFields, color: '#5856D6' },
+                                { label: 'פתוחים', value: openSections.size, color: '#007AFF' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קטעים — לחץ לפרטים</p>
+                                {ALL_SECTIONS.map((sec, i) => sectionRow(sec, i))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'fields') {
+                    const withFields = [...FIELD_SECTIONS].sort((a, b) => (b.fields?.length || 0) - (a.fields?.length || 0));
+                    title = 'שדות תוכן'; subtitle = `${totalFields} שדות ניתנים לעריכה`; accent = '#5856D6';
+                    icon = <span style={{ color: '#5856D6', display: 'flex' }}><Type size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שדות', value: totalFields, color: '#5856D6' },
+                                { label: 'סקציות עם שדות', value: FIELD_SECTIONS.length, color: PURPLE },
+                                { label: 'ממוצע לקטע', value: FIELD_SECTIONS.length ? Math.round(totalFields / FIELD_SECTIONS.length) : 0, color: '#007AFF' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי מספר שדות — לחץ לפרטים</p>
+                                {withFields.map((sec, i) => sectionRow(sec, i))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'open') {
+                    const openList = ALL_SECTIONS.filter(s => openSections.has(s.id));
+                    title = 'קטעים פתוחים'; subtitle = `${openSections.size} בעריכה כעת`; accent = '#007AFF';
+                    icon = <span style={{ color: '#007AFF', display: 'flex' }}><Eye size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'פתוחים', value: openSections.size, color: '#007AFF' },
+                                { label: 'סה״כ קטעים', value: ALL_SECTIONS.length, color: PURPLE },
+                            ]} />
+                            {openList.length === 0
+                                ? <DrillEmpty icon={Eye} text="אין קטעים פתוחים כרגע" />
+                                : (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פתוחים — לחץ לפרטים</p>
+                                        {openList.map((sec, i) => sectionRow(sec, i))}
+                                    </div>
+                                )}
+                        </div>
+                    );
+                } else if (shown.type === 'groups') {
+                    title = platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'; subtitle = `${currentGroups.length} קבוצות ניווט`; accent = '#8E8E93';
+                    icon = <span style={{ color: '#8E8E93', display: 'flex' }}>{platform === 'mobile' ? <Smartphone size={17} /> : <Monitor size={17} />}</span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'קבוצות', value: currentGroups.length, color: PURPLE },
+                                { label: 'קטעים', value: currentGroups.reduce((n, g) => n + groupSectionCount(g), 0), color: '#5856D6' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קבוצות ניווט — לחץ לפרטים</p>
+                                {currentGroups.map((g, i) => (
+                                    <DrillRow key={g.id} delay={i * 0.03} tone={g.accent || PURPLE}
+                                        onClick={() => pushDrill({ type: 'group', id: g.id })}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(g.accent || PURPLE, 0.12), color: g.accent || PURPLE }}>{GROUP_ICON_COMPONENTS[g.id] || <Settings size={16} />}</span>}
+                                        title={g.label}
+                                        subtitle={`${g.subGroups.length} תת-קבוצות`}
+                                        trailing={g.id === activeGroup
+                                            ? <span className="text-[9px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA('#34C759', 0.12), color: '#1A8C40' }}>פעיל</span>
+                                            : <span className="text-[12px] font-black shrink-0" style={{ color: g.accent || PURPLE }}>{groupSectionCount(g)}</span>} />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'group') {
+                    const grp = currentGroups.find(g => g.id === shown.id);
+                    if (grp) {
+                        accent = grp.accent || PURPLE;
+                        title = grp.label; subtitle = `${groupSectionCount(grp)} קטעים · ${grp.subGroups.length} תת-קבוצות`;
+                        icon = <span style={{ color: accent, display: 'flex' }}>{GROUP_ICON_COMPONENTS[grp.id] || <Settings size={17} />}</span>;
+                        footer = { label: `עבור אל ${grp.label}`, onClick: () => goToGroup(grp.id) };
+                        body = (
+                            <div className="space-y-5">
+                                <DrillStat items={[
+                                    { label: 'קטעים', value: groupSectionCount(grp), color: accent },
+                                    { label: 'תת-קבוצות', value: grp.subGroups.length, color: PURPLE },
+                                ]} />
+                                {grp.subGroups.map((sg, si) => (
+                                    <div key={si} className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">{sg.label || 'קטעים'}</p>
+                                        {sg.sections.map((id, i) => {
+                                            const sec = ALL_SECTIONS.find(s => s.id === id);
+                                            return sec ? sectionRow(sec, i) : null;
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    } else { title = 'קבוצה'; icon = <Settings size={17} />; body = <DrillEmpty icon={Settings} text="הקבוצה לא נמצאה" />; }
+                } else if (shown.type === 'section') {
+                    const sec = ALL_SECTIONS.find(s => s.id === shown.id);
+                    if (sec) {
+                        accent = sec.accent || PURPLE;
+                        const fCount = sectionFieldCount(sec);
+                        const loc = SECTION_LOCATIONS[sec.id] || '—';
+                        title = sec.label; subtitle = sectionTypeLabel(sec);
+                        icon = <span style={{ color: accent, display: 'flex' }}>{secIcon(sec, 17)}</span>;
+                        footer = { label: 'פתח בעורך התוכן', onClick: () => goToSection(sec.id) };
+                        body = (
+                            <div className="space-y-5">
+                                <DrillStat items={[
+                                    { label: 'שדות', value: fCount, color: accent },
+                                    { label: 'סוג', value: sectionTypeLabel(sec), color: PURPLE },
+                                    { label: 'מיקום', value: loc, color: '#8E8E93' },
+                                ]} />
+                                {sec.fields?.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שדות הקטע</p>
+                                        {sec.fields.map((f, i) => (
+                                            <DrillRow key={f.key} delay={i * 0.02} tone={accent}
+                                                leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.12), color: accent }}><Type size={13} /></span>}
+                                                title={f.label}
+                                                subtitle={f.key}
+                                                trailing={<span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA(accent, 0.10), color: accent }}>{typeLabel[f.type] || f.type}</span>} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <DrillRow tone={accent}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.12), color: accent }}>{secIcon(sec)}</span>}
+                                        title={sectionTypeLabel(sec)} subtitle="קטע מותאם — נערך ישירות בעורך" />
+                                )}
+                            </div>
+                        );
+                    } else { title = 'קטע'; icon = <FileText size={17} />; body = <DrillEmpty icon={FileText} text="הקטע לא נמצא" />; }
+                } else {
+                    title = 'פרטים'; icon = <Info size={17} />;
+                    body = <DrillEmpty icon={Info} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.id ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
 
             {/* Floating unsaved-changes banner */}
             <AnimatePresence>
