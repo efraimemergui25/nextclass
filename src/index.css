@@ -156,7 +156,7 @@
 
 .text-shimmer {
     background: linear-gradient(90deg,
-        #1D1D1F 0%, #007AFF 30%, #5856D6 50%, #007AFF 70%, #1D1D1F 100%);
+        #1D1D1F 0%, #007AFF 30%, #5AC8FA 50%, #007AFF 70%, #1D1D1F 100%);
     background-size: 300% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -593,7 +593,7 @@
 
     /* Icon glass badge */
     .icon-glass {
-        background: linear-gradient(145deg, rgba(0, 122, 255, 0.12) 0%, rgba(88, 86, 214, 0.08) 100%);
+        background: linear-gradient(145deg, rgba(0, 122, 255, 0.12) 0%, rgba(90,200,250, 0.08) 100%);
         border: 1px solid rgba(0, 122, 255, 0.15);
         box-shadow:
             0 4px 12px rgba(0, 122, 255, 0.12),
@@ -702,3 +702,38 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 122, 255, 0.30); }
     .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.10) transparent; }
 }
+/* OCR side-by-side extractor — document ⟷ extracted fields */
+.ocr-splitview {
+    display: grid;
+    grid-template-columns: minmax(380px, 48%) 1fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 1080px) {
+    .ocr-splitview { grid-template-columns: 1fr; }
+    .ocr-splitview > div:first-child { position: static !important; }
+}
+/* click-to-enlarge hint overlay on document preview images */
+.ocr-zoomable .ocr-zoom-hint {
+    position: absolute;
+    top: 10px;
+    inset-inline-start: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: 'Heebo', sans-serif;
+    color: #fff;
+    background: rgba(0, 122, 255, 0.92);
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.4);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+}
+.ocr-zoomable:hover .ocr-zoom-hint { opacity: 1; transform: translateY(0); }
+.ocr-zoomable img { transition: filter 0.18s ease; }
+.ocr-zoomable:hover img { filter: brightness(0.97); }
