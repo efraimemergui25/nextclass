@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, BarChart2, Percent, Check, Megaphone, Plus, ChevronLeft, Calendar, Power, Tag, Eye } from 'lucide-react';
+import { Ticket, BarChart2, Percent, Check, Megaphone, Plus, ChevronLeft, Calendar, Power, Tag, Eye, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
@@ -76,7 +76,7 @@ const BANNER_COLORS = [
     { label: 'ירוק',  value: '#34C759' },
     { label: 'כתום',  value: '#FF9500' },
     { label: 'אדום',  value: '#FF3B30' },
-    { label: 'סגול',  value: '#5856D6' },
+    { label: 'סגול',  value: '#5AC8FA' },
     { label: 'שחור',  value: '#1D1D1F' },
 ];
 
@@ -164,7 +164,7 @@ function BannerManager({ onOpenDetail }) {
 }
 
 // ─── Coupon Card ──────────────────────────────────────────────────────────────
-function CouponCard({ coupon, onToggle, onDelete, onOpen, delay }) {
+function CouponCard({ coupon, onToggle, onEdit, onDelete, onOpen, delay }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -216,6 +216,17 @@ function CouponCard({ coupon, onToggle, onDelete, onOpen, delay }) {
                 />
             </motion.button>
 
+            {/* Edit */}
+            <motion.button
+                type="button"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => { e.stopPropagation(); onEdit(coupon); }}
+                className="flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all"
+                style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                <Pencil size={11} strokeWidth={2.5} />ערוך
+            </motion.button>
+
             {/* Delete */}
             <motion.button
                 type="button"
@@ -236,9 +247,10 @@ function CouponCard({ coupon, onToggle, onDelete, onOpen, delay }) {
 const EMPTY = { code: '', discount: '', type: 'percent', expiry: '', active: true };
 
 export default function AdminMarketing() {
-    const { coupons, addCoupon, toggleCoupon, deleteCoupon } = useAdminData();
+    const { coupons, addCoupon, updateCoupon, toggleCoupon, deleteCoupon } = useAdminData();
     const navigate = useNavigate();
     const [showNew, setShowNew] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(EMPTY);
     const [saved, setSaved] = useState(false);
     const [couponFilter, setCouponFilter] = useState('הכל');
@@ -255,11 +267,37 @@ export default function AdminMarketing() {
 
     const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-    const handleAdd = () => {
+    const openNew = () => {
+        setEditingId(null);
+        setForm(EMPTY);
+        setShowNew(true);
+    };
+
+    const openEdit = (coupon) => {
+        setEditingId(coupon.id);
+        setForm({
+            code: coupon.code || '',
+            discount: coupon.discount ?? '',
+            type: coupon.type || 'percent',
+            expiry: coupon.expiry || '',
+            active: coupon.active ?? true,
+        });
+        setShowNew(true);
+    };
+
+    const closeModal = () => {
+        setShowNew(false);
+        setEditingId(null);
+        setForm(EMPTY);
+    };
+
+    const handleSave = () => {
         if (!form.code || !form.discount) return;
-        addCoupon({ ...form, discount: Number(form.discount) });
+        const fields = { ...form, discount: Number(form.discount) };
+        if (editingId) updateCoupon(editingId, fields);
+        else addCoupon(fields);
         setSaved(true);
-        setTimeout(() => { setSaved(false); setForm(EMPTY); setShowNew(false); }, 700);
+        setTimeout(() => { setSaved(false); setForm(EMPTY); setEditingId(null); setShowNew(false); }, 700);
     };
 
     const { getSetting: getS, isVisible: isVis } = useSettings();
@@ -291,7 +329,7 @@ export default function AdminMarketing() {
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שיווק וקידום מכירות</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>{coupons.length} קופונים · {activeCoupons} פעילים · פס הכרזה: {bannerActive ? 'פעיל' : 'כבוי'}</p>
                 </div>
-                <motion.button onClick={() => setShowNew(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(BRAND, 0.5)}` }} whileTap={TAP}
+                <motion.button onClick={openNew} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(BRAND, 0.5)}` }} whileTap={TAP}
                     style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: BRAND_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(BRAND, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     <Plus size={15} />קופון חדש
                 </motion.button>
@@ -326,7 +364,7 @@ export default function AdminMarketing() {
 
                 <AnimatePresence>
                     {displayedCoupons.map((c, i) => (
-                        <CouponCard key={c.id} coupon={c} onToggle={toggleCoupon} onDelete={deleteCoupon} onOpen={() => openDrill({ type: 'coupon', id: c.id })} delay={i * 0.025} />
+                        <CouponCard key={c.id} coupon={c} onToggle={toggleCoupon} onEdit={openEdit} onDelete={deleteCoupon} onOpen={() => openDrill({ type: 'coupon', id: c.id })} delay={i * 0.025} />
                     ))}
                 </AnimatePresence>
 
@@ -335,13 +373,13 @@ export default function AdminMarketing() {
                         icon="empty"
                         title={coupons.length === 0 ? 'אין קופונים עדיין' : 'לא נמצאו קופונים תואמים'}
                         subtitle={coupons.length === 0 ? 'צור קופון חדש כדי להתחיל לקדם מכירות' : 'נסה לשנות את הסינון או החיפוש'}
-                        action={coupons.length === 0 ? { label: 'קופון חדש', onClick: () => setShowNew(true) } : undefined}
+                        action={coupons.length === 0 ? { label: 'קופון חדש', onClick: openNew } : undefined}
                     />
                 )}
             </div>
 
-            {/* New coupon modal */}
-            <AdminModal open={showNew} onClose={() => setShowNew(false)} title="קופון חדש" size="sm">
+            {/* New / edit coupon modal */}
+            <AdminModal open={showNew} onClose={closeModal} title={editingId ? 'עריכת קופון' : 'קופון חדש'} size="sm">
                 <div className="space-y-4" dir="rtl">
                     <AdminInput label="קוד קופון" value={form.code} onChange={v => setField('code', v.toUpperCase())} placeholder="SCHOOL10" dir="ltr" />
                     <div className="grid grid-cols-2 gap-3">
@@ -359,9 +397,11 @@ export default function AdminMarketing() {
                     <AdminInput label="תאריך תפוגה" type="date" value={form.expiry} onChange={v => setField('expiry', v)} dir="ltr" />
                     <AdminToggle label="קופון פעיל" value={form.active} onChange={v => setField('active', v)} />
                     <div className="flex gap-2 pt-1">
-                        <AdminButton variant="ghost" onClick={() => setShowNew(false)}>ביטול</AdminButton>
-                        <AdminButton onClick={handleAdd} disabled={!form.code || !form.discount}>
-                            {saved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נוסף!</span> : 'הוסף קופון'}
+                        <AdminButton variant="ghost" onClick={closeModal}>ביטול</AdminButton>
+                        <AdminButton onClick={handleSave} disabled={!form.code || !form.discount}>
+                            {saved
+                                ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> {editingId ? 'עודכן!' : 'נוסף!'}</span>
+                                : (editingId ? 'שמור שינויים' : 'הוסף קופון')}
                         </AdminButton>
                     </div>
                 </div>
@@ -484,7 +524,7 @@ export default function AdminMarketing() {
                             <DrillStat items={[
                                 { label: 'הנחה', value: c.type === 'percent' ? `${c.discount}%` : `₪${c.discount}`, color: BRAND },
                                 { label: 'שימושים', value: c.uses || 0, color: PALETTE.azure },
-                                { label: 'סוג', value: c.type === 'percent' ? 'אחוז' : 'סכום', color: '#5856D6' },
+                                { label: 'סוג', value: c.type === 'percent' ? 'אחוז' : 'סכום', color: '#5AC8FA' },
                             ]} />
                             <div className="space-y-2">
                                 <DrillRow tone={accent}

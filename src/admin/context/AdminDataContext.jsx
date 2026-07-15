@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
-import { db, storage } from '../../firebase';
-import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+import { collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { CHUNK_CHARS } from '../utils/fileStore';
 import initialProducts from '../../data/products';
 import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
 import { buildAmalPO, amalPoHtml } from '../../data/amalPO';
+import { stageMeta, STAGE_TO_LEGACY, INVENTORY_STAGES } from '../lib/orderModel';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -286,6 +287,138 @@ export function AdminDataProvider({ children }) {
         return id;
     };
 
+    // ── Create/merge a customer contact (customers derive from contacts) ──────
+    const upsertContact = async (data = {}) => {
+        const key = String(data.email || data.phone || data.name || '').trim();
+        if (!key) return null;
+        const existing = data.id
+            ? contacts.find(c => c.id === data.id)
+            : contacts.find(c =>
+                (data.email && c.email && c.email === data.email) ||
+                (data.phone && c.phone && String(c.phone).replace(/\D/g, '') === String(data.phone).replace(/\D/g, ''))
+            );
+        const targetId = data.id || existing?.id || `C-${Date.now()}`;
+        await setDoc(doc(db, 'contacts', targetId), {
+            id: targetId,
+            name: data.name || existing?.name || '',
+            institution: data.institution || existing?.institution || '',
+            phone: data.phone || existing?.phone || '',
+            email: data.email || existing?.email || '',
+            address: data.address || existing?.address || '',
+            city: data.city || existing?.city || '',
+            status: data.status || existing?.status || 'ליד',
+            source: data.source || existing?.source || 'manual',
+            createdAt: existing?.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            ...(data.extra || {}),
+        }, { merge: true });
+        if (!existing) addActivity(`איש קשר/לקוח חדש נוסף: ${data.name || key}`, 'customer');
+        return targetId;
+    };
+
+    // ── Create a customer order/quote (the orders pipeline is the `quotes` collection) ──
+    const createQuote = async (data = {}) => {
+        const now = Date.now();
+        const id = data.id || `Q-${now}`;
+        const items = (data.items || []).map(it => ({
+            catalogNumber: it.catalogNumber || it.id || '',
+            title: it.title || it.name || '',
+            qty: Number(it.qty ?? it.quantity) || 1,
+            unit: it.unit || 'יח׳',
+            price: Number(it.price) || 0,
+            salePrice: it.salePrice != null ? Number(it.salePrice) : (Number(it.price) || 0),
+        }));
+        const subtotal = data.subtotal != null ? Number(data.subtotal)
+            : items.reduce((s, it) => s + (it.salePrice || it.price || 0) * it.qty, 0);
+        const stamp = new Date();
+        await setDoc(doc(db, 'quotes', id), {
+            id,
+            contactName: data.contactName || '', institution: data.institution || '',
+            phone: data.phone || '', email: data.email || '', address: data.address || '',
+            city: data.city || '', zip: data.zip || '',
+            items, subtotal,
+            vatAmount: data.vatAmount != null ? Number(data.vatAmount) : null,
+            totalIncVat: data.totalIncVat != null ? Number(data.totalIncVat) : null,
+            notes: data.notes || '',
+            orderNumber: data.orderNumber || '', poDate: data.poDate || '', deliveryDate: data.deliveryDate || '',
+            budgetCode: data.budgetCode || '', paymentTerms: data.paymentTerms || '', authorizedBy: data.authorizedBy || '',
+            companyId: data.companyId || '', supplierRef: data.supplierRef || '', currency: data.currency || 'ILS',
+            status: data.status || 'חדש', source: data.source || 'manual',
+            // ── canonical order-object fields (orderModel) ──
+            fulfillmentMode: data.fulfillmentMode || 'dropship',
+            overallStage: data.overallStage || 'new',
+            stageEnteredTs: now,
+            shipTo: data.shipTo || null,   // partner functions (SAP) — default null → falls back to contact
+            billTo: data.billTo || null,
+            supplierOrderId: data.supplierOrderId || null,
+            history: [{ status: data.status || 'חדש', date: stamp.toLocaleDateString('he-IL'), time: stamp.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }), ts: now }],
+            dateTs: now, date: stamp.toLocaleDateString('he-IL'),
+            ...(data.extra || {}),
+        }, { merge: true });
+        logOrderActivity(id, { type: 'system', message: `הזמנה נוצרה (${data.source || 'ידני'})` });
+        // Auto-link the buyer as a customer/contact
+        if (data.contactName || data.phone || data.email) {
+            await upsertContact({ name: data.contactName, institution: data.institution, phone: data.phone, email: data.email, address: data.address, city: data.city, source: data.source || 'order' });
+        }
+        addActivity(`הזמנה חדשה נוצרה: ${data.contactName || data.institution || id}`, 'order');
+        return id;
+    };
+
+    // ── Create a supplier order (drop-ship) ──────────────────────────────────
+    const createSupplierOrder = async (data = {}) => {
+        const ref = await addDoc(collection(db, 'supplier_orders'), {
+            customerName: data.customerName || '', supplierName: data.supplierName || '', supplierId: data.supplierId || '',
+            productTitle: data.productTitle || '', qty: Number(data.qty) || 1, totalCost: Number(data.totalCost) || 0,
+            status: data.status || 'pending', eta: data.eta || '', notes: data.notes || '',
+            customerOrderId: data.customerOrderId || null, createdAt: serverTimestamp(),
+        });
+        addActivity(`הזמנת ספק נוצרה: ${data.productTitle || ''}`, 'order');
+        return ref.id;
+    };
+
+    // ── Order activity timeline (SF-style) — append-only per-order audit trail ──
+    // Stored at quotes/{orderId}/activity. Never throws to the UI.
+    const logOrderActivity = async (orderId, entry = {}) => {
+        if (!orderId) return;
+        try {
+            await addDoc(collection(db, 'quotes', String(orderId), 'activity'), {
+                type: entry.type || 'note',        // stage | email | note | supplier | doc | system
+                message: entry.message || '',
+                meta: entry.meta || null,
+                actor: entry.actor || 'admin',
+                at: serverTimestamp(),
+                ts: Date.now(),
+            });
+        } catch (err) { console.error('[activity] log failed:', err); }
+    };
+
+    // ── Advance an order along the canonical stage path (orderModel) ────────────
+    // Additive over updateQuoteStatus: sets overallStage + stageEnteredTs + logs
+    // activity, and routes inventory-affecting stages through the existing batch
+    // side-effects (stock settle / synthetic sale / reservation release).
+    const advanceOrderStage = async (orderId, toStage, extra = {}) => {
+        if (!orderId || !toStage) return;
+        const now = Date.now();
+        const legacy = STAGE_TO_LEGACY[toStage];
+        if (legacy && INVENTORY_STAGES.includes(toStage)) {
+            await updateQuoteStatus(orderId, legacy);           // runs stock/sale side-effects
+        } else if (legacy) {
+            await setDoc(doc(db, 'quotes', String(orderId)), { status: legacy }, { merge: true });
+        }
+        await setDoc(doc(db, 'quotes', String(orderId)), {
+            overallStage: toStage, stageEnteredTs: now, ...extra,
+        }, { merge: true });
+        await logOrderActivity(orderId, { type: 'stage', message: `השלב עודכן ל: ${stageMeta(toStage).label}` });
+    };
+
+    // ── Two-way link between an order and its drop-ship supplier PO ─────────────
+    const linkSupplierOrder = async (orderId, supplierOrderId) => {
+        if (!orderId || !supplierOrderId) return;
+        await setDoc(doc(db, 'quotes', String(orderId)), { supplierOrderId: String(supplierOrderId) }, { merge: true });
+        await setDoc(doc(db, 'supplier_orders', String(supplierOrderId)), { customerOrderId: String(orderId) }, { merge: true });
+        await logOrderActivity(orderId, { type: 'supplier', message: 'נוצרה הזמנת ספק מקושרת' });
+    };
+
     const updateQuoteStatus = async (quoteId, newStatus) => {
         const now  = new Date();
         const date = now.toLocaleDateString('he-IL');
@@ -396,6 +529,10 @@ export function AdminDataProvider({ children }) {
             await setDoc(doc(db, 'coupons', id.toString()), { active: !coupon.active }, { merge: true });
             addActivity(`קופון ${coupon.code} ${coupon.active ? 'הושבת' : 'הופעל'}`, 'coupon');
         }
+    };
+    const updateCoupon = async (id, fields) => {
+        await setDoc(doc(db, 'coupons', id.toString()), fields, { merge: true });
+        addActivity(`קופון ${fields.code || id} עודכן`, 'coupon');
     };
     const deleteCoupon = async (id) => {
         const coupon = coupons.find(c => c.id === id);
@@ -548,15 +685,20 @@ export function AdminDataProvider({ children }) {
         const PO = buildAmalPO();
         await setDoc(doc(db, 'quotes', PO.id), PO);
         await setDoc(doc(db, 'ocr_intakes', PO.id), { ...PO, kind: 'purchase_order', status: 'approved', approvedAt: PO.createdTs, confidence: 100, createdAt: serverTimestamp() });
+        // Store the PO document in the vault (billing-free Firestore chunks, no bucket).
         const html = amalPoHtml(PO);
-        const path = 'vault/PO-80363169_amal.html';
-        const r = storageRef(storage, path);
-        await uploadString(r, html, 'raw', { contentType: 'text/html' });
-        const url = await getDownloadURL(r);
+        const b64 = btoa(unescape(encodeURIComponent(html))); // UTF-8 → base64 (Hebrew-safe)
+        const chunks = [];
+        for (let i = 0; i < b64.length; i += CHUNK_CHARS) chunks.push(b64.slice(i, i + CHUNK_CHARS));
+        if (!chunks.length) chunks.push('');
+        for (let i = 0; i < chunks.length; i++) {
+            await setDoc(doc(db, 'vault_documents', PO.id, 'chunks', String(i)), { i, b64: chunks[i] });
+        }
         await setDoc(doc(db, 'vault_documents', PO.id), {
-            id: PO.id, name: 'הזמנת רכש 80363169 — עמל (צפת מעיינות)', type: 'text/html', url, path,
+            id: PO.id, name: 'הזמנת רכש 80363169 — עמל (צפת מעיינות)', type: 'text/html',
             folder: 'quotes', classification: 'approved', tags: ['עמל', 'הזמנת רכש'],
-            source: 'po', relatedOrderId: PO.id, size: html.length, createdAt: serverTimestamp(),
+            source: 'po', relatedOrderId: PO.id, size: html.length,
+            storage: 'firestore', chunkCount: chunks.length, createdAt: serverTimestamp(),
         });
         addActivity('נוצרה הזמנה ראשונה מ-PO עמל 80363169 ונשמרה בכספת', 'order');
         return PO.id;
@@ -641,19 +783,21 @@ export function AdminDataProvider({ children }) {
     }, []);
 
     const ctxValue = useMemo(() => ({
-        orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
+        orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, loading,
         updateOrderStatus, updateQuoteStatus, updateQuoteFields, addQuoteNote, setQuoteCustomerMessage,
         sendThreadMessage, markAdminThreadRead,
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
-        addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
+        createQuote, upsertContact, createSupplierOrder,
+        logOrderActivity, advanceOrderStage, linkSupplierOrder,
+        addCoupon, toggleCoupon, updateCoupon, deleteCoupon, addActivity, setOrders, setContacts,
         repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,
         deletedItems,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems]);
+    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading]);
 
     return (
         <AdminDataContext.Provider value={ctxValue}>

@@ -5,19 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
     collection, query, orderBy, onSnapshot,
-    doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp
+    doc, addDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminTabs, AdminEmpty } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
-import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent, ChevronLeft, Package } from 'lucide-react';
+import { MessageSquare, Send, Trash2, CheckCircle, Clock, User, ExternalLink, HelpCircle, Percent, ChevronLeft, Package, Pencil, Plus, X } from 'lucide-react';
 import { PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
 
 // ─── Q&A domain accent (restrained azure brand) ────────────────────────────────
 const AMBER      = '#007AFF';
-const AMBER_GRAD = 'linear-gradient(135deg, #007AFF 0%, #5E5CE6 100%)';
-const AMBER_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(94,92,230,0.08) 100%)';
+const AMBER_GRAD = 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)';
+const AMBER_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(90,200,250,0.08) 100%)';
 const glass      = { ...GLASS.base };
 
 // ─── Babushka drill helpers ────────────────────────────────────────────────────
@@ -88,6 +88,12 @@ export default function AdminQA() {
     const navigate = useNavigate();
     const [answerTexts, setAnswerTexts] = useState({});
 
+    // ── Manual create / edit modal ────────────────────────────────────────────
+    // modal: null | { mode: 'create' } | { mode: 'edit', id }
+    const [modal, setModal] = useState(null);
+    const [form, setForm] = useState({ author: '', question: '', productId: '', answerText: '' });
+    const [saving, setSaving] = useState(false);
+
     // ── Babushka drill stack ──────────────────────────────────────────────────
     const [drillStack, setDrillStack] = useState([]);
     const lastDrillRef = useRef(null);
@@ -139,6 +145,67 @@ export default function AdminQA() {
         } catch { showToast('שגיאה במחיקה', 'error'); }
     }, [showToast, confirm]);
 
+    // ── Modal openers ──────────────────────────────────────────────────────────
+    const openCreate = useCallback(() => {
+        setForm({ author: '', question: '', productId: '', answerText: '' });
+        setModal({ mode: 'create' });
+    }, []);
+    const openEdit = useCallback((item) => {
+        setForm({
+            author: item.author || '',
+            question: item.question || '',
+            productId: item.productId || '',
+            answerText: item.answers?.length ? (item.answers[item.answers.length - 1].text || '') : '',
+        });
+        setModal({ mode: 'edit', id: item.id });
+    }, []);
+    const closeModal = useCallback(() => { if (!saving) setModal(null); }, [saving]);
+
+    // Create a brand-new question document (mirrors the shape the list reads).
+    const handleCreate = useCallback(async () => {
+        const question = form.question.trim();
+        if (!question) { showToast('יש להזין טקסט שאלה', 'error'); return; }
+        setSaving(true);
+        try {
+            await addDoc(collection(db, 'product_questions'), {
+                author: form.author.trim() || 'אנונימי',
+                question,
+                productId: form.productId.trim(),
+                answers: [],
+                timestamp: serverTimestamp(),
+            });
+            showToast('השאלה נוספה בהצלחה', 'success');
+            setModal(null);
+        } catch { showToast('שגיאה בשמירה', 'error'); }
+        finally { setSaving(false); }
+    }, [form, showToast]);
+
+    // Edit an existing question's text/author/product + optionally its latest answer.
+    const handleEditSave = useCallback(async () => {
+        if (!modal?.id) return;
+        const question = form.question.trim();
+        if (!question) { showToast('יש להזין טקסט שאלה', 'error'); return; }
+        const item = questions.find(x => x.id === modal.id);
+        setSaving(true);
+        try {
+            const patch = {
+                question,
+                author: form.author.trim() || 'אנונימי',
+                productId: form.productId.trim(),
+            };
+            // If this question already has answers, let the admin edit the latest one.
+            if (item?.answers?.length) {
+                const next = item.answers.slice();
+                next[next.length - 1] = { ...next[next.length - 1], text: form.answerText.trim() };
+                patch.answers = next;
+            }
+            await updateDoc(doc(db, 'product_questions', modal.id), patch);
+            showToast('השאלה עודכנה', 'success');
+            setModal(null);
+        } catch { showToast('שגיאה בשמירה', 'error'); }
+        finally { setSaving(false); }
+    }, [form, modal, questions, showToast]);
+
     return (
         <div dir="rtl" className="space-y-6">
             {/* Page header — accent-tinted, one system with Suppliers/Orders */}
@@ -150,6 +217,15 @@ export default function AdminQA() {
                     <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>שאלות ותשובות</h1>
                     <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>שאלות שנשאלו על דפי מוצרים — ניהול ומתן תשובות</p>
                 </div>
+                <motion.button
+                    whileHover={{ y: -1, boxShadow: `0 8px 22px ${hexA(AMBER, 0.42)}` }}
+                    whileTap={TAP}
+                    onClick={openCreate}
+                    className="flex items-center gap-2 rounded-2xl font-bold text-white cursor-pointer shrink-0"
+                    style={{ padding: '12px 20px', fontSize: 14, background: AMBER_GRAD, boxShadow: `0 4px 16px ${hexA(AMBER, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                    <Plus size={17} strokeWidth={2.6} />
+                    שאלה חדשה
+                </motion.button>
             </div>
 
             {/* KPI band — total · pending · answered · response rate */}
@@ -216,6 +292,11 @@ export default function AdminQA() {
                                 {/* Question header */}
                                 <div className="flex items-start justify-between gap-4 mb-4">
                                     <div className="flex items-center gap-2 text-xs text-[#86868B] font-medium shrink-0">
+                                        <button onClick={() => openEdit(item)}
+                                            title="ערוך שאלה"
+                                            className="p-2 rounded-xl hover:bg-[#007AFF]/10 text-[#007AFF]/60 hover:text-[#007AFF] transition-all cursor-pointer">
+                                            <Pencil size={15} />
+                                        </button>
                                         <button onClick={() => handleDelete(item.id)}
                                             className="p-2 rounded-xl hover:bg-[#FF3B30]/10 text-[#FF3B30]/60 hover:text-[#FF3B30] transition-all cursor-pointer">
                                             <Trash2 size={15} />
@@ -441,6 +522,113 @@ export default function AdminQA() {
                     >{body}</DashDrillView>
                 );
             })()}
+
+            {/* ── Create / Edit modal — lightweight glass overlay ──────────────── */}
+            <AnimatePresence>
+                {modal && (() => {
+                    const isEdit = modal.mode === 'edit';
+                    const editItem = isEdit ? questions.find(x => x.id === modal.id) : null;
+                    const hasAnswers = !!editItem?.answers?.length;
+                    const onSubmit = isEdit ? handleEditSave : handleCreate;
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={closeModal}
+                            className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+                            style={{ background: 'rgba(0,0,0,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+                            <motion.div dir="rtl"
+                                initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 12, scale: 0.98 }} transition={SPRING.soft}
+                                onClick={e => e.stopPropagation()}
+                                className="w-full max-w-[480px] p-6"
+                                style={{ ...glass, borderRadius: RADIUS.panel }}>
+                                {/* Modal header */}
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                                        style={{ background: hexA(AMBER, 0.10), border: `1px solid ${hexA(AMBER, 0.18)}` }}>
+                                        {isEdit ? <Pencil size={19} color={AMBER} /> : <Plus size={20} color={AMBER} />}
+                                    </div>
+                                    <div className="flex-1 text-right">
+                                        <h2 className="text-[19px] font-black text-[#1D1D1F] leading-tight">{isEdit ? 'עריכת שאלה' : 'שאלה חדשה'}</h2>
+                                        <p className="text-[12px] text-[#86868B] font-medium mt-0.5">{isEdit ? 'עדכון פרטי השאלה והתשובה' : 'הוספת שאלה ידנית לדף מוצר'}</p>
+                                    </div>
+                                    <button onClick={closeModal}
+                                        className="p-2 rounded-xl text-[#AEAEB2] hover:text-[#1D1D1F] hover:bg-black/5 transition-all cursor-pointer">
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                {/* Fields */}
+                                <div className="space-y-3.5">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-widest">שם השואל</label>
+                                        <input
+                                            value={form.author}
+                                            onChange={e => setForm(p => ({ ...p, author: e.target.value }))}
+                                            placeholder="אנונימי"
+                                            className="w-full px-4 py-3 rounded-2xl text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                                            style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-widest">מזהה מוצר</label>
+                                        <input
+                                            value={form.productId}
+                                            onChange={e => setForm(p => ({ ...p, productId: e.target.value }))}
+                                            placeholder="לדוגמה: SKU-1234"
+                                            className="w-full px-4 py-3 rounded-2xl text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                                            style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-widest">שאלה *</label>
+                                        <textarea
+                                            value={form.question}
+                                            onChange={e => setForm(p => ({ ...p, question: e.target.value }))}
+                                            placeholder="נוסח השאלה..."
+                                            rows={3}
+                                            className="w-full px-4 py-3 rounded-2xl text-sm font-medium text-right resize-none focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                                            style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)' }}
+                                        />
+                                    </div>
+                                    {isEdit && hasAnswers && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-black text-[#AEAEB2] uppercase tracking-widest">תשובה אחרונה</label>
+                                            <textarea
+                                                value={form.answerText}
+                                                onChange={e => setForm(p => ({ ...p, answerText: e.target.value }))}
+                                                placeholder="עריכת התשובה האחרונה שפורסמה..."
+                                                rows={3}
+                                                className="w-full px-4 py-3 rounded-2xl text-sm font-medium text-right resize-none focus:outline-none focus:ring-2 focus:ring-[#34C759]/30"
+                                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-2.5 mt-6">
+                                    <motion.button
+                                        whileHover={{ y: -1, boxShadow: `0 8px 22px ${hexA(AMBER, 0.42)}` }}
+                                        whileTap={TAP}
+                                        onClick={onSubmit}
+                                        disabled={saving}
+                                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white cursor-pointer"
+                                        style={{ background: AMBER_GRAD, opacity: saving ? 0.6 : 1, boxShadow: `0 4px 16px ${hexA(AMBER, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
+                                        {isEdit ? <CheckCircle size={15} /> : <Plus size={16} strokeWidth={2.6} />}
+                                        {saving ? 'שומר...' : isEdit ? 'שמור שינויים' : 'הוסף שאלה'}
+                                    </motion.button>
+                                    <button onClick={closeModal} disabled={saving}
+                                        className="px-5 py-3 rounded-2xl font-bold text-sm cursor-pointer"
+                                        style={{ background: 'rgba(0,0,0,0.05)', color: '#1D1D1F', border: '1px solid rgba(0,0,0,0.08)' }}>
+                                        ביטול
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    );
+                })()}
+            </AnimatePresence>
         </div>
     );
 }

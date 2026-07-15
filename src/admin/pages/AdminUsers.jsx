@@ -89,7 +89,7 @@ function exportCSV(users) {
 // ── Avatar ────────────────────────────────────────────────────────────────────
 function UserAvatar({ user, size = 40 }) {
     const [imgErr, setImgErr] = useState(false);
-    const colors = ['#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30', '#AF52DE'];
+    const colors = ['#007AFF', '#5AC8FA', '#34C759', '#FF9500', '#FF3B30', '#0A84FF'];
     const color  = colors[((user.displayName || user.email || '').charCodeAt(0) || 0) % colors.length];
     if (user.photoURL && !imgErr) {
         return (
@@ -101,7 +101,7 @@ function UserAvatar({ user, size = 40 }) {
     return (
         <div style={{
             width: size, height: size, borderRadius: size / 2.5, flexShrink: 0,
-            background: 'linear-gradient(135deg, #007AFF, #5856D6)',
+            background: 'linear-gradient(135deg, #007AFF, #5AC8FA)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
             <span style={{ fontSize: size * 0.38, fontWeight: 900, color: '#fff' }}>
@@ -131,20 +131,30 @@ const QUOTE_STATUS = {
     'חדש':            { color: '#FF9F0A', bg: 'rgba(255,159,10,0.12)' },
     'בטיפול':         { color: '#007AFF', bg: 'rgba(0,122,255,0.12)'  },
     'ביצירת קשר':    { color: '#FF9500', bg: 'rgba(255,149,0,0.12)'  },
-    'הוצע מחיר':     { color: '#5856D6', bg: 'rgba(88,86,214,0.12)'  },
+    'הוצע מחיר':     { color: '#5AC8FA', bg: 'rgba(90,200,250,0.12)'  },
     'במשא ומתן':     { color: '#007AFF', bg: 'rgba(0,122,255,0.12)'  },
     'נסגר':           { color: '#30D158', bg: 'rgba(48,209,88,0.12)'  },
     'בוטל':           { color: '#FF453A', bg: 'rgba(255,69,58,0.12)'  },
 };
 
 // ── User detail modal ─────────────────────────────────────────────────────────
-function UserModal({ user, onClose, onTierChange, onDelete }) {
+function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
     const { addToast } = useAdminToast();
-    const confirm = useAdminConfirm();
     const [saving, setSaving]         = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
     const [userQuotes, setUserQuotes] = useState([]);
     const [loadingQ, setLoadingQ]     = useState(true);
+    const [form, setForm] = useState({
+        displayName: user.displayName || '',
+        email:       user.email || '',
+        institution: user.institution || '',
+        role:        user.role || '',
+    });
     const tier = TIER_CONFIG[user.memberTier] || TIER_CONFIG.free;
+    const dirty = form.displayName !== (user.displayName || '')
+        || form.email       !== (user.email || '')
+        || form.institution !== (user.institution || '')
+        || form.role        !== (user.role || '');
 
     useEffect(() => {
         if (!user.email) { setLoadingQ(false); return; }
@@ -172,6 +182,30 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
         } catch { addToast('שגיאה בעדכון הדרגה', 'error'); }
         finally { setSaving(false); }
     };
+
+    const saveProfile = async () => {
+        if (!dirty) return;
+        setSavingProfile(true);
+        try {
+            await updateDoc(doc(db, 'users', user.uid), {
+                displayName: form.displayName.trim(),
+                email:       form.email.trim(),
+                institution: form.institution.trim(),
+                role:        form.role,
+            });
+            addToast('פרטי המשתמש נשמרו', 'success');
+        } catch { addToast('שגיאה בשמירת הפרטים', 'error'); }
+        finally { setSavingProfile(false); }
+    };
+
+    const fieldInput = {
+        width: '100%', padding: '9px 12px', borderRadius: 12, boxSizing: 'border-box',
+        border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.7)',
+        fontFamily: 'Heebo, sans-serif', fontSize: 13, fontWeight: 700, color: '#1D1D1F',
+        outline: 'none', direction: 'rtl', transition: 'border 0.15s, box-shadow 0.15s',
+    };
+    const onFieldFocus = e => { e.target.style.border = `1.5px solid ${hexA(ACCENT, 0.5)}`; e.target.style.boxShadow = `0 0 0 4px ${hexA(ACCENT, 0.12)}`; };
+    const onFieldBlur  = e => { e.target.style.border = '1px solid rgba(0,0,0,0.1)'; e.target.style.boxShadow = 'none'; };
 
     return (
         // Single flex overlay — Framer Motion cannot override flex centering the way
@@ -220,12 +254,65 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
                     </div>
                 </div>
 
-                {/* Data grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                {/* Editable profile */}
+                <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>עריכת פרטים</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                <Users size={12} color="#8E8E93" />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>שם מלא</span>
+                            </div>
+                            <input value={form.displayName} onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))}
+                                dir="rtl" placeholder="(ללא שם)" style={fieldInput} onFocus={onFieldFocus} onBlur={onFieldBlur} />
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                <Mail size={12} color="#8E8E93" />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>מייל (זהות כניסה)</span>
+                            </div>
+                            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                                dir="ltr" type="email" placeholder="—" style={{ ...fieldInput, direction: 'ltr', textAlign: 'right' }} onFocus={onFieldFocus} onBlur={onFieldBlur} />
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                <Building2 size={12} color="#8E8E93" />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>מוסד</span>
+                            </div>
+                            <input value={form.institution} onChange={e => setForm(f => ({ ...f, institution: e.target.value }))}
+                                dir="rtl" placeholder="—" style={fieldInput} onFocus={onFieldFocus} onBlur={onFieldBlur} />
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                <Star size={12} color="#8E8E93" />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>תפקיד</span>
+                            </div>
+                            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+                                dir="rtl" style={{ ...fieldInput, cursor: 'pointer', appearance: 'none' }} onFocus={onFieldFocus} onBlur={onFieldBlur}>
+                                <option value="">—</option>
+                                {Object.entries(ROLE_HE).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <button onClick={saveProfile} disabled={!dirty || savingProfile}
+                        style={{
+                            width: '100%', marginTop: 12, padding: '10px 0', borderRadius: 12, border: 'none',
+                            cursor: (!dirty || savingProfile) ? 'default' : 'pointer',
+                            fontFamily: 'Heebo, sans-serif', fontWeight: 800, fontSize: 13,
+                            background: (!dirty || savingProfile) ? '#F5F5F7' : hexA(ACCENT, 0.12),
+                            color: (!dirty || savingProfile) ? '#C7C7CC' : ACCENT,
+                            boxShadow: (!dirty || savingProfile) ? 'none' : `inset 0 0 0 1.5px ${hexA(ACCENT, 0.28)}`,
+                            transition: 'all 0.15s',
+                        }}>
+                        {savingProfile ? 'שומר…' : 'שמור שינויים'}
+                    </button>
+                </div>
+
+                {/* Read-only meta */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
                     {[
-                        { label: 'מייל',           value: user.email,                      icon: Mail },
-                        { label: 'מוסד',           value: user.institution || '—',         icon: Building2 },
-                        { label: 'תפקיד',          value: ROLE_HE[user.role] || user.role || '—', icon: Star },
                         { label: 'ספק כניסה',      value: user.provider === 'google.com' ? 'Google' : 'מייל/סיסמה', icon: Chrome },
                         { label: 'הצטרף',          value: fmtDate(user.createdAt),          icon: Clock },
                         { label: 'כניסה אחרונה',  value: relTime(user.lastLogin),          icon: RefreshCw },
@@ -338,15 +425,7 @@ function UserModal({ user, onClose, onTierChange, onDelete }) {
                 {/* Delete user */}
                 <div style={{ borderTop: '1px solid rgba(255,59,48,0.12)', paddingTop: 16, marginTop: 8 }}>
                     <button
-                        onClick={async () => {
-                            if (!await confirm({ message: `למחוק את המשתמש "${user.displayName || user.email}" לצמיתות? פעולה זו אינה הפיכה.`, danger: true })) return;
-                            try {
-                                await deleteDoc(doc(db, 'users', user.uid));
-                                addToast('המשתמש נמחק', 'warning');
-                                onDelete(user.uid);
-                                onClose();
-                            } catch { addToast('שגיאה במחיקת המשתמש', 'error'); }
-                        }}
+                        onClick={async () => { if (await onDeleteUser(user)) onClose(); }}
                         style={{
                             width: '100%', padding: '10px 0', borderRadius: 12, border: '1px solid rgba(255,59,48,0.25)',
                             background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer',
@@ -372,7 +451,7 @@ const RFM_SEGMENTS = {
     active:   { label: 'פעיל',     color: '#34C759', bg: 'rgba(52,199,89,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5" fill="currentColor"/></svg> },
     at_risk:  { label: 'בסיכון',   color: '#FF3B30', bg: 'rgba(255,59,48,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg> },
     churned:  { label: 'לא פעיל',  color: '#8E8E93', bg: 'rgba(142,142,147,0.10)', icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> },
-    new_user: { label: 'חדש',      color: '#5856D6', bg: 'rgba(88,86,214,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> },
+    new_user: { label: 'חדש',      color: '#5AC8FA', bg: 'rgba(90,200,250,0.11)',    icon: <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> },
 };
 
 function getRFMSegment(email, orders, quotes) {
@@ -464,7 +543,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
     </div>
 );
 
-function UserRow({ user, index, onClick, rfmSegment }) {
+function UserRow({ user, index, onClick, onDelete, rfmSegment }) {
     const tier = TIER_CONFIG[user.memberTier] || TIER_CONFIG.free;
     return (
         <motion.tr
@@ -474,7 +553,7 @@ function UserRow({ user, index, onClick, rfmSegment }) {
             tabIndex={0} role="button"
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
             style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="hover:bg-[#007AFF]/[0.05] focus:outline-none focus:bg-[#007AFF]/[0.07] transition-colors"
+            className="group hover:bg-[#007AFF]/[0.05] focus:outline-none focus:bg-[#007AFF]/[0.07] transition-colors"
         >
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -512,7 +591,26 @@ function UserRow({ user, index, onClick, rfmSegment }) {
                 {fmtDate(user.createdAt)}
             </td>
             <td style={{ padding: '12px 16px', fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>
-                {relTime(user.lastLogin)}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span>{relTime(user.lastLogin)}</span>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onDelete?.(user); }}
+                        aria-label="מחק משתמש"
+                        title="מחק משתמש"
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            width: 30, height: 30, borderRadius: 9, cursor: 'pointer',
+                            border: '1px solid rgba(255,59,48,0.22)', background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
+                            transition: 'background 0.15s, opacity 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.16)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.08)'; }}
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
             </td>
         </motion.tr>
     );
@@ -521,6 +619,7 @@ function UserRow({ user, index, onClick, rfmSegment }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminUsers() {
     const { addToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const { orders, quotes } = useAdminData();
     const [users, setUsers]       = useState([]);
     const [loading, setLoading]   = useState(true);
@@ -565,8 +664,16 @@ export default function AdminUsers() {
         setUsers(prev => prev.map(u => u.uid === uid ? { ...u, memberTier: newTier } : u));
         if (selected?.uid === uid) setSelected(prev => ({ ...prev, memberTier: newTier }));
     };
-    const handleDeleteUser = (uid) => {
-        setUsers(prev => prev.filter(u => u.uid !== uid));
+    // Shared hard-delete — used by both the per-row trash button and the modal.
+    // Returns true on a completed delete so callers (e.g. the modal) can close.
+    const deleteUser = async (user) => {
+        if (!await confirm({ message: `למחוק את המשתמש "${user.displayName || user.email}" לצמיתות? פעולה זו אינה הפיכה.`, danger: true })) return false;
+        try {
+            await deleteDoc(doc(db, 'users', user.uid));
+            setUsers(prev => prev.filter(u => u.uid !== user.uid));
+            addToast('המשתמש נמחק', 'warning');
+            return true;
+        } catch { addToast('שגיאה במחיקת המשתמש', 'error'); return false; }
     };
 
     const filtered = useMemo(() => {
@@ -676,7 +783,7 @@ export default function AdminUsers() {
                             </thead>
                             <tbody>
                                 {filtered.map((u, i) => (
-                                    <UserRow key={u.uid} user={u} index={i} onClick={() => setSelected(u)} rfmSegment={u.email ? rfmMap[u.email.toLowerCase()] : null} />
+                                    <UserRow key={u.uid} user={u} index={i} onClick={() => setSelected(u)} onDelete={deleteUser} rfmSegment={u.email ? rfmMap[u.email.toLowerCase()] : null} />
                                 ))}
                             </tbody>
                         </table>
@@ -687,7 +794,7 @@ export default function AdminUsers() {
             {createPortal(
                 <AnimatePresence>
                     {selected && (
-                        <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} onDelete={handleDeleteUser} />
+                        <UserModal key={selected.uid} user={selected} onClose={() => setSelected(null)} onTierChange={handleTierChange} onDeleteUser={deleteUser} />
                     )}
                 </AnimatePresence>,
                 document.body
@@ -838,7 +945,7 @@ export default function AdminUsers() {
                             <DrillStat items={[
                                 { label: 'נרשמו היום', value: todayCount, color: PALETTE.emerald },
                                 { label: 'סה״כ', value: users.length, color: ACCENT },
-                                { label: 'אחוז', value: `${pct(todayCount)}%`, color: '#5856D6' },
+                                { label: 'אחוז', value: `${pct(todayCount)}%`, color: '#5AC8FA' },
                             ]} />
                             {todayUsers.length === 0 ? (
                                 <DrillEmpty icon={Clock} text="לא נרשמו משתמשים חדשים היום" />

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InboxIcon, Trash2, Check, Users, ShoppingCart, TrendingUp, ChevronLeft, Box, MapPin, Package } from 'lucide-react';
+import { InboxIcon, Trash2, Check, Users, ShoppingCart, TrendingUp, ChevronLeft, Box, MapPin, Package, Plus, Pencil } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -20,11 +20,11 @@ const CONTACT_STATUSES = ['חדש', 'בטיפול', 'נסגר'];
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ name, size = 9 }) {
-    const colors = ['#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30', '#AF52DE'];
+    const colors = ['#007AFF', '#5AC8FA', '#34C759', '#FF9500', '#FF3B30', '#0A84FF'];
     const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
     return (
         <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-sm font-black text-white shrink-0`}
-            style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)', width: size * 4, height: size * 4 }}>
+            style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)', width: size * 4, height: size * 4 }}>
             {name?.[0] || '?'}
         </div>
     );
@@ -87,7 +87,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
 const custDateStr = (o) => o?.date || (o?.dateTs ? new Date(o.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 export default function AdminCustomers() {
-    const { contacts, orders, updateContactStatus, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
+    const { contacts, orders, quotes, updateContactStatus, upsertContact, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
     const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -98,6 +98,39 @@ export default function AdminCustomers() {
     const [reply, setReply] = useState('');
     const [replyDone, setReplyDone] = useState(false);
 
+    // ── Manual add / edit contact form (null = closed) ────────────────────────
+    const [contactForm, setContactForm] = useState(null);
+    const [savingContact, setSavingContact] = useState(false);
+    const EMPTY_CONTACT = { name: '', institution: '', phone: '', email: '', city: '', address: '', subject: '', status: 'חדש' };
+    const openNewContact = () => setContactForm({ ...EMPTY_CONTACT });
+    const openEditContact = (c) => setContactForm({
+        id: c.id, name: c.name || '', institution: c.institution || '', phone: c.phone || '',
+        email: c.email || '', city: c.city || '', address: c.address || '', subject: c.subject || '', status: c.status || 'חדש',
+    });
+    const setCF = (k, v) => setContactForm(f => ({ ...f, [k]: v }));
+    const saveContactForm = async () => {
+        if (!contactForm) return;
+        if (!contactForm.name && !contactForm.phone && !contactForm.email) {
+            return; // need at least one identifier
+        }
+        setSavingContact(true);
+        try {
+            const id = await upsertContact({ ...contactForm, source: contactForm.id ? undefined : 'manual', extra: { subject: contactForm.subject || '' } });
+            setContactForm(null);
+            if (contactForm.id && selected?.id === contactForm.id) {
+                setSelected(prev => ({ ...prev, ...contactForm }));
+            }
+            return id;
+        } finally { setSavingContact(false); }
+    };
+    const deleteContactRow = async (c, e) => {
+        e?.stopPropagation();
+        if (await confirm({ message: `להעביר את "${c.name || 'הפנייה'}" לסל המחזור?`, danger: true })) {
+            deleteContact(c.id);
+            if (selected?.id === c.id) setSelected(null);
+        }
+    };
+
     // ── Babushka drill stack — each entry is one nested detail level ──────────
     const [drillStack, setDrillStack] = useState([]);
     const lastDrillRef = useRef(null); // retains last level through the exit animation
@@ -107,17 +140,41 @@ export default function AdminCustomers() {
     const closeDrill = () => setDrillStack([]);
     const drillTo    = (path) => { closeDrill(); navigate(path); };
 
+    // Unified customer directory — merges storefront orders, the quotes/orders
+    // pipeline (where OCR + AI-created orders land) and standalone contacts, so
+    // every buyer or lead surfaces here, keyed by phone→email→name to de-dupe.
     const customers = useMemo(() => {
         const map = {};
+        const digits = (p) => (p || '').toString().replace(/\D/g, '');
+        const keyOf = (name, email, phone) => {
+            const ph = digits(phone);
+            if (ph.length >= 7) return 'p:' + ph;
+            if (email) return 'e:' + email.toString().trim().toLowerCase();
+            const n = (name || '').toString().trim();
+            return n ? 'n:' + n : '';
+        };
+        const ensure = (name, email, phone, city) => {
+            const k = keyOf(name, email, phone);
+            if (!k) return null;
+            if (!map[k]) map[k] = { name: name || email || phone || 'לקוח', email: email || '', phone: phone || '', city: city || '', orders: [], total: 0 };
+            const m = map[k];
+            if (!m.email && email) m.email = email;
+            if (!m.phone && phone) m.phone = phone;
+            if (!m.city && city) m.city = city;
+            if ((!m.name || m.name === 'לקוח') && name) m.name = name;
+            return m;
+        };
         orders.forEach(o => {
-            if (!map[o.customer]) map[o.customer] = {
-                name: o.customer, email: o.email, phone: o.phone, city: o.city, orders: [], total: 0
-            };
-            map[o.customer].orders.push(o);
-            map[o.customer].total += o.total || 0;
+            const m = ensure(o.customer, o.email, o.phone, o.city);
+            if (m) { m.orders.push(o); m.total += o.total || 0; }
         });
+        (quotes || []).forEach(q => {
+            const m = ensure(q.contactName || q.customer, q.email, q.phone, q.city);
+            if (m) { m.orders.push(q); m.total += q.total || q.subtotal || 0; }
+        });
+        (contacts || []).forEach(c => { ensure(c.name, c.email, c.phone, c.city); });
         return Object.values(map).sort((a, b) => b.total - a.total);
-    }, [orders]);
+    }, [orders, quotes, contacts]);
 
     // Auto-search/open from URL param
     useEffect(() => {
@@ -212,6 +269,12 @@ export default function AdminCustomers() {
                 {tab === 'contacts' && (
                     <AdminDateFilter value={dateFilter} onChange={setDateFilter} />
                 )}
+                {tab !== 'trash' && (
+                    <motion.button whileTap={{ scale: 0.96 }} onClick={openNewContact}
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 6px 18px rgba(0,122,255,0.30)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        <Plus size={16} strokeWidth={2.6} /> {tab === 'customers' ? 'לקוח חדש' : 'פנייה חדשה'}
+                    </motion.button>
+                )}
             </div>
 
             {/* Contacts Tab */}
@@ -247,7 +310,19 @@ export default function AdminCustomers() {
                                 </div>
                                 <p className="text-[#6E6E73] text-sm line-clamp-1 text-right">{c.subject}</p>
                                 <p className="text-[#AEAEB2] text-xs whitespace-nowrap">{c.date || '—'}</p>
-                                <motion.span whileHover={{ x: -3 }} className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</motion.span>
+                                <div className="flex items-center gap-1.5">
+                                    <button title="עריכה" onClick={(e) => { e.stopPropagation(); openEditContact(c); }}
+                                        className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: 'none', cursor: 'pointer' }}>
+                                        <Pencil size={13} />
+                                    </button>
+                                    <button title="מחק" onClick={(e) => deleteContactRow(c, e)}
+                                        className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'rgba(255,59,48,0.09)', color: '#FF3B30', border: 'none', cursor: 'pointer' }}>
+                                        <Trash2 size={13} />
+                                    </button>
+                                    <motion.span whileHover={{ x: -3 }} className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</motion.span>
+                                </div>
                             </motion.div>
                         ))}
                     </AnimatePresence>
@@ -353,7 +428,7 @@ export default function AdminCustomers() {
                                 {selected.email && (
                                     <a href={`mailto:${selected.email}?subject=${encodeURIComponent(`מענה לפנייתך — ${selected.subject || 'NextClass'}`)}&body=${encodeURIComponent(`שלום ${selected.name},\n\nתודה על פנייתך.\n`)}`}
                                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-black text-[12px] text-white transition-all hover:opacity-90"
-                                        style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.28)', textDecoration: 'none' }}>
+                                        style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 4px 12px rgba(0,122,255,0.28)', textDecoration: 'none' }}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                                         מייל
                                     </a>
@@ -407,17 +482,61 @@ export default function AdminCustomers() {
                         <AdminInput label="הוסף הערה פנימית" value={reply} onChange={setReply} rows={3} placeholder="כתוב הערה..." />
 
                         <div className="flex gap-2 justify-between">
-                            <motion.button whileTap={{ scale: 0.95 }}
-                                onClick={async () => { if (await confirm({ message: 'להעביר פנייה זו לסל המחזור?', danger: true })) { deleteContact(selected.id); setSelected(null); } }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
-                                <Trash2 size={13} />מחק
-                            </motion.button>
+                            <div className="flex gap-2">
+                                <motion.button whileTap={{ scale: 0.95 }}
+                                    onClick={async () => { if (await confirm({ message: 'להעביר פנייה זו לסל המחזור?', danger: true })) { deleteContact(selected.id); setSelected(null); } }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                                    <Trash2 size={13} />מחק
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }}
+                                    onClick={() => openEditContact(selected)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(0,122,255,0.20)', background: 'rgba(0,122,255,0.07)', color: '#007AFF', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                                    <Pencil size={13} />ערוך פרטים
+                                </motion.button>
+                            </div>
                             <div className="flex gap-2">
                                 <AdminButton variant="ghost" onClick={() => setSelected(null)}>סגור</AdminButton>
                                 <AdminButton onClick={handleReply} disabled={!reply.trim()}>
                                     {replyDone ? <span className="flex items-center gap-1"><Check size={13} /> נשמר!</span> : 'שמור תגובה'}
                                 </AdminButton>
                             </div>
+                        </div>
+                    </div>
+                )}
+            </AdminModal>
+
+            {/* ── Add / Edit contact modal ─────────────────────────────────── */}
+            <AdminModal open={!!contactForm} onClose={() => setContactForm(null)} title={contactForm?.id ? 'עריכת פרטי לקוח' : 'לקוח / פנייה חדשה'} size="md">
+                {contactForm && (
+                    <div className="space-y-4" dir="rtl">
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="שם מלא" value={contactForm.name} onChange={v => setCF('name', v)} placeholder="שם הלקוח" />
+                            <AdminInput label="מוסד / חברה" value={contactForm.institution} onChange={v => setCF('institution', v)} placeholder="שם המוסד" />
+                            <AdminInput label="טלפון" value={contactForm.phone} onChange={v => setCF('phone', v)} placeholder="050-0000000" />
+                            <AdminInput label="מייל" value={contactForm.email} onChange={v => setCF('email', v)} placeholder="name@example.com" />
+                            <AdminInput label="עיר" value={contactForm.city} onChange={v => setCF('city', v)} placeholder="עיר" />
+                            <AdminInput label="כתובת" value={contactForm.address} onChange={v => setCF('address', v)} placeholder="רחוב ומספר" />
+                        </div>
+                        <AdminInput label="נושא / הערה" value={contactForm.subject} onChange={v => setCF('subject', v)} placeholder="נושא הפנייה או הערה" />
+
+                        <div className="flex flex-wrap gap-2 justify-end items-center">
+                            <p className="text-[#86868B] text-[10px] font-black tracking-tight">סטטוס:</p>
+                            {CONTACT_STATUSES.map(s => (
+                                <motion.button key={s} type="button" whileTap={{ scale: 0.95 }} onClick={() => setCF('status', s)}
+                                    className="px-3 py-1.5 rounded-full text-xs font-black transition-all"
+                                    style={{ background: contactForm.status === s ? '#007AFF' : 'rgba(0,0,0,0.06)', color: contactForm.status === s ? 'white' : '#6E6E73', boxShadow: contactForm.status === s ? '0 4px 12px rgba(0,122,255,0.30)' : 'none' }}>
+                                    {s}
+                                </motion.button>
+                            ))}
+                        </div>
+
+                        <p className="text-[#AEAEB2] text-[11px] text-right">יש למלא לפחות שם, טלפון או מייל.</p>
+
+                        <div className="flex gap-2 justify-end">
+                            <AdminButton variant="ghost" onClick={() => setContactForm(null)}>ביטול</AdminButton>
+                            <AdminButton onClick={saveContactForm} disabled={savingContact || (!contactForm.name && !contactForm.phone && !contactForm.email)}>
+                                {savingContact ? 'שומר...' : contactForm.id ? 'שמור שינויים' : 'צור לקוח'}
+                            </AdminButton>
                         </div>
                     </div>
                 )}
@@ -446,7 +565,7 @@ export default function AdminCustomers() {
                         <div className="space-y-5">
                             <DrillStat items={[
                                 { label: 'לקוחות', value: customers.length, color: ACCENT },
-                                { label: 'הזמנות בממוצע', value: avgOrders, color: '#5856D6' },
+                                { label: 'הזמנות בממוצע', value: avgOrders, color: '#5AC8FA' },
                                 { label: 'הכנסה כוללת', value: `₪${totalRevenue.toLocaleString()}`, color: '#34C759' },
                             ]} />
                             {customers.length === 0 ? (
@@ -457,7 +576,7 @@ export default function AdminCustomers() {
                                     {custByRevenue.slice(0, 12).map((c, i) => (
                                         <DrillRow key={c.name} delay={i * 0.03} tone={ACCENT}
                                             onClick={() => pushDrill({ type: 'customer', name: c.name })}
-                                            leading={<div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>{c.name?.[0] || '?'}</div>}
+                                            leading={<div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)' }}>{c.name?.[0] || '?'}</div>}
                                             title={c.name}
                                             subtitle={`${c.orders.length} הזמנות · ${c.city || '—'}`}
                                             trailing={<span className="text-[12px] font-black text-[#34C759] shrink-0">₪{c.total.toLocaleString()}</span>}
@@ -510,7 +629,7 @@ export default function AdminCustomers() {
                             <DrillStat items={[
                                 { label: 'הכנסה כוללת', value: `₪${totalRevenue.toLocaleString()}`, color: '#34C759' },
                                 { label: 'לקוחות', value: customers.length, color: ACCENT },
-                                { label: 'ממוצע ללקוח', value: `₪${avgPer.toLocaleString()}`, color: '#5856D6' },
+                                { label: 'ממוצע ללקוח', value: `₪${avgPer.toLocaleString()}`, color: '#5AC8FA' },
                             ]} />
                             {custByRevenue.length === 0 ? (
                                 <DrillEmpty icon={TrendingUp} text="טרם נרשמו הכנסות" />
@@ -544,7 +663,7 @@ export default function AdminCustomers() {
                             <DrillStat items={[
                                 { label: 'הזמנות', value: c.orders.length, color: ACCENT },
                                 { label: 'סה״כ רכישות', value: `₪${c.total.toLocaleString()}`, color: '#34C759' },
-                                { label: 'הזמנה ממוצעת', value: `₪${(c.orders.length ? Math.round(c.total / c.orders.length) : 0).toLocaleString()}`, color: '#5856D6' },
+                                { label: 'הזמנה ממוצעת', value: `₪${(c.orders.length ? Math.round(c.total / c.orders.length) : 0).toLocaleString()}`, color: '#5AC8FA' },
                             ]} />
                             <div className="space-y-2">
                                 {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(ACCENT, 0.1) }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
@@ -561,7 +680,7 @@ export default function AdminCustomers() {
                                     {c.phone && (
                                         <a href={`tel:${c.phone}`}
                                             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-black text-[12px] text-white"
-                                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 12px rgba(0,122,255,0.25)' }}>התקשר</a>
+                                            style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 4px 12px rgba(0,122,255,0.25)' }}>התקשר</a>
                                     )}
                                 </div>
                             )}

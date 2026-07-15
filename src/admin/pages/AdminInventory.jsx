@@ -4,12 +4,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip } from '../components/AdminComponents';
-import { hexA, DOMAIN_ACCENTS } from '../theme/tokens';
+import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
 
 // Unified brand accent (azure) — DOMAIN_ACCENTS.inventory resolves to #007AFF
@@ -100,8 +101,49 @@ const FILTERS = ['הכל', 'במלאי', 'נמוך', 'אזל'];
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
+// ─── Babushka drill primitives (shared grammar with dashboard/vault) ──────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || ORANGE, 0.07), border: `1px solid ${hexA(s.color || ORANGE, 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = ORANGE, delay = 0 }) {
+    return (
+        <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick} tabIndex={onClick ? 0 : undefined} role={onClick ? 'button' : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={onClick ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${onClick ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {onClick && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 export default function AdminInventory() {
-    const { inventory, orders, updateStock, updateProductDetails, deleteProduct } = useAdminData();
+    const { inventory, orders, updateStock, updateProductDetails, deleteProduct, addProduct } = useAdminData();
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
     const [searchParams] = useSearchParams();
@@ -111,8 +153,16 @@ export default function AdminInventory() {
     const [draftStock, setDraftStock] = useState({});
     const [viewMode, setViewMode] = useState('grid');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [creating, setCreating]               = useState(false);
     const [reorderProduct, setReorderProduct]   = useState(null);
     const [tab, setTab] = useState('all');
+
+    // ── Babushka drill stack (KPI → product list → product detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     useEffect(() => {
         const query = searchParams.get('search');
@@ -175,13 +225,32 @@ export default function AdminInventory() {
         showToast('פרטי המוצר עודכנו בהצלחה', 'success');
     };
 
+    const handleCreateProduct = async (fields) => {
+        if (!fields.title?.trim()) return;
+        await addProduct({
+            title: fields.title.trim(),
+            price: Number(fields.price) || 0,
+            category: fields.category || '',
+            isFeatured: fields.isFeatured || false,
+            image: fields.image || '',
+            stock: Number(fields.stock) || 0,
+            threshold: Number(fields.threshold) || 5,
+            isActive: true,
+        });
+        setCreating(false);
+        showToast('מוצר חדש נוסף בהצלחה', 'success');
+    };
+
+    // Blank product used to open ProductModal in create mode
+    const BLANK_PRODUCT = { id: '', title: '', price: 0, category: '', isFeatured: false, image: '', stock: 0, threshold: 5 };
+
     // ── Sales velocity: units sold per day per product (last 30 days) ────────
     const salesVelocity = useMemo(() => {
         const cutoff = Date.now() - 30 * 86400000;
         const vel = {};
         orders.filter(o => (o.dateTs || 0) >= cutoff).forEach(o => {
             (o.items || []).forEach(item => {
-                const id = String(item.id ?? '');
+                const id = String(item.id ?? item.catalogNumber ?? '');
                 if (!id) return;
                 vel[id] = (vel[id] || 0) + (item.qty || 1);
             });
@@ -254,7 +323,19 @@ export default function AdminInventory() {
                                 <AdminButton accent={ORANGE} onClick={saveBulkMode} disabled={bulkSaving} loading={bulkSaving}>{bulkSaving ? 'שומר...' : 'שמור הכל'}</AdminButton>
                             </div>
                         ) : (
-                            <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
+                            <>
+                                <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setCreating(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-[14px] text-white font-black text-[13px]"
+                                    style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', fontFamily: 'Heebo, sans-serif', boxShadow: '0 6px 18px rgba(0,122,255,0.32)' }}
+                                >
+                                    <Plus size={15} strokeWidth={2.8} />
+                                    מוצר חדש
+                                </motion.button>
+                            </>
                         )}
                     </div>
                 ) : undefined}
@@ -263,13 +344,14 @@ export default function AdminInventory() {
             {/* ── KPI band ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                    { label: 'סה״כ מוצרים', value: inventory.length, color: ORANGE, Icon: Boxes, sub: `${filtered.length} בתצוגה`, tooltip: 'כל המוצרים בקטלוג המלאי.' },
-                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.' },
-                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.' },
-                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.' },
-                ].map(({ label, value, color, Icon, sub, tooltip }, i) => (
+                    { label: 'סה״כ מוצרים', value: inventory.length, color: ORANGE, Icon: Boxes, sub: `${filtered.length} בתצוגה`, tooltip: 'כל המוצרים בקטלוג המלאי.', scope: 'all' },
+                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.', scope: 'ok' },
+                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.', scope: 'low' },
+                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.', scope: 'out' },
+                ].map(({ label, value, color, Icon, sub, tooltip, scope }, i) => (
                     <AdminKPICard key={label} title={label} value={value} subtitle={sub} tooltip={tooltip}
-                        icon={<Icon size={20} color={color} />} accent={color} delay={i * 0.05} />
+                        icon={<Icon size={20} color={color} />} accent={color} delay={i * 0.05}
+                        onClick={value ? () => openDrill({ type: 'products', scope }) : undefined} />
                 ))}
             </div>
 
@@ -592,17 +674,128 @@ export default function AdminInventory() {
                 document.body
             )}
 
+            {/* New Product Modal — same ProductModal reused in create mode */}
+            {createPortal(
+                <AnimatePresence>
+                    {creating && (
+                        <ProductModal
+                            key="create-product"
+                            product={BLANK_PRODUCT}
+                            createMode
+                            onClose={() => setCreating(false)}
+                            onSave={handleCreateProduct}
+                        />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
             {/* Smart Reorder Modal — AnimatePresence lives inside createPortal */}
             <SmartReorderModal
                 open={!!reorderProduct}
                 product={reorderProduct}
                 onClose={() => setReorderProduct(null)}
             />
+
+            {/* ── Babushka Drill Drawer — KPI → product list → product detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const scopeMap = {
+                    all: { label: 'כל המלאי', color: ORANGE, Icon: Boxes, filter: () => true },
+                    ok:  { label: 'מלאי תקין', color: '#34C759', Icon: CheckCircle2, filter: p => available(p) > p.threshold },
+                    low: { label: 'מלאי נמוך', color: '#FF9500', Icon: AlertTriangle, filter: p => available(p) > 0 && available(p) <= p.threshold },
+                    out: { label: 'אזל מהמלאי', color: '#FF3B30', Icon: XCircle, filter: p => available(p) === 0 },
+                };
+                const prodLeading = (p) => (
+                    <span className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                        {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Box size={16} className="text-[#C7C7CC]" />}
+                    </span>
+                );
+                const stockBadge = (p) => {
+                    const m = stockMeta(p);
+                    return <span className="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0" style={{ background: hexA(m.color, 0.14), color: m.color }}>{m.avail} · {m.label}</span>;
+                };
+
+                let title = '', subtitle = '', icon = null, accent = ORANGE, footer = null, body = null;
+
+                if (current.type === 'products') {
+                    const sc = scopeMap[current.scope] || scopeMap.all;
+                    const list = inventory.filter(sc.filter);
+                    accent = sc.color; icon = <sc.Icon size={17} color={sc.color} />;
+                    title = sc.label; subtitle = `${list.length} מוצרים`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: inventory.length, color: ORANGE },
+                                { label: 'תקין', value: okCount, color: '#34C759' },
+                                { label: 'נמוך', value: lowCount, color: '#FF9500' },
+                                { label: 'אזל', value: outCount, color: '#FF3B30' },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={Package} text="אין מוצרים בקטגוריה זו" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים — לחץ לפרטים</p>
+                                    {list.map((p, i) => (
+                                        <DrillRow key={p.id} delay={i * 0.02} tone={sc.color}
+                                            onClick={() => pushDrill({ type: 'product', id: p.id })}
+                                            leading={prodLeading(p)} title={p.title}
+                                            subtitle={p.category || 'ללא קטגוריה'} trailing={stockBadge(p)} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'product') {
+                    const p = inventory.find(x => String(x.id) === String(current.id));
+                    if (!p) { title = 'מוצר'; icon = <Box size={17} color={ORANGE} />; body = <DrillEmpty icon={Box} text="המוצר אינו זמין" />; }
+                    else {
+                        const m = stockMeta(p);
+                        const dts = daysToStockout(p);
+                        accent = m.color; icon = <Box size={17} style={{ color: m.color }} />;
+                        title = p.title; subtitle = p.category || 'ללא קטגוריה';
+                        footer = { label: 'פתח כרטיס מוצר', onClick: () => { closeDrill(); setSelectedProduct(p); } };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-video flex items-center justify-center">
+                                    {p.image ? <img src={p.image} alt={p.title} className="w-full h-full object-contain" /> : <Box size={40} className="text-[#C7C7CC]" />}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black" style={{ background: hexA(m.color, 0.12), color: m.color }}>{m.label}</span>
+                                    <p className="text-[15px] font-black tracking-tight text-[#1D1D1F]">₪{Number(p.salePrice ?? p.price ?? 0).toLocaleString()}</p>
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'במלאי', value: p.stock ?? 0, color: ORANGE },
+                                    { label: 'שמור', value: p.reserved ?? 0, color: '#5AC8FA' },
+                                    { label: 'זמין', value: m.avail, color: m.color },
+                                    { label: 'סף', value: p.threshold ?? 5, color: '#8E8E93' },
+                                ]} />
+                                {dts != null && (
+                                    <div className="flex items-center gap-2 p-3 rounded-[14px]" style={{ background: hexA(dts <= 14 ? '#FF9500' : '#34C759', 0.08) }}>
+                                        <TrendingDown size={15} style={{ color: dts <= 14 ? '#FF9500' : '#34C759' }} />
+                                        <span className="text-[12px] font-bold text-[#1D1D1F]">צפי אזילה בעוד ~{dts} ימים</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }
 
-function ProductModal({ product, onClose, onSave }) {
+function ProductModal({ product, onClose, onSave, createMode = false }) {
     const [title, setTitle]           = useState(product.title);
     const [price, setPrice]           = useState(product.price);
     const [category, setCategory]     = useState(product.category);
@@ -613,6 +806,7 @@ function ProductModal({ product, onClose, onSave }) {
 
     const stockColor = stock === 0 ? '#FF3B30' : stock <= threshold ? '#FF9500' : '#34C759';
     const stockLabel = stock === 0 ? 'אזל' : stock <= threshold ? 'מלאי נמוך' : 'תקין';
+    const canSave    = !createMode || title.trim().length > 0;
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -633,18 +827,27 @@ function ProductModal({ product, onClose, onSave }) {
                 {/* Header */}
                 <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-black/[0.06]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0">
-                            <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
-                                onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
+                            {createMode && !image
+                                ? <Plus size={18} className="text-[#AEAEB2]" strokeWidth={2.5} />
+                                : <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
+                                    onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />}
                         </div>
-                        <div>
-                            <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
-                                className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
-                                {product.title}
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
-                            </a>
-                            <p className="text-[11px] text-[#AEAEB2] font-medium">SKU: {product.sku || product.id}</p>
-                        </div>
+                        {createMode ? (
+                            <div>
+                                <p className="text-[17px] font-black text-[#1D1D1F] leading-tight">מוצר חדש</p>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">מלא את הפרטים ולחץ צור מוצר</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
+                                    {product.title}
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
+                                </a>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">SKU: {product.sku || product.id}</p>
+                            </div>
+                        )}
                     </div>
                     <button onClick={onClose}
                         className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA] transition-colors">
@@ -702,9 +905,9 @@ function ProductModal({ product, onClose, onSave }) {
 
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
-                    <AdminButton className="flex-1" accent={ORANGE}
+                    <AdminButton className="flex-1" accent={ORANGE} disabled={!canSave}
                         onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold) })}>
-                        שמור שינויים
+                        {createMode ? 'צור מוצר' : 'שמור שינויים'}
                     </AdminButton>
                     <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
                 </div>
