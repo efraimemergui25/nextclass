@@ -280,7 +280,7 @@ export function AdminDataProvider({ children }) {
             ...newProduct,
             id,
             stock: Number(newProduct.stock) || 0,
-            threshold: 5,
+            threshold: Number(newProduct.threshold) || 5,
             sold: 0,
         });
         addActivity(`מוצר חדש נוסף: ${newProduct.title}`, 'product');
@@ -310,6 +310,9 @@ export function AdminDataProvider({ children }) {
             source: data.source || existing?.source || 'manual',
             createdAt: existing?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
+            // Stamp sortable/display date for new contacts so they surface at the
+            // top of the list and pass the date filters (existing docs keep theirs).
+            ...(existing ? {} : { dateTs: Date.now(), date: new Date().toLocaleDateString('he-IL') }),
             ...(data.extra || {}),
         }, { merge: true });
         if (!existing) addActivity(`איש קשר/לקוח חדש נוסף: ${data.name || key}`, 'customer');

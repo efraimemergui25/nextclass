@@ -139,7 +139,7 @@ const QUOTE_STATUS = {
 
 // ── User detail modal ─────────────────────────────────────────────────────────
 function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
-    const { addToast } = useAdminToast();
+    const { showToast } = useAdminToast();
     const [saving, setSaving]         = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
     const [userQuotes, setUserQuotes] = useState([]);
@@ -152,7 +152,6 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
     });
     const tier = TIER_CONFIG[user.memberTier] || TIER_CONFIG.free;
     const dirty = form.displayName !== (user.displayName || '')
-        || form.email       !== (user.email || '')
         || form.institution !== (user.institution || '')
         || form.role        !== (user.role || '');
 
@@ -178,8 +177,8 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
         try {
             await updateDoc(doc(db, 'users', user.uid), { memberTier: newTier });
             onTierChange(user.uid, newTier);
-            addToast('דרגת המשתמש עודכנה', 'success');
-        } catch { addToast('שגיאה בעדכון הדרגה', 'error'); }
+            showToast('דרגת המשתמש עודכנה', 'success');
+        } catch { showToast('שגיאה בעדכון הדרגה', 'error'); }
         finally { setSaving(false); }
     };
 
@@ -189,12 +188,11 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
         try {
             await updateDoc(doc(db, 'users', user.uid), {
                 displayName: form.displayName.trim(),
-                email:       form.email.trim(),
                 institution: form.institution.trim(),
                 role:        form.role,
             });
-            addToast('פרטי המשתמש נשמרו', 'success');
-        } catch { addToast('שגיאה בשמירת הפרטים', 'error'); }
+            showToast('פרטי המשתמש נשמרו', 'success');
+        } catch { showToast('שגיאה בשמירת הפרטים', 'error'); }
         finally { setSavingProfile(false); }
     };
 
@@ -269,10 +267,10 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                                 <Mail size={12} color="#8E8E93" />
-                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>מייל (זהות כניסה)</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>מייל (זהות כניסה — לקריאה בלבד)</span>
                             </div>
-                            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                                dir="ltr" type="email" placeholder="—" style={{ ...fieldInput, direction: 'ltr', textAlign: 'right' }} onFocus={onFieldFocus} onBlur={onFieldBlur} />
+                            <input value={form.email} readOnly disabled title="המייל הוא זהות הכניסה ואינו ניתן לעריכה מכאן"
+                                dir="ltr" type="email" placeholder="—" style={{ ...fieldInput, direction: 'ltr', textAlign: 'right', opacity: 0.6, cursor: 'not-allowed' }} />
                         </div>
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
@@ -618,7 +616,7 @@ function UserRow({ user, index, onClick, onDelete, rfmSegment }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminUsers() {
-    const { addToast } = useAdminToast();
+    const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
     const { orders, quotes } = useAdminData();
     const [users, setUsers]       = useState([]);
@@ -671,9 +669,9 @@ export default function AdminUsers() {
         try {
             await deleteDoc(doc(db, 'users', user.uid));
             setUsers(prev => prev.filter(u => u.uid !== user.uid));
-            addToast('המשתמש נמחק', 'warning');
+            showToast('המשתמש נמחק', 'warning');
             return true;
-        } catch { addToast('שגיאה במחיקת המשתמש', 'error'); return false; }
+        } catch { showToast('שגיאה במחיקת המשתמש', 'error'); return false; }
     };
 
     const filtered = useMemo(() => {

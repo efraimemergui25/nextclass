@@ -6,6 +6,7 @@ import { InboxIcon, Trash2, Check, Users, ShoppingCart, TrendingUp, ChevronLeft,
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { useAdminToast } from '../context/AdminToastContext';
 import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import { PALETTE, GLASS, RADIUS, hexA } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
@@ -89,6 +90,7 @@ const custDateStr = (o) => o?.date || (o?.dateTs ? new Date(o.dateTs).toLocaleDa
 export default function AdminCustomers() {
     const { contacts, orders, quotes, updateContactStatus, upsertContact, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
     const confirm = useAdminConfirm();
+    const { showToast } = useAdminToast();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [tab, setTab] = useState('contacts');
@@ -115,12 +117,17 @@ export default function AdminCustomers() {
         }
         setSavingContact(true);
         try {
-            const id = await upsertContact({ ...contactForm, source: contactForm.id ? undefined : 'manual', extra: { subject: contactForm.subject || '' } });
+            const isEdit = !!contactForm.id;
+            const id = await upsertContact({ ...contactForm, source: isEdit ? undefined : 'manual', extra: { subject: contactForm.subject || '' } });
             setContactForm(null);
             if (contactForm.id && selected?.id === contactForm.id) {
                 setSelected(prev => ({ ...prev, ...contactForm }));
             }
+            showToast(isEdit ? 'פרטי הלקוח עודכנו ✓' : 'לקוח חדש נוסף ✓', 'success');
             return id;
+        } catch (err) {
+            console.error('[saveContactForm]', err);
+            showToast('שגיאה בשמירת הלקוח', 'error');
         } finally { setSavingContact(false); }
     };
     const deleteContactRow = async (c, e) => {
@@ -349,7 +356,7 @@ export default function AdminCustomers() {
                     <AnimatePresence>
                         {filteredCustomers.map((c, i) => (
                             <motion.div
-                                key={c.name}
+                                key={c.phone || c.email || c.name || i}
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.98 }}
@@ -574,7 +581,7 @@ export default function AdminCustomers() {
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מובילים לפי רכישות — לחץ לצלילה</p>
                                     {custByRevenue.slice(0, 12).map((c, i) => (
-                                        <DrillRow key={c.name} delay={i * 0.03} tone={ACCENT}
+                                        <DrillRow key={c.phone || c.email || c.name || i} delay={i * 0.03} tone={ACCENT}
                                             onClick={() => pushDrill({ type: 'customer', name: c.name })}
                                             leading={<div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-black shrink-0" style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)' }}>{c.name?.[0] || '?'}</div>}
                                             title={c.name}
@@ -637,7 +644,7 @@ export default function AdminCustomers() {
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">תרומה לפי לקוח — לחץ לצלילה</p>
                                     {custByRevenue.slice(0, 12).map((c, i) => (
-                                        <DrillRow key={c.name} delay={i * 0.03} tone="#34C759"
+                                        <DrillRow key={c.phone || c.email || c.name || i} delay={i * 0.03} tone="#34C759"
                                             onClick={() => pushDrill({ type: 'customer', name: c.name })}
                                             leading={<span className="text-[#AEAEB2] text-[11px] font-black w-4 text-center shrink-0">{i + 1}</span>}
                                             title={c.name}

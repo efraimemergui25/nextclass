@@ -2536,11 +2536,12 @@ function QuotesPipeline() {
         setCreatingQuote(true);
         try {
             const items = (newQuote.items || []).filter(it => it.title || it.catalogNumber);
-            const id = await createQuote({ ...newQuote, items, source: 'manual' });
+            const payload = { ...newQuote, items, source: 'manual' };
+            const id = await createQuote(payload);
             setNewQuote(null);
             showToast('הצעה/הזמנה נוצרה ✓', 'success');
-            const created = quotes.find(q => q.id === id);
-            if (created) { setSelected(created); setNewStatus(''); setSaved(false); setNoteText(''); }
+            // Open the freshly-created record (build locally — the snapshot hasn't propagated yet).
+            if (id) { setSelected({ id, ...payload, subtotal: nqSubtotal }); setNewStatus(''); setSaved(false); setNoteText(''); setActiveTab('pipeline'); }
         } catch (err) {
             console.error('[createQuote]', err);
             showToast('שגיאה ביצירת ההצעה', 'error');
@@ -2565,12 +2566,18 @@ function QuotesPipeline() {
     const setEC = (k, v) => setEditContact(f => ({ ...f, [k]: v }));
     const saveContactEdit = async () => {
         if (!editContact || !selected) return;
+        if (!editContact.contactName && !editContact.institution && !editContact.phone) {
+            showToast('יש למלא לפחות שם, מוסד או טלפון', 'error'); return;
+        }
         setSavingContact(true);
         try {
             await updateQuoteFields(selected.id, { ...editContact });
             setSelected(prev => ({ ...prev, ...editContact }));
             setEditContact(null);
             showToast('פרטי הקשר עודכנו ✓', 'success');
+        } catch (err) {
+            console.error('[saveContactEdit]', err);
+            showToast('שגיאה בעדכון פרטי הקשר', 'error');
         } finally { setSavingContact(false); }
     };
 
