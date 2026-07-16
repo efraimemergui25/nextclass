@@ -938,49 +938,33 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                     </div>
 
                     {/* Supplier fulfilment + alert control */}
-                    <div className="rounded-2xl p-4 border border-black/[0.06] bg-[#F5F5F7] space-y-3.5">
-                        <span className="text-[11px] font-black tracking-widest text-[#86868B]">אספקה מהספק והתרעות</span>
+                    <div className="rounded-2xl border border-black/[0.06] bg-[#F5F5F7] overflow-hidden">
+                        <p className="text-[11px] font-black tracking-widest text-[#86868B] px-4 pt-3.5 pb-1 text-right">אספקה מהספק והתרעות</p>
+                        <div className="divide-y divide-black/[0.06]">
+                            <ToggleRow value={supplierStocked} onChange={setSupplierStocked} accent="#007AFF"
+                                title="מוחזק אצל הספק" subtitle="אספקה ישירה (דרופשיפ) — לא מוחזק במלאי שלנו" />
 
-                        <div className="flex items-center justify-between">
-                            <AdminToggle value={supplierStocked} onChange={setSupplierStocked} />
-                            <div className="text-right">
-                                <p className="text-[13px] font-black text-[#1D1D1F]">מוחזק אצל הספק</p>
-                                <p className="text-[11px] text-[#AEAEB2] font-medium">אספקה ישירה (דרופשיפ) — לא מוחזק במלאי שלנו</p>
-                            </div>
-                        </div>
+                            {supplierStocked && (
+                                <ToggleRow value={supplierInStock} onChange={setSupplierInStock} accent="#007AFF"
+                                    title="במלאי אצל הספק" subtitle={'זמין להזמנה מיידית — לא ייחשב כ"אזל"'} />
+                            )}
 
-                        {supplierStocked && (
-                            <div className="flex items-center justify-between">
-                                <AdminToggle value={supplierInStock} onChange={setSupplierInStock} />
-                                <div className="text-right">
-                                    <p className="text-[13px] font-black text-[#1D1D1F]">במלאי אצל הספק</p>
-                                    <p className="text-[11px] text-[#AEAEB2] font-medium">זמין להזמנה מיידית — לא ייחשב כ"אזל"</p>
+                            <ToggleRow value={showSupplierQty} onChange={setShowSupplierQty} accent="#007AFF"
+                                title="הצג כמות אצל הספק" subtitle="הכמות תוצג על כרטיס המוצר" />
+
+                            {showSupplierQty && (
+                                <div className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        <input type="number" min="0" value={supplierStock}
+                                            onChange={e => setSupplierStock(Math.max(0, Number(e.target.value)))}
+                                            className="w-24 bg-white rounded-xl px-3 py-2.5 text-[17px] font-black text-[#1D1D1F] text-center outline-none border-2 border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        <label className="text-[12px] font-bold text-[#6E6E73] flex-1 text-right">כמות זמינה אצל הספק</label>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        <div className="flex items-center justify-between">
-                            <AdminToggle value={showSupplierQty} onChange={setShowSupplierQty} />
-                            <div className="text-right">
-                                <p className="text-[13px] font-black text-[#1D1D1F]">הצג כמות אצל הספק</p>
-                                <p className="text-[11px] text-[#AEAEB2] font-medium">הכמות תוצג על כרטיס המוצר</p>
-                            </div>
-                        </div>
-                        {showSupplierQty && (
-                            <div>
-                                <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">כמות אצל הספק</label>
-                                <input type="number" min="0" value={supplierStock}
-                                    onChange={e => setSupplierStock(Math.max(0, Number(e.target.value)))}
-                                    className="w-full bg-white rounded-xl px-4 py-3 text-[18px] font-black text-[#1D1D1F] text-center outline-none border-2 border-black/10" />
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-between pt-1 border-t border-black/[0.06]">
-                            <AdminToggle value={lowStockMuted} onChange={setLowStockMuted} />
-                            <div className="text-right">
-                                <p className="text-[13px] font-black text-[#1D1D1F]">כבה התרעת מלאי נמוך</p>
-                                <p className="text-[11px] text-[#AEAEB2] font-medium">המוצר לא יסומן כ"נמוך" ולא ייכלל בהתרעות</p>
-                            </div>
+                            <ToggleRow value={lowStockMuted} onChange={setLowStockMuted} accent="#FF9500"
+                                title="כבה התרעת מלאי נמוך" subtitle={'המוצר לא יסומן כ"נמוך" ולא ייכלל בהתרעות'} />
                         </div>
                     </div>
 
@@ -1032,11 +1016,26 @@ function AdminInput({ label, value, onChange, type = "text" }) {
     );
 }
 
-function AdminToggle({ value, onChange }) {
+// Uniform RTL settings row — label block on the right, toggle pinned left, so
+// a stack of these lines up perfectly regardless of subtitle length.
+function ToggleRow({ title, subtitle, value, onChange, accent = '#34C759' }) {
+    return (
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+            <AdminToggle value={value} onChange={onChange} accent={accent} />
+            <div className="text-right flex-1 min-w-0">
+                <p className="text-[13px] font-black text-[#1D1D1F] leading-tight">{title}</p>
+                {subtitle && <p className="text-[11px] text-[#AEAEB2] font-medium leading-snug mt-0.5">{subtitle}</p>}
+            </div>
+        </div>
+    );
+}
+
+function AdminToggle({ value, onChange, accent = '#34C759' }) {
     return (
         <button
             onClick={() => onChange(!value)}
-            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 flex items-center ${value ? 'bg-[#34C759]' : 'bg-[#AEAEB2]'}`}
+            style={{ background: value ? accent : '#D1D1D6' }}
+            className="w-12 h-6 rounded-full p-1 transition-colors duration-300 flex items-center shrink-0"
         >
             <motion.div
                 animate={{ x: value ? 24 : 0 }}
