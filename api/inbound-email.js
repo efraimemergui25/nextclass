@@ -327,6 +327,14 @@ async function mergeQuote(matchId, patch) {
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    // Optional shared-secret gate: if INBOUND_SECRET is set (Vercel env), the caller must
+    // present it (?secret=… or X-Webhook-Secret header). No-op until configured, so it never
+    // breaks the current CloudMailin setup — set both to lock the webhook against abuse.
+    const secret = process.env.INBOUND_SECRET;
+    if (secret) {
+        const provided = (req.query && req.query.secret) || req.headers['x-webhook-secret'] || '';
+        if (provided !== secret) return res.status(401).json({ error: 'unauthorized' });
+    }
     _accessToken = await getAccessToken();   // sign Firestore REST calls when SA key is present
     try {
         const body = await readBody(req);
@@ -446,6 +454,7 @@ export default async function handler(req, res) {
             documentId: documentId || null,              // → order_documents/<id> (viewable source doc)
             documentType: att ? (att.mime || 'application/pdf') : null,
             documentName: att ? att.name : null,
+            documentStoreFailed: !!(att && !documentId),  // had a file but it couldn't be stored (too large / write failed)
             unreadAdmin: true,                            // light up the bell — a NEW order needs review
             ocrConfidence: d.confidence != null ? Number(d.confidence) : null,
             history: [{ status: 'לבדיקה ידנית', ts: now }],

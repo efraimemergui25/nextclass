@@ -338,7 +338,7 @@ function NotificationsPanel({ kpis, orders, onClose, onNavigate }) {
           <motion.button key={i} whileHover={{ background: 'rgba(0,0,0,0.03)' }}
             onClick={() => { if (item.path) { onNavigate(item.path); onClose(); } }}
             className="w-full flex items-center gap-3.5 px-4 py-3 text-right transition-colors">
-            <span className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0" style={{ background: `${item.color}16` }}>
+            <span className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${item.color}2b, ${item.color}12)`, border: `1px solid ${item.color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${item.color}22` }}>
               <svg className="w-4.5 h-4.5" width={18} height={18} fill="none" viewBox="0 0 24 24" stroke={item.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d={item.icon} />
               </svg>
@@ -381,7 +381,7 @@ function QuickLaunchPanel({ onClose, onNavigate }) {
             onClick={() => { onNavigate(a.path); onClose(); }}
             className="flex flex-col items-center gap-2 py-3 px-1 rounded-[14px] transition-colors"
             style={{ background: `${a.color}0D` }}>
-            <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: `${a.color}1A` }}>
+            <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: `linear-gradient(140deg, ${a.color}2b, ${a.color}12)`, border: `1px solid ${a.color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${a.color}22` }}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={a.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d={a.icon}/></svg>
             </span>
             <span className="text-[11px] font-bold text-[#1D1D1F]">{a.label}</span>
@@ -398,8 +398,11 @@ function SystemStatus() {
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl" style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.22)' }} title="כל המערכות פעילות">
       <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: '#34C759' }} />
-        <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#34C759' }} />
+        <motion.span
+          animate={{ scale: [1, 2.1], opacity: [0.5, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          className="absolute inline-flex h-full w-full rounded-full" style={{ background: '#34C759' }} />
+        <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#34C759', boxShadow: '0 0 6px rgba(52,199,89,0.55)' }} />
       </span>
       <span className="text-[10px] font-black hidden lg:inline" style={{ color: '#1A8C40' }}>מערכת פעילה</span>
     </div>
@@ -488,10 +491,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
         {/* ── Back button ── */}
         <motion.button
-          whileHover={{ x: 2 }} whileTap={{ scale: 0.9 }}
+          whileHover={{ x: 2, boxShadow: '0 6px 18px rgba(20,40,80,0.10), inset 0 1px 0 rgba(255,255,255,1)' }}
+          whileTap={{ scale: 0.9 }}
+          transition={SPRING.snappy}
           onClick={() => navigate(-1)}
           className="flex items-center justify-center w-9 h-9 rounded-[12px] shrink-0 transition-all"
-          style={{ background: 'rgba(0,0,0,0.05)', color: '#3C3C43', border: '0.5px solid rgba(0,0,0,0.08)' }}
+          style={{
+            background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.64))',
+            backdropFilter: 'blur(20px) saturate(1.7)', WebkitBackdropFilter: 'blur(20px) saturate(1.7)',
+            color: '#3C3C43', border: '1px solid rgba(255,255,255,0.9)',
+            boxShadow: '0 2px 10px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)',
+          }}
           title="אחורה"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -526,10 +536,15 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
         {/* ── Quick Launch Grid ── */}
         <div className="relative hidden md:block" ref={launchRef}>
-          <motion.button whileTap={{ scale: 0.93 }}
+          <motion.button whileTap={{ scale: 0.93 }} whileHover={{ y: -1 }} transition={SPRING.snappy}
             onClick={() => { setLaunchOpen(o => !o); setNotifOpen(false); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] text-[#6E6E73] text-[11px] font-bold transition-all"
-            style={{ background: launchOpen ? 'rgba(0,122,255,0.08)' : 'rgba(0,0,0,0.04)', border: '0.5px solid rgba(0,0,0,0.07)' }}
+            style={{
+              background: launchOpen ? hexA(PALETTE.azure, 0.10) : 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6))',
+              backdropFilter: 'blur(20px) saturate(1.7)', WebkitBackdropFilter: 'blur(20px) saturate(1.7)',
+              border: '1px solid rgba(255,255,255,0.9)',
+              boxShadow: launchOpen ? glow(PALETTE.azure, 0.14, 12) : '0 2px 10px rgba(20,40,80,0.05), inset 0 1px 0 rgba(255,255,255,1)',
+            }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

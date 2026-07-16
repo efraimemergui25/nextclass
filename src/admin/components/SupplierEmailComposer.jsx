@@ -13,6 +13,7 @@ import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { buildSupplierEmailModel, renderSupplierEmailHtml } from '../lib/supplierEmail';
+import Combobox from './Combobox';
 
 const HE = 'Heebo, sans-serif';
 const CYAN = '#0891B2';
@@ -23,6 +24,17 @@ const inp = {
     boxSizing: 'border-box', lineHeight: 1.6,
 };
 const lbl = { display: 'block', fontSize: 10.5, fontWeight: 800, color: '#AEAEB2', marginBottom: 5, letterSpacing: '0.02em' };
+
+// Label + Combobox (searchable dropdown with free-text) — for fields with known values.
+function ComboField({ label, value, onChange, onPick, options, placeholder }) {
+    return (
+        <label style={{ display: 'block' }}>
+            <span style={lbl}>{label}</span>
+            <Combobox value={value} onChange={onChange} onPick={onPick} options={options} placeholder={placeholder}
+                inputStyle={{ padding: '9px 30px 9px 11px', fontSize: 13, background: '#F7F8FA' }} />
+        </label>
+    );
+}
 
 function Field({ label, value, onChange, rows, placeholder }) {
     return (
@@ -50,11 +62,21 @@ function Section({ title, emoji, children }) {
     );
 }
 
-export default function SupplierEmailComposer({ order, supplier, note, catalog = [], busy, onClose, onQueue }) {
+export default function SupplierEmailComposer({ order, supplier, note, catalog = [], directory = [], busy, onClose, onQueue }) {
     const [model, setModel] = useState(() => buildSupplierEmailModel(order, supplier, { note }));
     const [showPreview, setShowPreview] = useState(true);
     const [pick, setPick] = useState('');
     const set = (k) => (v) => setModel(m => ({ ...m, [k]: v }));
+
+    // Combobox option pools from the catalog + the known-directory (past orders' ship-to).
+    const productOptions = useMemo(() => (catalog || []).map(p => ({ label: p.title || '', price: Number(p.price) || 0, image: p.image || '', sub: p.sku || p.model || '' })).filter(o => o.label), [catalog]);
+    const uniqBy = (arr, key) => { const s = new Set(); return arr.filter(x => { const k = (x[key] || '').trim(); if (!k || s.has(k)) return false; s.add(k); return true; }); };
+    const instOptions = useMemo(() => uniqBy(directory, 'institution').map(d => ({ label: d.institution, sub: d.city || d.address, _e: d })), [directory]);
+    const addrOptions = useMemo(() => uniqBy(directory, 'address').map(d => ({ label: d.address, sub: d.institution || d.city, _e: d })), [directory]);
+    const contactOptions = useMemo(() => uniqBy(directory, 'contactName').map(d => ({ label: d.contactName, sub: d.institution, _e: d })), [directory]);
+    const emailOptions = useMemo(() => uniqBy(directory, 'email').map(d => ({ label: d.email, sub: d.institution, _e: d })), [directory]);
+    // Fill related ship fields when a known entry is picked.
+    const fillFrom = (d) => { if (!d) return; setModel(m => ({ ...m, shipInstitution: d.institution || m.shipInstitution, shipName: d.contactName || m.shipName, shipContact: d.contactName || m.shipContact, shipAddress: d.address || m.shipAddress, shipPhone: d.phone || m.shipPhone, shipEmail: d.email || m.shipEmail })); };
     const setItem = (i, k, v) => setModel(m => ({ ...m, items: m.items.map((it, j) => j === i ? { ...it, [k]: v } : it) }));
     const addItem = (it) => setModel(m => ({ ...m, items: [...(m.items || []), it] }));
     const removeItem = (i) => setModel(m => ({ ...m, items: m.items.filter((_, j) => j !== i) }));
@@ -162,7 +184,9 @@ export default function SupplierEmailComposer({ order, supplier, note, catalog =
                             )}
                             {(model.items || []).map((it, i) => (
                                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 46px 30px', gap: 7, marginBottom: 7, alignItems: 'center' }}>
-                                    <input value={it.title} onChange={e => setItem(i, 'title', e.target.value)} placeholder="שם הפריט" dir="rtl" style={{ ...inp, fontSize: 12 }} />
+                                    <Combobox value={it.title} options={productOptions} placeholder="בחר/י מהמלאי או הקלד/י"
+                                        onChange={v => setItem(i, 'title', v)}
+                                        onPick={o => { setItem(i, 'title', o.label); if (o.sub) setItem(i, 'catalogNumber', o.sub); }} />
                                     <input value={it.catalogNumber} onChange={e => setItem(i, 'catalogNumber', e.target.value)} placeholder="דגם/מק״ט" dir="rtl" style={{ ...inp, fontSize: 12 }} />
                                     <input type="number" min={1} value={it.qty} onChange={e => setItem(i, 'qty', Number(e.target.value) || 1)} style={{ ...inp, fontSize: 12, textAlign: 'center', padding: '9px 4px' }} />
                                     <button onClick={() => removeItem(i)} title="הסר פריט"
@@ -174,15 +198,15 @@ export default function SupplierEmailComposer({ order, supplier, note, catalog =
 
                         <Section title="כתובת אספקה ואיש קשר" emoji="📍">
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                <Field label="שם הלקוח" value={model.shipName} onChange={set('shipName')} />
-                                <Field label="מוסד" value={model.shipInstitution} onChange={set('shipInstitution')} placeholder="—" />
+                                <ComboField label="שם הלקוח" value={model.shipName} onChange={set('shipName')} onPick={o => fillFrom(o._e)} options={contactOptions} placeholder="בחר/י או הקלד/י" />
+                                <ComboField label="מוסד" value={model.shipInstitution} onChange={set('shipInstitution')} onPick={o => fillFrom(o._e)} options={instOptions} placeholder="בחר/י או הקלד/י" />
                             </div>
-                            <Field label="כתובת מדויקת" value={model.shipAddress} onChange={set('shipAddress')} rows={2} />
+                            <ComboField label="כתובת מדויקת" value={model.shipAddress} onChange={set('shipAddress')} onPick={o => fillFrom(o._e)} options={addrOptions} placeholder="בחר/י כתובת מוכרת או הקלד/י" />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                <Field label="איש קשר" value={model.shipContact} onChange={set('shipContact')} />
+                                <ComboField label="איש קשר" value={model.shipContact} onChange={set('shipContact')} onPick={o => fillFrom(o._e)} options={contactOptions} placeholder="בחר/י או הקלד/י" />
                                 <Field label="טלפון" value={model.shipPhone} onChange={set('shipPhone')} />
                             </div>
-                            <Field label="מייל ליצירת קשר" value={model.shipEmail} onChange={set('shipEmail')} placeholder="—" />
+                            <ComboField label="מייל ליצירת קשר" value={model.shipEmail} onChange={set('shipEmail')} onPick={o => fillFrom(o._e)} options={emailOptions} placeholder="בחר/י או הקלד/י" />
                         </Section>
 
                         <Section title="הערות מיוחדות" emoji="⚠️">

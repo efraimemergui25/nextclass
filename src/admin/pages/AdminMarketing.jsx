@@ -22,8 +22,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(140deg, ${hexA(s.color || '#007AFF', 0.13)}, ${hexA(s.color || '#007AFF', 0.05)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: `${SHADOW.specular}, 0 3px 10px ${hexA(s.color || '#007AFF', 0.10)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${c}, ${hexA(c, 0.72)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -43,7 +43,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'rgba(255,255,255,0.42)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 4px rgba(20,40,80,0.03)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -223,7 +223,7 @@ function CouponCard({ coupon, onToggle, onEdit, onDelete, onOpen, delay }) {
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => { e.stopPropagation(); onEdit(coupon); }}
                 className="flex items-center gap-1 text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all"
-                style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.16), rgba(0,122,255,0.07))', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,122,255,0.14)' }}>
                 <Pencil size={11} strokeWidth={2.5} />ערוך
             </motion.button>
 
@@ -234,7 +234,7 @@ function CouponCard({ coupon, onToggle, onEdit, onDelete, onOpen, delay }) {
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => { e.stopPropagation(); onDelete(coupon.id); }}
                 className="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all"
-                style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}>
+                style={{ background: 'linear-gradient(140deg, rgba(255,59,48,0.16), rgba(255,59,48,0.07))', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(255,59,48,0.14)' }}>
                 מחק
             </motion.button>
 
@@ -394,7 +394,7 @@ export default function AdminMarketing() {
                             <label className="block text-[#86868B] text-[10px] font-black tracking-[0.18em] mb-1.5">סוג</label>
                             <select value={form.type} onChange={e => setField('type', e.target.value)}
                                 className="w-full rounded-xl px-3 py-2.5 text-[#1D1D1F] text-sm outline-none"
-                                style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.10)' }}>
+                                style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 3px rgba(20,40,80,0.03)' }}>
                                 <option value="percent">אחוז (%)</option>
                                 <option value="fixed">סכום קבוע (₪)</option>
                             </select>

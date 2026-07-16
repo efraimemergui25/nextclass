@@ -4,7 +4,13 @@ import { Link } from 'react-router-dom';
 export default class PageErrorBoundary extends Component {
  state = { crashed: false };
  static getDerivedStateFromError() { return { crashed: true }; }
- componentDidCatch(error, info) { console.error('[PageErrorBoundary]', error, info); }
+ componentDidCatch(error, info) {
+ console.error('[PageErrorBoundary]', error, info);
+ const msg = String(error?.message || error || '');
+ if (/ChunkLoadError|Loading chunk|dynamically imported module|module script failed|Failed to fetch dynamically|error loading dynamically/i.test(msg)) {
+ if (!sessionStorage.getItem('nc_chunk_reloaded')) { sessionStorage.setItem('nc_chunk_reloaded', '1'); window.location.reload(); }
+ }
+ }
 
  render() {
  if (!this.state.crashed) return this.props.children;
@@ -19,7 +25,7 @@ export default class PageErrorBoundary extends Component {
  </div>
  <div className="flex gap-3">
  <button
- onClick={() => this.setState({ crashed: false })}
+ onClick={() => window.location.reload()}
  className="px-6 py-2.5 rounded-full bg-[#007AFF] text-white font-bold text-sm"
  >
  נסה שוב

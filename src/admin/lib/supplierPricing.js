@@ -32,18 +32,31 @@ export function priceIsValid(price, at = Date.now()) {
     return true;
 }
 
-// Best agreed unit cost for an item from a supplier's price rows (0 if unknown).
-export function bestCostFor(item, prices = []) {
+// Look up an item's product in the catalog (by catalog number, then title).
+function productForItem(item, catalog = []) {
+    if (!item || !catalog.length) return null;
+    const ic = norm(item.catalogNumber);
+    return catalog.find(p => ic && (norm(p.sku) === ic || norm(p.catalogNumber) === ic || norm(p.id) === ic))
+        || catalog.find(p => { const t = norm(item.title || item.name); const pt = norm(p.title); return !!t && !!pt && (pt === t || pt.includes(t) || t.includes(pt)); })
+        || null;
+}
+
+// Best agreed unit cost for an item. Price-book row first (strongest); if none, fall
+// back to the product's OWN recorded supplier cost — this reconciles the two cost books
+// (`supplier_prices` ↔ `product.supplierCost`) so an order almost always has a cost.
+export function bestCostFor(item, prices = [], catalog = []) {
     const hit = prices.filter(p => priceMatchesItem(p, item) && priceIsValid(p))
         .sort((a, b) => (Number(a.cost) || 0) - (Number(b.cost) || 0))[0];
-    return hit ? Number(hit.cost) || 0 : 0;
+    if (hit) return Number(hit.cost) || 0;
+    const prod = productForItem(item, catalog);
+    return prod ? (Number(prod.supplierCost) || Number(prod.cost) || 0) : 0;
 }
 
 // Total pre-negotiated supplier cost for an order's items (for a chosen supplier).
-export function supplierCostForOrder(order, prices = []) {
+export function supplierCostForOrder(order, prices = [], catalog = []) {
     let total = 0, matched = 0;
     for (const it of (order?.items || [])) {
-        const c = bestCostFor(it, prices);
+        const c = bestCostFor(it, prices, catalog);
         if (c > 0) { matched++; total += c * (Number(it.qty) || 1); }
     }
     return { total, matched, itemCount: (order?.items || []).length };

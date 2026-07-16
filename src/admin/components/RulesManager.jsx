@@ -46,9 +46,12 @@ const SEVERITIES = [
 const severityTone = (sev) => (SEVERITIES.find((s) => s.id === sev) || SEVERITIES[0]).tone;
 
 const inputStyle = {
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid rgba(0,0,0,0.10)',
+    background: 'rgba(255,255,255,0.6)',
+    backdropFilter: 'blur(14px) saturate(1.6)',
+    WebkitBackdropFilter: 'blur(14px) saturate(1.6)',
+    border: '1px solid rgba(255,255,255,0.85)',
     borderRadius: RADIUS.input,
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(20,40,80,0.05)',
     ...FONT,
 };
 
@@ -102,7 +105,10 @@ export function RuleAlerts({ rules, orders, onOpenOrder }) {
                     >
                         <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2.5">
                             <div className="min-w-0 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: toneColor(tone) }} />
+                                <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ background: toneColor(tone), boxShadow: `0 0 0 3px ${hexA(toneColor(tone), 0.16)}, 0 1px 3px ${hexA(toneColor(tone), 0.4)}` }}
+                                />
                                 <div className="min-w-0">
                                     <div className="text-[14px] font-black text-[#1D1D1F] truncate">{rule.name || ruleSummary(rule)}</div>
                                     <div className="text-[11.5px] text-[#86868B] truncate">{ruleSummary(rule)}</div>
@@ -372,11 +378,13 @@ export default function RulesManager() {
                             {ruleSummary(draft) || 'בנו תנאי…'}
                         </div>
                         <motion.button
+                            whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.97 }}
+                            transition={SPRING.snappy}
                             onClick={save}
                             disabled={saving || !valid}
                             className="px-5 py-2.5 rounded-full text-[14px] font-black text-white disabled:opacity-50"
-                            style={{ background: GRADIENT.signature, boxShadow: `0 8px 22px ${hexA(AZURE, 0.35)}` }}
+                            style={{ background: GRADIENT.signature, boxShadow: `0 8px 22px ${hexA(AZURE, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.4)` }}
                         >
                             {saving ? 'שומר…' : '+ הוסף חוק'}
                         </motion.button>
@@ -419,7 +427,10 @@ export default function RulesManager() {
                                         }}
                                     >
                                         <div className="min-w-0 flex items-center gap-2.5">
-                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: toneColor(tone) }} />
+                                            <span
+                                                className="w-2 h-2 rounded-full shrink-0"
+                                                style={{ background: toneColor(tone), boxShadow: `0 0 0 3px ${hexA(toneColor(tone), 0.16)}, 0 1px 3px ${hexA(toneColor(tone), 0.4)}` }}
+                                            />
                                             <div className="min-w-0">
                                                 <div className="text-[14px] font-black text-[#1D1D1F] truncate">{r.name || ruleSummary(r)}</div>
                                                 <div className="text-[12px] text-[#86868B] truncate">{ruleSummary(r)}</div>
@@ -431,23 +442,37 @@ export default function RulesManager() {
                                                 onClick={() => toggleActive(r)}
                                                 title={on ? 'השבת' : 'הפעל'}
                                                 className="relative w-11 h-6 rounded-full transition-colors"
-                                                style={{ background: on ? AZURE : 'rgba(0,0,0,0.14)' }}
+                                                style={{
+                                                    background: on
+                                                        ? `linear-gradient(135deg, ${AZURE}, ${hexA(AZURE, 0.82)})`
+                                                        : 'rgba(0,0,0,0.14)',
+                                                    boxShadow: on
+                                                        ? `inset 0 1px 2px ${hexA(AZURE, 0.5)}, 0 4px 12px ${hexA(AZURE, 0.32)}`
+                                                        : 'inset 0 1px 2px rgba(0,0,0,0.12)',
+                                                }}
                                             >
                                                 <motion.span
                                                     layout
                                                     transition={SPRING.snappy}
-                                                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow"
-                                                    style={{ [on ? 'left' : 'right']: 2 }}
+                                                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
+                                                    style={{ [on ? 'left' : 'right']: 2, boxShadow: '0 2px 5px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.9)' }}
                                                 />
                                             </button>
-                                            <button
+                                            <motion.button
                                                 type="button"
                                                 onClick={() => remove(r)}
+                                                whileHover={{ scale: 1.04 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                transition={SPRING.snappy}
                                                 className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
-                                                style={{ background: toneBg('danger'), color: toneFg('danger') }}
+                                                style={{
+                                                    background: toneBg('danger'),
+                                                    color: toneFg('danger'),
+                                                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 8px ${hexA(toneColor('danger'), 0.18)}`,
+                                                }}
                                             >
                                                 מחק
-                                            </button>
+                                            </motion.button>
                                         </div>
                                     </motion.div>
                                 );

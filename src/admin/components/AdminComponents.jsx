@@ -256,7 +256,7 @@ export function AdminKPICard({ title, value, subtitle, trend, trendUp, icon, col
                     })()}
                 </span>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: hexA(c, 0.12), border: `1px solid ${hexA(c, 0.20)}` }}>
+                    style={{ background: `linear-gradient(140deg, ${hexA(c, 0.20)}, ${hexA(c, 0.08)})`, border: `1px solid ${hexA(c, 0.22)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 12px ${hexA(c, 0.16)}` }}>
                     {typeof icon === 'string' && ICONS[icon] ? (
                         <svg className="w-[22px] h-[22px]" style={{ color: c }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>{ICONS[icon]}</svg>
                     ) : (
@@ -362,7 +362,9 @@ export function StatusBadge({ status, pulse }) {
                 boxShadow: pulse ? `0 0 0 2px ${s.dot}20` : 'none',
             }}>
             <span className="relative flex items-center justify-center w-1.5 h-1.5 shrink-0">
-                {pulse && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: s.dot, opacity: 0.5 }} />}
+                {pulse && <motion.span className="absolute inset-0 rounded-full" style={{ background: s.dot }}
+                    animate={{ scale: [1, 2.1], opacity: [0.5, 0] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut' }} />}
                 <span className="relative w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
             </span>
             {status}
@@ -463,7 +465,7 @@ export function AdminSectionHeader({ title, subtitle, action, icon: Icon }) {
             <div className="text-right flex items-center gap-3">
                 {Icon && (
                     <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)' }}>
+                        style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.18), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 12px rgba(0,122,255,0.14)' }}>
                         <Icon size={19} style={{ color: '#007AFF' }} />
                     </div>
                 )}
@@ -472,7 +474,7 @@ export function AdminSectionHeader({ title, subtitle, action, icon: Icon }) {
                         initial={{ opacity: 0, x: 12 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                        className="text-[22px] sm:text-[32px] font-[800] tracking-tight leading-none"
+                        className="text-[22px] sm:text-[30px] font-[900] tracking-tight leading-none"
                         style={{ background: 'linear-gradient(135deg, #1D1D1F 0%, #3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
                     >
                         {title}
@@ -674,6 +676,7 @@ export function AdminFilterPills({ options, active, onChange, id }) {
         <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {options.map(opt => (
                 <motion.button key={opt} type="button" onClick={() => onChange(opt)}
+                    whileTap={{ scale: 0.94 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                     className="relative px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap"
                     style={{ color: active === opt ? '#007AFF' : '#86868B' }}>
                     {active === opt && (
@@ -704,6 +707,7 @@ export function AdminDateFilter({ value, onChange, id }) {
         <div className="flex gap-1 p-1 rounded-2xl w-fit overflow-x-auto custom-scrollbar" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {options.map(o => (
                 <motion.button key={o.id} onClick={() => onChange(o.id)}
+                    whileTap={{ scale: 0.94 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                     className="relative px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap shrink-0"
                     style={{ color: value === o.id ? '#007AFF' : '#86868B' }}>
                     {value === o.id && (
@@ -745,6 +749,7 @@ export function AdminTabs({ tabs, active, onChange, id }) {
         <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(0,0,0,0.06)' }}>
             {tabs.map(t => (
                 <motion.button key={t.id} onClick={() => onChange(t.id)}
+                    whileTap={{ scale: 0.94 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                     className="relative px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap"
                     style={{ color: active === t.id ? '#007AFF' : '#86868B' }}>
                     {active === t.id && (

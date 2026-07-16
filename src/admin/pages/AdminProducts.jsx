@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Box, Upload, Loader2, LayoutGrid, List, AlertTriangle, Check, X, Plus, ChevronLeft, Boxes, Percent, CheckCircle2 } from 'lucide-react';
+import Combobox from '../components/Combobox';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
@@ -536,10 +537,8 @@ export default function AdminProducts() {
 
                     <div>
                         <label className="block text-[#6E6E73] text-[10px] font-black tracking-[0.18em] mb-1.5">קטגוריה</label>
-                        <select value={editForm.category} onChange={e => setField('category', e.target.value)} dir="rtl"
-                            className="w-full bg-white border border-black/12 rounded-xl px-4 py-2.5 text-[#1D1D1F] text-sm outline-none focus:border-[#007AFF]/60">
-                            {CATEGORIES.slice(1).map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <Combobox value={editForm.category} onChange={v => setField('category', v)} placeholder="בחר/י קטגוריה או הקלד/י חדשה"
+                            options={CATEGORIES.slice(1).map(c => ({ label: c }))} inputStyle={{ padding: '10px 32px 10px 14px', fontSize: 14 }} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

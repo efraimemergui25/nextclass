@@ -294,18 +294,21 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
                             </select>
                         </div>
                     </div>
-                    <button onClick={saveProfile} disabled={!dirty || savingProfile}
+                    <motion.button type="button" onClick={saveProfile} disabled={!dirty || savingProfile}
+                        whileHover={(!dirty || savingProfile) ? undefined : { y: -2, boxShadow: `0 10px 24px ${hexA(ACCENT, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.5)` }}
+                        whileTap={(!dirty || savingProfile) ? undefined : { scale: 0.98 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                         style={{
                             width: '100%', marginTop: 12, padding: '10px 0', borderRadius: 12, border: 'none',
                             cursor: (!dirty || savingProfile) ? 'default' : 'pointer',
                             fontFamily: 'Heebo, sans-serif', fontWeight: 800, fontSize: 13,
-                            background: (!dirty || savingProfile) ? '#F5F5F7' : hexA(ACCENT, 0.12),
-                            color: (!dirty || savingProfile) ? '#C7C7CC' : ACCENT,
-                            boxShadow: (!dirty || savingProfile) ? 'none' : `inset 0 0 0 1.5px ${hexA(ACCENT, 0.28)}`,
-                            transition: 'all 0.15s',
+                            background: (!dirty || savingProfile) ? '#F1F1F4' : `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DARK})`,
+                            color: (!dirty || savingProfile) ? '#C7C7CC' : '#fff',
+                            boxShadow: (!dirty || savingProfile) ? 'none' : `0 6px 16px ${hexA(ACCENT, 0.34)}, inset 0 1px 0 rgba(255,255,255,0.45)`,
+                            transition: 'background 0.15s, color 0.15s',
                         }}>
                         {savingProfile ? 'שומר…' : 'שמור שינויים'}
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Read-only meta */}
@@ -330,17 +333,22 @@ function UserModal({ user, onClose, onTierChange, onDeleteUser }) {
                     <p style={{ fontSize: 11, fontWeight: 800, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>שינוי דרגת מנוי</p>
                     <div style={{ display: 'flex', gap: 8 }}>
                         {Object.entries(TIER_CONFIG).map(([key, cfg]) => (
-                            <button key={key} onClick={() => changeTier(key)} disabled={saving || user.memberTier === key}
+                            <motion.button key={key} type="button" onClick={() => changeTier(key)} disabled={saving || user.memberTier === key}
+                                whileHover={user.memberTier === key ? undefined : { y: -2 }}
+                                whileTap={user.memberTier === key ? undefined : { scale: 0.97 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 style={{
-                                    flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: user.memberTier === key ? 'default' : 'pointer',
+                                    flex: 1, padding: '10px 0', borderRadius: 12, cursor: user.memberTier === key ? 'default' : 'pointer',
                                     fontFamily: 'Heebo, sans-serif', fontWeight: 800, fontSize: 13,
-                                    background: user.memberTier === key ? cfg.bg : '#F5F5F7',
-                                    color: user.memberTier === key ? cfg.color : '#8E8E93',
-                                    transition: 'all 0.15s',
-                                    boxShadow: user.memberTier === key ? `0 0 0 1.5px ${cfg.color}40` : 'none',
+                                    border: user.memberTier === key ? 'none' : '1px solid rgba(255,255,255,0.9)',
+                                    background: user.memberTier === key ? `linear-gradient(135deg, ${cfg.color}, ${hexA(cfg.color, 0.86)})` : 'rgba(255,255,255,0.7)',
+                                    backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                                    color: user.memberTier === key ? '#fff' : '#6E6E73',
+                                    transition: 'color 0.15s',
+                                    boxShadow: user.memberTier === key ? `0 6px 16px ${hexA(cfg.color, 0.40)}, inset 0 1px 0 rgba(255,255,255,0.4)` : 'inset 0 1px 0 rgba(255,255,255,0.7)',
                                 }}>
                                 {cfg.label}
-                            </button>
+                            </motion.button>
                         ))}
                     </div>
                 </div>
@@ -500,8 +508,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.10)}, ${hexA(s.color || '#007AFF', 0.04)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px ${hexA(s.color || '#007AFF', 0.10)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ background: `linear-gradient(135deg, ${c}, ${hexA(c, 0.72)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -529,7 +537,11 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
                 {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
             </div>
             {trailing}
-            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+            {clickable && (
+                <span className="shrink-0 flex items-center justify-center rounded-full" style={{ width: 22, height: 22, background: hexA(tone, 0.10), border: `1px solid ${hexA(tone, 0.18)}` }}>
+                    <ChevronLeft size={13} strokeWidth={2.5} style={{ color: tone }} />
+                </span>
+            )}
         </motion.div>
     );
 }

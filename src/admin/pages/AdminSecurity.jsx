@@ -52,11 +52,15 @@ function StatTile({ label, value, color, delay }) {
             className="relative overflow-hidden p-5 flex flex-col justify-between min-h-[120px] transition-shadow"
             style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}
         >
-            <p className="text-[42px] font-black tracking-tighter leading-none" style={{ color: '#1D1D1F' }}>
+            <p className="text-[42px] font-black tracking-tighter leading-none"
+                style={{
+                    background: `linear-gradient(135deg, ${color}, ${hexA(color, 0.72)})`,
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                }}>
                 {value}
             </p>
             <div className="flex items-center gap-1.5 mt-2">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color, boxShadow: glow(color, 0.55, 7) }} />
                 <p className="text-[12px] text-[#6E6E73] font-bold">{label}</p>
             </div>
         </motion.div>
@@ -162,7 +166,11 @@ export default function AdminSecurity({ embedded = false }) {
                     {error ? (
                         <div className="flex flex-col items-center justify-center text-center px-6 py-14 gap-4">
                             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                                style={{ background: hexA('#FF3B30', 0.1), border: `1px solid ${hexA('#FF3B30', 0.24)}` }}>
+                                style={{
+                                    background: `linear-gradient(140deg, ${hexA('#FF3B30', 0.18)}, ${hexA('#FF3B30', 0.07)})`,
+                                    border: `1px solid ${hexA('#FF3B30', 0.24)}`,
+                                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px ${hexA('#FF3B30', 0.16)}`,
+                                }}>
                                 <ShieldCheck size={26} style={{ color: '#FF3B30' }} />
                             </div>
                             <div>
@@ -246,8 +254,13 @@ export default function AdminSecurity({ embedded = false }) {
                         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
                             style={{ background: hexA(SEAFOAM, 0.1), border: `1px solid ${hexA(SEAFOAM, 0.24)}` }}>
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: SEAFOAM }} />
-                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: SEAFOAM }} />
+                                <motion.span
+                                    className="absolute inline-flex h-full w-full rounded-full"
+                                    style={{ background: SEAFOAM }}
+                                    animate={{ scale: [1, 2.1], opacity: [0.5, 0] }}
+                                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                                />
+                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: SEAFOAM, boxShadow: glow(SEAFOAM, 0.6, 7) }} />
                             </span>
                             <span className="text-[11px] font-black" style={{ color: SEAFOAM }}>ניטור פעיל</span>
                         </div>

@@ -1,7 +1,9 @@
 /* eslint-disable */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, ExternalLink, ZoomIn, ZoomOut, Maximize2, X, ChevronLeft, ChevronRight, RotateCw, AlertTriangle } from 'lucide-react';
+import { FileText, ExternalLink, ZoomIn, ZoomOut, Maximize2, X, ChevronLeft, ChevronRight, RotateCw, AlertTriangle, ClipboardList, User, Package, Archive, Truck } from 'lucide-react';
+import Combobox from '../components/Combobox';
+import { cityOptions } from '../lib/israelCities';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -59,11 +61,22 @@ function Field({ label, value, onChange, type = 'text', placeholder, span }) {
     );
 }
 
+// Label + Combobox (searchable dropdown with free-text) — same look as Field.
+function ComboField({ label, value, onChange, onPick, options, placeholder, span }) {
+    return (
+        <div style={{ textAlign: 'right', gridColumn: span ? `span ${span}` : undefined }}>
+            <label style={{ display: 'block', fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</label>
+            <Combobox value={value} onChange={onChange} onPick={onPick} options={options} placeholder={placeholder}
+                inputStyle={{ padding: '9px 32px 9px 12px', fontSize: 13, background: '#F5F5F7' }} />
+        </div>
+    );
+}
+
 // Premium section header — colored icon chip + title + hairline rule
-function SectionHead({ emoji, title, color = '#86868B', extra }) {
+function SectionHead({ Icon, title, color = '#007AFF', extra }) {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 16px', paddingBottom: 12, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: `${color}16` }}>{emoji}</div>
+            <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg, ${color}2b, ${color}12)`, border: `1px solid ${color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${color}22` }}>{Icon && <Icon size={16} color={color} strokeWidth={2.3} />}</div>
             <p style={{ fontSize: 13.5, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.01em', margin: 0, flex: 1 }}>{title}</p>
             {extra}
         </div>
@@ -71,7 +84,7 @@ function SectionHead({ emoji, title, color = '#86868B', extra }) {
 }
 
 // Grouped embed-target row: a glassy toggle card for one destination
-function EmbedTarget({ emoji, color, title, subtitle, active, onToggle, disabled, children }) {
+function EmbedTarget({ Icon, color, title, subtitle, active, onToggle, disabled, children }) {
     return (
         <div
             onClick={disabled ? undefined : onToggle}
@@ -88,7 +101,7 @@ function EmbedTarget({ emoji, color, title, subtitle, active, onToggle, disabled
                 background: active ? color : 'transparent', border: `2px solid ${active ? color : 'rgba(0,0,0,0.18)'}`, transition: 'all 0.18s' }}>
                 {active && <span style={{ color: '#fff', fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
             </div>
-            <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: `${color}16` }}>{emoji}</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg, ${color}2b, ${color}12)`, border: `1px solid ${color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${color}22` }}>{Icon && <Icon size={17} color={color} strokeWidth={2.3} />}</div>
             <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
                 <p style={{ fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>{title}</p>
                 <p style={{ fontSize: 11, fontWeight: 600, color: '#86868B', margin: '1px 0 0' }}>{subtitle}</p>
@@ -101,7 +114,7 @@ function EmbedTarget({ emoji, color, title, subtitle, active, onToggle, disabled
 export default function AdminOCR({ embedded = false }) {
     const navigate = useNavigate();
     const { showToast } = useAdminToast();
-    const { createQuote, upsertContact, createSupplierOrder } = useAdminData();
+    const { createQuote, upsertContact, createSupplierOrder, linkSupplierOrder } = useAdminData();
     const fileRef = useRef(null);
 
     const [step, setStep] = useState('upload'); // upload | ready | scanning | review | saved
@@ -498,12 +511,15 @@ export default function AdminOCR({ embedded = false }) {
 
             // 2) Supplier order (optional)
             if (targets.supplier) {
-                await createSupplierOrder({
+                const poId = await createSupplierOrder({
                     customerName: fields.contactName || fields.institution,
                     supplierName: '', productTitle: fields.items[0]?.title || '',
                     qty: fields.items.reduce((s, it) => s + (Number(it.qty) || 1), 0),
                     totalCost: fields.totalIncVat || subtotal, notes: fields.notes, eta: fields.deliveryDate || '',
+                    customerOrderId: targets.order ? id : null,
                 });
+                // two-way link the PO to its order (only when an order was also created)
+                if (poId && targets.order) await linkSupplierOrder(id, poId);
                 done.push('הזמנת ספק');
             }
 
@@ -583,7 +599,7 @@ export default function AdminOCR({ embedded = false }) {
             {!embedded && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)', fontSize: 22 }}>🔍</div>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)' }}><FileText size={22} color="#007AFF" strokeWidth={2.2} /></div>
                         <div>
                             <h1 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>קליטת הזמנות — OCR AI</h1>
                             <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontWeight: 600 }}>העלה הזמנת רכש יחלץ ב-AI, ואתה מאשר ופותח הזמנה</p>
@@ -642,7 +658,7 @@ export default function AdminOCR({ embedded = false }) {
 
                         {step === 'ready' && (fileBase64 || fileText != null) && (
                             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                                <motion.button whileTap={{ scale: 0.97 }} onClick={runOCR}
+                                <motion.button whileHover={{ y: -2, boxShadow: '0 14px 34px rgba(0,122,255,0.42)' }} whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={runOCR}
                                     style={{ padding: '13px 36px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 6px 20px rgba(0,122,255,0.35)' }}>
                                     ✨ סרוק עם AI
                                 </motion.button>
@@ -688,8 +704,8 @@ export default function AdminOCR({ embedded = false }) {
                         </div>
 
                         {warnings.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, padding: '13px 15px', borderRadius: 16, background: '#fff', border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 18px rgba(255,149,0,0.08)' }}>
-                                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, padding: '13px 15px', borderRadius: 16, background: 'linear-gradient(150deg, rgba(255,255,255,0.92), rgba(255,248,240,0.72))', backdropFilter: 'blur(22px) saturate(1.6)', WebkitBackdropFilter: 'blur(22px) saturate(1.6)', border: '1px solid rgba(255,149,0,0.28)', boxShadow: '0 10px 30px rgba(255,149,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(140deg, rgba(255,149,0,0.26), rgba(255,149,0,0.10))', border: '1px solid rgba(255,149,0,0.24)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(255,149,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <AlertTriangle size={17} color="#FF9500" strokeWidth={2.3} />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -781,11 +797,11 @@ export default function AdminOCR({ embedded = false }) {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
                         {/* Purchase-order details */}
                         <div style={{ ...glass, borderRadius: 20, padding: 22 }}>
-                            <SectionHead emoji="📋" title="פרטי הזמנת רכש" color="#86868B" />
+                            <SectionHead Icon={ClipboardList} title="פרטי הזמנת רכש" color="#007AFF" />
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
                                 <Field label='מספר הזמנה' value={ocrData.orderNumber} onChange={v => setOcrData(p => ({ ...p, orderNumber: v }))} />
                                 <Field label='סעיף תקציבי' value={ocrData.budgetCode} onChange={v => setOcrData(p => ({ ...p, budgetCode: v }))} />
-                                <Field label='תנאי תשלום' value={ocrData.paymentTerms} onChange={v => setOcrData(p => ({ ...p, paymentTerms: v }))} placeholder='שוטף+30' />
+                                <ComboField label='תנאי תשלום' value={ocrData.paymentTerms} onChange={v => setOcrData(p => ({ ...p, paymentTerms: v }))} options={['שוטף+30', 'שוטף+60', 'שוטף+90', 'מזומן', 'העברה בנקאית', 'אשראי'].map(o => ({ label: o }))} placeholder='בחר/י או הקלד/י' />
                                 <Field label='תאריך הזמנה' value={ocrData.poDate} onChange={v => setOcrData(p => ({ ...p, poDate: v }))} />
                                 <Field label='תאריך אספקה' value={ocrData.deliveryDate} onChange={v => setOcrData(p => ({ ...p, deliveryDate: v }))} />
                                 <Field label='מאשר / מורשה חתימה' value={ocrData.authorizedBy} onChange={v => setOcrData(p => ({ ...p, authorizedBy: v }))} />
@@ -797,24 +813,24 @@ export default function AdminOCR({ embedded = false }) {
 
                         {/* Contact info */}
                         <div style={{ ...glass, borderRadius: 20, padding: 22 }}>
-                            <SectionHead emoji="👤" title="פרטי לקוח / מוסד" color="#007AFF" />
+                            <SectionHead Icon={User} title="פרטי לקוח / מוסד" color="#007AFF" />
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
                                 <Field label="שם איש קשר" value={ocrData.contactName} onChange={v => setOcrData(p => ({ ...p, contactName: v }))} />
                                 <Field label="מוסד / חברה" value={ocrData.institution} onChange={v => setOcrData(p => ({ ...p, institution: v }))} />
                                 <Field label="טלפון" value={ocrData.phone} onChange={v => setOcrData(p => ({ ...p, phone: v }))} />
                                 <Field label="מייל" value={ocrData.email} onChange={v => setOcrData(p => ({ ...p, email: v }))} type="email" />
                                 <Field label="כתובת" value={ocrData.address} onChange={v => setOcrData(p => ({ ...p, address: v }))} span={2} />
-                                <Field label="עיר" value={ocrData.city} onChange={v => setOcrData(p => ({ ...p, city: v }))} />
+                                <ComboField label="עיר" value={ocrData.city} onChange={v => setOcrData(p => ({ ...p, city: v }))} options={cityOptions} placeholder="בחר/י עיר או הקלד/י" />
                                 <Field label="מיקוד" value={ocrData.zip} onChange={v => setOcrData(p => ({ ...p, zip: v }))} />
                             </div>
                         </div>
 
                         {/* Items */}
                         <div style={{ ...glass, borderRadius: 20, padding: 22 }}>
-                            <SectionHead emoji="📦" title={`פריטים (${ocrData.items?.length || 0})`} color="#5856D6"
+                            <SectionHead Icon={Package} title={`פריטים (${ocrData.items?.length || 0})`} color="#5856D6"
                                 extra={
-                                    <motion.button whileTap={{ scale: 0.95 }} onClick={addItem}
-                                        style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                    <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={addItem}
+                                        style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(0,122,255,0.2)', background: 'linear-gradient(135deg, rgba(0,122,255,0.14), rgba(0,122,255,0.06))', color: '#007AFF', fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,122,255,0.14)' }}>
                                         + הוסף שורה
                                     </motion.button>
                                 } />
@@ -840,7 +856,7 @@ export default function AdminOCR({ embedded = false }) {
 
                             {/* Totals */}
                             {(ocrData.items?.length > 0) && (
-                                <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 12, background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.14)' }}>
+                                <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 14, background: 'linear-gradient(150deg, rgba(0,122,255,0.10), rgba(0,122,255,0.04))', border: '1px solid rgba(0,122,255,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 4px 14px rgba(0,122,255,0.08)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                         <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>₪{computeSubtotal(ocrData.items).toLocaleString()}</span>
                                         <span style={{ fontSize: 11, fontWeight: 700, color: '#6E6E73' }}>סכום ביניים (לפני מע"מ)</span>
@@ -852,7 +868,7 @@ export default function AdminOCR({ embedded = false }) {
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid rgba(0,122,255,0.15)' }}>
-                                        <span style={{ fontSize: 18, fontWeight: 900, color: '#007AFF' }}>
+                                        <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #007AFF, #007AFFc4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                                             ₪{Number(ocrData.totalIncVat ?? computeSubtotal(ocrData.items)).toLocaleString()}
                                         </span>
                                         <span style={{ fontSize: 12, fontWeight: 800, color: '#007AFF' }}>סה"כ {ocrData.totalIncVat != null ? 'כולל מע"מ' : 'להזמנה'}</span>
@@ -890,15 +906,15 @@ export default function AdminOCR({ embedded = false }) {
                             <p style={{ fontSize: 11.5, color: '#86868B', margin: '0 0 14px', fontWeight: 600 }}>סמן לאן כל קבוצת נתונים תוטמע — ולחיצה אחת מבצעת הכל אוטומטית.</p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>
-                                <EmbedTarget emoji="👤" color="#007AFF" title="לקוח / איש קשר"
+                                <EmbedTarget Icon={User} color="#007AFF" title="לקוח / איש קשר"
                                     subtitle={`${custCount} שדות — שם, טלפון, מייל, כתובת, מוסד`}
                                     active={targets.customer} onToggle={() => toggleTarget('customer')} />
 
-                                <EmbedTarget emoji="📦" color="#5856D6" title="הזמנה בפייפליין"
+                                <EmbedTarget Icon={Package} color="#5856D6" title="הזמנה בפייפליין"
                                     subtitle={`${orderCount} שדות רכש · ${itemCount} פריטים · ₪${Number(ocrData.totalIncVat ?? computeSubtotal(ocrData.items)).toLocaleString()}`}
                                     active={targets.order} onToggle={() => toggleTarget('order')} />
 
-                                <EmbedTarget emoji="🗂️" color="#34C759" title="שמור מקור בכספת"
+                                <EmbedTarget Icon={Archive} color="#34C759" title="שמור מקור בכספת"
                                     subtitle="המסמך המקורי יישמר לתיקייה שנבחרה"
                                     active={targets.vault} onToggle={() => toggleTarget('vault')} disabled={!fileObject}>
                                     <select value={vaultFolder} onChange={e => setVaultFolder(e.target.value)} disabled={!targets.vault}
@@ -907,21 +923,21 @@ export default function AdminOCR({ embedded = false }) {
                                     </select>
                                 </EmbedTarget>
 
-                                <EmbedTarget emoji="🚚" color="#FF9500" title="הזמנת ספק (רשות)"
+                                <EmbedTarget Icon={Truck} color="#FF9500" title="הזמנת ספק (רשות)"
                                     subtitle="צור הזמנת רכש לספק להשלמת הפריטים"
                                     active={targets.supplier} onToggle={() => toggleTarget('supplier')} />
                             </div>
 
-                            <motion.button whileTap={{ scale: 0.98 }} onClick={embedSelected} disabled={saving}
+                            <motion.button whileHover={saving ? undefined : { y: -2, boxShadow: '0 16px 40px rgba(0,122,255,0.44)' }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={embedSelected} disabled={saving}
                                 style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', marginBottom: 10,
-                                    background: saving ? '#AEAEB2' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 15.5, fontWeight: 900,
+                                    background: saving ? 'rgba(0,122,255,0.5)' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 15.5, fontWeight: 900,
                                     cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Heebo,sans-serif',
                                     boxShadow: saving ? 'none' : '0 8px 26px rgba(0,122,255,0.38)' }}>
-                                {saving ? 'מטמיע...' : '🚀 הטמע אוטומטית'}
+                                {saving ? 'מטמיע...' : 'הטמע אוטומטית'}
                             </motion.button>
                             <div style={{ display: 'flex', gap: 10 }}>
-                                <motion.button whileTap={{ scale: 0.97 }} onClick={saveForManualReview} disabled={saving}
-                                    style={{ flex: 1, padding: '11px', borderRadius: 13, border: `1.5px solid ${lowConfidence ? 'rgba(255,149,0,0.5)' : 'rgba(0,0,0,0.10)'}`, background: lowConfidence ? 'rgba(255,149,0,0.10)' : 'rgba(0,0,0,0.04)', fontSize: 12.5, fontWeight: 800, color: lowConfidence ? '#FF9500' : '#86868B', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Heebo,sans-serif' }}>
+                                <motion.button whileHover={saving ? undefined : { y: -1 }} whileTap={{ scale: 0.97 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={saveForManualReview} disabled={saving}
+                                    style={{ flex: 1, padding: '11px', borderRadius: 13, border: `1.5px solid ${lowConfidence ? 'rgba(255,149,0,0.5)' : 'rgba(0,0,0,0.10)'}`, background: lowConfidence ? 'linear-gradient(135deg, rgba(255,149,0,0.14), rgba(255,149,0,0.06))' : 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', fontSize: 12.5, fontWeight: 800, color: lowConfidence ? '#FF9500' : '#86868B', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                                     🗂️ שמור לבדיקה ידנית
                                 </motion.button>
                                 <button onClick={reset} disabled={saving}

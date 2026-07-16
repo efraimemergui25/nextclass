@@ -35,6 +35,23 @@ import {
 /* ─── Accent (matches storefront concierge: azure → indigo) ───────────────────── */
 const ACCENT = 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)';
 
+/* ─── Apple-glass surface tokens (frosted, inset-lit — reused across primitives) ─ */
+const GLASS_BUBBLE = {
+    background: 'linear-gradient(150deg, rgba(255,255,255,0.94), rgba(255,255,255,0.72))',
+    backdropFilter: 'blur(24px) saturate(1.7)',
+    WebkitBackdropFilter: 'blur(24px) saturate(1.7)',
+    border: '1px solid rgba(255,255,255,0.9)',
+    boxShadow: '0 10px 30px rgba(20,40,80,0.09), inset 0 1px 0 rgba(255,255,255,1)',
+};
+const GLASS_CHIP = {
+    background: 'linear-gradient(150deg, rgba(255,255,255,0.92), rgba(255,255,255,0.7))',
+    backdropFilter: 'blur(18px) saturate(1.6)',
+    WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
+    border: '1px solid rgba(255,255,255,0.9)',
+    boxShadow: '0 4px 14px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)',
+    color: '#1D1D1F',
+};
+
 /* ─── Icon for each quick-action route ───────────────────────────────────────── */
 const ACTION_ICON = {
     '/admin/dashboard':      LayoutDashboard,
@@ -87,7 +104,7 @@ const Bubble = memo(({ msg, reduce }) => {
                     ? 'bg-[#007AFF] text-white rounded-[1.25rem] rounded-br-none shadow-md'
                     : 'text-[#1D1D1F] rounded-[1.25rem] rounded-bl-none'
             }`}
-                style={!isUser ? { background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' } : {}}
+                style={!isUser ? GLASS_BUBBLE : {}}
             >
                 {isUser && msg.attachmentName && (
                     <div className="flex items-center gap-1.5 mb-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)' }}>
@@ -105,7 +122,7 @@ const Bubble = memo(({ msg, reduce }) => {
 const TypingDots = () => (
     <div className="flex items-end gap-3 justify-end">
         <div className="px-5 py-4 rounded-[1.25rem] rounded-bl-none flex gap-1.5 items-center"
-            style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            style={GLASS_BUBBLE}>
             {[0, 1, 2].map(i => (
                 <motion.span
                     key={i}
@@ -202,10 +219,16 @@ const NavChip = memo(({ label, path, onGo }) => {
     const Icon = ACTION_ICON[path] || Compass;
     return (
         <motion.button
+            whileHover={{ y: -2, boxShadow: '0 8px 18px rgba(0,122,255,0.20), inset 0 1px 0 rgba(255,255,255,0.7)' }}
             whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 26 }}
             onClick={() => onGo(path, label)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer transition-all"
-            style={{ background: 'rgba(0,122,255,0.09)', border: '1px solid rgba(0,122,255,0.20)', color: '#007AFF' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer"
+            style={{
+                background: 'linear-gradient(140deg, rgba(0,122,255,0.14), rgba(90,200,250,0.06))',
+                border: '1px solid rgba(0,122,255,0.22)', color: '#007AFF',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 3px 10px rgba(0,122,255,0.10)',
+            }}
         >
             <Icon size={13} strokeWidth={2.4} />
             {label}
@@ -514,7 +537,7 @@ export default function AdminCopilot() {
                                 <div className="flex flex-col gap-4 pt-1">
                                     <div className="flex items-end gap-3 justify-end">
                                         <div className="max-w-[85%] px-5 py-3 text-[14px] font-medium text-[#1D1D1F] leading-[1.6] rounded-[1.25rem] rounded-bl-none"
-                                            style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                                            style={GLASS_BUBBLE}>
                                             שלום! אני <strong className="font-black">NextClass AI</strong>, עוזר הניהול שלך. אני יכול לסכם את מצב החנות, להסביר איך משתמשים במערכת, לנסח טיוטת מייל או הצעת מחיר, ולכוון אותך למסך הנכון. במה נתחיל?
                                         </div>
                                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5AC8FA] flex items-center justify-center shrink-0 shadow-lg border border-white/20 self-start mt-1">
@@ -528,10 +551,12 @@ export default function AdminCopilot() {
                                             {SUGGESTED_PROMPTS.map(p => (
                                                 <motion.button
                                                     key={p}
+                                                    whileHover={reduce ? undefined : { y: -2, boxShadow: '0 12px 28px rgba(20,40,80,0.12), inset 0 1px 0 rgba(255,255,255,1)' }}
                                                     whileTap={{ scale: 0.98 }}
+                                                    transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                                     onClick={() => send(p)}
-                                                    className="text-right px-4 py-2.5 rounded-2xl text-[12.5px] font-bold cursor-pointer transition-all"
-                                                    style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', color: '#1D1D1F', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+                                                    className="text-right px-4 py-2.5 rounded-2xl text-[12.5px] font-bold cursor-pointer"
+                                                    style={GLASS_CHIP}
                                                 >
                                                     {p}
                                                 </motion.button>
@@ -557,7 +582,12 @@ export default function AdminCopilot() {
                                                 const meta = ACTION_META[m.action.type]; const p = m.action.payload || {};
                                                 return (
                                                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                                        className="self-start w-[90%] rounded-2xl p-3.5" style={{ background: '#FFFFFF', border: '1px solid rgba(0,122,255,0.25)', boxShadow: '0 4px 16px rgba(0,122,255,0.10)' }}>
+                                                        className="self-start w-[90%] rounded-2xl p-3.5" style={{
+                                                            background: 'linear-gradient(150deg, rgba(255,255,255,0.96), rgba(240,247,255,0.82))',
+                                                            backdropFilter: 'blur(22px) saturate(1.7)', WebkitBackdropFilter: 'blur(22px) saturate(1.7)',
+                                                            border: '1px solid rgba(0,122,255,0.28)',
+                                                            boxShadow: '0 12px 32px rgba(0,122,255,0.14), inset 0 1px 0 rgba(255,255,255,1)',
+                                                        }}>
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)' }}><Sparkles size={12} className="text-white" /></span>
                                                             <span className="text-[13px] font-black text-[#1D1D1F]">{meta?.label}</span>
@@ -635,7 +665,12 @@ export default function AdminCopilot() {
                                 )}
                             </AnimatePresence>
                             <div className="flex items-center gap-2 rounded-2xl px-2 py-1.5"
-                                style={{ background: '#F2F3F7', border: '1px solid rgba(0,0,0,0.10)' }}>
+                                style={{
+                                    background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(242,243,247,0.82))',
+                                    backdropFilter: 'blur(18px) saturate(1.6)', WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
+                                    border: '1px solid rgba(255,255,255,0.9)',
+                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,1), inset 0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(20,40,80,0.05)',
+                                }}>
                                 <input ref={fileInputRef} type="file" className="hidden"
                                     accept="image/*,.pdf,.csv,.txt,.docx,.xlsx,.xls,.heic,.heif"
                                     onChange={e => { const f = e.target.files?.[0]; if (f) onPickFile(f); e.target.value = ''; }} />
@@ -644,7 +679,7 @@ export default function AdminCopilot() {
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={isTyping || preparingDoc}
                                     className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-30 cursor-pointer"
-                                    style={{ background: 'rgba(0,122,255,0.10)' }}
+                                    style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.16), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,122,255,0.12)' }}
                                     aria-label="צרף מסמך" title="צרף מסמך (PDF, תמונה, CSV, DOCX, XLSX)"
                                 >
                                     <Paperclip size={17} className="text-[#007AFF]" strokeWidth={2.4} />

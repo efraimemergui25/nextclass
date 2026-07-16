@@ -32,10 +32,14 @@ export default defineConfig({
           // pdf.js — only ever loaded via dynamic import() in the vault; keep it
           // in its own async chunk so it doesn't bloat the eager vendor bundle.
           if (id.includes('node_modules/pdfjs-dist')) return 'pdfjs';
-          // NOTE: dynamically-imported heavy libs (xlsx, mammoth) are auto-split by Rollup
-          // via their import() call sites — no manual branch needed. Do NOT hand-split eager
-          // libs here: it can reorder chunk init and cause "cannot access X before init" (TDZ).
-          // Everything else
+          // Heavy DOC-processing libs (Excel export, Word/PDF scan, invoice PDF) are ONLY
+          // reached via dynamic import(). The catch-all `return 'vendor'` below was wrongly
+          // pulling them (+ their private deps) into the EAGER vendor chunk — ~2.5MB that
+          // every page paid for on first load. Routing them to a dedicated chunk keeps it
+          // ASYNC (no eager importer), so it loads only when you export/scan/invoice.
+          if (/node_modules\/(xlsx-js-style|xlsx|mammoth|jspdf|html2canvas|jszip|canvg|dingbat-to-unicode|@xmldom|xmldom|xmlbuilder|fast-png|bluebird)\//.test(id)) return 'docs-tools';
+          // NOTE: Do NOT hand-split eager libs here: it can reorder chunk init and cause
+          // "cannot access X before init" (TDZ). Everything else:
           if (id.includes('node_modules/')) return 'vendor';
         }
       }

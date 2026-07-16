@@ -32,6 +32,13 @@ const VAULT  = DOMAIN_ACCENTS.vault; // azure #007AFF
 const VGRAD  = 'linear-gradient(135deg,#007AFF,#5AC8FA)'; // azure → indigo signature
 const CARD   = { ...GLASS.base, borderRadius: RADIUS.card };
 const PANEL  = { ...GLASS.elevated, borderRadius: RADIUS.panel };
+// Frosted "ghost" action button (header secondary actions) + spring hover lift
+const GHOST_BTN   = {
+    background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(255,255,255,0.9)',
+    backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+    boxShadow: '0 4px 14px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)',
+};
+const GHOST_HOVER = { y: -2, boxShadow: '0 10px 26px rgba(20,40,80,0.12), inset 0 1px 0 rgba(255,255,255,1)' };
 
 const SYSTEM_FOLDERS = [
     { id: 'agreements', name: 'הסכמי לקוחות', icon: 'file-text', color: '#007AFF', bg: 'rgba(0,122,255,0.08)', system: true, parentId: null, order: 0 },
@@ -719,8 +726,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.11)}, ${hexA(s.color || '#007AFF', 0.04)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), 0 3px 10px ${hexA(s.color || '#007AFF', 0.1)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -1899,27 +1906,27 @@ export default function AdminVault() {
                 subtitle="ניהול מאובטח וסיווג חכם של מסמכי NextClass"
                 action={
                     <div className="flex items-center gap-2 flex-wrap justify-end">
-                        <motion.button onClick={handleAiOrganize} disabled={organizing} whileTap={TAP}
+                        <motion.button onClick={handleAiOrganize} disabled={organizing} whileHover={GHOST_HOVER} whileTap={TAP}
                             className="px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 text-[#1D1D1F] disabled:opacity-60"
-                            style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.08)' }}
+                            style={GHOST_BTN}
                             title="סיווג ותיוג אוטומטי לכל המסמכים">
                             {organizing ? <div className="w-3.5 h-3.5 rounded-full animate-spin" style={{ border: `2px solid ${hexA(VAULT, 0.3)}`, borderTopColor: VAULT }} /> : <Wand2 size={14} style={{ color: VAULT }} />}
                             {organizing ? 'מסדר…' : 'סדר ב-AI'}
                         </motion.button>
-                        <motion.button onClick={() => navigate('/admin/ocr')} whileTap={TAP}
+                        <motion.button onClick={() => navigate('/admin/ocr')} whileHover={GHOST_HOVER} whileTap={TAP}
                             className="px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 text-[#1D1D1F]"
-                            style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.08)' }}
+                            style={GHOST_BTN}
                             title="סרוק הזמנה/מסמך ב-AI">
                             <ScanLine size={14} style={{ color: VAULT }} /> סרוק AI
                         </motion.button>
-                        <motion.button onClick={() => setFolderDialog({ mode: 'create' })} whileTap={TAP}
+                        <motion.button onClick={() => setFolderDialog({ mode: 'create' })} whileHover={GHOST_HOVER} whileTap={TAP}
                             className="px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 text-[#1D1D1F]"
-                            style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.08)' }}>
+                            style={GHOST_BTN}>
                             <FolderPlus size={14} style={{ color: VAULT }} /> תיקייה
                         </motion.button>
-                        <motion.button onClick={() => headerUploadRef.current?.click()} whileTap={TAP}
+                        <motion.button onClick={() => headerUploadRef.current?.click()} whileHover={GHOST_HOVER} whileTap={TAP}
                             className="px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 text-[#1D1D1F]"
-                            style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.08)' }}>
+                            style={GHOST_BTN}>
                             <Upload size={14} style={{ color: VAULT }} /> העלאה
                         </motion.button>
                         <motion.button onClick={openSmartDoc}
@@ -1964,10 +1971,11 @@ export default function AdminVault() {
                             <div className="flex items-start justify-between mb-3">
                                 <div>
                                     <p className="text-[#86868B] text-[11px] font-bold tracking-[0.18em] mb-1.5">נפח אחסון</p>
-                                    <p className="text-[26px] font-black tracking-tighter leading-none text-[#1D1D1F]">{formatSize(totalVaultSize)}</p>
+                                    <p className="text-[26px] font-black tracking-tighter leading-none"
+                                        style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{formatSize(totalVaultSize)}</p>
                                 </div>
                                 <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0"
-                                    style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.2)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                                    style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.22), rgba(0,122,255,0.08))', border: '1px solid rgba(0,122,255,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(0,122,255,0.16)' }}>
                                     <HardDrive size={20} color="#007AFF" />
                                 </div>
                             </div>

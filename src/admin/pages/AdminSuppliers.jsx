@@ -17,7 +17,7 @@ import {
     Clock, CheckCircle2, ShoppingCart, RefreshCw,
     Globe, User, Hash, Truck, Box, CreditCard,
     BarChart3, ArrowUpDown, Edit2, ChevronRight, ChevronLeft, Layers, Briefcase,
-    Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
+    Award, TrendingUp, TrendingDown, Minus, Printer, Activity, Star, Calendar, AlertCircle,
     Zap, Rocket, Crown, ClipboardList, MessageSquare, Download, DollarSign,
 } from 'lucide-react';
 import {
@@ -1731,7 +1731,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
 function KPIBox({ label, value, color = GOLD, small }) {
     return (
         <div style={{ ...GLASS.base, borderRadius: RADIUS.smCard, padding: '12px 18px', textAlign: 'center', minWidth: 80 }}>
-            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.6px', lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, letterSpacing: '-0.6px', lineHeight: 1, background: `linear-gradient(135deg, ${color}, ${color}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{value}</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, color: '#86868B', marginTop: 3 }}>{label}</div>
         </div>
     );
@@ -1916,7 +1916,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
             {savingsData && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     style={{ ...CARD, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 11, background: 'linear-gradient(140deg, #34C7592b, #34C75912)', border: '1px solid #34C75926', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #34C75922', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <TrendingUp size={16} color="#34C759" />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -1926,7 +1926,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                         </div>
                     </div>
                     <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: '#34C759', letterSpacing: '-0.5px' }}>{fmt(savingsData.savings)}</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', background: 'linear-gradient(135deg, #34C759, #34C759c4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{fmt(savingsData.savings)}</div>
                         <div style={{ fontSize: 9, color: '#AEAEB2', fontWeight: 600 }}>חיסכון</div>
                     </div>
                 </motion.div>
@@ -2575,8 +2575,11 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                     <div key={ri} style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(90,200,250,0.03)', border: '1px solid rgba(90,200,250,0.10)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.label}</div>
-                                            <span style={{ fontSize: 11, fontWeight: 800, color: tColor, display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                {trend < 0 ? '▼' : trend > 0 ? '▲' : '—'} {trend !== 0 ? fmt(Math.abs(trend)) : 'יציב'}
+                                            <span style={{ fontSize: 11, fontWeight: 800, color: tColor, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <span style={{ width: 18, height: 18, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg, ${tColor}2b, ${tColor}12)`, border: `1px solid ${tColor}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px ${tColor}22` }}>
+                                                    {trend < 0 ? <TrendingDown size={11} /> : trend > 0 ? <TrendingUp size={11} /> : <Minus size={11} />}
+                                                </span>
+                                                {trend !== 0 ? fmt(Math.abs(trend)) : 'יציב'}
                                             </span>
                                         </div>
                                         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block' }}>
@@ -2762,17 +2765,17 @@ function ContactsTab({ suppliers, quotes, onSelectSupplier }) {
                     <div style={{ fontSize: 13, color: '#AEAEB2', fontWeight: 600, marginTop: 2 }}>כל נציגי הספקים במקום אחד</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minWidth: 66 }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.5px' }}>{contacts.length}</div>
+                    <div style={{ padding: '10px 16px', borderRadius: 12, background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.66))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 8px 24px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)', textAlign: 'center', minWidth: 66 }}>
+                        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', background: `linear-gradient(135deg, ${GOLD}, ${GOLD}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{contacts.length}</div>
                         <div style={{ fontSize: 10, fontWeight: 500, color: '#AEAEB2' }}>ספקים</div>
                     </div>
-                    <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minWidth: 66 }}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.5px' }}>{withContact}</div>
+                    <div style={{ padding: '10px 16px', borderRadius: 12, background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.66))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 8px 24px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)', textAlign: 'center', minWidth: 66 }}>
+                        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', background: `linear-gradient(135deg, ${GOLD}, ${GOLD}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{withContact}</div>
                         <div style={{ fontSize: 10, fontWeight: 500, color: '#AEAEB2' }}>עם קשר</div>
                     </div>
                     {totalValue > 0 && (
-                        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minWidth: 80 }}>
-                            <div style={{ fontSize: 14, fontWeight: 900, color: '#1D1D1F', lineHeight: 1.4, letterSpacing: '-0.4px' }}>{fmt(totalValue)}</div>
+                        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.66))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 8px 24px rgba(20,40,80,0.06), inset 0 1px 0 rgba(255,255,255,1)', textAlign: 'center', minWidth: 80 }}>
+                            <div style={{ fontSize: 14, fontWeight: 900, lineHeight: 1.4, letterSpacing: '-0.4px', background: 'linear-gradient(135deg, #34C759, #34C759c4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{fmt(totalValue)}</div>
                             <div style={{ fontSize: 10, fontWeight: 500, color: '#AEAEB2' }}>סה"כ ערך</div>
                         </div>
                     )}

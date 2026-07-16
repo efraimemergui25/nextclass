@@ -219,7 +219,11 @@ function NavItem({ item, collapsed, badgeValue, accent = '#007AFF' }) {
             </AnimatePresence>
             {badgeValue && (
                 <span className={`${collapsed ? 'absolute -top-0.5 -right-0.5' : 'ml-auto'} relative z-10 shrink-0 flex items-center justify-center`}>
-                    <span className="absolute inset-0 rounded-full bg-[#FF3B30] opacity-40" style={{ animation: 'nc-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }} />
+                    <motion.span
+                        className="absolute inset-0 rounded-full bg-[#FF3B30]"
+                        animate={{ scale: [1, 2.1], opacity: [0.45, 0] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                    />
                     <motion.span
                         key={badgeValue}
                         initial={{ scale: 0 }}
@@ -250,8 +254,6 @@ function NavItem({ item, collapsed, badgeValue, accent = '#007AFF' }) {
     }
     return link;
 }
-
-const BADGE_KEYFRAMES = `@keyframes nc-ping{0%{transform:scale(1);opacity:.4}70%,100%{transform:scale(2.2);opacity:0}}`;
 
 export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
     const { logout } = useAdminAuth();
@@ -304,7 +306,6 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
     return (
         <>
-        <style>{BADGE_KEYFRAMES}</style>
         {/* Desktop sidebar */}
         <motion.aside
             animate={{ width: collapsed ? 64 : 232 }}
@@ -380,7 +381,14 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                             }}
                         >
                             <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
-                            <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">
+                            <p
+                                className="font-black text-base tracking-tighter leading-none"
+                                style={{
+                                    background: 'linear-gradient(135deg,#007AFF,#5AC8FA)',
+                                    WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
                                 ₪{(kpis.totalRevenue || 0).toLocaleString()}
                             </p>
                             <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות הושלמו</p>
@@ -473,7 +481,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                         {/* Dot badge when group is collapsed but has alerts */}
                                         {hasHiddenBadge && (
                                             <span className="relative z-10 shrink-0 flex items-center justify-center w-[10px] h-[10px]">
-                                                <span className="absolute inset-0 rounded-full bg-[#FF3B30] opacity-40" style={{ animation: 'nc-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }} />
+                                                <motion.span className="absolute inset-0 rounded-full bg-[#FF3B30]" animate={{ scale: [1, 2.1], opacity: [0.45, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }} />
                                                 <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative w-[6px] h-[6px] rounded-full" style={{ background: 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: '0 0 4px rgba(255,59,48,0.6)' }} />
                                             </span>
                                         )}
@@ -624,7 +632,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     <div className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
                         style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                         <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
-                        <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
+                        <p className="font-black text-base tracking-tighter leading-none" style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
                         <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות</p>
                     </div>
 

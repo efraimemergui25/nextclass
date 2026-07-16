@@ -19,6 +19,8 @@ import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow, toneColor, toneBg, ton
 
 // ─── Unified brand accent for subscriber avatars (no per-letter rainbow) ───────
 const AVATAR = '#007AFF';
+const AVATAR_GRAD = `linear-gradient(135deg, ${AVATAR}, #5AC8FA)`;
+const AVATAR_SHADOW = '0 4px 12px rgba(0,122,255,0.28), inset 0 1px 0 rgba(255,255,255,0.45)';
 
 // ─── Babushka drill helpers (shared visual grammar with the dashboard) ─────────
 function DrillStat({ items }) {
@@ -29,8 +31,8 @@ function DrillStat({ items }) {
                 <motion.div key={i}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                     className="rounded-[14px] p-3 text-center"
-                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.11)}, ${hexA(s.color || '#007AFF', 0.05)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 3px 10px ${hexA(s.color || '#007AFF', 0.1)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${s.color || '#1D1D1F'}, ${hexA(s.color || '#1D1D1F', 0.72)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                     <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                 </motion.div>
             ))}
@@ -96,7 +98,7 @@ function SourceBadge({ source }) {
     const s = map[source] || { label: source || 'אתר', color: '#86868B' };
     return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black"
-            style={{ background: `${s.color}15`, color: s.color, border: `1px solid ${s.color}22` }}>
+            style={{ background: `linear-gradient(135deg, ${s.color}22, ${s.color}0e)`, color: s.color, border: `1px solid ${s.color}2e`, boxShadow: `inset 0 1px 0 ${s.color}22` }}>
             {s.label}
         </span>
     );
@@ -263,10 +265,11 @@ export default function AdminCommunity() {
                         <motion.button
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
+                            whileHover={{ y: -2, boxShadow: `0 10px 26px ${hexA(toneColor('danger'), 0.4)}` }}
                             whileTap={TAP}
                             onClick={confirmBulkDelete}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
-                            style={{ background: toneColor('danger') }}
+                            style={{ background: `linear-gradient(135deg, ${toneColor('danger')}, ${hexA(toneColor('danger'), 0.82)})`, boxShadow: `0 6px 16px ${hexA(toneColor('danger'), 0.34)}, inset 0 1px 0 rgba(255,255,255,0.35)` }}
                         >
                             <Trash2 size={13} />
                             הסר {selected.size}
@@ -370,7 +373,7 @@ export default function AdminCommunity() {
                                         </button>
 
                                         <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-white text-[11px] font-black shadow-sm"
-                                            style={{ background: AVATAR }}>
+                                            style={{ background: AVATAR_GRAD, boxShadow: AVATAR_SHADOW }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
 
@@ -386,7 +389,7 @@ export default function AdminCommunity() {
                                         </div>
 
                                         <div className="text-center shrink-0 hidden md:block w-10">
-                                            <p className="text-[12px] font-black text-[#3C3C43]">{daysSince(sub.timestamp)}</p>
+                                            <p className="text-[12px] font-black leading-none" style={{ background: `linear-gradient(135deg, ${GREEN}, #5AC8FA)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{daysSince(sub.timestamp)}</p>
                                             <p className="text-[9px] font-bold text-[#AEAEB2] tracking-wide">ימים</p>
                                         </div>
 
@@ -415,7 +418,7 @@ export default function AdminCommunity() {
                     <div className="rounded-[22px] p-5" style={panelStyle}>
                         <div className="flex items-center gap-2.5 mb-3">
                             <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.20)' }}>
+                                style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.20), rgba(90,200,250,0.10))', border: '1px solid rgba(0,122,255,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 3px 10px rgba(0,122,255,0.14)' }}>
                                 <Users size={12} className="text-[#007AFF]" />
                             </div>
                             <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הוסף מנוי ידנית</p>
@@ -447,7 +450,7 @@ export default function AdminCommunity() {
                         <div className="px-5 pt-4 pb-2">
                             <div className="flex items-center gap-2.5 mb-3">
                                 <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ background: 'rgba(0,122,255,0.10)', border: '1px solid rgba(0,122,255,0.16)' }}>
+                                    style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.18), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(0,122,255,0.12)' }}>
                                     <Zap size={12} className="text-[#007AFF]" />
                                 </div>
                                 <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הצטרפויות אחרונות</p>
@@ -456,7 +459,7 @@ export default function AdminCommunity() {
                             <div className="space-y-0.5 max-h-[200px] overflow-y-auto custom-scrollbar -mx-1 px-1">
                                 {recentActivity.length === 0 ? (
                                     <div className="py-5 text-center">
-                                        <div className="w-10 h-10 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mx-auto mb-2">
+                                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-gradient-to-br from-[#F4F7FB] to-[#E7ECF4] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_3px_10px_rgba(20,40,80,0.05)]">
                                             <Users size={16} className="text-[#AEAEB2]" />
                                         </div>
                                         <p className="text-[11px] text-[#AEAEB2] font-bold">אין הצטרפויות עדיין</p>
@@ -474,7 +477,7 @@ export default function AdminCommunity() {
                                         className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors cursor-pointer focus:outline-none"
                                     >
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center text-white text-[10px] font-black shrink-0"
-                                            style={{ background: AVATAR }}>
+                                            style={{ background: AVATAR_GRAD, boxShadow: AVATAR_SHADOW }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0 text-right">
@@ -517,13 +520,13 @@ export default function AdminCommunity() {
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="h-1.5 bg-[#F2F2F7] rounded-full overflow-hidden">
+                                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#F2F2F7', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}>
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${pct}%` }}
                                                         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                                                         className="h-full rounded-full"
-                                                        style={{ background: color }}
+                                                        style={{ background: `linear-gradient(90deg, ${color}, ${hexA(color, 0.72)})`, boxShadow: `0 1px 4px ${hexA(color, 0.4)}` }}
                                                     />
                                                 </div>
                                             </div>
@@ -557,7 +560,7 @@ export default function AdminCommunity() {
                     <DrillRow key={s.id} delay={i * 0.03}
                         onClick={() => pushDrill({ type: 'subscriber', sub: s })}
                         leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
-                            style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
+                            style={{ background: AVATAR_GRAD, boxShadow: AVATAR_SHADOW }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
                         title={s.email}
                         subtitle={`${fmtDate(s.timestamp)} · לפני ${daysSince(s.timestamp)} ימים`}
                         trailing={<SourceBadge source={s.source} />}
@@ -630,7 +633,7 @@ export default function AdminCommunity() {
                         <div className="space-y-5">
                             <div className="flex items-center gap-3">
                                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-[20px] font-black shrink-0"
-                                    style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>
+                                    style={{ background: AVATAR_GRAD, boxShadow: AVATAR_SHADOW }}>{(s.email?.[0] || '?').toUpperCase()}</div>
                                 <div className="min-w-0 text-right flex-1">
                                     <p className="text-[15px] font-black text-[#1D1D1F] truncate" dir="ltr">{s.email}</p>
                                     <div className="mt-1"><SourceBadge source={s.source} /></div>

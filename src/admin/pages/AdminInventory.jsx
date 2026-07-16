@@ -4,11 +4,12 @@ import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp, Sparkles, Link2, Upload } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp, Sparkles, Link2, Upload, ArrowUpRight } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip, AdminInput } from '../components/AdminComponents';
+import Combobox from '../components/Combobox';
 import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING, GLASS, toneColor } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
@@ -24,6 +25,13 @@ const GLASS_SURFACE = {
     backdropFilter: GLASS.base.backdropFilter,
     WebkitBackdropFilter: GLASS.base.WebkitBackdropFilter,
 };
+
+// Gradient-text for metric numbers (Apple-glass): a single hue reads as a soft
+// vertical gradient rather than a flat fill. Visual-only.
+const gradText = (c) => ({
+    background: `linear-gradient(135deg, ${c}, ${c}c4)`,
+    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+});
 
 // ─── Smart Reorder Modal ──────────────────────────────────────────────────────
 function SmartReorderModal({ open, product, onClose, suppliers }) {
@@ -63,9 +71,9 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
                         <h3 style={{ fontSize: 17, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>הזמנה חכמה</h3>
                         <p style={{ fontSize: 11, color: '#86868B', margin: '3px 0 0', fontWeight: 500 }}>{product.title}</p>
                     </div>
-                    <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 99, background: 'rgba(0,0,0,0.07)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={onClose} style={{ width: 30, height: 30, borderRadius: 99, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <X size={14} />
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Stats */}
@@ -75,8 +83,8 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
                         { label: 'סף ההתרעה', value: product.threshold || 5, color: toneColor('info') },
                         { label: 'כמות מוצעת', value: recQty, color: toneColor('success') },
                     ].map(s => (
-                        <div key={s.label} style={{ borderRadius: 12, padding: '10px 12px', background: `${s.color}09`, border: `1px solid ${s.color}20`, textAlign: 'right' }}>
-                            <p style={{ fontSize: 20, fontWeight: 900, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
+                        <div key={s.label} style={{ borderRadius: 12, padding: '10px 12px', background: `linear-gradient(140deg, ${s.color}18, ${s.color}0a)`, border: `1px solid ${s.color}24`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${s.color}18`, textAlign: 'right' }}>
+                            <p style={{ fontSize: 20, fontWeight: 900, margin: 0, lineHeight: 1, letterSpacing: '-0.02em', ...gradText(s.color) }}>{s.value}</p>
                             <p style={{ fontSize: 9, fontWeight: 700, color: '#86868B', margin: '4px 0 0' }}>{s.label}</p>
                         </div>
                     ))}
@@ -123,7 +131,7 @@ function DrillStat({ items }) {
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                     className="rounded-[14px] p-3 text-center"
                     style={{ background: hexA(s.color || ORANGE, 0.07), border: `1px solid ${hexA(s.color || ORANGE, 0.16)}` }}>
-                    <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="font-black text-[15px] tracking-tight leading-none truncate" style={gradText(s.color || '#1D1D1F')}>{s.value}</p>
                     <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                 </motion.div>
             ))}
@@ -359,17 +367,19 @@ export default function AdminInventory() {
                 action={tab === 'all' ? (
                     <div className="flex items-center gap-2">
                         {/* View toggle */}
-                        <div className="flex items-center rounded-xl overflow-hidden border border-black/08" style={{ background: 'rgba(0,0,0,0.03)' }}>
-                            <button
+                        <div className="flex items-center gap-1 rounded-xl overflow-hidden p-1 border border-white/60" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(18px) saturate(1.6)', WebkitBackdropFilter: 'blur(18px) saturate(1.6)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                            <motion.button
+                                whileTap={{ scale: 0.92 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 onClick={() => setViewMode('grid')}
-                                className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
-                            ><LayoutGrid size={15} /></button>
-                            <button
+                                className="px-3 py-1.5 rounded-lg transition-all"
+                                style={{ background: viewMode === 'grid' ? `linear-gradient(135deg, ${ORANGE}1f, ${ORANGE}10)` : 'transparent', color: viewMode === 'grid' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'grid' ? `inset 0 1px 0 rgba(255,255,255,0.8), 0 3px 10px ${ORANGE}22` : 'none' }}
+                            ><LayoutGrid size={15} /></motion.button>
+                            <motion.button
+                                whileTap={{ scale: 0.92 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 onClick={() => setViewMode('list')}
-                                className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
-                            ><List size={15} /></button>
+                                className="px-3 py-1.5 rounded-lg transition-all"
+                                style={{ background: viewMode === 'list' ? `linear-gradient(135deg, ${ORANGE}1f, ${ORANGE}10)` : 'transparent', color: viewMode === 'list' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'list' ? `inset 0 1px 0 rgba(255,255,255,0.8), 0 3px 10px ${ORANGE}22` : 'none' }}
+                            ><List size={15} /></motion.button>
                         </div>
 
                         {bulkMode ? (
@@ -761,7 +771,7 @@ export default function AdminInventory() {
                                     </div>
                                 </div>
                                 <div className="text-center shrink-0">
-                                    <p className="text-[18px] font-black leading-none" style={{ color }}>{avail}</p>
+                                    <p className="text-[18px] font-black leading-none tracking-tight" style={gradText(color)}>{avail}</p>
                                     <p className="text-[9px] text-[#AEAEB2] font-bold mt-0.5">במלאי</p>
                                 </div>
                                 <span className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0" style={{ background: `${color}15`, color }}>{label}</span>
@@ -993,16 +1003,16 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
                                 <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
                                     className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
                                     {product.title}
-                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
+                                    <ArrowUpRight size={13} strokeWidth={2.8} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF]" />
                                 </a>
                                 <p className="text-[11px] text-[#AEAEB2] font-medium">SKU: {product.sku || product.id}</p>
                             </div>
                         )}
                     </div>
-                    <button onClick={onClose}
+                    <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={onClose}
                         className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA] transition-colors">
                         <X size={14} />
-                    </button>
+                    </motion.button>
                 </div>
 
                 <div className="px-7 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
@@ -1126,8 +1136,8 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
                                     { label: 'אחוז רווחיות', value: fin.marginPct != null ? fmtPct(fin.marginPct) : '—', color: marginColor(fin.marginPct), headline: true },
                                     { label: 'תמחור (Markup)', value: fin.markupPct != null ? fmtPct(fin.markupPct) : '—', color: '#6E6E73' },
                                 ].map((m, i) => (
-                                    <div key={i} className="rounded-xl p-2.5 text-center bg-white/80" style={{ border: m.headline ? `1.5px solid ${m.color}55` : '1px solid rgba(0,0,0,0.05)' }}>
-                                        <p className="font-black leading-none tabular-nums" style={{ fontSize: m.headline ? 18 : 15, color: m.color }}>{m.value}</p>
+                                    <div key={i} className="rounded-xl p-2.5 text-center bg-white/80" style={{ border: m.headline ? `1.5px solid ${m.color}55` : '1px solid rgba(0,0,0,0.05)', boxShadow: m.headline ? `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 12px ${m.color}1e` : 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                                        <p className="font-black leading-none tabular-nums" style={{ fontSize: m.headline ? 18 : 15, letterSpacing: '-0.02em', ...gradText(m.color) }}>{m.value}</p>
                                         <p className="text-[9.5px] font-bold text-[#AEAEB2] mt-1.5">{m.label}</p>
                                     </div>
                                 ))}
@@ -1293,9 +1303,8 @@ function AiImportModal({ onClose, onAdd, showToast }) {
                                 <AdminInput label="דגם" value={data.model} onChange={v => setF('model', v)} />
                                 <div>
                                     <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1 block mb-1.5">קטגוריה</label>
-                                    <select value={data.category} onChange={e => setF('category', e.target.value)} className="w-full bg-[#F5F5F7] rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1D1D1F] outline-none border-none">
-                                        {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <Combobox value={data.category} onChange={v => setF('category', v)} placeholder="בחר/י קטגוריה או הקלד/י חדשה"
+                                        options={CATS.map(c => ({ label: c }))} inputStyle={{ padding: '11px 32px 11px 14px', fontSize: 14, background: '#F5F5F7', borderColor: 'transparent' }} />
                                 </div>
                                 <AdminInput label="מחיר מכירה (₪)" type="number" value={data.price} onChange={v => setF('price', v)} />
                             </div>
