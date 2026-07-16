@@ -12,6 +12,10 @@ import { queuePendingEmail } from './_pendingEmail.js';
 const BIZ_PHONE  = process.env.NEXTCLASS_PHONE || '058-585-6356';
 const SITE_URL   = process.env.NEXTCLASS_SITE_URL || 'https://nextclass-v4-living.vercel.app';
 const FONT       = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+// Legal business identity (single source: src/admin/lib/businessProfile.js)
+const BIZ_LEGAL_NAME = 'נקסט קלאס בע״מ';
+const BIZ_TAX_ID     = '510942360';
+const BIZ_ADDRESS    = 'אזור התעשייה 100, רמלה';
 
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
@@ -85,6 +89,9 @@ function emailWrapper({ preheader = '', accentColor = '#007AFF', heroIcon = '✓
         <a href="${waLink}" style="color:#25D366;text-decoration:none;font-weight:600;">WhatsApp</a>
       </div>
       ${footerNote ? `<div style="font-size:11px;color:#AEAEB2;margin-top:10px;">${footerNote}</div>` : ''}
+      <div style="font-size:10.5px;color:#B8BCC4;margin-top:12px;line-height:1.6;border-top:1px solid #EBEBEB;padding-top:12px;">
+        ${BIZ_LEGAL_NAME} · ח.פ ${BIZ_TAX_ID} · ${BIZ_ADDRESS}
+      </div>
     </div>
 
   </td></tr>
@@ -384,40 +391,65 @@ function buildInTransitEmail(quote) {
     });
 }
 
+// One rating criterion row: 5 stars, each links to WhatsApp pre-filled with the score.
+function ratingRow(label, emoji, quoteId) {
+    const digits = BIZ_PHONE.replace(/\D/g, '').replace(/^0/, '');
+    const stars = [1, 2, 3, 4, 5].map(n => {
+        const wa = `https://wa.me/972${digits}?text=${encodeURIComponent(`דירוג ${label}: ${n}/5 · הזמנה ${quoteId}`)}`;
+        return `<a href="${wa}" style="text-decoration:none;font-size:24px;line-height:1;color:#FFB800;margin:0 1px;">★</a>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:10px 0;font-size:14px;font-weight:700;color:#1D1D1F;white-space:nowrap;">${emoji} ${label}</td>
+      <td style="padding:10px 0;text-align:left;">${stars}</td>
+    </tr>`;
+}
+
 function buildDeliveredEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
-    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent('שלום NextClass, קיבלתי את ההזמנה ✓')}`;
+    const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום NextClass! לגבי הזמנה ${quote.id}`)}`;
 
     const body = `
       <p style="margin:0 0 24px;font-size:16px;color:#1D1D1F;line-height:1.75;">
         שלום ${firstName},<br/>
-        ההזמנה שלך עבור <strong>${quote.institution || 'המוסד'}</strong> נמסרה בהצלחה!<br/>
-        תודה שבחרת ב-NextClass — שמחנו לשרת אותך.
+        ההזמנה שלך עבור <strong>${quote.institution || 'המוסד'}</strong> נמסרה בהצלחה — תודה רבה שבחרת ב-NextClass! 🙏<br/>
+        נשמח לעמוד לרשותך גם בעתיד לכל צורך.
       </p>
       ${divider()}
-      <div style="text-align:center;padding:24px;background:linear-gradient(135deg,#F0FBF4,#FAFFF7);border-radius:20px;margin-bottom:28px;border:1.5px solid rgba(52,199,89,0.2);">
-        <div style="font-size:42px;margin-bottom:10px;">🎉</div>
-        <div style="font-size:16px;font-weight:800;color:#1D1D1F;">ההזמנה נמסרה בהצלחה</div>
-        <div style="font-size:13px;color:#6E6E73;margin-top:6px;">${(quote.items || []).length} פריטים עבור ${quote.institution || ''}</div>
+
+      <!-- Rating card -->
+      <div style="padding:24px 24px 14px;background:linear-gradient(135deg,#FFFBF0,#FFF8E8);border-radius:20px;margin-bottom:24px;border:1.5px solid rgba(255,184,0,0.28);">
+        <div style="text-align:center;margin-bottom:6px;">
+          <div style="font-size:32px;margin-bottom:6px;">⭐</div>
+          <div style="font-size:16px;font-weight:900;color:#1D1D1F;">איך היה השירות שלנו?</div>
+          <div style="font-size:12.5px;color:#8A6D1F;margin-top:4px;">הדירוג שלך עוזר לנו להשתפר — לחיצה על כוכב שולחת אלינו את הציון</div>
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${ratingRow('המוצר', '🖥️', quote.id)}
+          ${ratingRow('השירות', '🤝', quote.id)}
+          ${ratingRow('המשלוח', '🚚', quote.id)}
+        </table>
       </div>
-      <div style="border-right:4px solid #34C759;background:#F0FBF4;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:28px;">
-        <div style="font-size:14px;font-weight:800;color:#1D1D1F;margin-bottom:4px;">שביעות רצון?</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.6;">נשמח לקבל משוב! שלחו לנו הודעה או התקשרו ל-${BIZ_PHONE}.</div>
+
+      <!-- Invoice note -->
+      <div style="border-right:4px solid #007AFF;background:#F0F7FF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:24px;">
+        <div style="font-size:14px;font-weight:800;color:#007AFF;margin-bottom:4px;">🧾 חשבונית מס</div>
+        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">חשבונית המס להזמנה ${quote.id} מצורפת/זמינה עבורך. לכל שאלה בנושא — נשמח לעזור.</div>
       </div>
-      ${ctaButton('✉️ שתפו חוויה', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
-      <p style="text-align:center;font-size:13px;color:#AEAEB2;margin-top:14px;">נשמח לראות אתכם בפרויקט הבא!</p>
+
+      ${ctaButton('💬 דברו איתנו', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
+      <p style="text-align:center;font-size:13px;color:#AEAEB2;margin-top:14px;">נשמח לראות אתכם בפרויקט הבא! 💙</p>
     `;
 
     return emailWrapper({
-        preheader: `${firstName}, ההזמנה ${quote.id} נמסרה — תודה שבחרת ב-NextClass!`,
-        accentColor: '#34C759',
-        heroIcon: '🎁',
-        heroIconBg: 'linear-gradient(135deg,#34C759,#1DB954)',
-        heroTitle: 'נמסר בהצלחה!',
-        heroSub: 'ההזמנה שלך הגיעה ליעדה 🎉',
+        preheader: `${firstName}, ההזמנה ${quote.id} נמסרה — נשמח לדירוג ומצורפת חשבונית`,
+        accentColor: '#FFB800',
+        heroIcon: '🎉',
+        heroIconBg: 'linear-gradient(135deg,#FFB800,#FF9500)',
+        heroTitle: 'תודה שבחרת ב-NextClass!',
+        heroSub: 'ההזמנה נמסרה בהצלחה — נשמח לשמוע איך היה',
         quoteId: quote.id,
         body,
-        footerNote: `תאריך אספקה: ${new Date().toLocaleDateString('he-IL')}`,
+        footerNote: `תאריך מסירה: ${new Date().toLocaleDateString('he-IL')}`,
     });
 }
 
@@ -613,7 +645,7 @@ const TYPE_CONFIG = {
     confirmed:        { build: buildConfirmedEmail,        subject: q => `ההזמנה ${q.id} אושרה! ✅ — NextClass` },
     processing:       { build: buildProcessingEmail,       subject: q => `ההזמנה ${q.id} בטיפול — בקרוב אצלך ✓ — NextClass` },
     in_transit:       { build: buildInTransitEmail,        subject: q => `ההזמנה ${q.id} בדרך אליך 🚚 — NextClass` },
-    delivered:        { build: buildDeliveredEmail,        subject: q => `ההזמנה ${q.id} נמסרה בהצלחה 🎉 — NextClass` },
+    delivered:        { build: buildDeliveredEmail,        subject: q => `תודה! ההזמנה ${q.id} נמסרה — נשמח לדירוג ⭐ — NextClass` },
     cancelled:        { build: buildCancelledEmail,        subject: q => `עדכון לגבי בקשה ${q.id} — NextClass` },
 };
 
