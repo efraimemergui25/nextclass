@@ -10,6 +10,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { buildSupplierEmailModel, renderSupplierEmailHtml } from '../lib/supplierEmail';
 
@@ -49,21 +50,42 @@ function Section({ title, emoji, children }) {
     );
 }
 
-export default function SupplierEmailComposer({ order, supplier, note, busy, onClose, onQueue }) {
+export default function SupplierEmailComposer({ order, supplier, note, catalog = [], busy, onClose, onQueue }) {
     const [model, setModel] = useState(() => buildSupplierEmailModel(order, supplier, { note }));
     const [showPreview, setShowPreview] = useState(true);
+    const [pick, setPick] = useState('');
     const set = (k) => (v) => setModel(m => ({ ...m, [k]: v }));
     const setItem = (i, k, v) => setModel(m => ({ ...m, items: m.items.map((it, j) => j === i ? { ...it, [k]: v } : it) }));
+    const addItem = (it) => setModel(m => ({ ...m, items: [...(m.items || []), it] }));
+    const removeItem = (i) => setModel(m => ({ ...m, items: m.items.filter((_, j) => j !== i) }));
+
+    // Catalog search — pick a real product (fills model/מק״ט + image) or add manually.
+    const pickResults = useMemo(() => {
+        const q = pick.trim().toLowerCase();
+        if (q.length < 2) return [];
+        return (catalog || []).filter(p =>
+            (p.title || '').toLowerCase().includes(q) ||
+            (p.sku || '').toLowerCase().includes(q) ||
+            (p.model || '').toLowerCase().includes(q)
+        ).slice(0, 6);
+    }, [pick, catalog]);
+    const addFromProduct = (p) => {
+        addItem({
+            title: p.title || 'פריט',
+            catalogNumber: p.sku || p.model || p.id || '',
+            qty: 1, image: p.image || '', category: p.category || '',
+        });
+        setPick('');
+    };
 
     const html = useMemo(() => renderSupplierEmailHtml(model), [model]);
     const to = model._to || supplier?.email || '';
 
-    return (
-        <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 6000, backdropFilter: 'blur(4px)' }} />
+    return createPortal(
+        <div dir="rtl" onClick={e => e.target === e.currentTarget && onClose()}
+            style={{ position: 'fixed', inset: 0, zIndex: 6000, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <motion.div initial={{ opacity: 0, scale: 0.97, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
-                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(1040px, 97vw)', height: 'min(90vh, 880px)', background: '#fff', borderRadius: 24, zIndex: 6001, fontFamily: HE, boxShadow: '0 30px 90px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                dir="rtl" style={{ width: 'min(1040px, 97vw)', height: 'min(90vh, 880px)', background: '#fff', borderRadius: 24, fontFamily: HE, boxShadow: '0 30px 90px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
                 {/* header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 22px', borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(180deg,#F0FBFF,#FFFFFF)' }}>
@@ -105,15 +127,49 @@ export default function SupplierEmailComposer({ order, supplier, note, busy, onC
                             </div>
                         </Section>
 
-                        <Section title="פריטים (דגם + כמות)" emoji="📦">
+                        <Section title="פריטים · דגם + כמות" emoji="📦">
+                            {/* catalog picker + manual add — at the top so the dropdown opens into view */}
+                            <div style={{ position: 'relative', marginBottom: 12, zIndex: 5 }}>
+                                <div style={{ display: 'flex', gap: 7 }}>
+                                    <input value={pick} onChange={e => setPick(e.target.value)} placeholder="🔎 חפש מוצר מהקטלוג להוספה…" dir="rtl"
+                                        style={{ ...inp, fontSize: 12.5, flex: 1 }} />
+                                    <button onClick={() => { addItem({ title: '', catalogNumber: '', qty: 1 }); }}
+                                        style={{ whiteSpace: 'nowrap', padding: '0 12px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#0891B2', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>
+                                        + ידני
+                                    </button>
+                                </div>
+                                {pickResults.length > 0 && (
+                                    <div style={{ position: 'absolute', top: '100%', right: 0, left: 0, zIndex: 20, marginTop: 4, background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 12px 32px rgba(0,0,0,0.16)', overflow: 'hidden' }}>
+                                        {pickResults.map(p => (
+                                            <button key={p.id} onClick={() => addFromProduct(p)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 11px', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#fff', cursor: 'pointer', textAlign: 'right' }}>
+                                                {p.image
+                                                    ? <img src={p.image} alt="" style={{ width: 30, height: 30, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} />
+                                                    : <span style={{ width: 30, height: 30, borderRadius: 7, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 15 }}>📦</span>}
+                                                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+                                                {(p.sku || p.model) && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#8A94A6', flexShrink: 0 }}>{p.sku || p.model}</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* column captions */}
+                            {(model.items || []).length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 46px 30px', gap: 7, marginBottom: 4 }}>
+                                    <span style={lbl}>שם הפריט</span><span style={lbl}>דגם / מק״ט</span><span style={{ ...lbl, textAlign: 'center' }}>כמות</span><span />
+                                </div>
+                            )}
                             {(model.items || []).map((it, i) => (
-                                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 52px', gap: 7, marginBottom: 7 }}>
+                                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 46px 30px', gap: 7, marginBottom: 7, alignItems: 'center' }}>
                                     <input value={it.title} onChange={e => setItem(i, 'title', e.target.value)} placeholder="שם הפריט" dir="rtl" style={{ ...inp, fontSize: 12 }} />
                                     <input value={it.catalogNumber} onChange={e => setItem(i, 'catalogNumber', e.target.value)} placeholder="דגם/מק״ט" dir="rtl" style={{ ...inp, fontSize: 12 }} />
-                                    <input type="number" value={it.qty} onChange={e => setItem(i, 'qty', Number(e.target.value) || 1)} style={{ ...inp, fontSize: 12, textAlign: 'center' }} />
+                                    <input type="number" min={1} value={it.qty} onChange={e => setItem(i, 'qty', Number(e.target.value) || 1)} style={{ ...inp, fontSize: 12, textAlign: 'center', padding: '9px 4px' }} />
+                                    <button onClick={() => removeItem(i)} title="הסר פריט"
+                                        style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', cursor: 'pointer', fontSize: 15, fontWeight: 800, lineHeight: 1 }}>✕</button>
                                 </div>
                             ))}
-                            {!(model.items || []).length && <p style={{ fontSize: 11.5, color: '#FF9500', fontWeight: 700, margin: 0 }}>⚠ אין פריטים בהזמנה</p>}
+                            {!(model.items || []).length && <p style={{ fontSize: 11.5, color: '#FF9500', fontWeight: 700, margin: '2px 0 0' }}>⚠ אין פריטים — הוסף/י מהקטלוג או ידנית</p>}
                         </Section>
 
                         <Section title="כתובת אספקה ואיש קשר" emoji="📍">
@@ -164,6 +220,7 @@ export default function SupplierEmailComposer({ order, supplier, note, busy, onC
                     <button onClick={onClose} style={{ padding: '13px 22px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#6E6E73', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 13 }}>ביטול</button>
                 </div>
             </motion.div>
-        </>
+        </div>,
+        document.body,
     );
 }

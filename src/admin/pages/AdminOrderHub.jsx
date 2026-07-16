@@ -438,6 +438,8 @@ export default function AdminOrderHub() {
                 return;
             }
             await logOrderActivity(em.order.id, { type: 'email', message: `מייל נשלח ללקוח: ${customSubject || fin.subject || em.subject}` });
+            // record in the unified email history (so every send is visible in תקשורת, not just this modal)
+            try { await addDoc(collection(db, 'pending_emails'), { to, subject: customSubject || fin.subject || em.subject, html: fin.html || em.html, status: 'sent', sentAt: Date.now(), createdAt: serverTimestamp(), source: 'order-hub', orderId: em.order.id }); } catch { /* logging is best-effort */ }
             showToast('המייל נשלח ללקוח ✓', 'success');
             if (em.afterSend) await em.afterSend();
             setEmailModal(null);
@@ -779,6 +781,7 @@ export default function AdminOrderHub() {
                 {supplierEmail && (
                     <SupplierEmailComposer
                         order={supplierEmail.order} supplier={supplierEmail.supplier} note={supplierEmail.note}
+                        catalog={inventory}
                         busy={busy} onClose={() => setSupplierEmail(null)} onQueue={queueSupplierEmail} />
                 )}
             </AnimatePresence>
@@ -1604,12 +1607,11 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
     const { profit, pct } = marginOf(rev, supplierCost);
     const hasBookHit = supplierId && supplierCostForOrder(order, pricesForSupplier(prices, supplierId)).matched > 0;
 
-    return (
-        <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 5000, backdropFilter: 'blur(3px)' }} />
+    return createPortal(
+        <div dir="rtl" onClick={e => e.target === e.currentTarget && onClose()}
+            style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(520px, 95vw)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 24, zIndex: 5001, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
+                dir="rtl" style={{ width: 'min(520px, 95vw)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 24, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                     <span style={{ fontSize: 22 }}>🚚</span>
                     <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>העברה לספק (Dropship)</h2>
@@ -1702,7 +1704,8 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
                     <button onClick={onClose} style={{ padding: '13px 20px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#6E6E73', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 13 }}>ביטול</button>
                 </div>
             </motion.div>
-        </>
+        </div>,
+        document.body,
     );
 }
 
@@ -1710,12 +1713,11 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
 function EmailIntakeModal({ busy, onClose, onCreate }) {
     const [subject, setSubject] = useState('');
     const [text, setText] = useState('');
-    return (
-        <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 5000, backdropFilter: 'blur(3px)' }} />
+    return createPortal(
+        <div dir="rtl" onClick={e => e.target === e.currentTarget && onClose()}
+            style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px, 95vw)', background: '#fff', borderRadius: 24, zIndex: 5001, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
+                dir="rtl" style={{ width: 'min(560px, 95vw)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 24, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                     <span style={{ fontSize: 22 }}>✉️</span>
                     <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>הזמנה ממייל</h2>
@@ -1733,7 +1735,8 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
                     <button onClick={onClose} style={{ padding: '13px 20px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#6E6E73', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 13 }}>ביטול</button>
                 </div>
             </motion.div>
-        </>
+        </div>,
+        document.body,
     );
 }
 
