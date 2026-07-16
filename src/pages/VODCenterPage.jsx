@@ -8,14 +8,9 @@ import { useSettings } from '../context/SettingsContext';
 
 // ─── VOD Data ────────────────────────────────────────────────────────────────
 
-const DEFAULT_VIDEOS = [
- { id: 1, title: 'חיבור ראשוני והגדרות רשת מתקדמות', duration: '4:20', thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'התקנה', level: 'מתחיל', visible: true },
- { id: 2, title: 'עבודה עם לוח EduEdit Studio', duration: '12:15', thumbnail: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'פדגוגיה', level: 'בינוני', visible: true },
- { id: 3, title: 'שיתוף מסך אלחוטי מכל מכשיר', duration: '3:45', thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'קישוריות', level: 'מתחיל', visible: true },
- { id: 4, title: 'ניהול כיתה חכמה בזמן אמת', duration: '8:30', thumbnail: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'ניהול', level: 'מתקדם', visible: true },
- { id: 5, title: 'שימוש ב-20 נקודות מגע בו-זמנית', duration: '2:55', thumbnail: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'תכונות', level: 'בינוני', visible: true },
- { id: 6, title: 'התקנת מעמד חשמלי מתכוונן', duration: '6:10', thumbnail: 'https://images.unsplash.com/photo-1555529902-5261145633bf?auto=format&fit=crop&q=80&w=800', videoUrl: '', category: 'התקנה', level: 'מתחיל', visible: true },
-];
+// No fabricated tutorials. Real videos are managed from the admin (localStorage
+// 'nextclass_vod'); until real content is added, the page shows an honest empty state.
+const DEFAULT_VIDEOS = [];
 
 function loadVideos() {
  try {
@@ -30,10 +25,10 @@ function loadVideos() {
 const FAQ = [
  { q: 'כמה זמן לוקחת ההתקנה?', a: 'התקנת מסך בודד לוקחת בין שעה לשלוש שעות, בהתאם לסוג ההתקנה (קיר, מעמד נייד, מסגרת). לבתי ספר עם מספר כיתות — אנו מתכננים לוח זמנים מותאם שמינימיזציה ההפרעה לשגרת הלימודים.' },
  { q: 'מה כוללת האחריות?', a: 'כל המוצרים מגיעים עם אחריות יצרן בהתאם לדגם (בדרך כלל 2-5 שנים). בנוסף, NextClass מציעה תמיכה טכנית ישירה ב-WhatsApp וטלפון לכל תקופת האחריות. החלפה תוך 30 יום לתקלות ייצור.' },
- { q: 'האם ניתן לממן דרך תקציב ממ"ד / משרד החינוך?', a: 'כן — אנו מנפיקים חשבוניות רשמיות ועובדים עם כל מסגרות הרכש הממשלתיות, כולל מכרזים ורשימות ספקים מאושרים. פנו אלינו ונסייע בתהליך הרכש.' },
+ { q: 'איך מתבצע תהליך הרכש?', a: 'אנו מנפיקים חשבוניות מס רשמיות ועובדים מול מסגרות רכש מוסדיות (כולל רשת עמל). פנו אלינו ונלווה אתכם בתהליך.' },
  { q: 'האם יש הדרכה לצוות המורים?', a: 'בהחלט. כל רכישה כוללת הדרכה בסיסית. הדרכה מורחבת בבית הספר (מדריך אישי לצוות) זמינה כשירות נפרד. ראה את לשונית "הדרכה" לפרטים.' },
- { q: 'מה ההבדל בין המסכים השונים?', a: 'ההבדלים העיקריים הם גודל המסך (55"–98"), רזולוציה (4K), מספר נקודות מגע (10–40), ועוצמת עיבוד המעבד הפנימי. נשמח לעזור בבחירה מותאמת לצרכי הכיתה וגודל הקהל.' },
- { q: 'האם המסכים מתחברים לכל מערכות ניהול הכיתה?', a: 'כן — כל המסכים שלנו תומכים ב-AirPlay, Miracast, Google Cast ו-USB-C. תואמים ל-Google Workspace, Microsoft 365 ו-Apple Classroom.' },
+ { q: 'מה ההבדל בין דגמי המסכים?', a: 'שלושת הדגמים שלנו נבדלים בעיקר בגודל (23.8"/24"/27"), ביחס הגובה-רוחב (16:9 או 16:10), בקצב הרענון וברזולוציה. נשמח לעזור בבחירת הדגם המתאים לצרכים ולתקציב.' },
+ { q: 'איך המסכים מתחברים למחשב?', a: 'המסכים מתחברים באמצעות HDMI, DisplayPort או VGA (בהתאם לדגם), ומתאימים לכל מערכת הפעלה — Windows, macOS ו-Linux. הם משמשים כמסך תצוגה איכותי לעמדת המורה או לכיתת מחשבים.' },
  { q: 'כמה זמן ממועד ההזמנה עד האספקה?', a: 'ברוב המקרים 5–14 ימי עסקים לאחר אישור הצעת המחיר. פרויקטים גדולים (מעל 10 יחידות) מתואמים בלוח זמנים מוסכם.' },
  { q: 'מה קורה אם יש תקלה לאחר ההתקנה?', a: 'יש לנו קו תמיכה ישיר ב-WhatsApp. פניות נענות תוך שעה בשעות פעילות (א׳–ו׳, 08:00–20:00). תקלות המצריכות טכנאי — נגיע לבית הספר תוך 48 שעות.' },
 ];
@@ -46,7 +41,7 @@ const SIDEBAR_LINKS = [
  icon: ShoppingBag,
  color: 'bg-gradient-to-br from-[#007AFF] to-[#5856D6]',
  title: 'קטלוג המוצרים',
- sub: 'מסכים חכמים · טאבלטים · מעבדות STEM',
+ sub: 'מסכי מחשב מקוריים · ASUS · HP',
  },
  {
  to: '/contact',
@@ -298,7 +293,7 @@ function TrainingTab() {
  icon: GraduationCap,
  color: 'bg-gradient-to-br from-purple-500 to-pink-600',
  title: 'הדרכת צוות מורחבת',
- sub: 'מדריך מוסמך מגיע לבית הספר לסדנה מעמיקה — שימוש פדגוגי, EduEdit Studio, שיתוף מסך ועבודה עם Google Workspace.',
+ sub: 'מדריך מגיע לבית הספר להדרכה מעשית — חיבור, כוונון והתאמת המסכים לצרכים ולעבודה השוטפת.',
  },
  {
  icon: Phone,

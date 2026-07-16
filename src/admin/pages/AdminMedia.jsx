@@ -1,34 +1,83 @@
 /* eslint-disable */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, storage } from '../../firebase';
+import { db } from '../../firebase';
 import {
     collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, orderBy, query
 } from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { imageToDataUrl } from '../utils/fileStore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { AdminKPICard, AdminEmpty, AdminTabs } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import {
     Upload, Link2, Trash2, Copy, Check, Image, Film,
-    FolderOpen, X, Search, Grid, List, ExternalLink, Plus
+    FolderOpen, X, Search, Grid, List, ExternalLink, Plus,
+    ChevronLeft, Download, HardDrive, Calendar, Package
 } from 'lucide-react';
+import { GLASS as GLASS_TOKENS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow, toneColor, toneBg } from '../theme/tokens';
 
-const CARD = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Babushka drill helpers ────────────────────────────────────────────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
+    </div>
+);
 
-const GLASS = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-};
+// ─── Unified brand accent (restrained azure — no per-domain rainbow) ───────────
+const BRAND      = '#007AFF';
+const BRAND_GRAD = GRADIENT.signature;
+const BRAND_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(0,122,255,0.08) 100%)';
+
+// ─── Liquid-glass surfaces (token-driven — one system everywhere) ──────────────
+const CARD  = { ...GLASS_TOKENS.base };
+const GLASS = { ...GLASS_TOKENS.base };
 
 function formatSize(bytes) {
     if (!bytes) return '';
@@ -37,7 +86,7 @@ function formatSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function MediaCard({ item, onDelete, onCopy, copied }) {
+function MediaCard({ item, onDelete, onCopy, copied, onOpen }) {
     const isVideo = item.type?.startsWith('video') || item.url?.match(/\.(mp4|webm|mov)$/i);
     const [hovered, setHovered] = useState(false);
 
@@ -49,6 +98,7 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
             exit={{ opacity: 0, scale: 0.92 }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
+            onClick={() => onOpen?.(item, 'library')}
             className="relative rounded-2xl overflow-hidden group cursor-pointer"
             style={CARD}
         >
@@ -75,7 +125,7 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                         >
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => onCopy(item.url)}
+                                onClick={(e) => { e.stopPropagation(); onCopy(item.url); }}
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black transition-all"
                             >
                                 {copied === item.url ? <Check size={12} /> : <Copy size={12} />}
@@ -83,14 +133,14 @@ function MediaCard({ item, onDelete, onCopy, copied }) {
                             </motion.button>
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => window.open(item.url, '_blank')}
+                                onClick={(e) => { e.stopPropagation(); window.open(item.url, '_blank'); }}
                                 className="p-2 rounded-xl text-white"
                             >
                                 <ExternalLink size={12} />
                             </motion.button>
                             <motion.button
                                 whileTap={{ scale: 0.88 }}
-                                onClick={() => onDelete(item)}
+                                onClick={(e) => { e.stopPropagation(); onDelete(item); }}
                                 className="p-2 rounded-xl text-white"
                             >
                                 <Trash2 size={12} />
@@ -150,17 +200,17 @@ function DropZone({ onFiles, uploading }) {
             onClick={() => inputRef.current?.click()}
             className="relative cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 p-10 flex flex-col items-center gap-4"
             style={{
-                borderColor: isDragActive ? '#007AFF' : 'rgba(0,122,255,0.35)',
-                background: isDragActive ? 'rgba(0,122,255,0.06)' : 'rgba(255,255,255,0.55)',
+                borderColor: isDragActive ? BRAND : hexA(BRAND, 0.35),
+                background: isDragActive ? hexA(BRAND, 0.06) : 'rgba(255,255,255,0.55)',
                 backdropFilter: 'blur(12px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                boxShadow: isDragActive ? '0 0 0 4px rgba(0,122,255,0.12)' : 'none',
+                boxShadow: isDragActive ? `0 0 0 4px ${hexA(BRAND, 0.12)}` : 'none',
             }}
         >
             {uploading ? (
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin" />
-                    <p className="text-sm font-bold text-[#007AFF]">מעלה...</p>
+                    <div className="w-10 h-10 rounded-full animate-spin" style={{ border: `2px solid ${hexA(BRAND, 0.3)}`, borderTopColor: BRAND }} />
+                    <p className="text-sm font-bold" style={{ color: BRAND }}>מעלה...</p>
                 </div>
             ) : (
                 <>
@@ -168,9 +218,9 @@ function DropZone({ onFiles, uploading }) {
                         animate={{ y: isDragActive ? -6 : 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                         className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'rgba(0,122,255,0.1)' }}
+                        style={{ background: hexA(BRAND, 0.1) }}
                     >
-                        <Upload size={24} className="text-[#007AFF]" />
+                        <Upload size={24} color={BRAND} />
                     </motion.div>
                     <div className="text-center">
                         <p className="text-[15px] font-black text-[#1D1D1F]">
@@ -265,7 +315,7 @@ function AddUrlDialog({ onAdd, onClose }) {
                             onClick={() => { if (url) { onAdd({ url, name: name || url, source: 'url' }); onClose(); } }}
                             disabled={!url}
                             className="w-full py-3 rounded-xl font-black text-[13px] text-white transition-all disabled:opacity-40"
-                            style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}
+                            style={{ background: BRAND_GRAD, boxShadow: `0 4px 16px ${hexA(BRAND, 0.28)}` }}
                         >
                             הוסף לספרייה
                         </button>
@@ -277,7 +327,7 @@ function AddUrlDialog({ onAdd, onClose }) {
 }
 
 // ── ProductImages tab ─────────────────────────────────────────────────────────
-function ProductImagesTab({ onCopy, copied }) {
+function ProductImagesTab({ onCopy, copied, onOpen }) {
     const { inventory } = useAdminData();
     const [search, setSearch] = useState('');
     const items = inventory.filter(p => p.image).filter(p =>
@@ -295,6 +345,7 @@ function ProductImagesTab({ onCopy, copied }) {
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {items.map(p => (
                     <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                        onClick={() => onOpen?.({ url: p.image, name: p.title || p.name, type: 'image', source: 'product', id: p.id }, 'product')}
                         className="relative rounded-2xl overflow-hidden group cursor-pointer" style={CARD}>
                         <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
                             <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -302,9 +353,9 @@ function ProductImagesTab({ onCopy, copied }) {
                             <AnimatePresence>
                                 <motion.div initial={{ opacity: 0 }} whileHover={{ opacity: 1 }}
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <button onClick={() => onCopy(p.image)}
+                                    <button onClick={(e) => { e.stopPropagation(); onCopy(p.image); }}
                                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
-                                        style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)' }}>
+                                        style={{ background: copied === p.image ? toneColor('success') : 'rgba(255,255,255,0.2)' }}>
                                         {copied === p.image ? <Check size={12} /> : <Copy size={12} />}
                                         {copied === p.image ? 'הועתק' : 'העתק URL'}
                                     </button>
@@ -323,17 +374,25 @@ function ProductImagesTab({ onCopy, copied }) {
 }
 
 // ── VodTab ────────────────────────────────────────────────────────────────────
-function VodTab({ onCopy, copied }) {
+function VodTab({ onCopy, copied, onOpen }) {
+    const { showToast } = useAdminToast();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [search, setSearch] = useState('');
 
     useEffect(() => {
         const q = query(collection(db, 'vod_courses'), orderBy('createdAt', 'desc'));
         return onSnapshot(q, snap => {
             setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('VOD load failed:', err);
+            setError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת סרטוני VOD', 'error');
+        });
     }, []);
 
     const items = videos.filter(v =>
@@ -342,16 +401,28 @@ function VodTab({ onCopy, copied }) {
 
     if (loading) return (
         <div className="py-20 text-center">
-            <div className="w-8 h-8 border-2 border-[#FF3B30]/30 border-t-[#FF3B30] rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-3" />
             <p className="text-[#AEAEB2] font-bold text-sm">טוען VOD...</p>
         </div>
     );
 
+    if (error && !loading) return (
+        <div className="rounded-[24px] overflow-hidden" style={CARD}>
+            <AdminEmpty
+                icon="empty"
+                title="שגיאה בטעינת VOD"
+                subtitle="לא ניתן לטעון את סרטוני ה-VOD כרגע. רענן את הדף ונסה שוב."
+            />
+        </div>
+    );
+
     if (items.length === 0 && !loading) return (
-        <div className="py-20 text-center rounded-[24px]" style={CARD}>
-            <Film size={40} className="mx-auto text-[#D1D1D6] mb-3" />
-            <p className="text-[#AEAEB2] font-bold">{search ? 'לא נמצאו סרטונים' : 'אין סרטוני VOD עדיין'}</p>
-            <p className="text-[#C7C7CC] text-sm mt-1">הוסף קורסים דרך עמוד ניהול ה-VOD</p>
+        <div className="rounded-[24px] overflow-hidden" style={CARD}>
+            <AdminEmpty
+                icon="empty"
+                title={search ? 'לא נמצאו סרטונים' : 'אין סרטוני VOD עדיין'}
+                subtitle={search ? 'נסה חיפוש אחר' : 'הוסף קורסים דרך עמוד ניהול ה-VOD'}
+            />
         </div>
     );
 
@@ -367,7 +438,8 @@ function VodTab({ onCopy, copied }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(v => (
                     <motion.div key={v.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-2xl overflow-hidden" style={CARD}>
+                        onClick={() => onOpen?.({ url: v.videoUrl || v.thumbnail, name: v.title || v.name, type: 'video', source: 'vod', id: v.id, thumbnail: v.thumbnail, lessonsCount: v.lessonsCount || v.lessons?.length || 0 }, 'vod')}
+                        className="rounded-2xl overflow-hidden cursor-pointer" style={CARD}>
                         {v.thumbnail && (
                             <div className="aspect-video bg-[#F5F5F7] relative overflow-hidden">
                                 <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover"
@@ -383,7 +455,7 @@ function VodTab({ onCopy, copied }) {
                             <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{v.title || v.name}</p>
                             <p className="text-[11px] text-[#86868B] mt-0.5">{v.lessonsCount || v.lessons?.length || 0} שיעורים</p>
                             {v.videoUrl && (
-                                <button onClick={() => onCopy(v.videoUrl)}
+                                <button onClick={(e) => { e.stopPropagation(); onCopy(v.videoUrl); }}
                                     className="mt-2 flex items-center gap-1 text-[10px] font-bold text-[#007AFF] hover:underline">
                                     {copied === v.videoUrl ? <Check size={10} /> : <Copy size={10} />}
                                     העתק URL
@@ -399,25 +471,44 @@ function VodTab({ onCopy, copied }) {
 
 export default function AdminMedia() {
     const { showToast } = useAdminToast();
-    const [tab, setTab] = useState('library');
+    const confirm = useAdminConfirm();
+    const navigate = useNavigate();
+
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const drillTo    = (path) => { closeDrill(); navigate(path); };
+    const openMedia  = (item, kind = 'library') => openDrill({ type: 'media', item, kind });
+
+    const [tab, setTab] = useState('images'); // images | videos | links | products | vod
     const [media, setMedia] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({});
     const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState('all'); // all | images | videos | urls
     const [viewMode, setViewMode] = useState('grid');
     const [copied, setCopied] = useState('');
     const [showUrlDialog, setShowUrlDialog] = useState(false);
     const [selectedItems, setSelectedItems] = useState(new Set());
+    const [loadError, setLoadError] = useState(false);
 
     // Load media from Firestore
     useEffect(() => {
         const q = query(collection(db, 'media_library'), orderBy('createdAt', 'desc'));
         const unsub = onSnapshot(q, snap => {
             setMedia(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoadError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('Media library load failed:', err);
+            setLoadError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת ספריית המדיה', 'error');
+        });
         return unsub;
     }, []);
 
@@ -427,41 +518,29 @@ export default function AdminMedia() {
         files.forEach(f => { progress[f.name] = 0; });
         setUploadProgress(progress);
 
-        try {
-            await Promise.all(files.map(async (file) => {
-                const path = `media/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                const sRef = storageRef(storage, path);
-                const task = uploadBytesResumable(sRef, file);
-
-                await new Promise((resolve, reject) => {
-                    task.on('state_changed',
-                        snap => {
-                            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-                            setUploadProgress(prev => ({ ...prev, [file.name]: pct }));
-                        },
-                        reject,
-                        async () => {
-                            const url = await getDownloadURL(task.snapshot.ref);
-                            await addDoc(collection(db, 'media_library'), {
-                                url,
-                                name: file.name,
-                                type: file.type,
-                                size: file.size,
-                                path,
-                                source: 'upload',
-                                createdAt: serverTimestamp(),
-                            });
-                            resolve();
-                        }
-                    );
+        let ok = 0;
+        await Promise.all(files.map(async (file) => {
+            try {
+                if (!file.type?.startsWith('image/')) throw new Error('not an image');
+                const url = await imageToDataUrl(file); // compressed to < ~900KB, stored inline
+                setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+                await addDoc(collection(db, 'media_library'), {
+                    url,
+                    name: file.name,
+                    type: 'image/jpeg',
+                    size: url.length,
+                    source: 'upload',
+                    createdAt: serverTimestamp(),
                 });
-            }));
-            showToast(`${files.length} קבצים הועלו בהצלחה`, 'success');
-        } catch (err) {
-            showToast('שגיאה בהעלאת קבצים', 'error');
-        }
+                ok++;
+            } catch {
+                setUploadProgress(prev => ({ ...prev, [file.name]: -1 }));
+            }
+        }));
         setUploading(false);
-        setUploadProgress({});
+        if (ok) showToast(`${ok} קבצים הועלו בהצלחה`, 'success');
+        if (ok < files.length) showToast(`${files.length - ok} קבצים נכשלו (רק תמונות נתמכות)`, 'error');
+        setTimeout(() => setUploadProgress({}), 1400);
     };
 
     const handleAddUrl = async ({ url, name, source }) => {
@@ -477,12 +556,9 @@ export default function AdminMedia() {
     };
 
     const handleDelete = async (item) => {
-        if (!window.confirm('למחוק פריט זה מהספרייה?')) return;
+        if (!await confirm({ message: 'למחוק פריט זה מהספרייה?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'media_library', item.id));
-            if (item.path) {
-                try { await deleteObject(storageRef(storage, item.path)); } catch {}
-            }
             showToast('פריט נמחק', 'success');
         } catch {
             showToast('שגיאה במחיקה', 'error');
@@ -497,12 +573,14 @@ export default function AdminMedia() {
         });
     };
 
+    // Active library sector → filter of the shared media_library
+    const libFilter = tab === 'videos' ? 'videos' : tab === 'links' ? 'urls' : 'images';
     const filtered = media.filter(item => {
         if (search && !item.name?.toLowerCase().includes(search.toLowerCase())) return false;
-        if (filter === 'images') return !item.type?.startsWith('video');
-        if (filter === 'videos') return item.type?.startsWith('video');
-        if (filter === 'urls') return item.source === 'url';
-        return true;
+        if (libFilter === 'videos') return item.type?.startsWith('video');
+        if (libFilter === 'urls') return item.source === 'url';
+        // images: uploaded image files (not video, not an external link)
+        return !item.type?.startsWith('video') && item.source !== 'url';
     });
 
     const stats = {
@@ -514,70 +592,56 @@ export default function AdminMedia() {
 
     return (
         <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader
-                title="ספריית מדיה"
-                subtitle="תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד"
-                action={
-                    tab === 'library' ? (
-                        <button
-                            onClick={() => setShowUrlDialog(true)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all"
-                            style={{ background: 'rgba(0,122,255,0.09)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}
-                        >
-                            <Link2 size={13} />
-                            הוסף קישור
-                        </button>
-                    ) : null
-                }
-            />
-
-            {/* Tab switcher */}
-            <div className="flex items-center gap-2">
-                {[
-                    { id: 'library',  label: 'ספרייה', Icon: FolderOpen },
-                    { id: 'products', label: 'תמונות מוצרים', Icon: Image },
-                    { id: 'vod',      label: 'סרטוני VOD', Icon: Film },
-                ].map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all"
-                        style={{
-                            background: tab === t.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
-                            color: tab === t.id ? 'white' : '#6E6E73',
-                            border: tab === t.id ? 'none' : '1px solid rgba(0,0,0,0.07)',
-                            boxShadow: tab === t.id ? '0 4px 16px rgba(0,122,255,0.28)' : 'none',
-                        }}>
-                        <t.Icon size={13} />
-                        {t.label}
-                    </button>
-                ))}
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(BRAND, 0.10), border: `1px solid ${hexA(BRAND, 0.18)}`, boxShadow: SHADOW.specular }}>
+                    <FolderOpen size={22} color={BRAND} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ספריית מדיה</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>תמונות, סרטונים ומדיה מוצרים — הכל במקום אחד</p>
+                </div>
+                {tab === 'links' && (
+                    <motion.button
+                        onClick={() => setShowUrlDialog(true)}
+                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(BRAND, 0.3)}` }} whileTap={TAP}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
+                        style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.28)}` }}
+                    >
+                        <Link2 size={13} />
+                        הוסף קישור
+                    </motion.button>
+                )}
             </div>
 
+            {/* In-page sectors — filtered views of the same library, plus product/VOD browsers */}
+            <AdminTabs
+                tabs={[
+                    { id: 'images',   label: 'תמונות' },
+                    { id: 'videos',   label: 'וידאו' },
+                    { id: 'links',    label: 'קישורים חיצוניים' },
+                    { id: 'products', label: 'תמונות מוצרים' },
+                    { id: 'vod',      label: 'סרטוני VOD' },
+                ]}
+                active={tab} onChange={setTab} id="media-tabs"
+            />
+
             {/* VOD and Product tabs render their own content */}
-            {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} />}
-            {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} />}
+            {tab === 'products' && <ProductImagesTab onCopy={handleCopy} copied={copied} onOpen={openMedia} />}
+            {tab === 'vod' && <VodTab onCopy={handleCopy} copied={copied} onOpen={openMedia} />}
 
-            {tab !== 'library' && null}
-            {tab === 'library' && (<>
+            {(tab === 'images' || tab === 'videos' || tab === 'links') && (<>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                    { label: 'סה"כ פריטים', value: stats.total, color: '#007AFF', icon: FolderOpen },
-                    { label: 'תמונות', value: stats.images, color: '#34C759', icon: Image },
-                    { label: 'סרטונים', value: stats.videos, color: '#FF3B30', icon: Film },
-                    { label: 'קישורים חיצוניים', value: stats.urls, color: '#FF9500', icon: Link2 },
-                ].map(s => (
-                    <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-[20px] text-right" style={GLASS}>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${s.color}15` }}>
-                                <s.icon size={14} style={{ color: s.color }} />
-                            </div>
-                            <span className="text-2xl font-black text-[#1D1D1F] tracking-tighter">{s.value}</span>
-                        </div>
-                        <p className="text-[10px] font-black text-[#86868B] tracking-widest">{s.label}</p>
-                    </motion.div>
-                ))}
+            {/* KPI band — total · images · videos · external links */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="סך פריטים" value={stats.total} subtitle="בספרייה" accent={BRAND} delay={0}
+                    icon={<FolderOpen size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-total' })} />
+                <AdminKPICard title="תמונות" value={stats.images} subtitle="קבצי תמונה" accent={BRAND} delay={0.05}
+                    icon={<Image size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-images' })} />
+                <AdminKPICard title="סרטונים" value={stats.videos} subtitle="קבצי וידאו" accent={BRAND} delay={0.1}
+                    icon={<Film size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-videos' })} />
+                <AdminKPICard title="קישורים" value={stats.urls} subtitle="קישורים חיצוניים" accent={BRAND} delay={0.15}
+                    icon={<Link2 size={20} color={BRAND} />} loading={loading} onClick={() => openDrill({ type: 'kpi-urls' })} />
             </div>
 
             {/* Upload progress */}
@@ -617,27 +681,6 @@ export default function AdminMedia() {
                     />
                 </div>
 
-                {/* Filter pills */}
-                <div className="flex items-center gap-1.5">
-                    {[
-                        { id: 'all', label: 'הכל' },
-                        { id: 'images', label: 'תמונות' },
-                        { id: 'videos', label: 'סרטונים' },
-                        { id: 'urls', label: 'קישורים' },
-                    ].map(f => (
-                        <button key={f.id} onClick={() => setFilter(f.id)}
-                            className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                            style={{
-                                background: filter === f.id ? 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' : 'rgba(255,255,255,0.78)',
-                                color: filter === f.id ? 'white' : '#6E6E73',
-                                border: filter === f.id ? 'none' : '1px solid rgba(0,0,0,0.06)',
-                                boxShadow: filter === f.id ? '0 2px 10px rgba(0,122,255,0.22)' : 'none',
-                            }}>
-                            {f.label}
-                        </button>
-                    ))}
-                </div>
-
                 {/* View toggle */}
                 <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
                     {[
@@ -658,20 +701,31 @@ export default function AdminMedia() {
             {/* Grid / List */}
             {loading ? (
                 <div className="py-20 text-center">
-                    <div className="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-3" />
+                    <div className="w-8 h-8 rounded-full animate-spin mx-auto mb-3"
+                        style={{ border: `2px solid ${hexA(BRAND, 0.3)}`, borderTopColor: BRAND }} />
                     <p className="text-[#AEAEB2] font-bold text-sm">טוען ספרייה...</p>
                 </div>
+            ) : loadError ? (
+                <div className="rounded-[24px] overflow-hidden" style={CARD}>
+                    <AdminEmpty
+                        icon="empty"
+                        title="שגיאה בטעינת הספרייה"
+                        subtitle="לא ניתן לטעון את ספריית המדיה כרגע. רענן את הדף ונסה שוב."
+                    />
+                </div>
             ) : filtered.length === 0 ? (
-                <div className="py-20 text-center rounded-[24px]" style={CARD}>
-                    <Image size={40} className="mx-auto text-[#D1D1D6] mb-3" />
-                    <p className="text-[#AEAEB2] font-bold">{search ? 'לא נמצאו פריטים' : 'הספרייה ריקה'}</p>
-                    <p className="text-[#C7C7CC] text-sm mt-1">{!search && 'גרור קבצים לאזור למעלה או הוסף קישור'}</p>
+                <div className="rounded-[24px] overflow-hidden" style={CARD}>
+                    <AdminEmpty
+                        icon="empty"
+                        title={search ? 'לא נמצאו פריטים' : 'הספרייה ריקה'}
+                        subtitle={search ? 'נסה חיפוש אחר' : 'גרור קבצים לאזור למעלה או הוסף קישור חיצוני'}
+                    />
                 </div>
             ) : viewMode === 'grid' ? (
                 <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     <AnimatePresence>
                         {filtered.map(item => (
-                            <MediaCard key={item.id} item={item} onDelete={handleDelete} onCopy={handleCopy} copied={copied} />
+                            <MediaCard key={item.id} item={item} onDelete={handleDelete} onCopy={handleCopy} copied={copied} onOpen={openMedia} />
                         ))}
                     </AnimatePresence>
                 </motion.div>
@@ -680,22 +734,23 @@ export default function AdminMedia() {
                     <div className="divide-y divide-black/[0.04]">
                         {filtered.map(item => (
                             <motion.div key={item.id} layout
-                                className="flex items-center gap-4 px-5 py-3 hover:bg-black/[0.02] transition-colors group"
+                                onClick={() => openMedia(item, 'library')}
+                                className="flex items-center gap-4 px-5 py-3 hover:bg-black/[0.02] transition-colors group cursor-pointer"
                                 dir="rtl">
                                 <div className="w-14 h-10 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0">
                                     <img src={item.url} alt={item.name} className="w-full h-full object-cover"
                                         onError={e => { e.target.style.display = 'none'; }} />
                                 </div>
                                 <div className="flex-1 min-w-0 text-right">
-                                    <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{item.name}</p>
+                                    <p className="text-[13px] font-bold text-[#1D1D1F] truncate group-hover:text-[#007AFF] transition-colors">{item.name}</p>
                                     <p className="text-[10px] text-[#AEAEB2]">{formatSize(item.size)} · {item.source === 'url' ? 'קישור חיצוני' : 'קובץ'}</p>
                                 </div>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleCopy(item.url)}
+                                    <button onClick={(e) => { e.stopPropagation(); handleCopy(item.url); }}
                                         className="p-1.5 rounded-lg hover:bg-[#007AFF]/10 text-[#007AFF] transition-colors">
                                         {copied === item.url ? <Check size={13} /> : <Copy size={13} />}
                                     </button>
-                                    <button onClick={() => handleDelete(item)}
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
                                         className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 text-[#FF3B30] transition-colors">
                                         <Trash2 size={13} />
                                     </button>
@@ -711,6 +766,125 @@ export default function AdminMedia() {
                 {showUrlDialog && <AddUrlDialog onAdd={handleAddUrl} onClose={() => setShowUrlDialog(false)} />}
             </AnimatePresence>
             </>)}
+
+            {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const isVid = (m) => m.type?.startsWith('video') || m.url?.match(/\.(mp4|webm|mov)$/i);
+                const mediaRow = (m, i) => (
+                    <DrillRow key={m.id} delay={i * 0.03}
+                        onClick={() => pushDrill({ type: 'media', item: m, kind: 'library' })}
+                        leading={<div className="w-11 h-8 rounded-lg overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
+                            {m.url && !isVid(m)
+                                ? <img src={m.url} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                                : <Film size={13} className="text-[#AEAEB2]" />}</div>}
+                        title={m.name || 'ללא שם'}
+                        subtitle={`${formatSize(m.size) || (m.source === 'url' ? 'קישור חיצוני' : '—')}`}
+                        trailing={<span className="text-[10px] font-black text-[#AEAEB2] shrink-0">{isVid(m) ? 'וידאו' : m.source === 'url' ? 'קישור' : 'תמונה'}</span>}
+                    />
+                );
+                const mediaList = (arr) => arr.length === 0
+                    ? <DrillEmpty icon={FolderOpen} text="אין פריטים להצגה" />
+                    : <div className="space-y-2">{arr.map(mediaRow)}</div>;
+
+                let title = '', subtitle = '', icon = null, footer = null, body = null;
+
+                if (shown.type === 'kpi-total') {
+                    title = 'סך פריטים'; subtitle = `${stats.total} פריטים בספרייה`;
+                    icon = <FolderOpen size={17} color={BRAND} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סך הכל', value: stats.total, color: BRAND },
+                                { label: 'תמונות', value: stats.images },
+                                { label: 'סרטונים', value: stats.videos },
+                                { label: 'קישורים', value: stats.urls },
+                            ]} />
+                            {mediaList(media)}
+                        </div>
+                    );
+                } else if (shown.type === 'kpi-images') {
+                    const arr = media.filter(m => !m.type?.startsWith('video') && m.source !== 'url');
+                    title = 'תמונות'; subtitle = `${arr.length} קבצי תמונה`;
+                    icon = <Image size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'kpi-videos') {
+                    const arr = media.filter(m => m.type?.startsWith('video'));
+                    title = 'סרטונים'; subtitle = `${arr.length} קבצי וידאו`;
+                    icon = <Film size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'kpi-urls') {
+                    const arr = media.filter(m => m.source === 'url');
+                    title = 'קישורים חיצוניים'; subtitle = `${arr.length} קישורים`;
+                    icon = <Link2 size={17} color={BRAND} />;
+                    body = mediaList(arr);
+                } else if (shown.type === 'media') {
+                    const m = shown.item;
+                    const vid = isVid(m);
+                    const kindLabel = shown.kind === 'product' ? 'תמונת מוצר' : shown.kind === 'vod' ? 'סרטון VOD' : m.source === 'url' ? 'קישור חיצוני' : vid ? 'וידאו' : 'תמונה';
+                    title = m.name || 'ללא שם'; subtitle = kindLabel;
+                    icon = vid ? <Film size={17} color={BRAND} /> : <Image size={17} color={BRAND} />;
+                    if (shown.kind === 'product') footer = { label: 'מעבר לניהול מוצרים', onClick: () => drillTo('/admin/products') };
+                    else if (shown.kind === 'vod') footer = { label: 'מעבר למרכז ה-VOD', onClick: () => drillTo('/vod') };
+                    body = (
+                        <div className="space-y-5">
+                            {/* Preview */}
+                            <div className="rounded-[16px] overflow-hidden bg-[#F5F5F7] aspect-video flex items-center justify-center">
+                                {m.url && vid
+                                    ? <video src={m.url} className="w-full h-full object-contain" controls />
+                                    : m.url
+                                        ? <img src={m.thumbnail || m.url} alt={m.name} className="w-full h-full object-contain" onError={e => { e.target.style.display = 'none'; }} />
+                                        : <FolderOpen size={30} className="text-[#AEAEB2] opacity-40" />}
+                            </div>
+                            <DrillStat items={[
+                                ...(m.size ? [{ label: 'גודל', value: formatSize(m.size) }] : []),
+                                ...(shown.kind === 'vod' ? [{ label: 'שיעורים', value: m.lessonsCount ?? 0 }] : []),
+                                { label: 'סוג', value: kindLabel },
+                                { label: 'נוסף', value: m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('he-IL') : '—' },
+                            ]} />
+                            {/* URL */}
+                            <div className="p-3 rounded-[14px] text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-1">כתובת</p>
+                                <p className="text-[11px] font-mono text-[#3C3C43] break-all" dir="ltr">{m.url || '—'}</p>
+                            </div>
+                            {/* Actions */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => handleCopy(m.url)}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}` }}>
+                                    {copied === m.url ? <Check size={14} /> : <Copy size={14} />} {copied === m.url ? 'הועתק' : 'העתק URL'}
+                                </button>
+                                <button onClick={() => { const a = document.createElement('a'); a.href = m.url; a.download = m.name || 'media'; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}` }}>
+                                    <Download size={14} /> הורדה
+                                </button>
+                            </div>
+                            {shown.kind === 'library' && (
+                                <button onClick={() => { handleDelete(m); closeDrill(); }}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
+                                    style={{ background: toneBg('danger'), color: toneColor('danger'), border: `1px solid ${hexA(toneColor('danger'), 0.22)}` }}>
+                                    <Trash2 size={14} /> מחק מהספרייה
+                                </button>
+                            )}
+                        </div>
+                    );
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={BRAND}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.item?.id ?? ''}:${drillStack.length}`}
+                    >{body}</DashDrillView>
+                );
+            })()}
         </div>
     );
 }

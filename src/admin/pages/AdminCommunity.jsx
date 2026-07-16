@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
 import {
@@ -7,12 +7,73 @@ import {
     doc, deleteDoc, addDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader } from '../components/AdminComponents';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 import {
     Users, Trash2, Download, Search, TrendingUp,
     Calendar, Star, Zap, Send,
-    CheckSquare, Square
+    CheckSquare, Square, ChevronLeft, Mail, Copy, Hash, Clock
 } from 'lucide-react';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow, toneColor, toneBg, toneFg } from '../theme/tokens';
+
+// ─── Unified brand accent for subscriber avatars (no per-letter rainbow) ───────
+const AVATAR = '#007AFF';
+
+// ─── Babushka drill helpers (shared visual grammar with the dashboard) ─────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
+    </div>
+);
+
+// ─── Community domain accent (restrained azure brand) ─────────────────────────
+const GREEN      = '#007AFF';
+const GREEN_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(90,200,250,0.08) 100%)';
 
 function fmtDate(ts) {
     if (!ts) return '—';
@@ -28,7 +89,7 @@ function daysSince(ts) {
 function SourceBadge({ source }) {
     const map = {
         footer_newsletter: { label: 'Newsletter', color: '#007AFF' },
-        popup:    { label: 'Popup',    color: '#5856D6' },
+        popup:    { label: 'Popup',    color: '#5AC8FA' },
         checkout: { label: 'Checkout', color: '#34C759' },
         manual:   { label: 'Manual',   color: '#FF9500' },
     };
@@ -41,47 +102,25 @@ function SourceBadge({ source }) {
     );
 }
 
-function StatCard({ label, value, icon: Icon, color, sub }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-[20px] p-5"
-            style={{
-                background: 'rgba(255,255,255,0.78)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(255,255,255,0.72)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-            }}
-        >
-            <div className="absolute inset-0 pointer-events-none rounded-[20px]"
-                style={{ background: `radial-gradient(ellipse at top right, ${color}0D, transparent 65%)` }} />
-            <div className="flex items-start justify-between">
-                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: `${color}12`, border: `1px solid ${color}20` }}>
-                    <Icon size={16} style={{ color }} />
-                </div>
-                <div className="text-right">
-                    <p className="text-[10px] font-black text-[#86868B] tracking-widest mb-1">{label}</p>
-                    <p className="text-[28px] font-black text-[#1D1D1F] tracking-tighter leading-none">{value}</p>
-                </div>
-            </div>
-            {sub && <p className="text-[10px] font-semibold text-[#AEAEB2] text-right mt-2.5">{sub}</p>}
-        </motion.div>
-    );
-}
-
 export default function AdminCommunity() {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
+
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     const [subs, setSubs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState('newest');
     const [selected, setSelected] = useState(new Set());
     const [deletingId, setDeletingId] = useState(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const [addEmail, setAddEmail] = useState('');
     const [addingEmail, setAddingEmail] = useState(false);
 
@@ -89,8 +128,14 @@ export default function AdminCommunity() {
         const q = query(collection(db, 'newsletter_subs'), orderBy('timestamp', 'desc'));
         const unsub = onSnapshot(q, (snap) => {
             setSubs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoadError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('Newsletter subscribers load failed:', err);
+            setLoadError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת רשימת התפוצה', 'error');
+        });
         return unsub;
     }, []);
 
@@ -131,7 +176,12 @@ export default function AdminCommunity() {
             showToast('מנוי הוסר מהרשימה', 'success');
         } catch { showToast('שגיאה בהסרת המנוי', 'error'); }
         setDeletingId(null);
-        setShowDeleteConfirm(null);
+    };
+
+    const confirmDeleteSub = async (id) => {
+        if (await confirm({ title: 'הסר מנוי?', message: 'המנוי יוסר לצמיתות מרשימת התפוצה.', confirmLabel: 'כן, הסר', danger: true })) {
+            deleteSub(id);
+        }
     };
 
     const bulkDelete = async () => {
@@ -140,7 +190,12 @@ export default function AdminCommunity() {
             showToast(`${selected.size} מנויים הוסרו`, 'success');
             setSelected(new Set());
         } catch { showToast('שגיאה בהסרה קבוצתית', 'error'); }
-        setShowDeleteConfirm(null);
+    };
+
+    const confirmBulkDelete = async () => {
+        if (await confirm({ title: `הסר ${selected.size} מנויים?`, message: 'המנויים הנבחרים יוסרו לצמיתות.', confirmLabel: 'כן, הסר', danger: true })) {
+            bulkDelete();
+        }
     };
 
     const toggleSelect = (id) => {
@@ -184,57 +239,61 @@ export default function AdminCommunity() {
 
     const sourceColors = {
         footer_newsletter: '#007AFF',
-        popup: '#5856D6',
+        popup: '#5AC8FA',
         checkout: '#34C759',
         manual: '#FF9500',
         website: '#86868B',
     };
 
-    const panelStyle = {
-        background: 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-        border: '1px solid rgba(255,255,255,0.72)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    };
+    const panelStyle = { ...GLASS.base };
 
     return (
         <div dir="rtl" className="space-y-5">
-            <AdminSectionHeader
-                title="ניהול קהילה"
-                subtitle="רשימת תפוצה ומנויי ניוזלטר"
-                action={
-                    <div className="flex items-center gap-2.5">
-                        {selected.size > 0 && (
-                            <motion.button
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                onClick={() => setShowDeleteConfirm('bulk')}
-                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
-                                style={{ background: '#FF3B30' }}
-                            >
-                                <Trash2 size={13} />
-                                הסר {selected.size}
-                            </motion.button>
-                        )}
-                        <button
-                            onClick={exportCSV}
-                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
-                            style={{ background: 'rgba(0,122,255,0.09)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.18)' }}
+            {/* Page header — accent-tinted, one system with Suppliers/Orders */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(GREEN, 0.10), border: `1px solid ${hexA(GREEN, 0.18)}`, boxShadow: SHADOW.specular }}>
+                    <Users size={22} color={GREEN} />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                    <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>ניהול קהילה</h1>
+                    <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>רשימת תפוצה ומנויי ניוזלטר</p>
+                </div>
+                <div className="flex items-center gap-2.5">
+                    {selected.size > 0 && (
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileTap={TAP}
+                            onClick={confirmBulkDelete}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
+                            style={{ background: toneColor('danger') }}
                         >
-                            <Download size={13} />
-                            ייצוא CSV
-                        </button>
-                    </div>
-                }
-            />
+                            <Trash2 size={13} />
+                            הסר {selected.size}
+                        </motion.button>
+                    )}
+                    <motion.button
+                        onClick={exportCSV}
+                        whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(GREEN, 0.28)}` }} whileTap={TAP}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold"
+                        style={{ background: hexA(GREEN, 0.1), color: '#005EC4', border: `1px solid ${hexA(GREEN, 0.28)}` }}
+                    >
+                        <Download size={13} />
+                        ייצוא CSV
+                    </motion.button>
+                </div>
+            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard label="סה״כ מנויים"    value={stats.total}     icon={Users}       color="#007AFF" sub={stats.growth} />
-                <StatCard label="הצטרפו השבוע"   value={stats.thisWeek}  icon={TrendingUp}  color="#34C759" sub="7 ימים אחרונים" />
-                <StatCard label="הצטרפו החודש"   value={stats.thisMonth} icon={Calendar}    color="#5856D6" sub="30 ימים אחרונים" />
-                <StatCard label="שיעור פתיחה"    value="—"               icon={Star}        color="#86868B" sub="בקרוב" />
+            {/* KPI band — total · this week · this month · open rate */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+                <AdminKPICard title="סך מנויים" value={stats.total} subtitle={stats.growth} accent={GREEN} delay={0}
+                    icon={<Users size={20} color={GREEN} />} loading={loading} onClick={() => openDrill({ type: 'kpi-total' })} />
+                <AdminKPICard title="הצטרפו השבוע" value={stats.thisWeek} subtitle="7 ימים אחרונים" accent={PALETTE.blue} delay={0.05}
+                    icon={<TrendingUp size={20} color={PALETTE.blue} />} loading={loading} onClick={() => openDrill({ type: 'kpi-week' })} />
+                <AdminKPICard title="הצטרפו החודש" value={stats.thisMonth} subtitle="30 ימים אחרונים" accent={PALETTE.indigo} delay={0.1}
+                    icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} onClick={() => openDrill({ type: 'kpi-month' })} />
+                <AdminKPICard title="שיעור פתיחה" value="—" subtitle="מדד דיוור" accent={PALETTE.graphite} delay={0.15}
+                    icon={<Star size={20} color={PALETTE.graphite} />} onClick={() => openDrill({ type: 'kpi-open' })} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -281,12 +340,18 @@ export default function AdminCommunity() {
                         <div className="divide-y divide-black/[0.035] max-h-[540px] overflow-y-auto custom-scrollbar">
                             {loading ? (
                                 <div className="py-16 text-center text-[#AEAEB2] text-sm font-bold">טוען...</div>
+                            ) : loadError ? (
+                                <AdminEmpty
+                                    icon="empty"
+                                    title="שגיאה בטעינת רשימת התפוצה"
+                                    subtitle="לא ניתן לטעון את המנויים כרגע. רענן את הדף ונסה שוב."
+                                />
                             ) : filtered.length === 0 ? (
-                                <div className="py-16 text-center">
-                                    <Users size={36} className="mx-auto mb-3 text-[#AEAEB2]" />
-                                    <p className="text-[#AEAEB2] font-bold text-sm">{search ? 'לא נמצאו תוצאות' : 'אין מנויים עדיין'}</p>
-                                    <p className="text-[#AEAEB2] text-xs mt-1">הרשמות ניוזלטר יופיעו כאן</p>
-                                </div>
+                                <AdminEmpty
+                                    icon="empty"
+                                    title={search ? 'לא נמצאו תוצאות' : 'אין מנויים עדיין'}
+                                    subtitle={search ? 'נסה חיפוש אחר' : 'הרשמות ניוזלטר יופיעו כאן אוטומטית'}
+                                />
                             ) : (
                                 filtered.map((sub) => (
                                     <motion.div
@@ -305,12 +370,15 @@ export default function AdminCommunity() {
                                         </button>
 
                                         <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-white text-[11px] font-black shadow-sm"
-                                            style={{ background: `hsl(${(sub.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>
+                                            style={{ background: AVATAR }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 text-right">
-                                            <p className="text-[13px] font-bold text-[#1D1D1F] truncate">{sub.email}</p>
+                                        <div role="button" tabIndex={0}
+                                            onClick={() => openDrill({ type: 'subscriber', sub })}
+                                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'subscriber', sub }); } }}
+                                            className="flex-1 min-w-0 text-right cursor-pointer focus:outline-none">
+                                            <p className="text-[13px] font-bold text-[#1D1D1F] truncate group-hover:text-[#007AFF] transition-colors">{sub.email}</p>
                                             <div className="flex items-center gap-2 justify-end mt-0.5">
                                                 <span className="text-[10px] text-[#AEAEB2] font-medium">{fmtDate(sub.timestamp)}</span>
                                                 <SourceBadge source={sub.source} />
@@ -324,7 +392,7 @@ export default function AdminCommunity() {
 
                                         <motion.button
                                             whileTap={{ scale: 0.88 }}
-                                            onClick={() => setShowDeleteConfirm(sub.id)}
+                                            onClick={() => confirmDeleteSub(sub.id)}
                                             className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#FF3B30]/10"
                                             disabled={deletingId === sub.id}
                                         >
@@ -347,8 +415,8 @@ export default function AdminCommunity() {
                     <div className="rounded-[22px] p-5" style={panelStyle}>
                         <div className="flex items-center gap-2.5 mb-3">
                             <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.20)' }}>
-                                <Users size={12} className="text-[#34C759]" />
+                                style={{ background: 'rgba(0,122,255,0.12)', border: '1px solid rgba(0,122,255,0.20)' }}>
+                                <Users size={12} className="text-[#007AFF]" />
                             </div>
                             <p className="text-[13px] font-black text-[#1D1D1F] tracking-tight">הוסף מנוי ידנית</p>
                         </div>
@@ -357,7 +425,7 @@ export default function AdminCommunity() {
                                 type="submit"
                                 disabled={addingEmail || !addEmail.includes('@')}
                                 className="shrink-0 h-9 px-4 rounded-xl text-[12px] font-black text-white transition-all disabled:opacity-40"
-                                style={{ background: 'linear-gradient(135deg, #34C759, #30B851)' }}
+                                style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)' }}
                             >
                                 {addingEmail ? '...' : 'הוסף'}
                             </button>
@@ -367,7 +435,7 @@ export default function AdminCommunity() {
                                 onChange={e => setAddEmail(e.target.value)}
                                 placeholder="email@example.com"
                                 dir="ltr"
-                                className="flex-1 h-9 px-3 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#34C759]/20 transition-all text-left"
+                                className="flex-1 h-9 px-3 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all text-left"
                             />
                         </form>
                     </div>
@@ -400,10 +468,13 @@ export default function AdminCommunity() {
                                         initial={{ opacity: 0, x: 8 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: i * 0.035 }}
-                                        className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors"
+                                        role="button" tabIndex={0}
+                                        onClick={() => openDrill({ type: 'subscriber', sub })}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'subscriber', sub }); } }}
+                                        className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors cursor-pointer focus:outline-none"
                                     >
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center text-white text-[10px] font-black shrink-0"
-                                            style={{ background: `hsl(${(sub.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>
+                                            style={{ background: AVATAR }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0 text-right">
@@ -414,7 +485,7 @@ export default function AdminCommunity() {
                                         </div>
                                         {daysSince(sub.timestamp) === 0 && (
                                             <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full shrink-0"
-                                                style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                                                style={{ background: toneBg('success'), color: toneColor('success'), border: `1px solid ${hexA(toneColor('success'), 0.25)}` }}>
                                                 חדש
                                             </span>
                                         )}
@@ -460,106 +531,139 @@ export default function AdminCommunity() {
                                     })}
                                 </div>
                             ) : (
-                                <div className="space-y-2.5">
-                                    {['Newsletter', 'Popup', 'Manual'].map((label, i) => (
-                                        <div key={label}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] text-[#D1D1D6] font-bold">0 מנויים</span>
-                                                <span className="text-[11px] font-bold text-[#C7C7CC]">{label}</span>
-                                            </div>
-                                            <div className="h-1.5 bg-[#F2F2F7] rounded-full" />
-                                        </div>
-                                    ))}
-                                    <p className="text-[10px] text-[#AEAEB2] text-center pt-1">ייאספו נתונים עם הרשמות ראשונות</p>
+                                <div className="py-6 text-center">
+                                    <div className="w-10 h-10 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mx-auto mb-2">
+                                        <Hash size={16} className="text-[#AEAEB2]" />
+                                    </div>
+                                    <p className="text-[11px] text-[#AEAEB2] font-bold">אין נתוני מקור עדיין</p>
+                                    <p className="text-[10px] text-[#C7C7CC] mt-0.5">פילוח לפי מקור יופיע עם ההרשמות הראשונות</p>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    {/* Newsletter compose card */}
-                    <div className="rounded-[22px] p-5" style={panelStyle}>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.16)' }}>
-                                <Send size={12} className="text-[#5856D6]" />
-                            </div>
-                            <div className="text-right flex-1">
-                                <p className="text-[12px] font-black text-[#1D1D1F]">שליחת ניוזלטר</p>
-                                <p className="text-[10px] text-[#AEAEB2]">ל-{stats.total} מנויים</p>
-                            </div>
-                        </div>
-                        <textarea
-                            rows={3}
-                            placeholder="כתוב כאן את תוכן הניוזלטר שלך..."
-                            className="w-full px-3.5 py-2.5 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 transition-all resize-none text-right mb-2.5"
-                        />
-                        <button
-                            disabled
-                            className="w-full py-2.5 rounded-xl text-[12px] font-black text-white flex items-center justify-center gap-1.5 opacity-45 cursor-not-allowed"
-                            style={{ background: 'linear-gradient(135deg, #5856D6, #007AFF)' }}
-                        >
-                            <Send size={12} />
-                            שלח לכולם (בקרוב)
-                        </button>
-                        <p className="text-[9px] text-[#AEAEB2] text-center mt-1.5">חיבור ל-SendGrid / Resend — בקרוב</p>
-                    </div>
                 </div>
             </div>
 
-            {/* Delete confirmation */}
-            <AnimatePresence>
-                {showDeleteConfirm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center"
-                        onClick={() => setShowDeleteConfirm(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.92, opacity: 0, y: 12 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.92, opacity: 0 }}
-                            onClick={e => e.stopPropagation()}
-                            className="rounded-[26px] p-7 max-w-sm w-full mx-4 text-right"
-                            style={{
-                                background: 'rgba(255,255,255,0.92)',
-                                backdropFilter: 'blur(32px) saturate(200%)',
-                                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-                                border: '1px solid rgba(255,255,255,0.80)',
-                                boxShadow: '0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.95)',
-                            }}
-                        >
-                            <div className="w-12 h-12 rounded-2xl bg-[#FF3B30]/10 flex items-center justify-center mb-4 mr-auto ml-0">
-                                <Trash2 size={20} className="text-[#FF3B30]" />
+            {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const subRow = (s, i) => (
+                    <DrillRow key={s.id} delay={i * 0.03}
+                        onClick={() => pushDrill({ type: 'subscriber', sub: s })}
+                        leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
+                            style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
+                        title={s.email}
+                        subtitle={`${fmtDate(s.timestamp)} · לפני ${daysSince(s.timestamp)} ימים`}
+                        trailing={<SourceBadge source={s.source} />}
+                    />
+                );
+                const subList = (arr) => arr.length === 0
+                    ? <DrillEmpty icon={Users} text="אין מנויים להצגה" />
+                    : <div className="space-y-2">{arr.map(subRow)}</div>;
+
+                let title = '', subtitle = '', icon = null, footer = null, body = null;
+
+                if (shown.type === 'kpi-total') {
+                    title = 'סך מנויים'; subtitle = `${stats.total} מנויים ברשימת התפוצה`;
+                    icon = <Users size={17} color={GREEN} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סך הכל', value: stats.total, color: GREEN },
+                                { label: 'השבוע', value: stats.thisWeek, color: PALETTE.blue },
+                                { label: 'החודש', value: stats.thisMonth, color: PALETTE.indigo },
+                            ]} />
+                            {sourceCounts.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מקורות הרשמה — לחץ לצלילה</p>
+                                    {sourceCounts.map(([src, count], i) => {
+                                        const color = sourceColors[src] || '#86868B';
+                                        return (
+                                            <DrillRow key={src} delay={i * 0.04} tone={color}
+                                                onClick={() => pushDrill({ type: 'source', src })}
+                                                leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                                                    style={{ background: hexA(color, 0.14) }}><Hash size={13} style={{ color }} /></div>}
+                                                title={src}
+                                                subtitle={`${subs.length ? Math.round(count / subs.length * 100) : 0}% מהרשימה`}
+                                                trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{count}</span>}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">כל המנויים</p>
+                                {subList(subs)}
                             </div>
-                            <h3 className="text-lg font-black text-[#1D1D1F] mb-1.5">
-                                {showDeleteConfirm === 'bulk' ? `הסר ${selected.size} מנויים?` : 'הסר מנוי?'}
-                            </h3>
-                            <p className="text-[13px] text-[#6E6E73] font-medium mb-5">
-                                {showDeleteConfirm === 'bulk'
-                                    ? 'המנויים הנבחרים יוסרו לצמיתות.'
-                                    : 'המנוי יוסר לצמיתות מרשימת התפוצה.'}
-                            </p>
-                            <div className="flex gap-2.5">
-                                <button
-                                    onClick={() => showDeleteConfirm === 'bulk' ? bulkDelete() : deleteSub(showDeleteConfirm)}
-                                    className="flex-1 py-2.5 rounded-2xl text-white font-black text-[13px]"
-                                    style={{ background: '#FF3B30' }}
-                                >
-                                    כן, הסר
+                        </div>
+                    );
+                } else if (shown.type === 'kpi-week') {
+                    const arr = subs.filter(s => daysSince(s.timestamp) <= 7);
+                    title = 'הצטרפו השבוע'; subtitle = `${arr.length} מנויים · 7 ימים אחרונים`;
+                    icon = <TrendingUp size={17} color={PALETTE.blue} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'kpi-month') {
+                    const arr = subs.filter(s => daysSince(s.timestamp) <= 30);
+                    title = 'הצטרפו החודש'; subtitle = `${arr.length} מנויים · 30 ימים אחרונים`;
+                    icon = <Calendar size={17} color={PALETTE.indigo} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'kpi-open') {
+                    title = 'שיעור פתיחה'; subtitle = 'מדד דיוור';
+                    icon = <Star size={17} color={PALETTE.graphite} />;
+                    body = <DrillEmpty icon={Star} text="שיעור הפתיחה יתווסף עם חיבור מערכת הדיוור (SendGrid / Resend)" />;
+                } else if (shown.type === 'source') {
+                    const arr = subs.filter(s => (s.source || 'website') === shown.src);
+                    const color = sourceColors[shown.src] || '#86868B';
+                    title = shown.src; subtitle = `${arr.length} מנויים ממקור זה`;
+                    icon = <Hash size={17} color={color} />;
+                    body = <div className="space-y-2">{subList(arr)}</div>;
+                } else if (shown.type === 'subscriber') {
+                    const s = shown.sub;
+                    title = s.email; subtitle = 'פרטי מנוי'; icon = <Mail size={17} color={GREEN} />;
+                    body = (
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-[20px] font-black shrink-0"
+                                    style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>
+                                <div className="min-w-0 text-right flex-1">
+                                    <p className="text-[15px] font-black text-[#1D1D1F] truncate" dir="ltr">{s.email}</p>
+                                    <div className="mt-1"><SourceBadge source={s.source} /></div>
+                                </div>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'ימים ברשימה', value: daysSince(s.timestamp), color: GREEN },
+                                { label: 'תאריך הצטרפות', value: fmtDate(s.timestamp) },
+                            ]} />
+                            <div className="space-y-2">
+                                <button onClick={() => navigator.clipboard.writeText(s.email).then(() => showToast('המייל הועתק', 'success'))}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer transition-colors"
+                                    style={{ background: hexA(GREEN, 0.1), color: '#005EC4', border: `1px solid ${hexA(GREEN, 0.24)}` }}>
+                                    <Copy size={14} /> העתק כתובת מייל
                                 </button>
-                                <button
-                                    onClick={() => setShowDeleteConfirm(null)}
-                                    className="flex-1 py-2.5 rounded-2xl text-[#1D1D1F] font-black text-[13px] bg-[#F5F5F7]"
-                                >
-                                    ביטול
+                                <button onClick={() => { closeDrill(); confirmDeleteSub(s.id); }}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer transition-colors"
+                                    style={{ background: toneBg('danger'), color: toneColor('danger'), border: `1px solid ${hexA(toneColor('danger'), 0.22)}` }}>
+                                    <Trash2 size={14} /> הסר מהרשימה
                                 </button>
                             </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        </div>
+                    );
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={GREEN}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${shown.type}:${shown.sub?.id ?? shown.src ?? ''}:${drillStack.length}`}
+                    >{body}</DashDrillView>
+                );
+            })()}
         </div>
     );
 }

@@ -431,7 +431,7 @@ const ContactPage = () => {
  {[
  { icon: <Zap size={18} />, title: 'מענה תוך 24 שעות', sub: 'נציג מחכה לכם' },
  { icon: <HeartHandshake size={18} />, title: 'ייעוץ ללא עלות', sub: 'אפיון מותאם אישית' },
- { icon: <Award size={18} />, title: '+800 מוסדות', sub: 'בוטחים בנו כבר היום' },
+ { icon: <Award size={18} />, title: 'מחיר שקוף', sub: 'מה שהוצע — מה שמשלמים' },
  ].map((item, i) => (
  <motion.div
  key={i}

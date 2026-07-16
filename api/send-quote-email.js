@@ -5,55 +5,12 @@
 
 import { isRateLimited } from './_rateLimit.js';
 import { logSecurityEvent } from './_logEvent.js';
+import { queuePendingEmail } from './_pendingEmail.js';
 
-const RESEND_URL  = 'https://api.resend.com/emails';
-const FROM_NAME   = 'NextClass';
-const FROM_ADDR   = process.env.RESEND_FROM || 'onboarding@resend.dev';
-const FROM        = `${FROM_NAME} <${FROM_ADDR}>`;
 const BIZ_PHONE   = process.env.NEXTCLASS_PHONE || '058-585-6356';
 const SITE_URL    = process.env.NEXTCLASS_SITE_URL || 'https://nextclass-v4-living.vercel.app';
 const ADMIN_URL   = `${SITE_URL}/admin`;
 const FONT        = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-async function sendEmail(to, subject, html, replyTo) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) { console.warn('[Resend] RESEND_API_KEY not set'); return; }
-    const body = { from: FROM, to: [to], subject, html };
-    if (replyTo) body.reply_to = replyTo;
-    const res = await fetch(RESEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(JSON.stringify(data));
-    console.log('[Resend] Sent to:', to, '| id:', data.id);
-}
-
-async function queuePendingEmail(to, subject, html, recipientName = '', leadId = '') {
-    const url = 'https://firestore.googleapis.com/v1/projects/nextclass-d2364/databases/(default)/documents/pending_emails';
-    const body = {
-        fields: {
-            to: { stringValue: to },
-            subject: { stringValue: subject },
-            html: { stringValue: html },
-            recipientName: { stringValue: recipientName },
-            leadId: { stringValue: leadId },
-            status: { stringValue: 'pending' },
-            createdAt: { doubleValue: Date.now() }
-        }
-    };
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Firestore REST API Error: ${text}`);
-    }
-    return res.json();
-}
 
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
@@ -493,36 +450,41 @@ export default async function handler(req, res) {
 
     const errors = [];
 
+    // Never auto-send. Both customer confirmation AND the internal team notice are
+    // queued to pending_emails for manual admin approve-AND-edit in AdminCommunications.
+
     // 1. Customer confirmation
     if (quote.email && !teamOnly) {
         try {
-            await queuePendingEmail(
-                quote.email,
-                customerSubject,
-                customerHtml,
-                quote.contactName || '',
-                quote.id || ''
-            );
+            await queuePendingEmail({
+                to: quote.email,
+                subject: customerSubject,
+                html: customerHtml,
+                recipientName: quote.contactName || '',
+                kind: 'customer',
+                refId: quote.id || '',
+                refType: 'quote',
+                source: 'quote-confirmation',
+            });
         } catch (e) { errors.push({ to: 'customer', error: e.message }); }
     }
 
     // 2. Internal team notification
     const teamEmail = process.env.NEXTCLASS_EMAIL;
     if (teamEmail) {
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('[send-quote-email] RESEND_API_KEY not set, skipping team email');
-            errors.push({ to: 'team', error: 'RESEND_API_KEY not set' });
-        } else {
-            try {
-                await sendEmail(
-                    teamEmail,
-                    `הזמנה חדשה — ${quote.contactName} · ${quote.institution} · ${quote.id}`,
-                    teamEmailHtml(quote),
-                    quote.email
-                );
-            } catch (e) { errors.push({ to: 'team', error: e.message }); }
-        }
+        try {
+            await queuePendingEmail({
+                to: teamEmail,
+                subject: `הזמנה חדשה — ${quote.contactName} · ${quote.institution} · ${quote.id}`,
+                html: teamEmailHtml(quote),
+                recipientName: 'צוות NextClass',
+                kind: 'internal',
+                refId: quote.id || '',
+                refType: 'quote',
+                source: 'quote-team-notice',
+            });
+        } catch (e) { errors.push({ to: 'team', error: e.message }); }
     }
 
-    res.status(200).json({ ok: true, errors: errors.length ? errors : undefined });
+    res.status(200).json({ ok: true, queued: true, errors: errors.length ? errors : undefined });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Sparkles, CheckCircle, UserCircle2 } from 'lucide-react';
 import { useAuth, TIER_CONFIG } from '../context/AuthContext';
@@ -8,8 +8,6 @@ import { useLocation } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { usePersonalization } from '../context/PersonalizationContext';
-
-const OnboardingWizard = lazy(() => import('./OnboardingWizard'));
 
 // ─── Shared glass style ───────────────────────────────────────────────────────
 const glass = {
@@ -559,17 +557,10 @@ export function PersonaBar() {
 
 // ─── Default export — render all personalization layers ───────────────────────
 export default function PersonalizationLayer() {
-    const { showOnboarding } = usePersonalization();
+    // Onboarding welcome popup removed by request — no auto-popup on site entry.
     return (
         <>
             <QuoteStatusWatcher />
-            <AnimatePresence>
-                {showOnboarding && (
-                    <Suspense fallback={null}>
-                        <OnboardingWizard />
-                    </Suspense>
-                )}
-            </AnimatePresence>
         </>
     );
 }

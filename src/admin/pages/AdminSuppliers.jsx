@@ -1,6 +1,5 @@
 /* eslint-disable */
 import React, { useState, useEffect, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../firebase';
@@ -11,36 +10,37 @@ import {
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     Plus, X, Phone, Mail, MessageCircle, ExternalLink,
     FileText, Trash2, Check, Search, Building2, Package,
     Clock, CheckCircle2, ShoppingCart, RefreshCw,
     Globe, User, Hash, Truck, Box, CreditCard,
-    BarChart3, ArrowUpDown, Edit2, ChevronRight, Layers, Briefcase,
+    BarChart3, ArrowUpDown, Edit2, ChevronRight, ChevronLeft, Layers, Briefcase,
     Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
-    Zap, Rocket, Crown, ClipboardList, MessageSquare, Download,
+    Zap, Rocket, Crown, ClipboardList, MessageSquare, Download, DollarSign,
 } from 'lucide-react';
+import {
+    PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP,
+    hexA, glow, accentSurface, toneColor, toneBg, toneFg,
+} from '../theme/tokens';
+import { AdminKPICard } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const G = {
-    background: 'rgba(255,255,255,0.92)',
-    backdropFilter: 'blur(40px) saturate(180%)',
-    border: '1px solid rgba(0,0,0,0.055)',
-    boxShadow: '0 2px 20px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,1)',
-    borderRadius: 20,
-};
-const CARD = {
-    background: 'rgba(255,255,255,0.96)',
-    border: '1px solid rgba(0,0,0,0.06)',
-    boxShadow: '0 1px 8px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,1)',
-    borderRadius: 16,
-};
+// ─── Suppliers domain accent (restrained brand — azure, de-rainbowed) ──────────
+const GOLD      = '#007AFF';                                     // suppliers accent (azure)
+const GOLD_GRAD = 'linear-gradient(135deg,#007AFF,#5AC8FA)';
+const GOLD_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.14) 0%, rgba(90,200,250,0.08) 100%)';
+
+// ─── Liquid-glass surface recipes (token-driven — one system everywhere) ───────
+const G    = { ...GLASS.base,    borderRadius: RADIUS.card };    // workhorse card
+const CARD = { ...GLASS.frosted, borderRadius: RADIUS.smCard };  // compact chrome card
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const NEG_STAGES = [
     { id: 'received',    label: 'התקבלה',    color: '#007AFF', icon: Package },
     { id: 'reviewing',  label: 'בבדיקה',     color: '#FF9500', icon: Search },
-    { id: 'negotiating',label: 'במשא ומתן', color: '#5856D6', icon: ArrowUpDown },
+    { id: 'negotiating',label: 'במשא ומתן', color: '#5AC8FA', icon: ArrowUpDown },
     { id: 'agreed',     label: 'הוסכם',      color: '#34C759', icon: CheckCircle2 },
     { id: 'ordered',    label: 'הוזמן',      color: '#30D158', icon: ShoppingCart },
 ];
@@ -67,7 +67,7 @@ const CATEGORIES   = [
 ];
 
 // ─── Category color (deterministic from string) ────────────────────────────────
-const CAT_PALETTE = ['#007AFF', '#5856D6', '#FF9500', '#FF2D55', '#34C759', '#00C7BE', '#BF5AF2'];
+const CAT_PALETTE = ['#007AFF', '#5AC8FA', '#FF9500', '#FF2D55', '#34C759', '#00C7BE', '#0A84FF'];
 const catColor = cat => {
     if (!cat) return '#AEAEB2';
     let h = 0; for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) | 0;
@@ -91,6 +91,58 @@ async function fetchUsdToIls() {
     return null;
 }
 
+// Force a fresh fetch (bypasses the 5-min cache) — used by the manual FX button.
+async function refreshUsdToIls() {
+    try {
+        const res = await fetch('/api/fx', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const rate = data?.usdToIls;
+        if (rate && Number.isFinite(rate) && rate > 0.5) {
+            _fxCache = { usdToIls: rate, fetchedAt: Date.now() };
+            return rate;
+        }
+    } catch {}
+    return null;
+}
+
+// ─── FX rate pill — shows the live USD→ILS rate + one-tap refresh ──────────────
+function FxRateButton({ rate, onRefresh, size = 'md' }) {
+    const [loading, setLoading] = useState(false);
+    const [ok, setOk] = useState(false);
+    const pad = size === 'sm' ? '5px 9px' : '7px 12px';
+    const fs  = size === 'sm' ? 11 : 12;
+    const dot = size === 'sm' ? 17 : 20;
+    const refresh = async (e) => {
+        e?.stopPropagation?.(); e?.preventDefault?.();
+        if (loading) return;
+        setLoading(true);
+        const r = await refreshUsdToIls();
+        setLoading(false);
+        if (r) { onRefresh?.(r); setOk(true); setTimeout(() => setOk(false), 1600); }
+    };
+    return (
+        <button type="button" onClick={refresh} disabled={loading}
+            title="עדכון שער דולר-שקל לפי השער הנוכחי"
+            style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: pad, borderRadius: 999,
+                border: `1px solid ${ok ? 'rgba(52,199,89,0.4)' : 'rgba(0,122,255,0.22)'}`,
+                background: ok ? 'rgba(52,199,89,0.10)' : 'linear-gradient(135deg, rgba(0,122,255,0.10), rgba(90,200,250,0.08))',
+                color: ok ? '#1A8C40' : '#007AFF', fontSize: fs, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)', transition: 'all 0.18s', whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => { if (!loading && !ok) e.currentTarget.style.filter = 'brightness(1.03)'; }}
+            onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}>
+            <span style={{ width: dot, height: dot, borderRadius: 999, background: ok ? '#34C759' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+                {loading ? <RefreshCw size={11} className="animate-spin" /> : ok ? <Check size={12} /> : <DollarSign size={12} />}
+            </span>
+            <span>{ok ? 'עודכן' : loading ? 'מעדכן…' : 'שער דולר'}</span>
+            <span style={{ fontWeight: 900 }}>{rate ? `₪${Number(rate).toFixed(2)}` : '—'}</span>
+            {!loading && !ok && <RefreshCw size={12} style={{ opacity: 0.55 }} />}
+        </button>
+    );
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmt  = n  => n  ? `₪${Number(n).toLocaleString('he-IL')}` : '—';
 const uid  = () => Math.random().toString(36).slice(2, 10);
@@ -111,7 +163,7 @@ function calcTotal(products = []) {
 function SupplierAvatar({ domain, name, size = 48, color, logoUrl }) {
     const [err, setErr] = useState(false);
     const initials = (name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
-    const FALLBACK_COLORS = ['#007AFF', '#5856D6', '#FF9500', '#FF2D55', '#34C759'];
+    const FALLBACK_COLORS = ['#007AFF', '#5AC8FA', '#FF9500', '#FF2D55', '#34C759'];
     const bg = color || FALLBACK_COLORS[(name || '').charCodeAt(0) % FALLBACK_COLORS.length];
     const r = Math.round(size * 0.25);
     const cleanDomain = (domain || '').replace(/https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].trim();
@@ -136,7 +188,7 @@ function SupplierAvatar({ domain, name, size = 48, color, logoUrl }) {
 }
 
 // ─── ColorPicker ───────────────────────────────────────────────────────────────
-const SUPPLIER_PRESET_COLORS = ['#007AFF','#5856D6','#FF9500','#FF2D55','#34C759','#FF3B30','#FF6B35','#AF52DE','#00BCD4','#795548'];
+const SUPPLIER_PRESET_COLORS = ['#007AFF','#5AC8FA','#FF9500','#FF2D55','#34C759','#FF3B30','#FF6B35','#0A84FF','#00BCD4','#795548'];
 function ColorPicker({ value, onChange }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -349,10 +401,12 @@ function LBL({ children }) {
 }
 
 // ─── ProductLookupRow ──────────────────────────────────────────────────────────
-function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, onGoToProducts, allCategories }) {
+function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, onGoToProducts, allCategories, fxRate }) {
     const [busy,       setBusy]      = useState(false);
     const [imgErr,     setImgErr]    = useState(false);
-    const [usdRate,    setUsdRate]   = useState(_fxCache.usdToIls);
+    const [usdRate,    setUsdRate]   = useState(fxRate || _fxCache.usdToIls);
+    // Sync with the editor-level FX rate (updated by the manual "שער דולר" button)
+    useEffect(() => { if (fxRate) setUsdRate(fxRate); }, [fxRate]);
     const [catInput,   setCatInput]  = useState(false);
     const [catVal,     setCatVal]    = useState('');
     const [showTiers,  setShowTiers] = useState((p.tiers || []).length > 0);
@@ -581,7 +635,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button
                         onClick={() => setShowTiers(t => !t)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: `1px solid ${(p.tiers || []).length > 0 ? 'rgba(88,86,214,0.25)' : 'rgba(0,0,0,0.10)'}`, background: (p.tiers || []).length > 0 ? 'rgba(88,86,214,0.06)' : 'rgba(0,0,0,0.02)', cursor: 'pointer', color: (p.tiers || []).length > 0 ? '#5856D6' : '#8E8E93', fontSize: 10, fontWeight: 700 }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: `1px solid ${(p.tiers || []).length > 0 ? 'rgba(90,200,250,0.25)' : 'rgba(0,0,0,0.10)'}`, background: (p.tiers || []).length > 0 ? 'rgba(90,200,250,0.06)' : 'rgba(0,0,0,0.02)', cursor: 'pointer', color: (p.tiers || []).length > 0 ? '#5AC8FA' : '#8E8E93', fontSize: 10, fontWeight: 700 }}>
                         <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14v3H1V2zm0 4.5h10v3H1v-3zm0 4.5h6v3H1v-3z"/></svg>
                         מדרגות מחיר{(p.tiers || []).length > 0 ? ` (${p.tiers.length})` : ''}
                         <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" style={{ transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M8 10L2 4h12L8 10z"/></svg>
@@ -594,11 +648,11 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                     )}
                 </div>
                 {showTiers && (
-                    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(88,86,214,0.12)', overflow: 'hidden', background: 'rgba(88,86,214,0.02)' }}>
+                    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(90,200,250,0.12)', overflow: 'hidden', background: 'rgba(90,200,250,0.02)' }}>
                         {/* header */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, background: 'rgba(88,86,214,0.06)', borderBottom: '1px solid rgba(88,86,214,0.10)', padding: '5px 10px', direction: 'rtl' }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>כמות מינ׳</span>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>מחיר ליח׳ (₪)</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, background: 'rgba(90,200,250,0.06)', borderBottom: '1px solid rgba(90,200,250,0.10)', padding: '5px 10px', direction: 'rtl' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5AC8FA', textAlign: 'right' }}>כמות מינ׳</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5AC8FA', textAlign: 'right' }}>מחיר ליח׳ (₪)</span>
                             <span style={{ width: 22 }} />
                         </div>
                         {/* base tier */}
@@ -641,7 +695,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                     style={{ ...inputCss, fontSize: 11, flex: 1 }} />
                 {p.productPageUrl && (
                     <a href={p.productPageUrl} target="_blank" rel="noreferrer"
-                        style={{ padding: '6px 10px', borderRadius: 9, background: 'rgba(88,86,214,0.08)', color: '#5856D6', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        style={{ padding: '6px 10px', borderRadius: 9, background: 'rgba(90,200,250,0.08)', color: '#5AC8FA', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         <ExternalLink size={11} />פתח
                     </a>
                 )}
@@ -677,7 +731,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                         </>
                     ) : (
                         <motion.button onClick={() => onPublish?.(p)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
                             <Globe size={11} />פרסם לאתר
                         </motion.button>
                     )}
@@ -702,8 +756,8 @@ function DocsSection({ docs, onAdd, onRemove }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(docs || []).map((d, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(88,86,214,0.04)', border: '1px solid rgba(88,86,214,0.10)' }}>
-                    <FileText size={13} color="#5856D6" />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(90,200,250,0.04)', border: '1px solid rgba(90,200,250,0.10)' }}>
+                    <FileText size={13} color="#5AC8FA" />
                     <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#1D1D1F', textAlign: 'right' }}>{d.name}</span>
                     {d.url && <a href={d.url} target="_blank" rel="noreferrer" style={{ color: '#007AFF' }}><ExternalLink size={12} /></a>}
                     <button onClick={() => onRemove(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#FF3B30', padding: 3, display: 'flex' }}><X size={11} /></button>
@@ -846,7 +900,7 @@ function PublishProductModal({ product: p, quoteId, addProduct, onClose, onPubli
                     <div style={{ flex: 1 }}><MF label="שם המוצר באתר *" value={form.title} onChange={f('title')} placeholder="השם שיופיע ללקוחות" /></div>
                     {p.modelNumber && (
                         <motion.button onClick={refetch} disabled={busy} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-                            style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(88,86,214,0.18)', background: 'linear-gradient(135deg,rgba(88,86,214,0.10),rgba(88,86,214,0.07))', color: '#5856D6', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                            style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(90,200,250,0.18)', background: 'linear-gradient(135deg,rgba(90,200,250,0.10),rgba(90,200,250,0.07))', color: '#5AC8FA', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                             {busy ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}{busy ? '...' : 'משוך נתונים'}
                         </motion.button>
                     )}
@@ -922,6 +976,7 @@ function PublishProductModal({ product: p, quoteId, addProduct, onClose, onPubli
 // ─── QuoteDrawer ───────────────────────────────────────────────────────────────
 function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focusProductKey }) {
     const { addProduct } = useAdminData();
+    const confirm = useAdminConfirm();
     const navigate = useNavigate();
     const [d, setD] = useState(() => JSON.parse(JSON.stringify(quote)));
     const [saving, setSaving]   = useState(false);
@@ -929,6 +984,8 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     const [addingNote, setAN]   = useState(false);
     const [publishModal, setPublishModal] = useState(null); // product being published
     const [catFilter, setCatFilter] = useState('');
+    const [editorFx, setEditorFx] = useState(_fxCache.usdToIls);
+    useEffect(() => { fetchUsdToIls().then(r => { if (r) setEditorFx(r); }); }, []);
     const [highlightKey, setHighlightKey] = useState(focusProductKey || null);
     const focusRefs = React.useRef({});
     const baselineRef = React.useRef(JSON.stringify(quote));
@@ -989,7 +1046,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     };
 
     const delQuote = async () => {
-        if (!confirm('למחוק הצעה זו?')) return;
+        if (!await confirm({ message: 'למחוק הצעה זו?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'supplier_quotes', quote.id));
             onClose();
@@ -1077,7 +1134,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => { if (dirty && !confirm('יש שינויים שלא נשמרו. לסגור?')) return; onClose(); }}
+                onClick={async () => { if (dirty && !await confirm({ message: 'יש שינויים שלא נשמרו. לסגור?', danger: true })) return; onClose(); }}
                 style={{ position: 'fixed', inset: 0, zIndex: 48, background: 'rgba(0,0,0,0.22)', backdropFilter: 'blur(3px)' }} />
 
             <motion.div
@@ -1110,7 +1167,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.03)'; e.currentTarget.style.color = '#C7C7CC'; }}>
                         <Trash2 size={14} />
                     </button>
-                    <button onClick={() => { if (dirty && !confirm('יש שינויים שלא נשמרו. לסגור?')) return; onClose(); }}
+                    <button onClick={async () => { if (dirty && !await confirm({ message: 'יש שינויים שלא נשמרו. לסגור?', danger: true })) return; onClose(); }}
                         style={{ padding: 7, borderRadius: 9, border: '1px solid rgba(0,0,0,0.07)', background: 'rgba(0,0,0,0.03)', cursor: 'pointer', color: '#AEAEB2', display: 'flex', transition: 'all 0.15s' }}>
                         <X size={15} />
                     </button>
@@ -1130,10 +1187,13 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                         <section>
                             <SL icon={<Package size={12} />} label={`מוצרים (${(d.products || []).length})`}
                                 extra={
-                                    <motion.button onClick={addProd} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 8, border: 'none', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                        <Plus size={11} />מוצר
-                                    </motion.button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <FxRateButton rate={editorFx} onRefresh={setEditorFx} size="sm" />
+                                        <motion.button onClick={addProd} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 8, border: 'none', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            <Plus size={11} />מוצר
+                                        </motion.button>
+                                    </div>
                                 } />
 
                             {/* Category filter chips */}
@@ -1148,7 +1208,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                                                     padding: '5px 13px', borderRadius: 99,
                                                     border: active ? '1px solid rgba(0,122,255,0.30)' : '1px solid rgba(0,0,0,0.08)',
                                                     background: active
-                                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.11),rgba(88,86,214,0.09))'
+                                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.11),rgba(90,200,250,0.09))'
                                                         : 'rgba(255,255,255,0.70)',
                                                     backdropFilter: 'blur(12px)',
                                                     WebkitBackdropFilter: 'blur(12px)',
@@ -1181,7 +1241,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                                                 style={{ borderRadius: 12, transition: 'background 0.5s', background: isHighlighted ? 'rgba(52,199,89,0.10)' : 'transparent', boxShadow: isHighlighted ? '0 0 0 2px rgba(52,199,89,0.35)' : 'none' }}>
                                                 <ProductRow product={p} onChange={u => updProd(i, u)} onDelete={() => remProd(i)}
                                                     quoteStatus={d.status} onPublish={setPublishModal} onGoToProducts={() => navigate('/admin/products')}
-                                                    allCategories={allCategories} />
+                                                    allCategories={allCategories} fxRate={editorFx} />
                                             </div>
                                         );
                                     })}
@@ -1256,7 +1316,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                             const events = [];
                             const createdTs = quote.createdAt?.seconds ? quote.createdAt.seconds * 1000 : null;
                             if (createdTs) events.push({ ts: createdTs, icon: <ClipboardList size={8} />, label: 'הצעה נוצרה', color: '#007AFF', sub: fmtD(quote.createdAt) });
-                            (quote.notes || []).forEach(n => events.push({ ts: n.ts, icon: <MessageSquare size={8} />, label: n.text, color: '#5856D6', sub: new Date(n.ts).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) }));
+                            (quote.notes || []).forEach(n => events.push({ ts: n.ts, icon: <MessageSquare size={8} />, label: n.text, color: '#5AC8FA', sub: new Date(n.ts).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) }));
                             const pubProds = (quote.products || []).filter(p => p.publishedProductId);
                             pubProds.forEach(p => events.push({ ts: 0, icon: <Rocket size={8} />, label: `"${p.name || p.modelNumber}" פורסם לאתר`, color: '#34C759', sub: 'פורסם' }));
                             if (quote.status && quote.status !== 'received') {
@@ -1300,7 +1360,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                 {/* Sticky save bar */}
                 <div style={{ padding: '14px 22px', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)' }}>
                     <motion.button onClick={save} disabled={!dirty || saving} whileHover={{ scale: dirty ? 1.02 : 1 }} whileTap={{ scale: dirty ? 0.98 : 1 }}
-                        style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: dirty ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.05)', color: dirty ? '#fff' : '#AEAEB2', fontSize: 14, fontWeight: 800, cursor: dirty ? 'pointer' : 'not-allowed', boxShadow: dirty ? '0 4px 18px rgba(0,122,255,0.28)' : 'none', transition: 'all 0.2s' }}>
+                        style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: dirty ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(0,0,0,0.05)', color: dirty ? '#fff' : '#AEAEB2', fontSize: 14, fontWeight: 800, cursor: dirty ? 'pointer' : 'not-allowed', boxShadow: dirty ? '0 4px 18px rgba(0,122,255,0.28)' : 'none', transition: 'all 0.2s' }}>
                         {saving ? 'שומר...' : dirty ? 'שמור שינויים' : 'אין שינויים'}
                     </motion.button>
                 </div>
@@ -1470,7 +1530,7 @@ function SupplierScorecard({ quotes }) {
                     {[
                         { icon: CheckCircle2, label: `${closed} נסגרו`, sub: `${Math.round(closeRate * 100)}% אחוז סגירה`, color: '#34C759' },
                         { icon: Globe,        label: `${published} פורסמו`, sub: 'מוצרים לאתר',  color: '#007AFF' },
-                        { icon: CreditCard,   label: fmt(totalValue),        sub: 'ערך כולל',      color: '#5856D6' },
+                        { icon: CreditCard,   label: fmt(totalValue),        sub: 'ערך כולל',      color: '#5AC8FA' },
                         avgLead > 0 ? { icon: Clock, label: `${Math.round(avgLead)} ימים`, sub: 'זמן אספקה ממוצע', color: '#FF9500' } : null,
                     ].filter(Boolean).map((kpi, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -1489,6 +1549,8 @@ function SupplierScorecard({ quotes }) {
 
 // ─── SupplierView ──────────────────────────────────────────────────────────────
 function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSupplier }) {
+    const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const totalVal = quotes.reduce((s, q) => s + calcTotal(q.products), 0);
     const [quotesView, setQuotesView] = useState('grid'); // 'grid' | 'kanban'
     const [selected, setSelected] = useState(new Set()); // Set of quote IDs
@@ -1503,7 +1565,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
         const phone = (supplier.agentPhone || '').replace(/\D/g,'').replace(/^0/,'972');
         if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         else if (supplier.agentEmail) window.open(`mailto:${supplier.agentEmail}?subject=${encodeURIComponent('בקשת הצעת מחיר – NextClass')}&body=${encodeURIComponent(msg)}`, '_blank');
-        else alert('אין פרטי קשר לספק זה');
+        else showToast('אין פרטי קשר לספק זה', 'error');
     };
 
     const applyBulkStatus = async () => {
@@ -1539,7 +1601,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
 
                     {/* Quote count chip */}
                     <div style={{ flexShrink: 0 }}>
-                        <KPIBox label="הצעות" value={quotes.length} color="#007AFF" />
+                        <KPIBox label="הצעות" value={quotes.length} color={GOLD} />
                     </div>
                 </div>
                 <SupplierScorecard quotes={quotes} />
@@ -1553,8 +1615,8 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                         <MessageCircle size={13} />בקש הצעה
                     </motion.button>
-                    <motion.button onClick={onAddQuote} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
+                    <motion.button onClick={onAddQuote} whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 16px ${hexA(GOLD, 0.38)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                         <Plus size={13} />הצעה חדשה
                     </motion.button>
                 </div>
@@ -1570,7 +1632,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                     <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: 9, border: '1px solid rgba(0,0,0,0.05)' }}>
                         {[{ id: 'grid', label: 'רשימה' }, { id: 'kanban', label: 'סטטוס' }].map(v => (
                             <button key={v.id} onClick={() => setQuotesView(v.id)}
-                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent', background: quotesView === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent', color: quotesView === v.id ? '#007AFF' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? '0 2px 8px rgba(0,122,255,0.13)' : 'none' }}>
+                                style={{ padding: '4px 11px', borderRadius: 7, border: quotesView === v.id ? `1px solid ${hexA(GOLD, 0.3)}` : '1px solid transparent', background: quotesView === v.id ? GOLD_SOFT : 'transparent', color: quotesView === v.id ? '#005EC4' : '#8E8E93', fontSize: 11, fontWeight: quotesView === v.id ? 800 : 600, cursor: 'pointer', transition: 'all 0.15s', boxShadow: quotesView === v.id ? `0 2px 8px ${hexA(GOLD, 0.15)}` : 'none' }}>
                                 {v.label}
                             </button>
                         ))}
@@ -1587,7 +1649,7 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                             <div key={q.id} style={{ position: 'relative' }}>
                                 {selected.size > 0 && (
                                     <button onClick={e => { e.stopPropagation(); setSelected(s => { const n = new Set(s); n.has(q.id) ? n.delete(q.id) : n.add(q.id); return n; }); }}
-                                        style={{ position: 'absolute', top: 12, left: 12, zIndex: 3, width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected.has(q.id) ? '#007AFF' : 'rgba(0,0,0,0.2)'}`, background: selected.has(q.id) ? '#007AFF' : 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        style={{ position: 'absolute', top: 12, left: 12, zIndex: 3, width: 20, height: 20, borderRadius: 6, border: `2px solid ${selected.has(q.id) ? GOLD : 'rgba(0,0,0,0.2)'}`, background: selected.has(q.id) ? GOLD : 'rgba(255,255,255,0.9)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {selected.has(q.id) && <Check size={11} color="#fff" />}
                                     </button>
                                 )}
@@ -1648,11 +1710,11 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
                             {NEG_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                         </select>
                         <motion.button onClick={applyBulkStatus} disabled={!bulkStatus} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            style={{ padding: '8px 16px', borderRadius: 11, border: 'none', background: bulkStatus ? '#007AFF' : 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: bulkStatus ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            style={{ padding: '8px 16px', borderRadius: 11, border: 'none', background: bulkStatus ? GOLD_GRAD : 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: bulkStatus ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <Check size={12} />החל
                         </motion.button>
                         <motion.button onClick={async () => {
-                            if (!confirm(`למחוק ${selected.size} הצעות?`)) return;
+                            if (!await confirm({ message: `למחוק ${selected.size} הצעות?`, danger: true })) return;
                             for (const qId of selected) { try { await deleteDoc(doc(db, 'supplier_quotes', qId)); } catch {} }
                             setSelected(new Set());
                         }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -1666,11 +1728,11 @@ function SupplierView({ supplier, quotes, onAddQuote, onSelectQuote, onEditSuppl
     );
 }
 
-function KPIBox({ label, value, color, small }) {
+function KPIBox({ label, value, color = GOLD, small }) {
     return (
-        <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', textAlign: 'center', minWidth: 72 }}>
-            <div style={{ fontSize: small ? 14 : 20, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.4px' }}>{value}</div>
-            <div style={{ fontSize: 10, fontWeight: 500, color: '#AEAEB2' }}>{label}</div>
+        <div style={{ ...GLASS.base, borderRadius: RADIUS.smCard, padding: '12px 18px', textAlign: 'center', minWidth: 80 }}>
+            <div style={{ fontSize: small ? 16 : 26, fontWeight: 900, color: '#1D1D1F', letterSpacing: '-0.6px', lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, color: '#86868B', marginTop: 3 }}>{label}</div>
         </div>
     );
 }
@@ -1695,10 +1757,13 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 if (!key) return;
                 if (!map[key]) map[key] = { label: p.name || p.modelNumber, model: p.modelNumber, image: p.imageUrl, category: p.category || '', rows: {} };
                 if (!map[key].rows[q.supplierId]) map[key].rows[q.supplierId] = [];
-                let unitPrice = Number(p.pricePerUnit) || 0;
-                // Fallback for USD products saved with pricePerUnit=0 (rate was unavailable at save time)
-                if (!unitPrice && p.currency === 'USD' && p.priceInUsd && usdRate) {
+                // USD products always reflect the LIVE rate (so the "שער דולר" refresh re-converts them);
+                // ILS / fixed-price products keep their stored price.
+                let unitPrice;
+                if (p.currency === 'USD' && p.priceInUsd && usdRate) {
                     unitPrice = Math.round(parseFloat(p.priceInUsd) * usdRate * 100) / 100;
+                } else {
+                    unitPrice = Number(p.pricePerUnit) || 0;
                 }
                 const price = unitPrice * (1 - (Number(p.discount) || 0) / 100);
                 map[key].rows[q.supplierId].push({ price, qty: Number(p.quantity) || 1, qNum: q.quoteNumber || q.id?.slice(-6), quoteId: q.id, productKey: key });
@@ -1867,8 +1932,9 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 </motion.div>
             )}
 
-            {/* ── View mode toggle ────────────────────────────────── */}
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+            {/* ── FX rate + View mode toggle ──────────────────────── */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <FxRateButton rate={usdRate} onRefresh={setUsdRate} />
                 <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)' }}>
                     {[
                         { id: 'table', label: 'טבלה' },
@@ -1879,7 +1945,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                         <button key={v.id} onClick={() => setViewMode(v.id)} style={{
                             padding: '5px 12px', borderRadius: 8,
                             border: viewMode === v.id ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                            background: viewMode === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
+                            background: viewMode === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.08) 100%)' : 'transparent',
                             color: viewMode === v.id ? '#007AFF' : '#6E6E73',
                             fontSize: 11, fontWeight: viewMode === v.id ? 700 : 500,
                             cursor: 'pointer', transition: 'all 0.15s',
@@ -1903,7 +1969,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                     padding: '6px 14px', borderRadius: 99,
                                     border: active ? '1px solid rgba(0,122,255,0.30)' : '1px solid rgba(255,255,255,0.65)',
                                     background: active
-                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.10))'
+                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(90,200,250,0.10))'
                                         : 'rgba(255,255,255,0.62)',
                                     backdropFilter: 'blur(14px)',
                                     WebkitBackdropFilter: 'blur(14px)',
@@ -2253,7 +2319,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
 
             {/* ── Chart view — premium grouped bar chart ───────────── */}
             {viewMode === 'chart' && (() => {
-                const COLORS  = ['#007AFF','#FF9500','#34C759','#FF3B30','#5856D6','#FF2D55'];
+                const COLORS  = ['#007AFF','#FF9500','#34C759','#FF3B30','#5AC8FA','#FF2D55'];
                 const LIGHTS  = ['#4FC3F7','#FFD54F','#69F0AE','#FF8A65','#CE93D8','#F48FB1'];
                 const supColor = (s, i) => s.color || COLORS[i % 6];
                 const supLight = (s, i) => s.color ? s.color + 'BB' : LIGHTS[i % 6];
@@ -2491,7 +2557,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 return (
                     <div style={{ ...G, padding: '18px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                            <TrendingUp size={14} color="#5856D6" />
+                            <TrendingUp size={14} color="#5AC8FA" />
                             <span style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F' }}>היסטוריית מחירים</span>
                             <span style={{ fontSize: 11, color: '#AEAEB2', fontWeight: 600 }}>· מוצרים עם מספר הצעות</span>
                         </div>
@@ -2506,7 +2572,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                 const trend = pts[pts.length - 1] - pts[0];
                                 const tColor = trend < 0 ? '#34C759' : trend > 0 ? '#FF3B30' : '#8E8E93';
                                 return (
-                                    <div key={ri} style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(88,86,214,0.03)', border: '1px solid rgba(88,86,214,0.10)' }}>
+                                    <div key={ri} style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(90,200,250,0.03)', border: '1px solid rgba(90,200,250,0.10)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.label}</div>
                                             <span style={{ fontSize: 11, fontWeight: 800, color: tColor, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2516,16 +2582,16 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block' }}>
                                             <defs>
                                                 <linearGradient id={`cgrad${ri}`} x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#5856D6" stopOpacity="0.16" />
-                                                    <stop offset="100%" stopColor="#5856D6" stopOpacity="0" />
+                                                    <stop offset="0%" stopColor="#5AC8FA" stopOpacity="0.16" />
+                                                    <stop offset="100%" stopColor="#5AC8FA" stopOpacity="0" />
                                                 </linearGradient>
                                             </defs>
                                             <polygon points={`${xs[0]},${H} ${polyline} ${xs[xs.length-1]},${H}`} fill={`url(#cgrad${ri})`} />
-                                            <polyline points={polyline} fill="none" stroke="#5856D6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <polyline points={polyline} fill="none" stroke="#5AC8FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                             {row.points.map((pt, i) => (
                                                 <g key={i}>
-                                                    <circle cx={xs[i]} cy={ys[i]} r="4" fill="#fff" stroke="#5856D6" strokeWidth="2" />
-                                                    <text x={xs[i]} y={ys[i] - 8} textAnchor="middle" fontSize="9" fill="#5856D6" fontWeight="700">{fmt(pt.price)}</text>
+                                                    <circle cx={xs[i]} cy={ys[i]} r="4" fill="#fff" stroke="#5AC8FA" strokeWidth="2" />
+                                                    <text x={xs[i]} y={ys[i] - 8} textAnchor="middle" fontSize="9" fill="#5AC8FA" fontWeight="700">{fmt(pt.price)}</text>
                                                     <text x={xs[i]} y={H + 13} textAnchor="middle" fontSize="8" fill="#AEAEB2">{pt.supplier}</text>
                                                 </g>
                                             ))}
@@ -2543,7 +2609,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
 }
 
 // ─── ContactCard ───────────────────────────────────────────────────────────────
-const ACCENT_PALETTE = ['#007AFF','#5856D6','#FF9500','#FF2D55','#34C759','#00C7BE','#BF5AF2'];
+const ACCENT_PALETTE = ['#007AFF','#5AC8FA','#FF9500','#FF2D55','#34C759','#00C7BE','#0A84FF'];
 function accentFor(name) {
     let h = 0; for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
     return ACCENT_PALETTE[Math.abs(h) % ACCENT_PALETTE.length];
@@ -2625,7 +2691,7 @@ function ContactCard({ contact: c, onSelectSupplier }) {
                     </a>
                 )}
                 {c.website && (
-                    <a href={c.website} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 13, background: 'rgba(88,86,214,0.06)', color: '#5856D6', textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid rgba(88,86,214,0.14)', overflow: 'hidden' }}>
+                    <a href={c.website} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 13, background: 'rgba(90,200,250,0.06)', color: '#5AC8FA', textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid rgba(90,200,250,0.14)', overflow: 'hidden' }}>
                         <Globe size={13} style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{domain || c.website}</span>
                     </a>
@@ -2882,7 +2948,7 @@ function AddSupplierModal({ onClose, onAdded }) {
                 whileTap={{ scale: 0.985 }}
                 style={{
                     width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
-                    background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                    background: 'linear-gradient(135deg,#007AFF,#5AC8FA)',
                     color: '#fff', fontSize: 14, fontWeight: 800,
                     cursor: saving ? 'not-allowed' : 'pointer',
                     boxShadow: '0 6px 20px rgba(0,122,255,0.28)',
@@ -2902,6 +2968,7 @@ function AddSupplierModal({ onClose, onAdded }) {
 // ─── EditSupplierModal ─────────────────────────────────────────────────────────
 function EditSupplierModal({ supplier, onClose }) {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [form, setForm] = useState({ name: supplier.name || '', domain: supplier.domain || '', logoUrl: supplier.logoUrl || '', agentName: supplier.agentName || '', agentTitle: supplier.agentTitle || '', agentPhone: supplier.agentPhone || '', agentEmail: supplier.agentEmail || '', website: supplier.website || '', color: supplier.color || '' });
     const [saving,   setSaving]   = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -2921,7 +2988,7 @@ function EditSupplierModal({ supplier, onClose }) {
         setSaving(false);
     };
     const del = async () => {
-        if (!confirm(`למחוק את הספק "${supplier.name}"?`)) return;
+        if (!await confirm({ message: `למחוק את הספק "${supplier.name}"?`, danger: true })) return;
         setDeleting(true);
         try {
             await deleteDoc(doc(db, 'suppliers', supplier.id));
@@ -2957,7 +3024,7 @@ function EditSupplierModal({ supplier, onClose }) {
                 <ColorPicker value={form.color} onChange={f('color')} />
             </div>
             <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
+                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
                 {saving ? 'שומר...' : 'שמור שינויים'}
             </motion.button>
         </Modal>
@@ -2992,7 +3059,7 @@ function AddQuoteModal({ supplier, onClose, onCreated }) {
                 תיווצר הצעה ריקה — לאחר מכן תוכל להוסיף מוצרים, מחירים ופרטי עסקה.
             </p>
             <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
+                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
                 {saving ? 'יוצר...' : 'צור הצעה'}
             </motion.button>
         </Modal>
@@ -3293,7 +3360,7 @@ function exportQuotesXLSX(suppliers, quotes) {
             { label: `${suppliers.length} ספקים`,   bg: '1E3A5F', fg: 'FFFFFF', c1: 0, c2: 2 },
             { label: `${quotes.length} הצעות`,       bg: '2563EB', fg: 'FFFFFF', c1: 3, c2: 5 },
             { label: `₪${fmtNum(grandTotal)} ערך כולל`, bg: '065F46', fg: 'FFFFFF', c1: 6, c2: 7 },
-            { label: `${totalProducts} מוצרים`,     bg: '7C3AED', fg: 'FFFFFF', c1: 8, c2: 9 },
+            { label: `${totalProducts} מוצרים`,     bg: '0A84FF', fg: 'FFFFFF', c1: 8, c2: 9 },
         ];
         KPIs.forEach(kpi => {
             fillMerge(ws1, 2, kpi.c1, 2, kpi.c2, { v: kpi.label, t: 's', s: kpiSt(kpi.bg, kpi.fg) });
@@ -3608,7 +3675,7 @@ function exportQuotesXLSX(suppliers, quotes) {
             const stageSt3 = { ...dataSt(even), font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: stageColor } }, alignment: { horizontal: 'center', vertical: 'center' } };
             const publishedSt = { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: p.publishedProductId ? C.greenTxt : C.light } } };
 
-            const tiersSt = { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: (p.tiers || []).length > 0 ? '5856D6' : C.light } }, alignment: { horizontal: 'right', vertical: 'center', wrapText: false } };
+            const tiersSt = { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: (p.tiers || []).length > 0 ? '5AC8FA' : C.light } }, alignment: { horizontal: 'right', vertical: 'center', wrapText: false } };
             const prodRow = [
                 { v: cat, t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: hex(catColor(cat)) || C.mid } } } },
                 { v: p.name || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
@@ -3705,7 +3772,7 @@ function exportQuotesXLSX(suppliers, quotes) {
                 ? lc(
                     domainRaw,
                     domainFull,
-                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '7C3AED' }, underline: true } },
+                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '0A84FF' }, underline: true } },
                 )
                 : { v: '—', t: 's', s: dataSt(even) };
 
@@ -3746,11 +3813,65 @@ function exportQuotesXLSX(suppliers, quotes) {
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
-export default function AdminSuppliers() {
+// ─── Babushka drill primitives (shared visual grammar with the dashboard) ─────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
+export default function AdminSuppliers({ embedded = false }) {
     const { showToast } = useAdminToast();
     const [suppliers,    setSuppliers]    = useState([]);
     const [quotes,       setQuotes]       = useState([]);
     const [loading,      setLoading]      = useState(true);
+    const [error,        setError]        = useState(null);
+    const [search,       setSearch]       = useState('');
     const [activeTab,    setActiveTab]    = useState(null);
     const [selectedQ,    setSelectedQ]    = useState(null);
     const [focusProductKey, setFocusProductKey] = useState(null);
@@ -3758,6 +3879,14 @@ export default function AdminSuppliers() {
     const [addQuote,     setAddQuote]     = useState(false);
     const [editSupplier, setEditSupplier] = useState(null);
     const [pendingOpenId, setPendingOpenId] = useState(null);
+
+    // ── Babushka drill stack (KPI → breakdown → supplier/quote detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const openQuoteDrawer = (q) => { closeDrill(); setActiveTab(q.supplierId); setTimeout(() => setSelectedQ(q), 60); };
 
     // Auto-open drawer when a freshly-created quote arrives via Firestore snapshot
     useEffect(() => {
@@ -3778,9 +3907,10 @@ export default function AdminSuppliers() {
                     if (t !== 'compare' && !data.find(s => s.id === t)) return data[0]?.id || 'compare';
                     return t;
                 });
+                setError(null);
                 setLoading(false);
             },
-            () => setLoading(false)
+            (err) => { console.error('suppliers listener', err); setError('שגיאה בטעינת ספקים'); setLoading(false); showToast('שגיאה בטעינת ספקים', 'error'); }
         );
         return unsub;
     }, []);
@@ -3788,7 +3918,8 @@ export default function AdminSuppliers() {
     useEffect(() => {
         const unsub = onSnapshot(
             query(collection(db, 'supplier_quotes'), orderBy('createdAt', 'desc')),
-            snap => setQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+            snap => setQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+            (err) => { console.error('supplier_quotes listener', err); setError('שגיאה בטעינת הצעות מחיר'); showToast('שגיאה בטעינת הצעות מחיר', 'error'); }
         );
         return unsub;
     }, []);
@@ -3803,136 +3934,201 @@ export default function AdminSuppliers() {
         return [...s].sort((a, b) => a.localeCompare(b, 'he'));
     }, [quotes]);
 
+    // ─── KPI band derivations (suppliers · active RFQs · pending quotes · value) ──
+    const kpis = useMemo(() => {
+        const stageOf       = q => q.status || 'received';
+        const activeRFQs    = quotes.filter(q => ['received', 'reviewing', 'negotiating'].includes(stageOf(q))).length;
+        const pendingQuotes = quotes.filter(q => stageOf(q) === 'received').length;
+        const totalValue    = quotes.reduce((s, q) => s + calcTotal(q.products || []), 0);
+        return { suppliers: suppliers.length, activeRFQs, pendingQuotes, totalValue };
+    }, [suppliers, quotes]);
+
+    // ─── Search filters the supplier segment pills (Heaven organizing mechanism) ──
+    const filteredSuppliers = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        if (!term) return suppliers;
+        return suppliers.filter(s =>
+            (s.name || '').toLowerCase().includes(term) ||
+            (s.agentName || '').toLowerCase().includes(term) ||
+            (s.domain || '').toLowerCase().includes(term)
+        );
+    }, [suppliers, search]);
+
     const handleSupplierAdded = s => {
         setActiveTab(s.id);
     };
 
-    if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{ width: 28, height: 28, border: '3px solid rgba(0,122,255,0.14)', borderTopColor: '#007AFF', borderRadius: '50%' }} />
-        </div>
-    );
-
     return (
         <div dir="rtl">
-            {/* Page header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1 }}>
-                    <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>הצעות מחיר מספקים</h1>
-                    <p style={{ fontSize: 13, color: '#AEAEB2', margin: '3px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
-                </div>
+            {/* Page header — icon+title hidden when embedded inside the Fulfillment tab
+                 (that page owns the chrome); action buttons are kept either way. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
+                {!embedded && (
+                    <div style={{ width: 46, height: 46, borderRadius: RADIUS.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.22)}`, boxShadow: SHADOW.specular }}>
+                        <Briefcase size={22} color={GOLD} />
+                    </div>
+                )}
+                {!embedded && (
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                        <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, margin: 0, background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>הצעות מחיר מספקים</h1>
+                        <p style={{ fontSize: 13.5, color: '#86868B', margin: '5px 0 0', fontWeight: 600 }}>ניהול הצעות · השוואת מחירים · מעקב משא ומתן</p>
+                    </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                     {quotes.length > 0 && (
                         <motion.button
                             onClick={() => { exportQuotesXLSX(suppliers, quotes); showToast('מייצא קובץ Excel...', 'info'); }}
-                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 14, border: '1.5px solid rgba(52,199,89,0.35)', background: 'rgba(52,199,89,0.08)', color: '#34C759', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(52,199,89,0.28)' }} whileTap={TAP}
+                            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: RADIUS.button, border: '1.5px solid rgba(52,199,89,0.35)', background: 'rgba(52,199,89,0.08)', color: '#248A3D', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                             <Download size={15} />ייצוא Excel
                         </motion.button>
                     )}
-                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 18px rgba(0,122,255,0.28)' }}>
+                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -2, boxShadow: `0 8px 26px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 18px ${hexA(GOLD, 0.4)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                         <Plus size={15} />ספק חדש
                     </motion.button>
                 </div>
             </div>
 
-            {/* Tab bar */}
+            {/* KPI band — suppliers · active RFQs · pending quotes · total value */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14, marginBottom: 22 }}>
+                <AdminKPICard title="ספקים" value={kpis.suppliers} subtitle="ספקים במערכת" accent={GOLD} delay={0}
+                    icon={<Briefcase size={20} color={GOLD} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={suppliers.length ? () => openDrill({ type: 'suppliers' }) : undefined} />
+                <AdminKPICard title="הצעות פעילות" value={kpis.activeRFQs} subtitle="במשא ומתן" accent={PALETTE.azure} delay={0.05}
+                    icon={<ClipboardList size={20} color={PALETTE.azure} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={() => openDrill({ type: 'quotes', scope: 'active' })} />
+                <AdminKPICard title="ממתינות לבדיקה" value={kpis.pendingQuotes} subtitle="הצעות חדשות" accent={PALETTE.orange} delay={0.1}
+                    icon={<Clock size={20} color={PALETTE.orange} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={() => openDrill({ type: 'quotes', scope: 'pending' })} />
+                <AdminKPICard title="ערך כולל" value={fmt(kpis.totalValue)} subtitle="סך כל ההצעות" accent={PALETTE.green} delay={0.15}
+                    icon={<CreditCard size={20} color={PALETTE.green} />} loading={loading} error={error && !suppliers.length ? error : undefined}
+                    onClick={quotes.length ? () => openDrill({ type: 'value' }) : undefined} />
+            </div>
+
+            {/* Segment pills + search — Heaven organizing mechanism */}
             {suppliers.length > 0 && (
-                <div style={{
-                    display: 'flex', gap: 4, marginBottom: 26,
-                    overflowX: 'auto', scrollbarWidth: 'none',
-                    padding: '5px 6px', background: 'rgba(0,0,0,0.04)', borderRadius: 16,
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    backdropFilter: 'blur(20px)',
-                    alignItems: 'center',
-                }}>
-                    {suppliers.map(s => {
-                        const on = activeTab === s.id;
-                        const cnt = quotes.filter(q => q.supplierId === s.id).length;
-                        return (
-                            <motion.button key={s.id} onClick={() => setActiveTab(s.id)}
-                                whileHover={{ scale: on ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px',
-                                    borderRadius: 11,
-                                    border: on ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                                    background: on ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                                    cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                    boxShadow: on ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                                    transition: 'all 0.15s ease',
-                                }}>
-                                <SupplierAvatar domain={s.domain} name={s.name} size={20} />
-                                <span style={{ fontSize: 13, fontWeight: on ? 700 : 500, color: on ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
-                                {cnt > 0 && (
-                                    <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.04)', fontSize: 10, fontWeight: 700, color: on ? '#3C3C43' : '#8E8E93' }}>
-                                        {cnt}
-                                    </span>
-                                )}
-                            </motion.button>
-                        );
-                    })}
-
-                    {/* Divider */}
-                    {suppliers.length >= 1 && <div style={{ width: 1, height: 20, background: 'rgba(0,0,0,0.09)', flexShrink: 0, margin: '0 2px' }} />}
-
-                    {/* Compare tab — only if ≥2 suppliers */}
-                    {suppliers.length >= 2 && (
-                        <motion.button onClick={() => setActiveTab('compare')}
-                            whileHover={{ scale: activeTab === 'compare' ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                                borderRadius: 11,
-                                border: activeTab === 'compare' ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                                background: activeTab === 'compare' ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                boxShadow: activeTab === 'compare' ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                                transition: 'all 0.15s ease',
-                            }}>
-                            <Layers size={13} color={activeTab === 'compare' ? '#007AFF' : '#8E8E93'} />
-                            <span style={{ fontSize: 13, fontWeight: activeTab === 'compare' ? 700 : 500, color: activeTab === 'compare' ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
+                <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 11 }}>
+                    {/* Search + quick-add row */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
+                            <Search size={15} style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: '#AEAEB2', pointerEvents: 'none' }} />
+                            <input
+                                value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="חיפוש ספק, נציג או דומיין..." dir="rtl"
+                                style={{ ...GLASS.frosted, width: '100%', borderRadius: RADIUS.input, padding: '9px 38px 9px 14px', fontSize: 13, fontWeight: 600, color: '#1D1D1F', outline: 'none', boxSizing: 'border-box', transition: 'border 0.15s, box-shadow 0.15s' }}
+                                onFocus={e => { e.target.style.border = `1.5px solid ${hexA(GOLD, 0.5)}`; e.target.style.boxShadow = `0 0 0 4px ${hexA(GOLD, 0.12)}`; }}
+                                onBlur={e => { e.target.style.border = GLASS.frosted.border; e.target.style.boxShadow = GLASS.frosted.boxShadow; }}
+                            />
+                            {search && (
+                                <button onClick={() => setSearch('')} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E6E73' }}>
+                                    <X size={11} />
+                                </button>
+                            )}
+                        </div>
+                        <div style={{ flex: 1 }} />
+                        <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -1 }} whileTap={TAP}
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: RADIUS.button, border: `1px solid ${hexA(GOLD, 0.28)}`, background: hexA(GOLD, 0.08), cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#005EC4', fontSize: 12.5, fontWeight: 700 }}>
+                            <Plus size={13} />ספק מהיר
                         </motion.button>
-                    )}
-                    {/* Contacts tab */}
-                    <motion.button onClick={() => setActiveTab('contacts')}
-                        whileHover={{ scale: activeTab === 'contacts' ? 1 : 1.01 }} whileTap={{ scale: 0.97 }}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                            borderRadius: 11,
-                            border: activeTab === 'contacts' ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                            background: activeTab === 'contacts' ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
-                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                            boxShadow: activeTab === 'contacts' ? '0 2px 8px rgba(0,122,255,0.13), inset 0 1px 0 rgba(255,255,255,0.85)' : 'none',
-                            transition: 'all 0.15s ease',
-                        }}>
-                        <User size={13} color={activeTab === 'contacts' ? '#007AFF' : '#8E8E93'} />
-                        <span style={{ fontSize: 13, fontWeight: activeTab === 'contacts' ? 700 : 500, color: activeTab === 'contacts' ? '#007AFF' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
-                    </motion.button>
+                    </div>
 
-                    <div style={{ flex: 1 }} />
+                    {/* Segment pill rail */}
+                    <div style={{ ...GLASS.frosted, display: 'flex', gap: 4, padding: '6px 7px', borderRadius: RADIUS.md, overflowX: 'auto', scrollbarWidth: 'none', alignItems: 'center' }}>
+                        {filteredSuppliers.map(s => {
+                            const on = activeTab === s.id;
+                            const cnt = quotes.filter(q => q.supplierId === s.id).length;
+                            return (
+                                <motion.button key={s.id} onClick={() => setActiveTab(s.id)}
+                                    whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <SupplierAvatar domain={s.domain} name={s.name} size={20} color={s.color} logoUrl={s.logoUrl} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>{s.name}</span>
+                                        {cnt > 0 && (
+                                            <span style={{ padding: '1px 6px', borderRadius: 6, background: on ? hexA(GOLD, 0.18) : 'rgba(0,0,0,0.05)', fontSize: 10, fontWeight: 800, color: on ? '#005EC4' : '#8E8E93' }}>
+                                                {cnt}
+                                            </span>
+                                        )}
+                                    </span>
+                                </motion.button>
+                            );
+                        })}
 
-                    {/* Quick-add supplier */}
-                    <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.07)', background: 'rgba(255,255,255,0.8)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, color: '#6E6E73', fontSize: 12, fontWeight: 600 }}>
-                        <Plus size={11} />ספק
-                    </motion.button>
+                        {filteredSuppliers.length === 0 && search && (
+                            <span style={{ padding: '7px 12px', fontSize: 12.5, fontWeight: 600, color: '#AEAEB2', whiteSpace: 'nowrap' }}>לא נמצאו ספקים תואמים</span>
+                        )}
+
+                        {/* Divider */}
+                        <div style={{ width: 1, height: 20, background: 'rgba(0,0,0,0.09)', flexShrink: 0, margin: '0 3px' }} />
+
+                        {/* Compare segment — only if ≥2 suppliers */}
+                        {suppliers.length >= 2 && (() => {
+                            const on = activeTab === 'compare';
+                            return (
+                                <motion.button onClick={() => setActiveTab('compare')} whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Layers size={13} color={on ? GOLD : '#8E8E93'} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>השוואה</span>
+                                    </span>
+                                </motion.button>
+                            );
+                        })()}
+
+                        {/* Contacts segment */}
+                        {(() => {
+                            const on = activeTab === 'contacts';
+                            return (
+                                <motion.button onClick={() => setActiveTab('contacts')} whileHover={{ scale: on ? 1 : 1.02 }} whileTap={TAP}
+                                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 11, border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {on && <motion.div layoutId="sup-seg" transition={SPRING.pill}
+                                        style={{ position: 'absolute', inset: 0, borderRadius: 11, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.3)}`, boxShadow: `0 2px 10px ${hexA(GOLD, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.75)` }} />}
+                                    <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <User size={13} color={on ? GOLD : '#8E8E93'} />
+                                        <span style={{ fontSize: 13, fontWeight: on ? 800 : 600, color: on ? '#005EC4' : '#6E6E73', letterSpacing: '-0.2px' }}>קשרים</span>
+                                    </span>
+                                </motion.button>
+                            );
+                        })()}
+                    </div>
                 </div>
             )}
 
             {/* Main content */}
             <AnimatePresence mode="wait">
+                {loading ? (
+                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '80px 20px' }}>
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            style={{ width: 30, height: 30, border: `3px solid ${hexA(GOLD, 0.16)}`, borderTopColor: GOLD, borderRadius: '50%' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#86868B' }}>טוען ספקים והצעות מחיר...</span>
+                    </motion.div>
+                ) : error && suppliers.length === 0 ? (
+                    <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '64px 20px', textAlign: 'center' }}>
+                        <div style={{ width: 60, height: 60, borderRadius: RADIUS.md, background: 'rgba(255,59,48,0.10)', border: '1px solid rgba(255,59,48,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <AlertCircle size={28} color="#FF3B30" />
+                        </div>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: '#1D1D1F' }}>{error}</div>
+                        <div style={{ fontSize: 13, color: '#AEAEB2' }}>בדוק את החיבור ונסה לרענן את הדף</div>
+                    </motion.div>
+                ) : (
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ type: 'spring', stiffness: 340, damping: 30 }}>
                     {suppliers.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18 }}>
-                            <div style={{ width: 88, height: 88, borderRadius: 26, background: 'linear-gradient(135deg,rgba(0,122,255,0.10),rgba(88,86,214,0.10))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Building2 size={38} color="#007AFF" />
+                        <div style={{ ...G, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', gap: 18 }}>
+                            <div style={{ width: 88, height: 88, borderRadius: RADIUS.hero, background: GOLD_SOFT, border: `1px solid ${hexA(GOLD, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: SHADOW.specular }}>
+                                <Briefcase size={38} color={GOLD} />
                             </div>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#1D1D1F', marginBottom: 6 }}>אין ספקים עדיין</div>
                                 <div style={{ fontSize: 13, color: '#AEAEB2', marginBottom: 24 }}>הוסף ספק ראשון כדי להתחיל לנהל הצעות מחיר</div>
-                                <motion.button onClick={() => setAddSupplier(true)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                    style={{ padding: '13px 28px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.30)' }}>
+                                <motion.button onClick={() => setAddSupplier(true)} whileHover={{ y: -2, boxShadow: `0 8px 28px ${hexA(GOLD, 0.5)}` }} whileTap={TAP}
+                                    style={{ padding: '13px 28px', borderRadius: RADIUS.button, border: '1px solid rgba(255,255,255,0.25)', background: GOLD_GRAD, color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: `0 4px 22px ${hexA(GOLD, 0.38)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                                     <Plus size={14} style={{ display: 'inline', marginLeft: 6 }} />הוסף ספק ראשון
                                 </motion.button>
                             </div>
@@ -3953,6 +4149,7 @@ export default function AdminSuppliers() {
                         />
                     ) : null}
                 </motion.div>
+                )}
             </AnimatePresence>
 
             {/* Drawers & Modals */}
@@ -3969,6 +4166,173 @@ export default function AdminSuppliers() {
                         focusProductKey={focusProductKey} />
                 )}
             </AnimatePresence>
+
+            {/* ── Babushka Drill Drawer — KPI → breakdown → supplier/quote detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const stageOf   = (q) => NEG_STAGES.find(s => s.id === (q.status || 'received')) || NEG_STAGES[0];
+                const supName   = (id) => suppliers.find(s => s.id === id)?.name || 'ספק לא ידוע';
+                const StatusChip = ({ q }) => {
+                    const st = stageOf(q);
+                    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black shrink-0" style={{ background: hexA(st.color, 0.12), color: st.color }}><st.icon size={9} />{st.label}</span>;
+                };
+                const QuoteList = ({ list }) => (
+                    list.length === 0 ? <DrillEmpty icon={ClipboardList} text="אין הצעות מחיר להצגה" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">הצעות מחיר — לחץ לפרטים</p>
+                            {list.slice(0, 40).map((q, i) => (
+                                <DrillRow key={q.id} delay={i * 0.02} tone={stageOf(q).color}
+                                    onClick={() => pushDrill({ type: 'quote', id: q.id })}
+                                    leading={<StatusChip q={q} />}
+                                    title={supName(q.supplierId)}
+                                    subtitle={`${(q.products || []).length} מוצרים · ${fmtD(q.createdAt)}`}
+                                    trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{fmt(calcTotal(q.products || []))}</span>}
+                                />
+                            ))}
+                        </div>
+                    )
+                );
+                const SupplierList = ({ withValue }) => {
+                    const rows = suppliers.map(s => {
+                        const qs = quotes.filter(q => q.supplierId === s.id);
+                        return { s, count: qs.length, total: qs.reduce((sum, q) => sum + calcTotal(q.products || []), 0) };
+                    }).sort((a, b) => withValue ? b.total - a.total : b.count - a.count);
+                    return rows.length === 0 ? <DrillEmpty icon={Briefcase} text="אין ספקים במערכת" /> : (
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">ספקים — לחץ לצלילה</p>
+                            {rows.map(({ s, count, total }, i) => (
+                                <DrillRow key={s.id} delay={i * 0.02} tone={s.color || GOLD}
+                                    onClick={() => pushDrill({ type: 'supplier', id: s.id })}
+                                    leading={<SupplierAvatar domain={s.domain} name={s.name} size={30} color={s.color} logoUrl={s.logoUrl} />}
+                                    title={s.name}
+                                    subtitle={`${count} הצעות${s.agentName ? ` · ${s.agentName}` : ''}`}
+                                    trailing={<span className="text-[12px] font-black shrink-0" style={{ color: withValue ? PALETTE.green : '#1D1D1F' }}>{withValue ? fmt(total) : count}</span>}
+                                />
+                            ))}
+                        </div>
+                    );
+                };
+
+                let title = '', subtitle = '', icon = null, accent = GOLD, footer = null, body = null;
+
+                if (current.type === 'suppliers') {
+                    accent = GOLD; icon = <Briefcase size={17} color={GOLD} />;
+                    title = 'ספקים'; subtitle = `${kpis.suppliers} ספקים במערכת`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ספקים', value: kpis.suppliers, color: GOLD },
+                                { label: 'הצעות פעילות', value: kpis.activeRFQs, color: PALETTE.azure },
+                                { label: 'ממתינות', value: kpis.pendingQuotes, color: PALETTE.orange },
+                                { label: 'ערך כולל', value: fmt(kpis.totalValue), color: PALETTE.green },
+                            ]} />
+                            <SupplierList withValue={false} />
+                        </div>
+                    );
+                } else if (current.type === 'value') {
+                    accent = PALETTE.green; icon = <CreditCard size={17} color={PALETTE.green} />;
+                    title = 'ערך כולל'; subtitle = `${fmt(kpis.totalValue)} · ${quotes.length} הצעות`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'ערך כולל', value: fmt(kpis.totalValue), color: PALETTE.green },
+                                { label: 'הצעות', value: quotes.length, color: PALETTE.azure },
+                                { label: 'ספקים', value: kpis.suppliers, color: GOLD },
+                            ]} />
+                            <SupplierList withValue={true} />
+                        </div>
+                    );
+                } else if (current.type === 'quotes') {
+                    const isPending = current.scope === 'pending';
+                    const list = isPending
+                        ? quotes.filter(q => (q.status || 'received') === 'received')
+                        : quotes.filter(q => ['received', 'reviewing', 'negotiating'].includes(q.status || 'received'));
+                    accent = isPending ? PALETTE.orange : PALETTE.azure;
+                    icon = isPending ? <Clock size={17} color={PALETTE.orange} /> : <ClipboardList size={17} color={PALETTE.azure} />;
+                    title = isPending ? 'ממתינות לבדיקה' : 'הצעות פעילות';
+                    subtitle = `${list.length} הצעות · ${fmt(list.reduce((s, q) => s + calcTotal(q.products || []), 0))}`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'ערך', value: fmt(list.reduce((s, q) => s + calcTotal(q.products || []), 0)), color: PALETTE.green },
+                                { label: 'ספקים', value: new Set(list.map(q => q.supplierId)).size, color: GOLD },
+                            ]} />
+                            <QuoteList list={list} />
+                        </div>
+                    );
+                } else if (current.type === 'supplier') {
+                    const s = suppliers.find(x => x.id === current.id);
+                    const list = quotes.filter(q => q.supplierId === current.id);
+                    const total = list.reduce((sum, q) => sum + calcTotal(q.products || []), 0);
+                    accent = s?.color || GOLD;
+                    icon = s ? <SupplierAvatar domain={s.domain} name={s.name} size={26} color={s.color} logoUrl={s.logoUrl} /> : <Briefcase size={17} color={GOLD} />;
+                    title = s?.name || 'ספק'; subtitle = `${list.length} הצעות · ${fmt(total)}`;
+                    footer = { label: 'מעבר לספק', onClick: () => { closeDrill(); setActiveTab(current.id); } };
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'הצעות', value: list.length, color: accent },
+                                { label: 'ערך כולל', value: fmt(total), color: PALETTE.green },
+                                { label: 'איש קשר', value: s?.agentName || '—', color: '#5AC8FA' },
+                            ]} />
+                            <QuoteList list={list} />
+                        </div>
+                    );
+                } else if (current.type === 'quote') {
+                    const q = quotes.find(x => x.id === current.id);
+                    if (!q) {
+                        title = 'הצעת מחיר'; icon = <ClipboardList size={17} color={GOLD} />;
+                        body = <DrillEmpty icon={ClipboardList} text="ההצעה נמחקה או אינה זמינה" />;
+                    } else {
+                        const st = stageOf(q); const total = calcTotal(q.products || []);
+                        accent = st.color; icon = <st.icon size={17} color={st.color} />;
+                        title = supName(q.supplierId); subtitle = `${st.label} · ${fmtD(q.createdAt)}`;
+                        footer = { label: 'פתח הצעת מחיר', onClick: () => openQuoteDrawer(q) };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <StatusChip q={q} />
+                                    <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">{fmt(total)}</p>
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'מוצרים', value: (q.products || []).length, color: PALETTE.azure },
+                                    { label: 'ערך', value: fmt(total), color: PALETTE.green },
+                                    { label: 'מס׳ הצעה', value: q.quoteNumber || '—', color: '#5AC8FA' },
+                                ]} />
+                                {(q.products || []).length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים בהצעה</p>
+                                        {(q.products || []).slice(0, 30).map((p, i) => {
+                                            const line = (Number(p.pricePerUnit) || 0) * (Number(p.quantity) || 1) * (1 - (Number(p.discount) || 0) / 100);
+                                            return (
+                                                <DrillRow key={i} delay={i * 0.02}
+                                                    leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(catColor(p.category), 0.12) }}><Box size={13} style={{ color: catColor(p.category) }} /></span>}
+                                                    title={p.name || p.title || `מוצר ${i + 1}`}
+                                                    subtitle={`${p.quantity || 1} × ${fmt(Number(p.pricePerUnit) || 0)}${p.discount ? ` · ${p.discount}%-` : ''}`}
+                                                    trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">{fmt(line)}</span>}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                ) : <DrillEmpty icon={Box} text="אין מוצרים בהצעה זו" />}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }

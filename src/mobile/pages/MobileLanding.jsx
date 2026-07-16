@@ -67,7 +67,7 @@ export default function MobileLanding() {
     const heroCTA      = getSetting('hero_cta', 'גלו את הפתרונות שלנו');
     const trustPill1   = getSetting('hero_trust_pill_1', 'שירות ישיר ומהיר');
     const trustPill2   = getSetting('hero_trust_pill_2', 'ייעוץ ללא עלות');
-    const trustPill3   = getSetting('hero_trust_pill_3', '+500 מוסדות חינוך');
+    const trustPill3   = getSetting('hero_trust_pill_3', 'בשיתוף רשת עמל');
 
     const vpTitle  = getSetting('vp_title', 'סטנדרט חדש של שירות למוסדות חינוך');
     const vp1Title = getSetting('vp_prop1_title', 'ייעוץ אישי ומקצועי');
@@ -76,13 +76,6 @@ export default function MobileLanding() {
     const vp2Desc  = getSetting('vp_prop2_desc', 'תמיכה טכנית 24/7 ואחריות מלאה על כל המוצרים');
     const vp3Title = getSetting('vp_prop3_title', 'מחירים מוסדיים');
     const vp3Desc  = getSetting('vp_prop3_desc', 'מחירים מיוחדים למוסדות חינוך עם אפשרויות מימון');
-
-    const stat1Val   = getSetting('about_stat1_val', '1200');
-    const stat1Label = getSetting('about_stat1_label', 'מוסדות חינוך');
-    const stat2Val   = getSetting('about_stat2_val', '14');
-    const stat2Label = getSetting('about_stat2_label', 'שנות ניסיון');
-    const stat3Val   = getSetting('about_stat3_val', '98');
-    const stat3Label = getSetting('about_stat3_label', '% שביעות רצון');
 
     const discoverEyebrow = getSetting('home_discover_eyebrow', 'מגוון פתרונות');
     const discoverTitle   = getSetting('home_discover_title', 'גלו את הפתרונות שלנו.');
@@ -93,12 +86,6 @@ export default function MobileLanding() {
         { icon: GraduationCap,   color: '#007AFF', title: vp1Title, desc: vp1Desc },
         { icon: Shield,          color: '#007AFF', title: vp2Title, desc: vp2Desc },
         { icon: BadgeDollarSign, color: '#007AFF', title: vp3Title, desc: vp3Desc },
-    ];
-
-    const STATS = [
-        [stat1Val, stat1Label],
-        [stat2Val, stat2Label],
-        [stat3Val, stat3Label],
     ];
 
     return (
@@ -211,28 +198,6 @@ export default function MobileLanding() {
                     </div>
                 </motion.div>
             </div>
-
-            {/* ── Stats strip ────────────────────────────────────────── */}
-            <BlurFade delay={0.04}>
-            <div style={{ margin: '14px 16px 0' }}>
-                <div style={{ background: c.surface, borderRadius: 18, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', boxShadow: `${c.cardShadow}, inset 0 1px 0 rgba(255,255,255,0.7)`, overflow: 'hidden', border: '1px solid rgba(0,122,255,0.06)' }}>
-                    {STATS.map(([val, label], i) => (
-                        <div key={label} style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            padding: '16px 8px',
-                            borderRight: i < 2 ? `0.5px solid ${c.divider}` : 'none',
-                        }}>
-                            <span style={{ fontSize: 22, fontWeight: 900, color: '#007AFF', letterSpacing: '-0.04em' }}>
-                                {val}{label.includes('%') ? '%' : '+'}
-                            </span>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: c.text3, marginTop: 2, textAlign: 'center' }}>
-                                {label.replace(/ ?%/, '')}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-            </BlurFade>
 
             {/* ── Discover banner ────────────────────────────────────── */}
             <BlurFade delay={0.06}>
@@ -398,10 +363,10 @@ export default function MobileLanding() {
             <div style={{ margin: '18px 16px 0' }}>
                 <div style={{ background: c.surface, borderRadius: 18, padding: '16px 18px', boxShadow: c.cardShadow }}>
                     <p style={{ fontSize: 11, fontWeight: 700, color: c.text4, textAlign: 'center', marginBottom: 12 }}>
-                        {getSetting('sp_label', 'נבחר על ידי מעל 500 מוסדות חינוך')}
+                        {getSetting('sp_label', 'גאים לשתף פעולה עם')}
                     </p>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {getSetting('sp_clients', 'משרד החינוך, רשת אורט, עיריית תל אביב, אוניברסיטת אריאל').split(',').slice(0, 5).map(inst => (
+                        {getSetting('sp_clients', 'רשת עמל').split(',').slice(0, 5).map(inst => (
                             <div key={inst.trim()} style={{ fontSize: 11, fontWeight: 600, color: c.text3, background: c.bg, borderRadius: 99, padding: '5px 12px', border: `0.5px solid ${c.border}`, whiteSpace: 'nowrap' }}>
                                 {inst.trim()}
                             </div>

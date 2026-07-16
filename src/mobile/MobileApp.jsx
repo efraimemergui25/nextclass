@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, useAnimate, useMotionValueEvent } from 'framer-motion';
-import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Phone, Bot, Accessibility, UserCircle, Menu, Monitor, Compass, BookOpen, Award, GraduationCap, Newspaper, Star, Scale, Type, Sun, PauseCircle, Square, Zap } from 'lucide-react';
+import { Home, Grid3X3, ShoppingBag, Heart, MoreHorizontal, ChevronRight, Search, MessageCircle, X, Send, Check, Phone, Bot, Accessibility, UserCircle, Menu, Monitor, Compass, BookOpen, Award, GraduationCap, Newspaper, Star, Scale, Type, Sun, PauseCircle, Square, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -888,12 +888,59 @@ function MobileMenuOverlay({ open, onClose }) {
     );
 }
 
+// ─── Inline product card rendered inside the AI concierge chat ───────────────
+function ConciergeProductChip({ product, c, onAdd, onOpen }) {
+    const [added, setAdded] = useState(false);
+    const timerRef = useRef(null);
+    const price = product.salePrice ?? product.price ?? 0;
+    const handleAdd = (e) => {
+        e.stopPropagation();
+        haptic('success');
+        onAdd(product);
+        setAdded(true);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setAdded(false), 1800);
+    };
+    useEffect(() => () => clearTimeout(timerRef.current), []);
+    return (
+        <div
+            onClick={() => onOpen(product.id)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 14, background: c.surface, border: `0.5px solid ${c.border}`, boxShadow: c.cardShadow, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+        >
+            <div style={{ width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: c.input, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {product.image
+                    ? <img src={product.image} alt={product.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <Bot size={18} color={c.text4} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12.5, fontWeight: 800, color: c.text, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{product.title}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: '#007AFF', letterSpacing: '-0.02em' }}>₪{Number(price).toLocaleString()}</span>
+                    {product.stock > 0
+                        ? <span style={{ fontSize: 9, fontWeight: 700, color: '#34C759' }}>במלאי</span>
+                        : <span style={{ fontSize: 9, fontWeight: 700, color: '#FF3B30' }}>אזל מהמלאי</span>}
+                </div>
+            </div>
+            <motion.button
+                whileTap={{ scale: 0.86 }}
+                onClick={handleAdd}
+                aria-label={`הוסף ${product.title} לעגלה`}
+                style={{ width: 36, height: 36, borderRadius: 11, flexShrink: 0, border: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent', background: added ? '#34C759' : '#007AFF', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+                {added ? <Check size={16} strokeWidth={3} /> : <ShoppingBag size={15} />}
+            </motion.button>
+        </div>
+    );
+}
+
 // ─── Unified Smart Concierge (AI + WhatsApp + Phone + Accessibility) ─────────
 function MobileSmartConcierge() {
     const { getSetting } = useSettings();
     const { colors: c }  = useTheme();
     const { firstName, timeGreeting } = useAuth();
     const { activeProducts } = useProducts();
+    const { addToCart } = useCart();
+    const navigate = useNavigate();
     const [open, setOpen]     = useState(false);
     const [tab, setTab]       = useState('ai'); // 'ai' | 'wa' | 'phone' | 'a11y'
     const [input, setInput]   = useState('');
@@ -944,6 +991,22 @@ function MobileSmartConcierge() {
         else root.style.removeProperty('--motion-duration');
     };
 
+    // Navigate to a product page from a chat card and close the sheet
+    const openProduct = (pid) => { navigate(`/catalog/${pid}`); setOpen(false); };
+
+    // Parse [PRODUCTS: id1,id2] tags → clean text + resolved catalog products
+    const parseProducts = (rawText) => {
+        const cleanText = rawText.replace(/\[PRODUCTS:[^\]]+\]/g, '').trim();
+        const match = rawText.match(/\[PRODUCTS:\s*([^\]]+)\]/);
+        if (!match) return { cleanText, products: [] };
+        const products = match[1]
+            .split(',')
+            .map(s => s.trim())
+            .map(pid => activeProducts.find(p => String(p.id) === pid))
+            .filter(Boolean);
+        return { cleanText, products };
+    };
+
     const send = async (text) => {
         const t = (text ?? input).trim();
         if (!t || isTyping) return;
@@ -952,26 +1015,124 @@ function MobileSmartConcierge() {
         setInput('');
         setIsTyping(true);
         haptic('medium');
-        try {
-            const catalogInfo = activeProducts.slice(0, 25).map(p =>
-                `${p.id}|${p.title}|${p.category}|₪${p.salePrice ?? p.price ?? 0}|${p.stock > 0 ? 'במלאי' : 'אזל'}`
-            ).join('\n');
-            const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.\n\n## אופן עבודה\nשאל שאלה אחת ממוקדת לפני המלצה. לאחר 2-3 תשובות המלץ על מוצרים ספציפיים מהקטלוג.\n\n## כללים\n- ענה בעברית בלבד, 2-3 משפטים\n- אל תציין מספרי ID בתוך הטקסט\n- לאחר הבנת הצורך הוסף בשורה נפרדת: [PRODUCTS: id1,id2]\n\n## קטלוג:\n${catalogInfo}`;
-            const history = newMsgs.slice(-6).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+
+        const catalogInfo = activeProducts.slice(0, 25).map(p =>
+            `${p.id}|${p.title}|${p.category}|₪${p.salePrice ?? p.price ?? 0}|${p.stock > 0 ? 'במלאי' : 'אזל'}`
+        ).join('\n');
+        const systemPrompt = `אתה NextClass AI — יועץ מכירות מקצועי וחם של חברת NextClass, המספקת טכנולוגיה למוסדות חינוך בישראל.\n\n## אופן עבודה — ייעוץ בשלבים\nשאל שאלה אחת ממוקדת לפני המלצה כדי להבין את הצורך. לאחר 2-3 תשובות המלץ על מוצרים ספציפיים מהקטלוג בלבד — אל תמציא מוצרים שאינם ברשימה.\n\n## כללים\n- ענה בעברית בלבד, 2-3 משפטים, מקצועי וחם\n- אל תציין מספרי ID בתוך הטקסט\n- רק לאחר הבנת הצורך הוסף בשורה נפרדת: [PRODUCTS: id1,id2] (עד 3 מוצרים)\n\n## קטלוג (id|שם|קטגוריה|מחיר|מלאי):\n${catalogInfo}`;
+        const history = newMsgs.slice(-6).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+        const payload = { messages: history, systemPrompt };
+
+        // Append/replace the live-updating AI message as tokens arrive
+        const upsertStream = (accText) => {
+            setMsgs(prev => {
+                const copy = [...prev];
+                const last = copy[copy.length - 1];
+                if (last && last.streaming) {
+                    copy[copy.length - 1] = { ...last, text: accText };
+                    return copy;
+                }
+                return [...copy, { role: 'ai', text: accText, streaming: true }];
+            });
+        };
+
+        // Non-streaming fallback: refetch without stream and read {text}
+        const runFallback = async () => {
             const res = await fetch('/api/concierge', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: history, systemPrompt }),
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
-            const rawText = data.text || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
-            const match = rawText.match(/\[PRODUCTS:\s*([^\]]+)\]/);
-            const cleanText = rawText.replace(/\[PRODUCTS:[^\]]+\]/g, '').trim();
+            return data.text || data.response || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
+        };
+
+        try {
+            const res = await fetch('/api/concierge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...payload, stream: true }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const ct = res.headers.get('content-type') || '';
+            // Endpoint ignored streaming (or not yet deployed) → plain JSON path
+            if (!res.body || !ct.includes('text/event-stream')) {
+                const data = await res.json();
+                const rawText = data.text || data.response || 'מצטערים, לא הצלחנו לעבד את הבקשה.';
+                const { cleanText, products } = parseProducts(rawText);
+                setIsTyping(false);
+                setMsgs(p => [...p, { role: 'ai', text: cleanText, products }]);
+                return;
+            }
+
+            // SSE streaming — Agent 5 protocol. `data:` frames separated by \n\n:
+            //   {"type":"delta","text":"..."}  → append incremental tokens
+            //   {"type":"done","text":"..."}   → authoritative full text (overwrite)
+            //   [DONE]                          → terminator
+            // Ignore any line not starting with `data:` (comment pings like `: open`).
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let acc = '';
+            let buffer = '';
+            let started = false;
+            let finished = false;
+
+            const markStarted = () => { if (!started) { started = true; setIsTyping(false); } };
+
+            while (!finished) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                let nl;
+                while ((nl = buffer.indexOf('\n')) >= 0) {
+                    const line = buffer.slice(0, nl).trim();
+                    buffer = buffer.slice(nl + 1);
+                    if (!line.startsWith('data:')) continue;
+                    const data = line.slice(5).trim();
+                    if (data === '[DONE]') { finished = true; break; }
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.type === 'done') {
+                            if (typeof json.text === 'string') acc = json.text; // authoritative full text
+                            markStarted();
+                            upsertStream(acc);
+                        } else if (json.type === 'delta') {
+                            if (json.text) { acc += json.text; markStarted(); upsertStream(acc); }
+                        } else {
+                            // legacy / untyped frame — treat text as incremental
+                            const delta = json.delta ?? json.text ?? json.response ?? '';
+                            if (delta) { acc += delta; markStarted(); upsertStream(acc); }
+                        }
+                    } catch { /* ignore partial or non-JSON frames */ }
+                }
+            }
+
+            if (!acc.trim()) throw new Error('empty stream');
+
+            // Finalize: strip [PRODUCTS:] tag, attach resolved product cards
+            const { cleanText, products } = parseProducts(acc);
             setIsTyping(false);
-            setMsgs(p => [...p, { role: 'ai', text: cleanText }]);
+            setMsgs(prev => {
+                const copy = [...prev];
+                const last = copy[copy.length - 1];
+                if (last && last.streaming) {
+                    copy[copy.length - 1] = { role: 'ai', text: cleanText, products };
+                    return copy;
+                }
+                return [...copy, { role: 'ai', text: cleanText, products }];
+            });
         } catch {
-            setIsTyping(false);
-            setMsgs(p => [...p, { role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.' }]);
+            // Any stream/parse error → non-streaming fallback, then hard failure
+            try {
+                const rawText = await runFallback();
+                const { cleanText, products } = parseProducts(rawText);
+                setIsTyping(false);
+                setMsgs(prev => [...prev.filter(m => !m.streaming), { role: 'ai', text: cleanText, products }]);
+            } catch {
+                setIsTyping(false);
+                setMsgs(prev => [...prev.filter(m => !m.streaming), { role: 'ai', text: 'שגיאת רשת. נסו שוב בעוד רגע.' }]);
+            }
         }
     };
 
@@ -1108,10 +1269,24 @@ function MobileSmartConcierge() {
                                                 </div>
                                                 <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                                                     {msgs.map((m, i) => (
-                                                        <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-start' : 'flex-end' }}>
-                                                            <div style={{ maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 18px 4px' : '18px 18px 4px 18px', background: m.role === 'user' ? '#007AFF' : c.bg, color: m.role === 'user' ? '#fff' : c.text, fontSize: 14, lineHeight: 1.5, border: m.role !== 'user' ? `0.5px solid ${c.border}` : 'none' }}>
+                                                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-start' : 'flex-end', gap: 8 }}>
+                                                            <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 18px 4px' : '18px 18px 4px 18px', background: m.role === 'user' ? '#007AFF' : c.bg, color: m.role === 'user' ? '#fff' : c.text, fontSize: 14, lineHeight: 1.5, border: m.role !== 'user' ? `0.5px solid ${c.border}` : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                                                 {m.text}
+                                                                {m.streaming && (
+                                                                    <motion.span
+                                                                        animate={{ opacity: [1, 0.2, 1] }}
+                                                                        transition={{ repeat: Infinity, duration: 0.9 }}
+                                                                        style={{ display: 'inline-block', width: 2, height: 14, background: c.text3, marginRight: 3, verticalAlign: 'text-bottom', borderRadius: 1 }}
+                                                                    />
+                                                                )}
                                                             </div>
+                                                            {m.role !== 'user' && m.products?.length > 0 && (
+                                                                <div style={{ width: '85%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                                    {m.products.map(p => (
+                                                                        <ConciergeProductChip key={p.id} product={p} c={c} onAdd={addToCart} onOpen={openProduct} />
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                     {isTyping && (

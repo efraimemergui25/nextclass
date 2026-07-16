@@ -1,28 +1,35 @@
 /* eslint-disable */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, RefreshCw } from 'lucide-react';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
+import {
+    PALETTE, GLASS, RADIUS, SHADOW, SPRING, hexA, glow, accentSurface,
+} from '../theme/tokens';
+import {
+    AdminSectionHeader, AdminButton, AdminEmpty, AdminSkeleton, AdminFilterPills,
+} from '../components/AdminComponents';
+
+// ─── Security domain accent (restrained azure brand) ───────────────────────────
+const SEAFOAM = '#007AFF';
 
 const EVENT_LABELS = {
-    rate_limited:      { label: 'Rate Limited',    color: '#FF3B30', bg: 'rgba(255,59,48,0.08)' },
-    payload_too_large: { label: 'Payload Too Large', color: '#FF9500', bg: 'rgba(255,149,0,0.08)' },
-    crm_error:         { label: 'CRM Error',        color: '#5856D6', bg: 'rgba(88,86,214,0.08)' },
-    auth_failed:       { label: 'Auth Failed',      color: '#FF3B30', bg: 'rgba(255,59,48,0.08)' },
+    rate_limited:      { label: 'Rate Limited',      color: '#FF3B30' },
+    payload_too_large: { label: 'Payload Too Large', color: '#FF9500' },
+    crm_error:         { label: 'CRM Error',         color: '#5AC8FA' },
+    auth_failed:       { label: 'Auth Failed',       color: '#FF3B30' },
 };
 
+// ─── Token-driven glass surface ────────────────────────────────────────────────
+const CARD = { ...GLASS.base, borderRadius: RADIUS.panel };
+
 function EventBadge({ event }) {
-    const meta = EVENT_LABELS[event] || { label: event, color: '#374151', bg: '#F3F4F6' };
+    const meta = EVENT_LABELS[event] || { label: event, color: '#6E6E73' };
     return (
-        <span style={{
-            display: 'inline-block',
-            background: meta.bg,
-            color: meta.color,
-            fontSize: 11,
-            fontWeight: 700,
-            padding: '3px 10px',
-            borderRadius: 50,
-            border: `1px solid ${meta.color}22`,
-        }}>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap"
+            style={{ background: hexA(meta.color, 0.1), color: meta.color, border: `1px solid ${hexA(meta.color, 0.22)}` }}>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: meta.color }} />
             {meta.label}
         </span>
     );
@@ -35,10 +42,33 @@ function formatTs(ts) {
     return d.toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-export default function AdminSecurity() {
+// ─── Stat tile — white glass, ink number, small colored severity dot ───────────
+function StatTile({ label, value, color, delay }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
+            className="relative overflow-hidden p-5 flex flex-col justify-between min-h-[120px] transition-shadow"
+            style={{ ...GLASS.base, borderRadius: RADIUS.kpi }}
+        >
+            <p className="text-[42px] font-black tracking-tighter leading-none" style={{ color: '#1D1D1F' }}>
+                {value}
+            </p>
+            <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                <p className="text-[12px] text-[#6E6E73] font-bold">{label}</p>
+            </div>
+        </motion.div>
+    );
+}
+
+export default function AdminSecurity({ embedded = false }) {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefresh, setLastRefresh] = useState(null);
+    const [filter, setFilter] = useState('הכל');
+    const [error, setError] = useState(null);
 
     const fetchLogs = useCallback(async () => {
         setLoading(true);
@@ -52,8 +82,10 @@ export default function AdminSecurity() {
             const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setLogs(items);
             setLastRefresh(new Date());
+            setError(null);
         } catch (e) {
             console.error('[AdminSecurity]', e);
+            setError(e);
         } finally {
             setLoading(false);
         }
@@ -65,106 +97,167 @@ export default function AdminSecurity() {
         return () => clearInterval(interval);
     }, [fetchLogs]);
 
-    const counts = logs.reduce((acc, l) => {
+    const counts = useMemo(() => logs.reduce((acc, l) => {
         acc[l.event] = (acc[l.event] || 0) + 1;
         return acc;
-    }, {});
+    }, {}), [logs]);
 
-    const glassCard = {
-        background: 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-        border: '1px solid rgba(255,255,255,0.72)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    };
+    // Filter pills — only for event types actually present (real data)
+    const filterOptions = useMemo(() => {
+        const present = Object.keys(counts).map(k => EVENT_LABELS[k]?.label || k);
+        return ['הכל', ...present];
+    }, [counts]);
 
-    return (
-        <div dir="rtl">
-            {/* Header */}
-            <div style={{ marginBottom: 28 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: -0.5 }}>
-                        אבטחת מידע
-                        <span style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginRight: 8 }}>ומעקב אירועים</span>
-                    </h1>
-                    <button
-                        onClick={fetchLogs}
-                        style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,122,255,0.25)' }}
-                    >
-                        רענן
-                    </button>
-                </div>
-                {lastRefresh && (
-                    <p style={{ margin: 0, fontSize: 12, color: '#9CA3AF' }}>
-                        עודכן לאחרונה: {lastRefresh.toLocaleTimeString('he-IL')} · מתרענן אוטומטית כל 30 שניות
-                    </p>
-                )}
-            </div>
+    const filteredLogs = useMemo(() => {
+        if (filter === 'הכל') return logs;
+        return logs.filter(l => (EVENT_LABELS[l.event]?.label || l.event) === filter);
+    }, [logs, filter]);
 
-            {/* Summary cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 28 }}>
-                {[
-                    { key: 'total', label: 'סך הכל אירועים', value: logs.length, color: '#007AFF' },
-                    { key: 'rate_limited', label: 'חסימות Rate Limit', value: counts.rate_limited || 0, color: '#FF3B30' },
-                    { key: 'payload_too_large', label: 'Payload גדול מדי', value: counts.payload_too_large || 0, color: '#FF9500' },
-                    { key: 'other', label: 'אירועים אחרים', value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#5856D6' },
-                ].map(card => (
-                    <div key={card.key} style={{ ...glassCard, borderRadius: 16, padding: '16px 20px' }}>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: card.color, lineHeight: 1 }}>{card.value}</div>
-                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, fontWeight: 600 }}>{card.label}</div>
-                    </div>
+    const stats = [
+        { key: 'total',             label: 'סך הכל אירועים',   value: logs.length,                                                              color: SEAFOAM },
+        { key: 'rate_limited',      label: 'חסימות Rate Limit', value: counts.rate_limited || 0,                                                 color: '#FF3B30' },
+        { key: 'payload_too_large', label: 'Payload גדול מדי',  value: counts.payload_too_large || 0,                                            color: '#FF9500' },
+        { key: 'other',             label: 'אירועים אחרים',     value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#5AC8FA' },
+    ];
+
+    const showSkeleton = loading && logs.length === 0;
+
+    // ─── Shared body: stats band + filter + event table + states ────────────────
+    // Rendered inside a page wrapper when standalone, or bare when embedded in the
+    // Settings → אבטחה tab (no page header, no outer chrome).
+    const body = (
+        <>
+            {/* Summary stat band — oversized colored numbers */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {stats.map((s, i) => (
+                    <StatTile key={s.key} label={s.label} value={s.value} color={s.color} delay={i * 0.06} />
                 ))}
             </div>
 
-            {/* Log table */}
-            <div style={{ ...glassCard, borderRadius: 16, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>100 אירועים אחרונים</span>
-                    {loading && <span style={{ fontSize: 12, color: '#9CA3AF' }}>טוען...</span>}
+            {/* Filter pills — by event type (real, present-only) */}
+            {filterOptions.length > 1 && (
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <AdminFilterPills options={filterOptions} active={filter} onChange={setFilter} id="security-filter" />
+                    <span className="text-[11px] text-[#AEAEB2] font-medium">
+                        מציג {filteredLogs.length} מתוך {logs.length} רשומות
+                    </span>
                 </div>
+            )}
 
-                {logs.length === 0 && !loading ? (
-                    <div style={{ padding: '48px 20px', textAlign: 'center', color: '#34C759', fontSize: 14, fontWeight: 600 }}>
-                        אין אירועי אבטחה ב-100 הרשומות האחרונות — הכל תקין
+            {/* Log table */}
+            {showSkeleton ? (
+                <AdminSkeleton rows={6} />
+            ) : (
+                <div className="w-full overflow-hidden" style={CARD}>
+                    <div className="px-6 py-4 flex items-center justify-between"
+                        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: hexA(SEAFOAM, 0.04) }}>
+                        <span className="text-[13px] font-black text-[#1D1D1F]">100 אירועים אחרונים</span>
+                        {loading && (
+                            <span className="flex items-center gap-1.5 text-[11px] text-[#AEAEB2] font-medium">
+                                <RefreshCw size={12} className="animate-spin" /> מרענן...
+                            </span>
+                        )}
                     </div>
-                ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ background: 'rgba(0,0,0,0.025)' }}>
-                                    {['זמן', 'אירוע', 'נקודת קצה', 'כתובת IP', 'פרטים'].map(h => (
-                                        <th key={h} style={{ padding: '10px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.map((log, i) => (
-                                    <tr key={log.id} style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.012)' }}>
-                                        <td style={{ padding: '10px 16px', whiteSpace: 'nowrap', color: '#6B7280', fontFamily: 'monospace', fontSize: 12 }}>
-                                            {formatTs(log.ts)}
-                                        </td>
-                                        <td style={{ padding: '10px 16px' }}>
-                                            <EventBadge event={log.event} />
-                                        </td>
-                                        <td style={{ padding: '10px 16px', color: '#374151', fontFamily: 'monospace', fontSize: 12 }}>
-                                            {log.endpoint || '—'}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', color: '#374151', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>
-                                            {log.ip || '—'}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', color: '#6B7280', fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {Object.entries(log)
-                                                .filter(([k]) => !['id', 'event', 'ts', 'endpoint', 'ip'].includes(k))
-                                                .map(([k, v]) => `${k}: ${v}`)
-                                                .join(' · ') || '—'}
-                                        </td>
+
+                    {error ? (
+                        <div className="flex flex-col items-center justify-center text-center px-6 py-14 gap-4">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                style={{ background: hexA('#FF3B30', 0.1), border: `1px solid ${hexA('#FF3B30', 0.24)}` }}>
+                                <ShieldCheck size={26} style={{ color: '#FF3B30' }} />
+                            </div>
+                            <div>
+                                <p className="text-[15px] font-black text-[#1D1D1F]">שגיאה בטעינת יומני האבטחה</p>
+                                <p className="text-[12px] text-[#86868B] font-medium mt-1 max-w-[420px]">
+                                    לא ניתן לקרוא את הרשומות מ-Firestore. ייתכן שאין הרשאה או שהחיבור נכשל — זהו אינו מצב "נקי".
+                                </p>
+                            </div>
+                            <AdminButton onClick={fetchLogs} accent="#FF3B30" loading={loading}>
+                                <span className="flex items-center gap-1.5"><RefreshCw size={14} /> נסה שוב</span>
+                            </AdminButton>
+                        </div>
+                    ) : filteredLogs.length === 0 ? (
+                        <AdminEmpty
+                            title={filter === 'הכל' ? 'אין אירועי אבטחה' : 'אין אירועים מסוג זה'}
+                            subtitle="הרשומות האחרונות נקיות — כל המערכות תקינות"
+                        />
+                    ) : (
+                        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                            <table className="w-full text-right" style={{ fontSize: 13, minWidth: 640 }}>
+                                <thead>
+                                    <tr>
+                                        {['זמן', 'אירוע', 'נקודת קצה', 'כתובת IP', 'פרטים'].map(h => (
+                                            <th key={h} className="px-4 py-3 text-[11px] font-bold text-[#86868B] whitespace-nowrap"
+                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', letterSpacing: 0.5 }}>{h}</th>
+                                        ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <AnimatePresence initial={false}>
+                                        {filteredLogs.map((log, i) => (
+                                            <motion.tr key={log.id}
+                                                initial={{ opacity: 0, y: 6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: Math.min(i * 0.01, 0.3), type: 'spring', stiffness: 320, damping: 28 }}
+                                                style={{ borderBottom: '1px solid rgba(0,0,0,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.012)' }}>
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-[#6B7280]" style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                                                    {formatTs(log.ts)}
+                                                </td>
+                                                <td className="px-4 py-2.5"><EventBadge event={log.event} /></td>
+                                                <td className="px-4 py-2.5 text-[#374151]" style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                                                    {log.endpoint || '—'}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-[#374151] whitespace-nowrap" style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                                                    {log.ip || '—'}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-[#6B7280]" style={{ fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {Object.entries(log)
+                                                        .filter(([k]) => !['id', 'event', 'ts', 'endpoint', 'ip'].includes(k))
+                                                        .map(([k, v]) => `${k}: ${v}`)
+                                                        .join(' · ') || '—'}
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
+
+    // Embedded (inside Settings tab): render bare, no page header / outer chrome.
+    if (embedded) {
+        return <div className="space-y-5">{body}</div>;
+    }
+
+    // Standalone page: full header + section chrome (unchanged behavior).
+    return (
+        <div dir="rtl" className="space-y-6">
+            <AdminSectionHeader
+                title="אבטחת מידע ומעקב אירועים"
+                subtitle={lastRefresh
+                    ? `עודכן לאחרונה: ${lastRefresh.toLocaleTimeString('he-IL')} · מתרענן אוטומטית כל 30 שניות`
+                    : 'ניטור אירועי אבטחה בזמן-אמת מתוך Firestore'}
+                icon={ShieldCheck}
+                action={
+                    <div className="flex items-center gap-2.5">
+                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+                            style={{ background: hexA(SEAFOAM, 0.1), border: `1px solid ${hexA(SEAFOAM, 0.24)}` }}>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: SEAFOAM }} />
+                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: SEAFOAM }} />
+                            </span>
+                            <span className="text-[11px] font-black" style={{ color: SEAFOAM }}>ניטור פעיל</span>
+                        </div>
+                        <AdminButton onClick={fetchLogs} accent={SEAFOAM} loading={loading}>
+                            <span className="flex items-center gap-1.5"><RefreshCw size={14} /> רענן</span>
+                        </AdminButton>
                     </div>
-                )}
-            </div>
+                }
+            />
+            {body}
         </div>
     );
 }

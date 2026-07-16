@@ -45,8 +45,7 @@ const CatalogGrid = () => {
  addedMsg: getSetting('catalog_added_msg', 'נוסף לעגלה'),
  removeMsg: getSetting('catalog_remove_msg', 'הסר'),
  requestQuote: getSetting('catalog_request_quote', 'בקש הצעה'),
- categories: ['הכל', ...getSetting('catalog_categories', 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה').split(',').map(c => c.trim())],
- tags: getSetting('catalog_tags', 'תומך AI, מוקשח (Rugged), 4K UHD, אלחוטי, חיסכון בחשמל, Android 13, חינוך STEM').split(',').map(c => c.trim()),
+ tags: getSetting('catalog_tags', 'IPS, Full HD, 100Hz ומעלה, HDMI, Adaptive-Sync').split(',').map(c => c.trim()).filter(Boolean),
  priceMax: parseInt(getSetting('catalog_price_max', '30000'), 10),
  viewGrid: getSetting('catalog_view_grid', 'תצוגת רשת'),
  viewList: getSetting('catalog_view_list', 'תצוגת רשימה'),
@@ -65,7 +64,11 @@ const CatalogGrid = () => {
 
  const { activeProducts: products } = useProducts();
 
- const categories = content.categories;
+ // Derive filter categories from the REAL catalog (not a hardcoded CMS list).
+ const categories = useMemo(
+ () => ['הכל', ...new Set(products.map(p => p.category).filter(Boolean))],
+ [products]
+ );
 
  // Reset selected category if it was removed from the categories list
  useEffect(() => {

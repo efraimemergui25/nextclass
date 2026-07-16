@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit, runTransaction } from 'firebase/firestore';
 import { db } from '../../firebase';
-import initialProducts, { productMeta } from '../../data/products';
+import { CHUNK_CHARS } from '../utils/fileStore';
+import initialProducts from '../../data/products';
+import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
+import { buildAmalPO, amalPoHtml } from '../../data/amalPO';
+import { stageMeta, STAGE_TO_LEGACY, INVENTORY_STAGES } from '../lib/orderModel';
+import { fetchUsdIlsRate, DEFAULT_USD_ILS } from '../lib/productFinance';
+import { BUSINESS } from '../lib/businessProfile';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -77,6 +83,8 @@ export function AdminDataProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [ordersSeenAt, setOrdersSeenAt] = useState(() => Number(localStorage.getItem('nc-orders-seen-at') || 0));
     const [deletedItems, setDeletedItems] = useState({ orders: [], quotes: [], contacts: [] });
+    const [fx, setFx] = useState({ usdIls: DEFAULT_USD_ILS, updatedAt: null, syncing: false });
+    const [business, setBusiness] = useState(BUSINESS);
 
     const isInitialized = useRef({ orders: false, quotes: false, contacts: false, inventory: false });
 
@@ -138,18 +146,14 @@ export function AdminDataProvider({ children }) {
             if (snap.empty) {
                 // Seed database if empty
                 console.log("Seeding Firebase with initial products...");
-                const toSeed = initialProducts.map(p => {
-                    const meta = productMeta[p.id] || {};
-                    return {
-                        ...p,
-                        ...meta,
-                        stock: Math.floor(Math.random() * 50) + 10,
-                        threshold: 5,
-                        sold: meta.sold || Math.floor(Math.random() * 30),
-                        isActive: true,
-                        sku: p.sku || `SKU-${p.id || Math.floor(Math.random() * 9000 + 1000)}`,
-                    };
-                });
+                const toSeed = initialProducts.map(p => ({
+                    ...p,
+                    stock: p.stock ?? 0,
+                    threshold: p.threshold ?? 5,
+                    sold: 0,
+                    isActive: p.isActive !== false,
+                    sku: p.sku || `NC-${p.id}`,
+                }));
                 const seedBatch = writeBatch(db);
                 toSeed.forEach(prod => {
                     seedBatch.set(doc(db, 'products', prod.id.toString()), prod);
@@ -163,7 +167,8 @@ export function AdminDataProvider({ children }) {
                     snap.docChanges().forEach(change => {
                         if (change.type === 'modified') {
                             const p = change.doc.data();
-                            if (p.stock <= p.threshold && p.stock > 0) {
+                            const muted = p.lowStockMuted || (p.supplierStocked && p.supplierInStock);
+                            if (p.stock <= p.threshold && p.stock > 0 && !muted) {
                                 const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
                                 if (settings.notifLowStock !== false) {
                                     showToast(`מלאי נמוך: ${p.title}`, 'warning');
@@ -210,6 +215,18 @@ export function AdminDataProvider({ children }) {
             setActivityLog(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
         });
 
+        // Shared USD→ILS exchange rate (config/fx) — one rate synced across the portal
+        const unsubFx = onSnapshot(doc(db, 'config', 'fx'), (snap) => {
+            const d = snap.data();
+            if (d?.usdIls) setFx(prev => ({ ...prev, usdIls: Number(d.usdIls), updatedAt: d.updatedAt || null }));
+        }, () => {});
+
+        // Legal business profile (config/business) — feeds invoices & email footers
+        const unsubBiz = onSnapshot(doc(db, 'config', 'business'), (snap) => {
+            const d = snap.data();
+            if (d) setBusiness(prev => ({ ...BUSINESS, ...prev, ...d }));
+        }, () => {});
+
         // Real page view tracking from Firestore (last 90 days)
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 90);
@@ -230,9 +247,82 @@ export function AdminDataProvider({ children }) {
         }, () => {});
 
         return () => {
-            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews();
+            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews(); unsubFx(); unsubBiz();
         };
     }, []);
+
+    // ── Currency: manual set + live sync from a free FX endpoint ──────────────
+    const setFxRate = async (rate) => {
+        const val = Number(rate);
+        if (!val || val <= 0) return;
+        await setDoc(doc(db, 'config', 'fx'), { usdIls: val, updatedAt: Date.now() }, { merge: true });
+        addActivity(`שער הדולר עודכן ידנית ל-₪${val.toFixed(2)}`, 'info');
+    };
+    const syncFxRate = async () => {
+        setFx(prev => ({ ...prev, syncing: true }));
+        try {
+            const rate = await fetchUsdIlsRate();
+            await setDoc(doc(db, 'config', 'fx'), { usdIls: Number(rate), updatedAt: Date.now(), source: 'auto' }, { merge: true });
+            addActivity(`שער הדולר סונכרן: 1$ = ₪${Number(rate).toFixed(3)}`, 'info');
+            showToast(`שער עודכן: 1$ = ₪${Number(rate).toFixed(2)}`, 'success');
+            return rate;
+        } catch (err) {
+            console.error('[syncFxRate]', err);
+            showToast('סנכרון אוטומטי נכשל — ניתן להזין שער ידנית', 'error');
+            throw err;
+        } finally {
+            setFx(prev => ({ ...prev, syncing: false }));
+        }
+    };
+
+    // ── Business profile (legal identity) + invoice register ──────────────────
+    const saveBusiness = async (fields) => {
+        await setDoc(doc(db, 'config', 'business'), { ...fields, updatedAt: Date.now() }, { merge: true });
+        addActivity('פרטי העסק עודכנו', 'info');
+    };
+    // Issue an invoice: assign the next running number, persist the record. Returns
+    // { number, seq }. Single-admin use → a read-modify-write counter is sufficient.
+    const issueInvoice = async (order = {}, meta = {}) => {
+        const oid = order.id;
+        // Idempotency: one invoice number per order. If this order was already
+        // invoiced, REUSE it (reopening/reprinting must not mint a new number).
+        if (oid && meta.docType !== 'proforma') {
+            try {
+                const existing = await getDocs(query(collection(db, 'invoices'), where('orderId', '==', String(oid)), limit(1)));
+                if (!existing.empty) {
+                    const d = existing.docs[0].data();
+                    return { number: d.number, seq: d.seq, existing: true };
+                }
+            } catch { /* fall through to mint */ }
+        }
+        const year = new Date().getFullYear();
+        // Atomically allocate the next running number (no duplicate on concurrent issue).
+        const bizRef = doc(db, 'config', 'business');
+        const seq = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(bizRef);
+            const next = (Number(snap.data()?.invoiceSeq) || 1000) + 1;
+            tx.set(bizRef, { invoiceSeq: next }, { merge: true });
+            return next;
+        });
+        const number = meta.invoiceNumber || `${year}-${String(seq).padStart(5, '0')}`;
+        const id = `INV-${number}`;
+        await setDoc(doc(db, 'invoices', id), {
+            id, number, seq, orderId: oid ? String(oid) : null,
+            customer: order.contactName || order.customer || order.institution || '',
+            docType: meta.docType || 'tax',
+            vatRate: meta.vatRate ?? business.vatRate,
+            allocationNumber: meta.allocationNumber || '',
+            total: Number(meta.total) || null,
+            issuedAt: serverTimestamp(), issuedTs: Date.now(),
+        }, { merge: true });
+        // Stamp the source record so it shows as "invoiced" and won't re-mint.
+        if (oid) {
+            const coll = order._kind === 'order' ? 'orders' : 'quotes';
+            try { await setDoc(doc(db, coll, String(oid)), { invoiceNumber: number, invoicedAt: Date.now() }, { merge: true }); } catch { /* non-blocking */ }
+        }
+        addActivity(`הונפקה חשבונית ${number}${oid ? ` (הזמנה ${oid})` : ''}`, 'order');
+        return { number, seq };
+    };
 
     // ─── Actions (Writing to Firebase) ──────────────────────────────────────
     const addActivity = async (message, type = 'info') => {
@@ -280,11 +370,146 @@ export function AdminDataProvider({ children }) {
             ...newProduct,
             id,
             stock: Number(newProduct.stock) || 0,
-            threshold: 5,
+            threshold: Number(newProduct.threshold) || 5,
             sold: 0,
         });
         addActivity(`מוצר חדש נוסף: ${newProduct.title}`, 'product');
         return id;
+    };
+
+    // ── Create/merge a customer contact (customers derive from contacts) ──────
+    const upsertContact = async (data = {}) => {
+        const key = String(data.email || data.phone || data.name || '').trim();
+        if (!key) return null;
+        const existing = data.id
+            ? contacts.find(c => c.id === data.id)
+            : contacts.find(c =>
+                (data.email && c.email && c.email === data.email) ||
+                (data.phone && c.phone && String(c.phone).replace(/\D/g, '') === String(data.phone).replace(/\D/g, ''))
+            );
+        const targetId = data.id || existing?.id || `C-${Date.now()}`;
+        await setDoc(doc(db, 'contacts', targetId), {
+            id: targetId,
+            name: data.name || existing?.name || '',
+            institution: data.institution || existing?.institution || '',
+            phone: data.phone || existing?.phone || '',
+            email: data.email || existing?.email || '',
+            address: data.address || existing?.address || '',
+            city: data.city || existing?.city || '',
+            status: data.status || existing?.status || 'ליד',
+            source: data.source || existing?.source || 'manual',
+            createdAt: existing?.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            // Stamp sortable/display date for new contacts so they surface at the
+            // top of the list and pass the date filters (existing docs keep theirs).
+            ...(existing ? {} : { dateTs: Date.now(), date: new Date().toLocaleDateString('he-IL') }),
+            ...(data.extra || {}),
+        }, { merge: true });
+        if (!existing) addActivity(`איש קשר/לקוח חדש נוסף: ${data.name || key}`, 'customer');
+        return targetId;
+    };
+
+    // ── Create a customer order/quote (the orders pipeline is the `quotes` collection) ──
+    const createQuote = async (data = {}) => {
+        const now = Date.now();
+        const id = data.id || `Q-${now}`;
+        const items = (data.items || []).map(it => ({
+            catalogNumber: it.catalogNumber || it.id || '',
+            title: it.title || it.name || '',
+            qty: Number(it.qty ?? it.quantity) || 1,
+            unit: it.unit || 'יח׳',
+            price: Number(it.price) || 0,
+            salePrice: it.salePrice != null ? Number(it.salePrice) : (Number(it.price) || 0),
+        }));
+        const subtotal = data.subtotal != null ? Number(data.subtotal)
+            : items.reduce((s, it) => s + (it.salePrice || it.price || 0) * it.qty, 0);
+        const stamp = new Date();
+        await setDoc(doc(db, 'quotes', id), {
+            id,
+            contactName: data.contactName || '', institution: data.institution || '',
+            phone: data.phone || '', email: data.email || '', address: data.address || '',
+            city: data.city || '', zip: data.zip || '',
+            items, subtotal,
+            vatAmount: data.vatAmount != null ? Number(data.vatAmount) : null,
+            totalIncVat: data.totalIncVat != null ? Number(data.totalIncVat) : null,
+            notes: data.notes || '',
+            orderNumber: data.orderNumber || '', poDate: data.poDate || '', deliveryDate: data.deliveryDate || '',
+            budgetCode: data.budgetCode || '', paymentTerms: data.paymentTerms || '', authorizedBy: data.authorizedBy || '',
+            companyId: data.companyId || '', supplierRef: data.supplierRef || '', currency: data.currency || 'ILS',
+            status: data.status || 'חדש', source: data.source || 'manual',
+            // ── canonical order-object fields (orderModel) ──
+            fulfillmentMode: data.fulfillmentMode || 'dropship',
+            overallStage: data.overallStage || 'new',
+            stageEnteredTs: now,
+            shipTo: data.shipTo || null,   // partner functions (SAP) — default null → falls back to contact
+            billTo: data.billTo || null,
+            supplierOrderId: data.supplierOrderId || null,
+            history: [{ status: data.status || 'חדש', date: stamp.toLocaleDateString('he-IL'), time: stamp.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }), ts: now }],
+            dateTs: now, date: stamp.toLocaleDateString('he-IL'),
+            ...(data.extra || {}),
+        }, { merge: true });
+        logOrderActivity(id, { type: 'system', message: `הזמנה נוצרה (${data.source || 'ידני'})` });
+        // Auto-link the buyer as a customer/contact
+        if (data.contactName || data.phone || data.email) {
+            await upsertContact({ name: data.contactName, institution: data.institution, phone: data.phone, email: data.email, address: data.address, city: data.city, source: data.source || 'order' });
+        }
+        addActivity(`הזמנה חדשה נוצרה: ${data.contactName || data.institution || id}`, 'order');
+        return id;
+    };
+
+    // ── Create a supplier order (drop-ship) ──────────────────────────────────
+    const createSupplierOrder = async (data = {}) => {
+        const ref = await addDoc(collection(db, 'supplier_orders'), {
+            customerName: data.customerName || '', supplierName: data.supplierName || '', supplierId: data.supplierId || '',
+            productTitle: data.productTitle || '', qty: Number(data.qty) || 1, totalCost: Number(data.totalCost) || 0,
+            status: data.status || 'pending', eta: data.eta || '', notes: data.notes || '',
+            customerOrderId: data.customerOrderId || null, createdAt: serverTimestamp(),
+        });
+        addActivity(`הזמנת ספק נוצרה: ${data.productTitle || ''}`, 'order');
+        return ref.id;
+    };
+
+    // ── Order activity timeline (SF-style) — append-only per-order audit trail ──
+    // Stored at quotes/{orderId}/activity. Never throws to the UI.
+    const logOrderActivity = async (orderId, entry = {}) => {
+        if (!orderId) return;
+        try {
+            await addDoc(collection(db, 'quotes', String(orderId), 'activity'), {
+                type: entry.type || 'note',        // stage | email | note | supplier | doc | system
+                message: entry.message || '',
+                meta: entry.meta || null,
+                actor: entry.actor || 'admin',
+                at: serverTimestamp(),
+                ts: Date.now(),
+            });
+        } catch (err) { console.error('[activity] log failed:', err); }
+    };
+
+    // ── Advance an order along the canonical stage path (orderModel) ────────────
+    // Additive over updateQuoteStatus: sets overallStage + stageEnteredTs + logs
+    // activity, and routes inventory-affecting stages through the existing batch
+    // side-effects (stock settle / synthetic sale / reservation release).
+    const advanceOrderStage = async (orderId, toStage, extra = {}) => {
+        if (!orderId || !toStage) return;
+        const now = Date.now();
+        const legacy = STAGE_TO_LEGACY[toStage];
+        if (legacy && INVENTORY_STAGES.includes(toStage)) {
+            await updateQuoteStatus(orderId, legacy);           // runs stock/sale side-effects
+        } else if (legacy) {
+            await setDoc(doc(db, 'quotes', String(orderId)), { status: legacy }, { merge: true });
+        }
+        await setDoc(doc(db, 'quotes', String(orderId)), {
+            overallStage: toStage, stageEnteredTs: now, ...extra,
+        }, { merge: true });
+        await logOrderActivity(orderId, { type: 'stage', message: `השלב עודכן ל: ${stageMeta(toStage).label}` });
+    };
+
+    // ── Two-way link between an order and its drop-ship supplier PO ─────────────
+    const linkSupplierOrder = async (orderId, supplierOrderId) => {
+        if (!orderId || !supplierOrderId) return;
+        await setDoc(doc(db, 'quotes', String(orderId)), { supplierOrderId: String(supplierOrderId) }, { merge: true });
+        await setDoc(doc(db, 'supplier_orders', String(supplierOrderId)), { customerOrderId: String(orderId) }, { merge: true });
+        await logOrderActivity(orderId, { type: 'supplier', message: 'נוצרה הזמנת ספק מקושרת' });
     };
 
     const updateQuoteStatus = async (quoteId, newStatus) => {
@@ -300,16 +525,17 @@ export function AdminDataProvider({ children }) {
         batch.set(doc(db, 'quotes', quoteId), { status: newStatus, history }, { merge: true });
 
         // 2. Inventory + sales sync
+        // Resolve a product doc id — OCR/PO items carry `catalogNumber`, checkout items carry `id`.
+        const pidOf = (item) => String(item.catalogNumber || item.id || '').trim();
         if (quote?.items?.length) {
             if (newStatus === 'נסגר' && !quote.inventorySettled) {
-                // Deal closed → decrement stock & reserved, increment sold
+                // Deal closed → decrement stock, increment sold; release reservation only if it was reserved.
                 quote.items.forEach(item => {
+                    const pid = pidOf(item); if (!pid) return;
                     const qty = Number(item.qty) || 1;
-                    batch.update(doc(db, 'products', String(item.id)), {
-                        stock:    increment(-qty),
-                        reserved: increment(-qty),
-                        sold:     increment(qty),
-                    });
+                    const upd = { stock: increment(-qty), sold: increment(qty) };
+                    if (quote.stockReserved) upd.reserved = increment(-qty);
+                    batch.update(doc(db, 'products', pid), upd);
                 });
                 batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'closed' }, { merge: true });
                 addActivity(`מלאי עודכן אוטומטית — עסקה נסגרה (${quoteId})`, 'inventory');
@@ -319,12 +545,11 @@ export function AdminDataProvider({ children }) {
                 const alreadySettled = quote.inventorySettled === 'closed' || quote.inventorySettled === 'supplied';
                 if (!alreadySettled) {
                     quote.items.forEach(item => {
+                        const pid = pidOf(item); if (!pid) return;
                         const qty = Number(item.qty) || 1;
-                        batch.update(doc(db, 'products', String(item.id)), {
-                            stock:    increment(-qty),
-                            reserved: increment(-qty),
-                            sold:     increment(qty),
-                        });
+                        const upd = { stock: increment(-qty), sold: increment(qty) };
+                        if (quote.stockReserved) upd.reserved = increment(-qty);
+                        batch.update(doc(db, 'products', pid), upd);
                     });
                 }
                 batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'supplied' }, { merge: true });
@@ -340,16 +565,17 @@ export function AdminDataProvider({ children }) {
                 };
                 batch.set(doc(db, 'orders', `sale_${quoteId}`), saleRecord, { merge: true });
                 addActivity(`עסקה סופקה — הכנסה ₪${saleTotal.toLocaleString()} נרשמה (${quoteId})`, 'order');
-            } else if (newStatus === 'אבד' && !quote.inventorySettled) {
-                // Deal lost → release reservation only, no stock change
-                quote.items.forEach(item => {
-                    const qty = Number(item.qty) || 1;
-                    batch.update(doc(db, 'products', String(item.id)), {
-                        reserved: increment(-qty),
+            } else if ((newStatus === 'אבד' || newStatus === 'בוטל') && !quote.inventorySettled) {
+                // Deal cancelled/lost → release reservation only (if it was reserved), no stock change.
+                if (quote.stockReserved) {
+                    quote.items.forEach(item => {
+                        const pid = pidOf(item); if (!pid) return;
+                        const qty = Number(item.qty) || 1;
+                        batch.update(doc(db, 'products', pid), { reserved: increment(-qty) });
                     });
-                });
-                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: 'lost' }, { merge: true });
-                addActivity(`שמירת מלאי שוחררה — עסקה אבדה (${quoteId})`, 'inventory');
+                }
+                batch.set(doc(db, 'quotes', quoteId), { inventorySettled: newStatus === 'בוטל' ? 'cancelled' : 'lost' }, { merge: true });
+                addActivity(`שמירת מלאי שוחררה — ${newStatus} (${quoteId})`, 'inventory');
             }
         }
 
@@ -357,8 +583,47 @@ export function AdminDataProvider({ children }) {
         addActivity(`הצעת מחיר ${quoteId} עודכנה ל"${newStatus}"`, 'order');
     };
 
+    // Field-labels tracked in the audit log (who-changed-what-from-what)
+    const AUDIT_LABELS = { contactName: 'שם לקוח', institution: 'מוסד', phone: 'טלפון', email: 'מייל', address: 'כתובת', city: 'עיר', deliveryDate: 'תאריך אספקה', supplierName: 'ספק', notes: 'הערות', paymentStatus: 'סטטוס תשלום', orderNumber: 'מס׳ הזמנה', fulfillmentMode: 'שיטת אספקה' };
     const updateQuoteFields = async (quoteId, fields) => {
-        await setDoc(doc(db, 'quotes', quoteId), fields, { merge: true });
+        const prev = quotes.find(q => q.id === quoteId) || {};
+        await setDoc(doc(db, 'quotes', String(quoteId)), fields, { merge: true });
+        // audit trail — append meaningful diffs to the order timeline
+        try {
+            const changes = [];
+            for (const [k, v] of Object.entries(fields)) {
+                if (AUDIT_LABELS[k] && String(prev[k] ?? '') !== String(v ?? '')) {
+                    changes.push(`${AUDIT_LABELS[k]}: "${prev[k] || '—'}" ← "${v || '—'}"`);
+                }
+            }
+            // compare items on a normalized projection so re-saving unchanged items doesn't log noise
+            if (fields.items) {
+                const proj = (arr) => JSON.stringify((arr || []).map(x => ({ t: (x.title || x.name || '').trim(), q: Number(x.qty) || 1, p: Number(x.salePrice ?? x.price) || 0, c: x.catalogNumber || '' })));
+                if (proj(prev.items) !== proj(fields.items)) changes.push('פריטים עודכנו');
+            }
+            if (changes.length) {
+                await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), { type: 'system', message: '✏️ שינוי: ' + changes.join(' · '), at: serverTimestamp(), ts: Date.now() });
+            }
+        } catch { /* noop */ }
+    };
+
+    // Payment tracking — status/amount/due date. Logs only on a real status change.
+    const updatePayment = async (quoteId, { paymentStatus, amountPaid, paymentDueTs, paymentTermsDays } = {}) => {
+        const prev = quotes.find(q => q.id === quoteId) || {};
+        const patch = {};
+        if (paymentStatus !== undefined) patch.paymentStatus = paymentStatus;
+        if (amountPaid !== undefined) patch.amountPaid = Number(amountPaid) || 0;
+        if (paymentDueTs !== undefined) patch.paymentDueTs = paymentDueTs;
+        if (paymentTermsDays !== undefined) patch.paymentTermsDays = paymentTermsDays;
+        await setDoc(doc(db, 'quotes', String(quoteId)), patch, { merge: true });
+        if (paymentStatus !== undefined && paymentStatus !== (prev.paymentStatus || 'unpaid')) {
+            try {
+                await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), {
+                    type: 'system', message: `💰 תשלום: ${{ paid: 'שולם', partial: 'שולם חלקית', unpaid: 'ממתין לתשלום' }[paymentStatus] || paymentStatus}`,
+                    at: serverTimestamp(), ts: Date.now(),
+                });
+            } catch { /* noop */ }
+        }
     };
 
     const addQuoteNote = async (quoteId, note) => {
@@ -396,6 +661,10 @@ export function AdminDataProvider({ children }) {
             await setDoc(doc(db, 'coupons', id.toString()), { active: !coupon.active }, { merge: true });
             addActivity(`קופון ${coupon.code} ${coupon.active ? 'הושבת' : 'הופעל'}`, 'coupon');
         }
+    };
+    const updateCoupon = async (id, fields) => {
+        await setDoc(doc(db, 'coupons', id.toString()), fields, { merge: true });
+        addActivity(`קופון ${fields.code || id} עודכן`, 'coupon');
     };
     const deleteCoupon = async (id) => {
         const coupon = coupons.find(c => c.id === id);
@@ -479,20 +748,92 @@ export function AdminDataProvider({ children }) {
         const batch = writeBatch(db);
         initialProducts.forEach(p => {
             const existing = inventory.find(ep => ep.id === p.id);
-            const meta = productMeta[p.id] || {};
             const data = {
                 ...p,
-                ...meta,
-                stock: existing ? existing.stock : (Math.floor(Math.random() * 50) + 10),
-                sold: existing ? existing.sold : (meta.sold || 0),
-                threshold: existing ? existing.threshold : 5,
+                stock: existing ? existing.stock : (p.stock ?? 0),
+                sold: existing ? existing.sold : 0,
+                threshold: existing ? existing.threshold : (p.threshold ?? 5),
                 isActive: existing ? (existing.isActive !== false) : true,
-                sku: existing?.sku || p.sku || `SKU-${p.id}`,
+                sku: existing?.sku || p.sku || `NC-${p.id}`,
             };
             batch.set(doc(db, 'products', p.id.toString()), data);
         });
         await batch.commit();
         addActivity(`בוצע סנכרון מחדש של בסיס הנתונים`, 'info');
+    };
+
+    // ─── Launch Cleanup ─────────────────────────────────────────────────────
+    // Overwrite ONLY the known fabricated CMS keys with clean values (merge),
+    // neutralising fake testimonials/stats/partners/reviews/timeline in the LIVE db
+    // without touching any legitimate configuration.
+    const resetMarketingContent = async () => {
+        await setDoc(doc(db, 'config', 'cms'), CMS_CLEAN_OVERRIDES, { merge: true });
+        addActivity('תוכן שיווקי אופס לברירות מחדל נקיות (הוסרו נתונים פקטיביים)', 'info');
+        return Object.keys(CMS_CLEAN_OVERRIDES).length;
+    };
+
+    // Delete EVERY product, then seed exactly the 3 real monitors. Destructive —
+    // guarded by a confirmation in the UI. Guarantees a clean launch catalog.
+    const wipeAndReseedCatalog = async () => {
+        const snap = await getDocs(collection(db, 'products'));
+        const batch = writeBatch(db);
+        let removed = 0;
+        snap.forEach(d => { batch.delete(d.ref); removed++; });
+        initialProducts.forEach(p => {
+            batch.set(doc(db, 'products', p.id.toString()), {
+                ...p,
+                stock: p.stock ?? 0,
+                threshold: p.threshold ?? 5,
+                sold: 0,
+                isActive: true,
+                sku: p.sku || `NC-${p.id}`,
+            });
+        });
+        await batch.commit();
+        addActivity(`קטלוג אופס: נמחקו ${removed} מוצרים, נטענו ${initialProducts.length} מסכים אמיתיים`, 'product');
+        return { removed, seeded: initialProducts.length };
+    };
+
+    // Purge demo dashboard data. Keeps products/suppliers/supplier_quotes/supplier_orders.
+    const purgeDemoData = async () => {
+        const CLEAR = ['orders','quotes','leads','contacts','customers','newsletter_subs','product_questions','activity','page_views','pending_emails','coupons','comm_templates','security_logs'];
+        let total = 0;
+        for (const name of CLEAR) {
+            const snap = await getDocs(collection(db, name));
+            const docs = snap.docs;
+            for (let i = 0; i < docs.length; i += 400) {
+                const b = writeBatch(db);
+                docs.slice(i, i + 400).forEach(d => b.delete(d.ref));
+                await b.commit();
+            }
+            total += docs.length;
+        }
+        addActivity(`נמחקו ${total} רשומות דמו מהדשבורד`, 'info');
+        return total;
+    };
+
+    // One-time: create the first real order from the Amal PO + save a document to the vault.
+    const createAmalFirstOrder = async () => {
+        const PO = buildAmalPO();
+        await setDoc(doc(db, 'quotes', PO.id), PO);
+        await setDoc(doc(db, 'ocr_intakes', PO.id), { ...PO, kind: 'purchase_order', status: 'approved', approvedAt: PO.createdTs, confidence: 100, createdAt: serverTimestamp() });
+        // Store the PO document in the vault (billing-free Firestore chunks, no bucket).
+        const html = amalPoHtml(PO);
+        const b64 = btoa(unescape(encodeURIComponent(html))); // UTF-8 → base64 (Hebrew-safe)
+        const chunks = [];
+        for (let i = 0; i < b64.length; i += CHUNK_CHARS) chunks.push(b64.slice(i, i + CHUNK_CHARS));
+        if (!chunks.length) chunks.push('');
+        for (let i = 0; i < chunks.length; i++) {
+            await setDoc(doc(db, 'vault_documents', PO.id, 'chunks', String(i)), { i, b64: chunks[i] });
+        }
+        await setDoc(doc(db, 'vault_documents', PO.id), {
+            id: PO.id, name: 'הזמנת רכש 80363169 — עמל (צפת מעיינות)', type: 'text/html',
+            folder: 'quotes', classification: 'approved', tags: ['עמל', 'הזמנת רכש'],
+            source: 'po', relatedOrderId: PO.id, size: html.length,
+            storage: 'firestore', chunkCount: chunks.length, createdAt: serverTimestamp(),
+        });
+        addActivity('נוצרה הזמנה ראשונה מ-PO עמל 80363169 ונשמרה בכספת', 'order');
+        return PO.id;
     };
 
     // KPI calculations — includes both orders (e-commerce) and quotes (pipeline)
@@ -534,7 +875,8 @@ export function AdminDataProvider({ children }) {
             ? (closedQuotes.length / totalPipelineQuotes * 100).toFixed(1)
             : '0.0';
 
-        const lowStock = inventory.filter(p => p.stock <= p.threshold);
+        // Low-stock excludes products with the alert muted or fully covered at the supplier
+        const lowStock = inventory.filter(p => p.stock <= p.threshold && !p.lowStockMuted && !(p.supplierStocked && p.supplierInStock));
 
         return {
             totalOrders:      orders.filter(o => o.source !== 'quote').length,
@@ -549,7 +891,7 @@ export function AdminDataProvider({ children }) {
             avgOrderValue:    totalDeals > 0 ? Math.round(totalRevenue / totalDeals) : 0,
             // Quote alerts
             newQuotes:    quotes.filter(q => q.status === 'חדש' && (q.dateTs || 0) > ordersSeenAt).length,
-            unreadQuotes: quotes.filter(q => q.unreadAdmin === true && (q.dateTs || 0) > ordersSeenAt).length,
+            unreadQuotes: quotes.filter(q => q.unreadAdmin === true && (Math.max(q.dateTs || 0, q.lastInboundTs || 0)) > ordersSeenAt).length,
             pendingOrders: orders.filter(o => (o.status === 'ממתין' || o.status === 'חדש') && (o.dateTs || 0) > ordersSeenAt).length,
             stalledLeads: quotes.filter(q => ['ביצירת קשר', 'הוצע מחיר', 'במשא ומתן'].includes(q.status)).length,
             // Pipeline-specific
@@ -574,19 +916,23 @@ export function AdminDataProvider({ children }) {
     }, []);
 
     const ctxValue = useMemo(() => ({
-        orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog,
+        orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, loading,
         updateOrderStatus, updateQuoteStatus, updateQuoteFields, addQuoteNote, setQuoteCustomerMessage,
         sendThreadMessage, markAdminThreadRead,
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
-        addCoupon, toggleCoupon, deleteCoupon, addActivity, setOrders, setContacts,
-        repairProductImages, reseedDatabase, markOrdersSeen, clearReminder,
+        createQuote, upsertContact, createSupplierOrder,
+        logOrderActivity, advanceOrderStage, linkSupplierOrder, updatePayment,
+        addCoupon, toggleCoupon, updateCoupon, deleteCoupon, addActivity, setOrders, setContacts,
+        repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,
         deletedItems,
+        fx, setFxRate, syncFxRate,
+        business, saveBusiness, issueInvoice,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems]);
+    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading, fx, business]);
 
     return (
         <AdminDataContext.Provider value={ctxValue}>

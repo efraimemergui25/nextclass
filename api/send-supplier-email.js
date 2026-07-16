@@ -5,28 +5,13 @@
  */
 
 import { isRateLimited } from './_rateLimit.js';
+import { queuePendingEmail } from './_pendingEmail.js';
 
-const RESEND_URL = 'https://api.resend.com/emails';
-const FROM_NAME  = 'NextClass';
-const FROM_ADDR  = process.env.RESEND_FROM || 'onboarding@resend.dev';
-const FROM       = `${FROM_NAME} <${FROM_ADDR}>`;
 const BIZ_PHONE  = process.env.NEXTCLASS_PHONE || '058-585-6356';
 const BIZ_EMAIL  = 'nextclass.en@gmail.com';
 const SITE_URL   = process.env.NEXTCLASS_SITE_URL || 'https://nextclass-v4-living.vercel.app';
 const FONT       = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-async function sendEmail(to, subject, html) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) { console.warn('[Resend] RESEND_API_KEY not set'); return; }
-    const res = await fetch(RESEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ from: FROM, to: [to], subject, html }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(JSON.stringify(data));
-    return data;
-}
+const BIZ_LEGAL  = 'נקסט קלאס בע״מ · ח.פ 510942360 · אזור התעשייה 100, רמלה';
 
 function priceNum(p) {
     return Number(String(p ?? 0).replace(/[^0-9.]/g, '')) || 0;
@@ -49,8 +34,7 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
     const contactPerson = supplier?.contactPerson || supplier?.agentName || supplier?.contact || '';
     const greeting = contactPerson ? `שלום ${contactPerson},` : `שלום ${supplierName},`;
     const so = quote.supplierOrder || {};
-    const sd = quote.shippingDetails || {};
-    const subtotal = priceNum(quote.subtotal);
+    // Note: shipping details and totals are intentionally NOT shown to suppliers in the RFQ.
 
     // Items rows — quantities only, no prices shown to supplier
     const itemRows = (quote.items || []).map(item => {
@@ -98,36 +82,51 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
 
     const customerSection = '';
 
+    // Ship-to (customer) — for a drop-ship dispatch the supplier ships DIRECTLY
+    // to the end customer, so they need the address + a contact. No prices.
+    const sd = quote.shippingDetails || {};
+    const shipName = sd.deliveryName || quote.contactName || '';
+    const shipAddr = [sd.address || quote.address, sd.city || quote.city, sd.zip || quote.zip].filter(Boolean).join(', ');
+    const shipPhone = sd.deliveryPhone || quote.phone || '';
+    const shipToSection = (shipName || shipAddr) ? `
+      <div style="padding:16px 18px;background:#FAFCFF;border-radius:14px;border:1px solid #E8EEFF;margin-bottom:28px;">
+        <div style="font-size:11px;font-weight:800;color:#6E6E73;margin-bottom:12px;letter-spacing:0.05em;">📍 כתובת אספקה ואיש קשר (אספקה ישירה ללקוח)</div>
+        ${shipName ? `<div style="font-size:14px;font-weight:800;color:#1D1D1F;">${shipName}${quote.institution ? ` · ${quote.institution}` : ''}</div>` : ''}
+        ${shipAddr ? `<div style="font-size:13px;color:#3D3D3D;margin-top:3px;">${shipAddr}</div>` : ''}
+        ${shipPhone ? `<div style="font-size:13px;color:#0891B2;margin-top:3px;font-weight:700;">${shipPhone}</div>` : ''}
+      </div>` : '';
+
     const replySection = `
       <div style="border-right:4px solid #0891B2;background:#F0FBFF;border-radius:0 12px 12px 0;padding:18px 20px;margin-bottom:0;">
-        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:10px;">📩 נשמח לקבל בחזרה:</div>
-        <div style="margin-bottom:6px;display:flex;align-items:flex-start;gap:8px;">
+        <div style="font-size:13px;font-weight:800;color:#1D1D1F;margin-bottom:10px;">📩 נשמח לקבל מכם בהקדם:</div>
+        <div style="margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">
           <span style="color:#0891B2;font-weight:900;flex-shrink:0;">1.</span>
-          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>הצעת מחיר</strong> לפריטים הנ"ל — לפי היחידה ולפי הכמות</span>
+          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>אישור קבלת ההזמנה</strong> ותאריך אספקה משוער${so.estimatedDelivery ? ` — נדרש עד: <strong style="color:#FF9500;">${so.estimatedDelivery}</strong>` : ''}</span>
         </div>
         <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:8px;">
           <span style="color:#0891B2;font-weight:900;flex-shrink:0;">2.</span>
-          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>זמן אספקה</strong> צפוי${so.estimatedDelivery ? ` — נדרש עד: <strong style="color:#FF9500;">${so.estimatedDelivery}</strong>` : ''}</span>
+          <span style="font-size:13px;color:#3D3D3D;line-height:1.6;"><strong>מספר מעקב</strong> ופרטי שילוח — ברגע שההזמנה יוצאת לדרך</span>
         </div>
         <div style="font-size:12px;color:#6E6E73;border-top:1px solid rgba(8,145,178,0.1);padding-top:10px;">לכל שאלה: <strong>${BIZ_PHONE}</strong> · <a href="mailto:${BIZ_EMAIL}" style="color:#0891B2;text-decoration:none;font-weight:700;">${BIZ_EMAIL}</a></div>
       </div>`;
 
     const body = `
       <p style="margin:0 0 24px;font-size:15px;color:#1D1D1F;line-height:1.75;">${greeting}<br/><br/>
-        אנו מעוניינים לרכוש את הפריטים הבאים ונשמח לקבל ממכם הצעת מחיר.<br/>
-        אנא ציינו מחיר ליחידה, מחיר לכמות הנדרשת, וזמן אספקה צפוי.
+        מצורפת הזמנה לביצוע — נשמח שתספקו את הפריטים הבאים <strong>בהקדם האפשרי</strong>, באספקה ישירה ללקוח לפי הכתובת המצוינת.<br/>
+        נודה לאישור קבלת ההזמנה ולעדכון על <strong>תאריך אספקה משוער</strong>.
       </p>
       ${divider()}
       ${customNoteBlock(customNote)}
       ${itemsSection}
       ${totalSection}
+      ${shipToSection}
       ${deliverySection}
       ${customerSection}
       ${divider()}
       ${replySection}
     `;
 
-    const preheader = `בקשת הצעת מחיר ${quote.id} מ-NextClass — ${(quote.items || []).length} פריטים`;
+    const preheader = `הזמנת אספקה ${quote.id} מ-NextClass — ${(quote.items || []).length} פריטים · נא לאשר תאריך אספקה`;
 
     return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -158,7 +157,7 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
   <!-- Official badge -->
   <tr><td style="padding-bottom:16px;text-align:center;">
     <div style="display:inline-block;background:#0891B2;color:#fff;font-size:10px;font-weight:800;padding:5px 16px;border-radius:50px;letter-spacing:0.1em;">
-      💬 בקשת הצעת מחיר
+      📦 הזמנה לביצוע
     </div>
   </td></tr>
 
@@ -176,8 +175,8 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
           </td>
         </tr>
       </table>
-      <div style="font-size:24px;font-weight:900;color:#1D1D1F;letter-spacing:-0.5px;margin-bottom:5px;">בקשת הצעת מחיר — NextClass</div>
-      <div style="font-size:14px;color:#6E6E73;line-height:1.5;">נשמח לקבל הצעת מחיר וזמן אספקה</div>
+      <div style="font-size:24px;font-weight:900;color:#1D1D1F;letter-spacing:-0.5px;margin-bottom:5px;">הזמנת אספקה — NextClass</div>
+      <div style="font-size:14px;color:#6E6E73;line-height:1.5;">נא לספק בהקדם ולאשר תאריך אספקה משוער</div>
       <!-- Order ID pill -->
       <div style="margin-top:18px;display:inline-block;background:#FFFFFF;border:1.5px solid #0891B2;border-radius:50px;padding:8px 24px;">
         <span style="font-size:12px;color:#6E6E73;font-weight:600;">מספר הזמנה</span>
@@ -203,6 +202,7 @@ function buildSupplierOrderEmail(quote, supplier, customNote) {
         <a href="${SITE_URL}" style="color:#0891B2;text-decoration:none;font-weight:600;">getnextclass.com</a>
       </div>
       <div style="font-size:11px;color:#AEAEB2;margin-top:8px;">מייל זה נשלח אוטומטית ממערכת NextClass · אנא ענו למייל לאישור</div>
+      <div style="font-size:10.5px;color:#B8BCC4;margin-top:10px;border-top:1px solid #E8EEFF;padding-top:10px;">${BIZ_LEGAL}</div>
     </div>
 
   </td></tr>
@@ -371,6 +371,7 @@ function buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) {
         <a href="${SITE_URL}" style="color:#5856D6;text-decoration:none;font-weight:600;">getnextclass.com</a>
       </div>
       <div style="font-size:11px;color:#AEAEB2;margin-top:8px;">מייל זה נשלח אוטומטית ממערכת NextClass · אנא ענו למייל לאישור</div>
+      <div style="font-size:10.5px;color:#B8BCC4;margin-top:10px;border-top:1px solid #E8EEFF;padding-top:10px;">${BIZ_LEGAL}</div>
     </div>
 
   </td></tr>
@@ -387,12 +388,17 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { quote, supplier, to, preview, type, customNote, subject: customSubject, pricingData } = req.body ?? {};
+    const { quote, supplier, to, preview, type, customNote, subject: customSubject, pricingData, html: prebuiltHtml } = req.body ?? {};
     if (!quote) return res.status(400).json({ error: 'quote required' });
 
     try {
         const isOrder = type === 'order_confirmation';
-        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) : buildSupplierOrderEmail(quote, supplier, customNote);
+        // The SupplierEmailComposer renders the premium HTML client-side (fully
+        // operator-edited) and passes it here — queue it verbatim. Otherwise fall
+        // back to the server-side builders (legacy / automated paths).
+        const html    = (prebuiltHtml && String(prebuiltHtml).trim())
+            ? String(prebuiltHtml)
+            : (isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) : buildSupplierOrderEmail(quote, supplier, customNote));
         const subject = customSubject || (isOrder ? `אישור הזמנה ${quote.id} — NextClass` : `בקשת הצעת מחיר ${quote.id} — NextClass`);
 
         if (preview === true) {
@@ -402,13 +408,20 @@ export default async function handler(req, res) {
         const recipient = to || supplier?.agentEmail || supplier?.email || quote.supplierOrder?.supplierEmail;
         if (!recipient) return res.status(400).json({ error: 'No recipient email for supplier' });
 
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('[send-supplier-email] RESEND_API_KEY not set');
-            return res.status(200).json({ skipped: true });
-        }
-
-        const data = await sendEmail(recipient, subject, html);
-        return res.status(200).json({ ok: true, id: data?.id });
+        // Never auto-send. Queue for manual admin approve-AND-edit in AdminCommunications.
+        const recipientName = supplier?.contactPerson || supplier?.agentName || supplier?.contact
+            || supplier?.name || quote.supplierOrder?.supplierName || 'ספק';
+        await queuePendingEmail({
+            to: recipient,
+            subject,
+            html,
+            recipientName,
+            kind: 'supplier',
+            refId: quote.id || quote._docId || '',
+            refType: 'quote',
+            source: isOrder ? 'supplier-order-confirmation' : 'supplier-rfq',
+        });
+        return res.status(200).json({ ok: true, queued: true });
     } catch (err) {
         console.error('[send-supplier-email]', err);
         return res.status(500).json({ error: String(err) });

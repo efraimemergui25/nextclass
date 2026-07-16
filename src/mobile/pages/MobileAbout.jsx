@@ -42,13 +42,6 @@ export default function MobileAbout() {
     const check2 = getSetting('about_check_2', 'שירות אישי וישיר, ללא ביניים');
     const check3 = getSetting('about_check_3', 'פתרונות מהדרגה הראשונה לחינוך');
 
-    const stat1Val   = getSetting('about_stat1_val', '1200');
-    const stat1Label = getSetting('about_stat1_label', 'מוסדות חינוך');
-    const stat2Val   = getSetting('about_stat2_val', '14');
-    const stat2Label = getSetting('about_stat2_label', 'שנות ניסיון');
-    const stat3Val   = getSetting('about_stat3_val', '98');
-    const stat3Label = getSetting('about_stat3_label', '% שביעות רצון');
-
     const v1Title = getSetting('about_v1_title', 'מחיר שקוף');
     const v1Desc  = getSetting('about_v1_desc', 'הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים.');
     const v2Title = getSetting('about_v2_title', 'שירות מהיר');
@@ -61,9 +54,9 @@ export default function MobileAbout() {
 
     const wayTitle = getSetting('about_way_title', 'הדרך שעשינו');
     const tm1Year  = getSetting('about_tm1_year', '2012'); const tm1Title = getSetting('about_tm1_title', 'ההתחלה'); const tm1Desc = getSetting('about_tm1_desc', 'הקמנו את NextClass עם חזון אחד ברור.');
-    const tm2Year  = getSetting('about_tm2_year', '2016'); const tm2Title = getSetting('about_tm2_title', 'צמיחה');  const tm2Desc = getSetting('about_tm2_desc', 'הגענו ל-200 מוסדות חינוך ברחבי ישראל.');
+    const tm2Year  = getSetting('about_tm2_year', '2016'); const tm2Title = getSetting('about_tm2_title', 'צמיחה');  const tm2Desc = getSetting('about_tm2_desc', 'הרחבנו את מגוון הפתרונות הטכנולוגיים לכיתה.');
     const tm3Year  = getSetting('about_tm3_year', '2020'); const tm3Title = getSetting('about_tm3_title', 'חדשנות'); const tm3Desc = getSetting('about_tm3_desc', 'השקנו את פלטפורמת הניהול החכמה שלנו.');
-    const tm4Year  = getSetting('about_tm4_year', '2024'); const tm4Title = getSetting('about_tm4_title', 'מנהיגות');const tm4Desc = getSetting('about_tm4_desc', '1,200 מוסדות חינוך בחרו בנו.');
+    const tm4Year  = getSetting('about_tm4_year', '2024'); const tm4Title = getSetting('about_tm4_title', 'שותפויות');const tm4Desc = getSetting('about_tm4_desc', 'ממשיכים להביא טכנולוגיה מהדרגה הראשונה למוסדות חינוך.');
 
     const ctaTitle = getSetting('about_cta_title', 'שאלו אותנו.\nנגיע עם תשובות.');
     const ctaDesc  = getSetting('about_cta_desc', 'שיחה קצרה מספיקה. נשאל מה הכיתה צריכה ונחזור עם הצעה מדויקת.');
@@ -234,41 +227,6 @@ export default function MobileAbout() {
                             <div>
                                 <p style={{ fontSize: 15, fontWeight: 700, color: c.text, marginBottom: 4 }}>{title}</p>
                                 <p style={{ fontSize: 13, color: c.text3, lineHeight: 1.5 }}>{desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-            </BlurFade>
-
-            {/* ── Social Proof — matches desktop testimonials section ── */}
-            <BlurFade delay={0.18}>
-            <div style={{ margin: '20px 16px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#007AFF', letterSpacing: '-0.03em' }}>לקוחות מספרים</h2>
-                    <p style={{ fontSize: 12, color: c.text3, fontWeight: 600 }}>סומכים עלינו</p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                        { quote: 'ביקשנו 12 מסכים לפני ינואר. הגיעו ב-27 בדצמבר, הותקנו ב-28, ויום אחרי כל הצוות כבר ידע להשתמש. אפס בירוקרטיה.', name: 'רינת לוי', role: 'רכזת טכנולוגיה, חט"ב, רמת גן', stars: 5 },
-                        { quote: 'עבדנו עם ספקים אחרים. ב-NextClass יש עם מי לדבר כשיש בעיה — לא רק לפני המכירה.', name: 'דוד אוחיון', role: 'מנהל רכש, רשות מקומית דרום', stars: 5 },
-                        { quote: 'ציוד בסדר גמור, אבל מה שגרם לנו לחזור זה השירות. אפרים ענה לי ב-WhatsApp בערב. זה לא מובן מאליו.', name: 'נועה שפירא', role: 'מנהלת חינוכית, מכללת עמק', stars: 5 },
-                    ].map(({ quote, name, role, stars }, i) => (
-                        <div key={i} style={{ background: c.surface, borderRadius: 18, padding: '16px 18px', boxShadow: c.cardShadow, border: `0.5px solid ${c.border}` }}>
-                            <div style={{ display: 'flex', gap: 2, marginBottom: 10, justifyContent: 'flex-end' }}>
-                                {Array.from({ length: stars }).map((_, s) => (
-                                    <span key={s} style={{ color: '#FF9500', fontSize: 14 }}>★</span>
-                                ))}
-                            </div>
-                            <p style={{ fontSize: 14, color: c.text2, lineHeight: 1.65, marginBottom: 14 }}>"{quote}"</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 99, background: 'linear-gradient(135deg, #007AFF, #5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
-                                    {name[0]}
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: 13, fontWeight: 800, color: c.text }}>{name}</p>
-                                    <p style={{ fontSize: 11, color: c.text3 }}>{role}</p>
-                                </div>
                             </div>
                         </div>
                     ))}

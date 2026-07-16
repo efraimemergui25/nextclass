@@ -73,7 +73,6 @@ const QuoteViewModal = ({ isOpen, onClose, cartItems, cartTotal }) => {
  <div className="text-left text-sm font-medium text-gray-600 leading-relaxed">
  <p>תאריך: {today}</p>
  <p>תוקף הצעה: 14 ימים</p>
- <p>מספר סימוכין: {Math.floor(100000 + Math.random() * 900000)}</p>
  </div>
  </div>
 

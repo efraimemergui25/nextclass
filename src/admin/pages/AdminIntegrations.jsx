@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     BarChart2, Zap, TrendingUp, Users, MessageCircle, Mail,
@@ -8,20 +8,148 @@ import {
     Server, Building2, Clock, Info, ChevronLeft, ShieldCheck,
 } from 'lucide-react';
 import { AdminSectionHeader } from '../components/AdminComponents';
+import DashDrillView from '../components/DashDrillView';
+import {
+    GLASS as GLASS_TOKENS, RADIUS, SHADOW, SPRING, PALETTE, hexA, glow, accentSurface,
+} from '../theme/tokens';
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const GLASS = {
-    background: 'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border: '1px solid rgba(255,255,255,0.72)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    borderRadius: 22,
-};
+// ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ── Live connection status — pings /api/integrations-status (booleans only) ──
+function LiveConnectionStatus() {
+    const [st, setSt] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const load = () => {
+        setLoading(true);
+        fetch('/api/integrations-status').then(r => r.json()).then(d => { setSt(d); setLoading(false); })
+            .catch(() => { setSt(null); setLoading(false); });
+    };
+    useEffect(() => { load(); }, []);
+    const order = ['resend', 'gemini', 'groq', 'anthropic', 'hubspot', 'firebaseAdmin'];
+    const services = st?.services || {};
+    return (
+        <div style={GLASS} className="p-5" dir="rtl">
+            <div className="flex items-center justify-between mb-4">
+                <button onClick={load} disabled={loading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black transition-colors"
+                    style={{ background: hexA('#007AFF', 0.10), color: '#007AFF' }}>
+                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> רענן
+                </button>
+                <div>
+                    <p className="text-[15px] font-black text-[#1D1D1F] text-right" style={{ margin: 0 }}>סטטוס חיבורים חי</p>
+                    <p className="text-[11.5px] text-[#86868B] font-medium text-right" style={{ margin: '2px 0 0' }}>מה מחובר בפועל בשרת (בלי לחשוף מפתחות)</p>
+                </div>
+            </div>
+            {loading && !st ? (
+                <p className="text-[12px] text-[#AEAEB2] text-center py-4">בודק חיבורים…</p>
+            ) : !st ? (
+                <p className="text-[12px] text-[#FF3B30] text-center py-4">לא ניתן לבדוק כרגע — נסה לרענן</p>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {order.filter(k => services[k]).map(k => {
+                        const s = services[k];
+                        const on = s.connected;
+                        return (
+                            <div key={k} className="flex items-center gap-3 p-3 rounded-[14px]"
+                                style={{ background: on ? hexA('#34C759', 0.06) : hexA('#FF3B30', 0.05), border: `1px solid ${on ? hexA('#34C759', 0.22) : hexA('#FF3B30', 0.18)}` }}>
+                                {on ? <CheckCircle size={18} color="#34C759" /> : <XCircle size={18} color="#FF3B30" />}
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="text-[13px] font-black text-[#1D1D1F]" style={{ margin: 0 }}>{s.label}</p>
+                                    <p className="text-[11px] font-bold" style={{ margin: '1px 0 0', color: on ? '#1E8E3E' : '#FF3B30' }}>{on ? 'מחובר ✓' : 'לא מחובר — הוסף מפתח ב-Vercel'}{k === 'resend' && on && s.from ? ` · שולח מ: ${s.from}` : ''}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            {st && !st.emailReady && (
+                <div className="flex items-center gap-3 mt-3 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                        <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
+                    </div>
+                    <p className="text-[12px] font-medium text-[#5A6472] m-0">שליחת מיילים כבויה — הוסף <code className="font-bold text-[#1D1D1F]">RESEND_API_KEY</code> ב-Vercel כדי שהמיילים יצאו בפועל.</p>
+                </div>
+            )}
+            {st && !st.aiReady && (
+                <div className="flex items-center gap-3 mt-2 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                        <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
+                    </div>
+                    <p className="text-[12px] font-medium text-[#5A6472] m-0">AI כבוי — הוסף <code className="font-bold text-[#1D1D1F]">GEMINI_API_KEY</code> כדי להפעיל סריקה וייבוא מוצר.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
+// ─── Status dot chip (reused across drill rows) ────────────────────────────────
+const StatusChip = ({ active }) => (
+    <span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0 flex items-center gap-1"
+        style={{ background: hexA(active ? PALETTE.green : '#8E8E93', 0.12), color: active ? '#1A8C40' : '#8E8E93' }}>
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background: active ? '#34C759' : '#C7C7CC' }} />
+        {active ? 'מחובר' : 'לא מחובר'}
+    </span>
+);
+
+// ── Integrations domain accent (restrained azure brand) ────────────────────────
+const INDIGO = '#007AFF';
+
+// ── Token-driven liquid-glass surfaces (one system everywhere) ─────────────────
+const GLASS = { ...GLASS_TOKENS.base, borderRadius: RADIUS.cardLg };
 const GLASS_INSET = {
     background: 'rgba(0,0,0,0.025)',
     border: '1px solid rgba(0,0,0,0.06)',
-    borderRadius: 14,
+    borderRadius: RADIUS.sm,
 };
 
 // ── Analytics platform links ───────────────────────────────────────────────────
@@ -60,7 +188,7 @@ const ANALYTICS_LINKS = [
 
 // ── Services status config ────────────────────────────────────────────────────
 const SERVICES = [
-    { key: 'groq',    label: 'AI Concierge',    Icon: Bot,            color: '#5856D6', desc: 'עוזר חכם + המלצות',    href: 'https://console.groq.com',        statusCheck: () => true },
+    { key: 'groq',    label: 'AI Concierge',    Icon: Bot,            color: '#5AC8FA', desc: 'עוזר חכם + המלצות',    href: 'https://console.groq.com',        statusCheck: () => true },
     { key: 'resend',  label: 'Resend Email',     Icon: Mail,           color: '#007AFF', desc: 'מיילי אישור',          href: 'https://resend.com/emails',       statusCheck: () => true },
     { key: 'hubspot', label: 'HubSpot CRM',      Icon: Users,          color: '#FF7A59', desc: 'ניהול לידים',          href: 'https://app-eu1.hubspot.com',     statusCheck: null },
     { key: 'ga',      label: 'Google Analytics', Icon: BarChart2,      color: '#34C759', desc: 'מעקב תנועה',           href: 'https://analytics.google.com',    statusCheck: () => !!(import.meta.env.VITE_GA_ID?.startsWith('G-')) },
@@ -77,7 +205,7 @@ function useCRMStats() {
     const [ts, setTs] = useState(0);
     useEffect(() => {
         setLoading(true);
-        fetch('/api/hubspot-stats')
+        fetch('/api/integrations-status?action=hubspot-stats')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false); })
             .catch(() => setLoading(false));
@@ -86,19 +214,20 @@ function useCRMStats() {
 }
 
 // ── ServiceCard ───────────────────────────────────────────────────────────────
-function ServiceCard({ service, isActive, i }) {
-    const { Icon, label, desc, color, href } = service;
+function ServiceCard({ service, isActive, i, onOpen }) {
+    const { Icon, label, desc, color } = service;
     return (
-        <motion.a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
+        <motion.div
+            onClick={onOpen}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
             whileHover={{ y: -3, scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="flex flex-col items-center gap-2 p-3.5 rounded-2xl text-center cursor-pointer relative group"
+            className="flex flex-col items-center gap-2 p-3.5 rounded-2xl text-center cursor-pointer relative group focus:outline-none"
             style={{
                 ...GLASS_INSET,
                 background: isActive ? `${color}0D` : 'rgba(0,0,0,0.025)',
@@ -123,7 +252,8 @@ function ServiceCard({ service, isActive, i }) {
             <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isActive ? 'text-[#34C759] bg-[#34C759]/10' : 'text-[#AEAEB2] bg-black/05'}`}>
                 {isActive ? 'פעיל' : 'לא מחובר'}
             </span>
-        </motion.a>
+            <ChevronLeft size={13} className="absolute top-2 left-2 text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2.5} />
+        </motion.div>
     );
 }
 
@@ -131,8 +261,6 @@ function ServiceCard({ service, isActive, i }) {
 function AnalyticsLinks() {
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#007AFF,#34C759,#FF9500)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div className="text-right">
                     <h3 className="font-black text-[#1D1D1F] text-[15px] tracking-tight">כלי אנליטיקס ודשבורדים</h3>
@@ -183,8 +311,6 @@ function CRMPipeline({ data, loading, refetch }) {
     if (loading) {
         return (
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -206,8 +332,6 @@ function CRMPipeline({ data, loading, refetch }) {
     if (!data?.configured) {
         return (
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -259,8 +383,6 @@ function CRMPipeline({ data, loading, refetch }) {
 
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#FF7A59,#FF9500)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-black text-[#1D1D1F] text-[15px]">CRM Pipeline</h3>
@@ -357,8 +479,6 @@ function GeneralInfo() {
 
     return (
         <div style={GLASS} className="p-5">
-            <div className="h-[3px] w-full rounded-full mb-5"
-                style={{ background: 'linear-gradient(90deg,#5856D6,#007AFF)' }} />
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-black text-[#1D1D1F] text-[15px]">מידע תשתית</h3>
@@ -405,6 +525,36 @@ function GeneralInfo() {
     );
 }
 
+// ── StatTile — white glass, ink number, color only in the icon circle ──────────
+function StatTile({ label, value, color, Icon, delay, onClick }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
+            whileTap={onClick ? { scale: 0.97 } : undefined}
+            onClick={onClick}
+            role={onClick ? 'button' : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            className={`group relative overflow-hidden p-5 flex flex-col min-h-[118px] transition-shadow focus:outline-none ${onClick ? 'cursor-pointer' : ''}`}
+            style={{ ...GLASS_TOKENS.base, borderRadius: RADIUS.kpi }}
+        >
+            {onClick && <ChevronLeft size={14} className="absolute bottom-4 left-4 text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2.5} />}
+            <div className="flex items-start justify-between">
+                <p className="text-[40px] font-black tracking-tighter leading-none" style={{ color: '#1D1D1F' }}>
+                    {value}
+                </p>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: hexA(color, 0.12), border: `1px solid ${hexA(color, 0.20)}` }}>
+                    <Icon className="w-[18px] h-[18px]" style={{ color }} strokeWidth={2} />
+                </div>
+            </div>
+            <p className="text-[12px] text-[#6E6E73] font-bold mt-auto pt-3">{label}</p>
+        </motion.div>
+    );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminIntegrations() {
     const { data: crmData, loading: crmLoading, refetch } = useCRMStats();
@@ -417,29 +567,48 @@ export default function AdminIntegrations() {
 
     const activeCount = SERVICES.filter(s => getServiceStatus(s)).length;
 
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const lastDrillRef = useRef(null);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+    const openExternal = (href) => { if (href) window.open(href, '_blank', 'noopener,noreferrer'); };
+
     return (
         <div className="space-y-6" dir="rtl">
 
             <AdminSectionHeader
                 title="אינטגרציות ושירותים"
                 subtitle="ניהול וניטור כל הפלטפורמות החיצוניות של NextClass"
+                icon={Link2}
                 action={
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                        style={{ background: 'rgba(52,199,89,0.10)', border: '1px solid rgba(52,199,89,0.22)' }}>
+                        style={{ background: hexA(INDIGO, 0.1), border: `1px solid ${hexA(INDIGO, 0.24)}` }}>
                         <span className="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
                         <span className="text-[12px] font-black text-[#1D1D1F]">{activeCount} / {SERVICES.length} שירותים פעילים</span>
                     </div>
                 }
             />
 
+            {/* ── Real-data KPI band ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatTile label="שירותים מחוברים" value={activeCount}                       color={INDIGO}     Icon={CheckCircle} delay={0}    onClick={() => openDrill({ type: 'services', kind: 'connected' })} />
+                <StatTile label="לא מחוברים"        value={SERVICES.length - activeCount}     color="#8E8E93"    Icon={XCircle}     delay={0.06} onClick={() => openDrill({ type: 'services', kind: 'disconnected' })} />
+                <StatTile label="כלי אנליטיקס"      value={ANALYTICS_LINKS.length}            color="#007AFF"    Icon={BarChart2}   delay={0.12} onClick={() => openDrill({ type: 'analytics-list' })} />
+                <StatTile label="לידים ב-CRM"       value={crmData?.configured ? (crmData?.contacts?.total || 0) : '—'} color="#FF7A59" Icon={Users} delay={0.18} onClick={() => openDrill({ type: 'crm' })} />
+            </div>
+
+            {/* ── Live connection status (real key presence, from the server) ── */}
+            <LiveConnectionStatus />
+
             {/* ── Services grid ─────────────────────────────────────────────── */}
             <div style={GLASS} className="p-5">
-                <div className="h-[3px] w-full rounded-full mb-5"
-                    style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6,#FF7A59)' }} />
                 <div className="flex items-center justify-between mb-5">
                     <div>
                         <h3 className="font-black text-[#1D1D1F] text-[15px]">סטטוס שירותים</h3>
-                        <p className="text-[#AEAEB2] text-[11px] mt-0.5">לחץ על שירות לפתיחתו</p>
+                        <p className="text-[#AEAEB2] text-[11px] mt-0.5">לחץ על שירות לפרטים</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-[10px] text-[#AEAEB2] flex items-center gap-1.5">
@@ -452,7 +621,8 @@ export default function AdminIntegrations() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                     {SERVICES.map((service, i) => (
-                        <ServiceCard key={service.key} service={service} isActive={getServiceStatus(service)} i={i} />
+                        <ServiceCard key={service.key} service={service} isActive={getServiceStatus(service)} i={i}
+                            onOpen={() => openDrill({ type: 'service', key: service.key })} />
                     ))}
                 </div>
 
@@ -497,6 +667,198 @@ export default function AdminIntegrations() {
                     <GeneralInfo />
                 </div>
             </div>
+
+            {/* ── Babushka Drill Drawer — nested glass detail view ─────────────── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                if (current) lastDrillRef.current = current;
+                const shown = current || lastDrillRef.current;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const GREEN = PALETTE.green;
+                const GRAY  = '#8E8E93';
+                let title = '', subtitle = '', icon = null, accent = INDIGO, footer = null, body = null;
+
+                // ── Service detail (from ServiceCard or connected/disconnected lists) ──
+                const renderServiceDetail = (svc) => {
+                    const active = getServiceStatus(svc);
+                    const SIcon = svc.Icon;
+                    accent = svc.color;
+                    title = svc.label; subtitle = active ? 'שירות מחובר ופעיל' : 'שירות לא מחובר';
+                    icon = <SIcon size={17} style={{ color: svc.color }} />;
+                    footer = { label: `פתח ${svc.label}`, onClick: () => openExternal(svc.href) };
+                    return (
+                        <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <StatusChip active={active} />
+                                <span className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                                    style={{ background: `${svc.color}18`, border: `1px solid ${svc.color}28` }}>
+                                    <SIcon className="w-5 h-5" style={{ color: svc.color }} strokeWidth={1.8} />
+                                </span>
+                            </div>
+                            <DrillStat items={[
+                                { label: 'סטטוס', value: active ? 'מחובר' : 'מנותק', color: active ? GREEN : GRAY },
+                                { label: 'סוג', value: svc.key === 'hubspot' ? 'CRM' : 'שירות', color: INDIGO },
+                            ]} />
+                            <div className="space-y-2">
+                                <DrillRow tone={svc.color}
+                                    leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${svc.color}18` }}><Info size={13} style={{ color: svc.color }} /></span>}
+                                    title="תיאור" subtitle={svc.desc} />
+                                <DrillRow tone={svc.color}
+                                    leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${svc.color}18` }}><Link2 size={13} style={{ color: svc.color }} /></span>}
+                                    title="כתובת" subtitle={svc.href}
+                                    trailing={<ExternalLink size={13} className="text-[#C7C7CC] shrink-0" />} />
+                                {svc.key === 'hubspot' && crmData?.configured && (
+                                    <DrillRow tone={svc.color}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${svc.color}18` }}><Users size={13} style={{ color: svc.color }} /></span>}
+                                        title="לידים ב-CRM" subtitle="סך הלידים שסונכרנו מ-HubSpot"
+                                        trailing={<span className="text-[12px] font-black shrink-0" style={{ color: svc.color }}>{crmData?.contacts?.total || 0}</span>} />
+                                )}
+                            </div>
+                        </div>
+                    );
+                };
+
+                if (shown.type === 'services') {
+                    const connected = shown.kind === 'connected';
+                    const list = SERVICES.filter(s => getServiceStatus(s) === connected);
+                    accent = connected ? GREEN : GRAY;
+                    title = connected ? 'שירותים מחוברים' : 'שירותים לא מחוברים';
+                    subtitle = `${list.length} מתוך ${SERVICES.length} שירותים`;
+                    icon = connected ? <CheckCircle size={17} style={{ color: GREEN }} /> : <XCircle size={17} style={{ color: GRAY }} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'מחוברים', value: activeCount, color: GREEN },
+                                { label: 'מנותקים', value: SERVICES.length - activeCount, color: GRAY },
+                                { label: 'סה״כ', value: SERVICES.length, color: INDIGO },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={connected ? CheckCircle : XCircle} text="אין שירותים להצגה" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שירותים — לחץ לפרטים</p>
+                                    {list.map((s, i) => {
+                                        const SIcon = s.Icon;
+                                        return (
+                                            <DrillRow key={s.key} delay={i * 0.03} tone={s.color}
+                                                onClick={() => pushDrill({ type: 'service', key: s.key })}
+                                                leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${s.color}18`, border: `1px solid ${s.color}28` }}><SIcon size={14} style={{ color: s.color }} strokeWidth={1.8} /></span>}
+                                                title={s.label} subtitle={s.desc}
+                                                trailing={<StatusChip active={getServiceStatus(s)} />} />
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (shown.type === 'analytics-list') {
+                    accent = '#007AFF';
+                    title = 'כלי אנליטיקס ודשבורדים'; subtitle = `${ANALYTICS_LINKS.length} פלטפורמות חיצוניות`;
+                    icon = <BarChart2 size={17} style={{ color: '#007AFF' }} />;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'פלטפורמות', value: ANALYTICS_LINKS.length, color: INDIGO },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">כלים — לחץ לפרטים</p>
+                                {ANALYTICS_LINKS.map((link, i) => {
+                                    const LIcon = link.Icon;
+                                    return (
+                                        <DrillRow key={link.label} delay={i * 0.03} tone={link.color}
+                                            onClick={() => pushDrill({ type: 'analytics', idx: i })}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: link.gradient }}><LIcon size={14} className="text-white" strokeWidth={1.8} /></span>}
+                                            title={link.label} subtitle={link.desc} />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'analytics') {
+                    const link = ANALYTICS_LINKS[shown.idx];
+                    if (link) {
+                        const LIcon = link.Icon;
+                        accent = link.color;
+                        title = link.label; subtitle = link.desc;
+                        icon = <LIcon size={17} style={{ color: link.color }} />;
+                        footer = { label: `פתח ${link.label}`, onClick: () => openExternal(link.href) };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="flex justify-end">
+                                    <span className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm" style={{ background: link.gradient }}>
+                                        <LIcon className="w-6 h-6 text-white" strokeWidth={1.8} />
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    <DrillRow tone={link.color}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${link.color}18` }}><Info size={13} style={{ color: link.color }} /></span>}
+                                        title="תיאור" subtitle={link.desc} />
+                                    <DrillRow tone={link.color}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${link.color}18` }}><Link2 size={13} style={{ color: link.color }} /></span>}
+                                        title="כתובת" subtitle={link.href}
+                                        trailing={<ExternalLink size={13} className="text-[#C7C7CC] shrink-0" />} />
+                                </div>
+                            </div>
+                        );
+                    } else { title = 'כלי אנליטיקס'; icon = <BarChart2 size={17} style={{ color: INDIGO }} />; body = <DrillEmpty icon={BarChart2} text="הכלי לא נמצא" />; }
+                } else if (shown.type === 'crm') {
+                    accent = '#FF7A59';
+                    const configured = !!(crmData?.configured && !crmData?.error);
+                    const contacts = crmData?.contacts;
+                    const deals = crmData?.deals;
+                    title = 'לידים ב-CRM'; subtitle = configured ? `HubSpot · ${contacts?.total || 0} לידים` : 'HubSpot · לא מחובר';
+                    icon = <Users size={17} style={{ color: '#FF7A59' }} />;
+                    footer = { label: 'פתח HubSpot', onClick: () => openExternal('https://app-eu1.hubspot.com') };
+                    body = !configured ? (
+                        <DrillEmpty icon={Users} text="HubSpot לא מחובר — הוסף HUBSPOT_API_KEY ב-Vercel" />
+                    ) : (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'לידים', value: contacts?.total || 0, color: '#FF7A59' },
+                                { label: 'עסקאות פתוחות', value: deals?.open || 0, color: '#FF9500' },
+                                { label: 'שווי פייפליין', value: `₪${(deals?.pipelineValue || 0).toLocaleString()}`, color: GREEN },
+                            ]} />
+                            {contacts?.recent?.length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לידים אחרונים</p>
+                                    {contacts.recent.slice(0, 8).map((c, i) => (
+                                        <DrillRow key={i} delay={i * 0.03} tone="#FF7A59"
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-black text-white shrink-0" style={{ background: 'linear-gradient(135deg,#FF7A59,#FF9500)' }}>{(c.name || c.email || '?')[0].toUpperCase()}</span>}
+                                            title={c.name || 'ללא שם'} subtitle={c.company || c.email || '—'}
+                                            trailing={<span className="w-2 h-2 rounded-full bg-[#34C759] shrink-0" />} />
+                                    ))}
+                                </div>
+                            ) : <DrillEmpty icon={Users} text="אין לידים אחרונים להצגה" />}
+                        </div>
+                    );
+                } else if (shown.type === 'service') {
+                    const svc = SERVICES.find(s => s.key === shown.key);
+                    if (svc) { body = renderServiceDetail(svc); }
+                    else { title = 'שירות'; icon = <Package size={17} style={{ color: INDIGO }} />; body = <DrillEmpty icon={Package} text="השירות לא נמצא" />; }
+                } else {
+                    title = 'פרטים'; icon = <Info size={17} style={{ color: INDIGO }} />;
+                    body = <DrillEmpty icon={Info} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.key ?? shown.kind ?? shown.idx ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
 
         </div>
     );

@@ -8,24 +8,32 @@ import {
 import { db } from '../../firebase';
 import { useSettings } from '../../context/SettingsContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     MessageSquare, Mail, Phone, Edit2, Trash2, Plus, Send, X,
     ChevronDown, AlertCircle, MessageCircle, Zap, Clock,
     AtSign, Star, TrendingUp, Users, Hash, AlertTriangle, Check,
 } from 'lucide-react';
+import { GLASS, RADIUS, SPRING, hexA, accentSurface, toneColor, toneBg, toneFg } from '../theme/tokens';
+import { AdminKPICard } from '../components/AdminComponents';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SF = `-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',Heebo,Arial,sans-serif`;
+// Unified admin typeface — Heebo everywhere (matches the rest of the portal).
+const SF = `Heebo, sans-serif`;
 
+// ─── Communications domain accent (restrained azure brand) ─────────────────────
+const CORAL = '#007AFF';
+
+// Pipeline status colors — driven by the shared semantic tone system.
 const PIPELINE_STATUSES = {
-    'חדש':           { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
-    'ביצירת קשר':    { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
-    'הוצע מחיר':     { color: '#5856D6', bg: 'rgba(88,86,214,0.07)',    dot: '#5856D6' },
-    'במשא ומתן':     { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
-    'ממתין לאישור':  { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
-    'נסגר':          { color: '#34C759', bg: 'rgba(52,199,89,0.07)',    dot: '#34C759' },
-    'בוטל':           { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',    dot: '#FF3B30' },
+    'חדש':           { color: toneFg('info'),    bg: toneBg('info'),    dot: toneColor('info') },
+    'ביצירת קשר':    { color: toneFg('info'),    bg: toneBg('info'),    dot: toneColor('info') },
+    'הוצע מחיר':     { color: '#3B8FCC',          bg: hexA('#5AC8FA', 0.10), dot: '#5AC8FA' },
+    'במשא ומתן':     { color: toneFg('warning'), bg: toneBg('warning'), dot: toneColor('warning') },
+    'ממתין לאישור':  { color: toneFg('warning'), bg: toneBg('warning'), dot: toneColor('warning') },
+    'נסגר':          { color: toneFg('success'), bg: toneBg('success'), dot: toneColor('success') },
+    'בוטל':           { color: toneFg('danger'),  bg: toneBg('danger'),  dot: toneColor('danger') },
 };
 
 const CHANNELS = [
@@ -67,15 +75,8 @@ const DEFAULT_TEMPLATES = [
     },
 ];
 
-// ─── Glass token ──────────────────────────────────────────────────────────────
-const CARD = {
-    background:   'rgba(255,255,255,0.78)',
-    backdropFilter: 'blur(24px) saturate(200%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-    border:       '1px solid rgba(255,255,255,0.72)',
-    boxShadow:    '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-    borderRadius: 20,
-};
+// ─── Liquid-glass surface (token-driven — one system everywhere) ────────────────
+const CARD = { ...GLASS.base, borderRadius: RADIUS.card };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ function getLeadScore(lead) {
     else if ((lead?.items || []).length >= 2) pts += 1;
     return Math.min(5, Math.max(1, Math.round(pts / 2.6)));
 }
-function scoreColor(s) { return s >= 4 ? '#FF3B30' : s >= 3 ? '#FF9500' : '#34C759'; }
+function scoreColor(s) { return s >= 4 ? toneColor('danger') : s >= 3 ? toneColor('warning') : toneColor('success'); }
 
 function ScoreDots({ score }) {
     const c = scoreColor(score);
@@ -138,6 +139,51 @@ function StatusPill({ status }) {
     );
 }
 
+// ─── Pending-email helpers (unified inbox for every kind) ──────────────────────
+// One approve-AND-edit inbox holds customer, supplier AND internal emails.
+// Docs are heterogeneous: newer ones carry `kind`/`refId`/`refType`; legacy ones
+// only have `leadId` or `quoteId`/`type`. These helpers normalise them.
+
+const EMAIL_KIND_META = {
+    customer: { label: 'לקוח',  color: '#007AFF', bg: 'rgba(0,122,255,0.10)' },
+    supplier: { label: 'ספק',   color: '#0891B2', bg: 'rgba(8,145,178,0.10)' },
+    internal: { label: 'פנימי', color: '#5AC8FA', bg: 'rgba(90,200,250,0.10)' },
+};
+const KIND_ORDER = ['customer', 'supplier', 'internal'];
+
+function emailKind(email) {
+    const k = email?.kind;
+    if (k === 'supplier' || k === 'internal' || k === 'customer') return k;
+    // Legacy fallback — infer from source/type for docs written before `kind` existed
+    const hint = `${email?.source || ''} ${email?.type || ''}`.toLowerCase();
+    if (hint.includes('supplier')) return 'supplier';
+    if (hint.includes('team') || hint.includes('internal')) return 'internal';
+    return 'customer';
+}
+
+function emailRefId(email) {
+    return email?.refId || email?.leadId || email?.quoteId || '';
+}
+
+function fmtEmailDate(ts) {
+    if (ts == null) return '';
+    let ms = 0;
+    if (typeof ts === 'number') ms = ts;
+    else if (typeof ts === 'object' && ts.seconds) ms = ts.seconds * 1000;
+    else if (typeof ts === 'string') ms = Date.parse(ts) || 0;
+    if (!ms) return '';
+    try { return new Date(ms).toLocaleDateString('he-IL'); } catch { return ''; }
+}
+
+function KindBadge({ kind }) {
+    const m = EMAIL_KIND_META[kind] || EMAIL_KIND_META.customer;
+    return (
+        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: m.bg, color: m.color, fontFamily: SF, flexShrink: 0 }}>
+            {m.label}
+        </span>
+    );
+}
+
 // ─── Lead avatar ──────────────────────────────────────────────────────────────
 function Avatar({ name, size = 36, score }) {
     const initial = (name || '?')[0].toUpperCase();
@@ -146,7 +192,7 @@ function Avatar({ name, size = 36, score }) {
         ? 'linear-gradient(135deg,#FF3B30,#FF2D55)'
         : s >= 3
             ? 'linear-gradient(135deg,#FF9500,#FF6B00)'
-            : 'linear-gradient(135deg,#007AFF,#5856D6)';
+            : 'linear-gradient(135deg,#007AFF,#5AC8FA)';
     return (
         <div style={{
             width: size, height: size, borderRadius: size / 3.2, flexShrink: 0,
@@ -229,7 +275,7 @@ function TemplateEditor({ template, onSave, onCancel }) {
                     ביטול
                 </button>
                 <button onClick={() => onSave(form)}
-                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,122,255,0.28)' }}>
+                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,122,255,0.28)' }}>
                     שמור
                 </button>
             </div>
@@ -297,10 +343,7 @@ function LeadHero({ lead, onStatusChange }) {
 
     return (
         <div style={{ ...CARD, padding: '18px 20px', position: 'relative', overflow: 'hidden' }}>
-            {/* Accent bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,${scoreColor(score)},${score >= 4 ? '#FF2D55' : '#5856D6'})`, borderRadius: '20px 20px 0 0' }} />
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, paddingTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 {/* Avatar */}
                 <Avatar name={lead.contactName} size={52} score={score} />
 
@@ -382,8 +425,9 @@ function LeadHero({ lead, onStatusChange }) {
             )}
 
             {lead.notes && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.18)', borderRight: '3px solid #F59E0B' }}>
-                    <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, textAlign: 'right', fontFamily: SF }}>{lead.notes}</p>
+                <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 12, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRight: '3px solid #F59E0B', boxShadow: '0 2px 12px rgba(20,40,80,0.05)' }}>
+                    <p style={{ fontSize: 9.5, fontWeight: 800, color: '#C08A2E', letterSpacing: '0.04em', margin: '0 0 4px', textAlign: 'right' }}>הערה</p>
+                    <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, textAlign: 'right', fontFamily: SF, margin: 0 }}>{lead.notes}</p>
                 </div>
             )}
 
@@ -438,7 +482,7 @@ function ChatThreadPanel({ lead, sendMessage, markRead }) {
                                     {(lead?.contactName || '?')[0]}
                                 </div>
                             )}
-                            <div style={{ maxWidth: '72%', padding: '9px 14px', background: isAdmin ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F2F2F7', borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px', boxShadow: isAdmin ? '0 2px 12px rgba(0,122,255,0.25)' : 'none' }}>
+                            <div style={{ maxWidth: '72%', padding: '9px 14px', background: isAdmin ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#F2F2F7', borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px', boxShadow: isAdmin ? '0 2px 12px rgba(0,122,255,0.25)' : 'none' }}>
                                 <p style={{ fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', color: isAdmin ? '#fff' : '#1D1D1F', fontFamily: SF, margin: 0 }}>{m.text}</p>
                                 <p style={{ fontSize: 10, marginTop: 4, color: isAdmin ? 'rgba(255,255,255,0.5)' : '#AEAEB2', textAlign: isAdmin ? 'left' : 'right', fontFamily: SF, margin: '4px 0 0' }}>{fmtTime(m.tsNum)}</p>
                             </div>
@@ -453,7 +497,7 @@ function ChatThreadPanel({ lead, sendMessage, markRead }) {
                     placeholder="כתוב הודעה... (Enter לשליחה)" rows={2}
                     style={{ flex: 1, padding: '10px 14px', fontSize: 13, fontFamily: SF, borderRadius: 16, outline: 'none', resize: 'none', border: '1px solid rgba(0,0,0,0.09)', background: 'rgba(0,0,0,0.02)', color: '#1D1D1F', lineHeight: 1.5 }} />
                 <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend} disabled={!msg.trim() || sending}
-                    style={{ width: 38, height: 38, borderRadius: 12, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: msg.trim() ? 'pointer' : 'default', background: msg.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.07)', boxShadow: msg.trim() ? '0 3px 12px rgba(0,122,255,0.35)' : 'none', transition: 'all 0.2s' }}>
+                    style={{ width: 38, height: 38, borderRadius: 12, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: msg.trim() ? 'pointer' : 'default', background: msg.trim() ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(0,0,0,0.07)', boxShadow: msg.trim() ? '0 3px 12px rgba(0,122,255,0.35)' : 'none', transition: 'all 0.2s' }}>
                     <Send size={15} color={msg.trim() ? '#fff' : '#C7C7CC'} strokeWidth={2} style={{ transform: 'scaleX(-1)' }} />
                 </motion.button>
             </div>
@@ -468,7 +512,7 @@ function SmartInserts({ lead, bizPhone, onInsert }) {
     const total     = lead.subtotal ? `₪${Number(String(lead.subtotal).replace(/[^0-9.]/g,'')).toLocaleString()}` : null;
 
     const chips = [
-        firstName   && { label: firstName,         hint: 'שם',         color: '#5856D6' },
+        firstName   && { label: firstName,         hint: 'שם',         color: '#5AC8FA' },
         lead.institution && { label: lead.institution, hint: 'מוסד',     color: '#007AFF' },
         total       && { label: total,              hint: 'סכום',       color: '#34C759' },
         lead.phone  && { label: lead.phone,         hint: 'טל׳ לקוח',  color: '#FF9500' },
@@ -506,6 +550,7 @@ function SmartInserts({ lead, bizPhone, onInsert }) {
 export default function AdminCommunications() {
     const { getSetting }                           = useSettings();
     const { sendThreadMessage, markAdminThreadRead } = useAdminData();
+    const confirm = useAdminConfirm();
     const bizPhone = getSetting('contact_phone', '058-5856356');
 
     const [leads,          setLeads]          = useState([]);
@@ -547,33 +592,42 @@ export default function AdminCommunications() {
             const log = all.filter(e => e.status === 'sent' || e.status === 'declined');
             setPendingEmails(pending);
             setEmailLog(log);
-        });
+        }, err => console.error('[AdminCommunications] pending_emails snapshot error:', err));
     }, []);
 
     const handleApproveEmail = async (emailItem) => {
         if (!emailItem) return;
         setEmailSendStatus('sending');
         try {
-            const res = await fetch('/api/send-stage-email', {
+            // dispatch-email is the ONLY endpoint that actually sends via Resend,
+            // and it is reachable only from this manual approve-AND-edit action.
+            const finalSubject = emailEditSubject || emailItem.subject;
+            const finalHtml    = emailEditHtml || emailItem.html;
+            const res = await fetch('/api/dispatch-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'raw',
+                    pendingId: emailItem.id,
                     to: emailItem.to,
-                    customSubject: emailEditSubject || emailItem.subject,
-                    customHtml: emailEditHtml || emailItem.html,
+                    subject: finalSubject,
+                    html: finalHtml,
                 }),
             });
-            if (res.ok) {
+            const out = res.ok ? await res.json().catch(() => ({})) : null;
+            if (res.ok && out.sent !== false) {
                 await setDoc(doc(db, 'pending_emails', emailItem.id), {
                     status: 'sent',
                     sentAt: Date.now(),
-                    subject: emailEditSubject || emailItem.subject,
-                    html: emailEditHtml || emailItem.html,
+                    subject: finalSubject,
+                    html: finalHtml,
                 }, { merge: true });
                 showToast('המייל נשלח בהצלחה! ✓', true);
                 setSelectedEmail(null);
                 setIsEditingEmail(false);
+            } else if (res.ok && out.sent === false) {
+                // dispatch returned 200 but nothing was sent (e.g. RESEND_API_KEY missing) —
+                // keep the draft in the queue, don't falsely mark it 'sent'.
+                showToast('השליחה לא בוצעה — שירות המייל אינו מוגדר (RESEND_API_KEY). הטיוטה נשמרה בתור.', false);
             } else {
                 const errText = await res.text();
                 showToast(`שגיאה בשליחה: ${errText}`, false);
@@ -586,7 +640,7 @@ export default function AdminCommunications() {
     };
 
     const handleDeclineEmail = async (emailItem) => {
-        if (!window.confirm('האם אתה בטוח שברצונך לדחות ולבטל מייל זה?')) return;
+        if (!await confirm({ message: 'האם אתה בטוח שברצונך לדחות ולבטל מייל זה?', danger: true })) return;
         try {
             await setDoc(doc(db, 'pending_emails', emailItem.id), {
                 status: 'declined',
@@ -635,11 +689,11 @@ export default function AdminCommunications() {
             const all = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
             setLeads(all.filter(l => !l.deleted));
             setDeletedLeads(all.filter(l => l.deleted).sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0)));
-        });
+        }, err => console.error('[AdminCommunications] quotes snapshot error:', err));
     }, []);
 
     const handleDeleteLead = async (lead) => {
-        if (!window.confirm('להעביר ליד זה לסל המחזור?')) return;
+        if (!await confirm({ message: 'להעביר ליד זה לסל המחזור?', danger: true })) return;
         await setDoc(doc(db, 'quotes', lead._docId), { deleted: true, deletedAt: Date.now() }, { merge: true });
         setSelected(null);
         showToast('הועבר לסל המחזור');
@@ -651,7 +705,7 @@ export default function AdminCommunications() {
     };
 
     const handleHardDeleteLead = async (lead) => {
-        if (!window.confirm('למחוק לצמיתות? לא ניתן לשחזר.')) return;
+        if (!await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) return;
         await deleteDoc(doc(db, 'quotes', lead._docId));
         showToast('נמחק לצמיתות');
     };
@@ -666,7 +720,7 @@ export default function AdminCommunications() {
             } else {
                 setTemplates(snap.docs.map(d => ({ ...d.data(), id: d.id })));
             }
-        });
+        }, err => console.error('[AdminCommunications] comm_templates snapshot error:', err));
     }, []);
 
     // Sync selected with live data
@@ -696,11 +750,11 @@ export default function AdminCommunications() {
     }, []);
 
     const deleteTpl = useCallback(async id => {
-        if (!confirm('למחוק את התבנית?')) return;
+        if (!await confirm({ message: 'למחוק את התבנית?', danger: true })) return;
         await deleteDoc(doc(db, 'comm_templates', id));
         if (activeTpl?.id === id) setActiveTpl(null);
         showToast('תבנית נמחקה');
-    }, [activeTpl]);
+    }, [activeTpl, confirm]);
 
     const logOutreach = useCallback(async (type, tplName, preview) => {
         if (!selected?._docId) return;
@@ -769,6 +823,13 @@ export default function AdminCommunications() {
         [filtered]
     );
 
+    // Group the pending inbox by kind (customer / supplier / internal)
+    const groupedPending = useMemo(() => {
+        const groups = { customer: [], supplier: [], internal: [] };
+        pendingEmails.forEach(e => { (groups[emailKind(e)] || groups.customer).push(e); });
+        return groups;
+    }, [pendingEmails]);
+
     const channelTpls    = templates.filter(t => t.channel === activeChannel || t.channel === 'both');
     const activeChDef    = CHANNELS.find(c => c.id === activeChannel);
     const recommendedTpl = selected ? getRecommendedTpl(selected, channelTpls) : null;
@@ -784,7 +845,7 @@ export default function AdminCommunications() {
             <AnimatePresence>
                 {toast && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: toast.ok ? '0 8px 30px rgba(0,122,255,0.30)' : '0 8px 30px rgba(255,59,48,0.30)', whiteSpace: 'nowrap' }}>
+                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: toast.ok ? '0 8px 30px rgba(0,122,255,0.30)' : '0 8px 30px rgba(255,59,48,0.30)', whiteSpace: 'nowrap' }}>
                         {toast.msg}
                     </motion.div>
                 )}
@@ -803,7 +864,7 @@ export default function AdminCommunications() {
                         style={{ flex: 1, padding: '7px 0', border: 'none', background: activeTab === 'emails' ? '#fff' : 'transparent', borderRadius: 9, fontSize: 12, fontWeight: activeTab === 'emails' ? 800 : 600, color: activeTab === 'emails' ? '#1D1D1F' : '#86868B', cursor: 'pointer', boxShadow: activeTab === 'emails' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', fontFamily: SF, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         אישור מיילים
                         {pendingEmails.length > 0 && (
-                            <span style={{ fontSize: 9, fontWeight: 900, background: '#FF3B30', color: '#fff', padding: '1px 5px', borderRadius: 99 }}>
+                            <span style={{ fontSize: 9, fontWeight: 900, background: CORAL, color: '#fff', padding: '1px 5px', borderRadius: 99 }}>
                                 {pendingEmails.length}
                             </span>
                         )}
@@ -817,12 +878,12 @@ export default function AdminCommunications() {
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                     {newCount > 0 && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(255,59,48,0.10)', color: '#FF3B30', fontFamily: SF }}>
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: toneBg('danger'), color: toneFg('danger'), fontFamily: SF }}>
                                             {newCount} חדש
                                         </span>
                                     )}
                                     {unreadCount > 0 && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontFamily: SF }}>
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: toneBg('info'), color: toneFg('info'), fontFamily: SF }}>
                                             {unreadCount} הודעה
                                         </span>
                                     )}
@@ -861,15 +922,18 @@ export default function AdminCommunications() {
                         return (
                             <motion.div key={lead._docId}
                                 onClick={() => { setSelected(lead); setActiveTpl(null); setCustomMsg(''); setCustomSubject(''); }}
-                                whileHover={{ x: isActive ? 0 : -2 }}
                                 className="group"
+                                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(0,122,255,0.035)'; }}
+                                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = leadStale ? 'rgba(255,149,0,0.03)' : 'transparent'; }}
                                 style={{
                                     padding: '10px 14px', cursor: 'pointer', position: 'relative',
                                     borderBottom: '1px solid rgba(0,0,0,0.04)',
                                     background: isActive ? 'rgba(0,122,255,0.06)' : leadStale ? 'rgba(255,149,0,0.03)' : 'transparent',
-                                    borderRight: isActive ? `3px solid #007AFF` : leadStale ? '3px solid #FF9500' : '3px solid transparent',
                                     transition: 'background 0.15s',
                                 }}>
+                                {/* accent rail (right edge in RTL) — active always, else on hover */}
+                                <span className={isActive ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}
+                                    style={{ position: 'absolute', right: 0, top: 8, bottom: 8, width: 3, borderRadius: 99, background: leadStale && !isActive ? '#FF9500' : 'linear-gradient(180deg,#007AFF,#5AC8FA)' }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Avatar name={lead.contactName} size={34} score={score} />
                                     <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
@@ -898,7 +962,7 @@ export default function AdminCommunications() {
                                     </div>
                                 </div>
                                 {lead.unreadAdmin && (
-                                    <div style={{ position: 'absolute', top: 10, left: 10, width: 8, height: 8, borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 0 0 2px rgba(248,248,250,0.9)' }} />
+                                    <div style={{ position: 'absolute', top: 10, left: 10, width: 8, height: 8, borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 0 0 2px rgba(248,248,250,0.9)' }} />
                                 )}
                             </motion.div>
                         );
@@ -940,11 +1004,11 @@ export default function AdminCommunications() {
                         {/* Email Filter Tabs */}
                         <div style={{ display: 'flex', gap: 8, padding: '10px 14px 8px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                             <button onClick={() => { setActiveEmailFilter('pending'); setSelectedEmail(null); }}
-                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'pending' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'pending' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'pending' ? hexA(CORAL, 0.10) : 'transparent', color: activeEmailFilter === 'pending' ? CORAL : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
                                 ממתינים ({pendingEmails.length})
                             </button>
                             <button onClick={() => { setActiveEmailFilter('log'); setSelectedEmail(null); }}
-                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'log' ? 'rgba(0,122,255,0.08)' : 'transparent', color: activeEmailFilter === 'log' ? '#007AFF' : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
+                                style={{ flex: 1, padding: '5px 0', border: 'none', background: activeEmailFilter === 'log' ? hexA(CORAL, 0.10) : 'transparent', color: activeEmailFilter === 'log' ? CORAL : '#86868B', borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: SF, transition: 'all 0.2s' }}>
                                 יומן שליחה ({emailLog.length})
                             </button>
                         </div>
@@ -955,18 +1019,33 @@ export default function AdminCommunications() {
                                 pendingEmails.length === 0 ? (
                                     <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#AEAEB2', fontFamily: SF }}>אין מיילים הממתינים לאישור</div>
                                 ) : (
-                                    pendingEmails.map(email => {
-                                        const isActive = selectedEmail?.id === email.id;
-                                        const dateStr = email.createdAt?.seconds ? new Date(email.createdAt.seconds * 1000).toLocaleDateString('he-IL') : '';
+                                    KIND_ORDER.filter(k => groupedPending[k].length > 0).map(kind => {
+                                        const meta = EMAIL_KIND_META[kind];
                                         return (
-                                            <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
-                                                style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                                                    <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                            <div key={kind}>
+                                                {/* Group header */}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, padding: '8px 14px 6px', background: 'rgba(0,0,0,0.015)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                    <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, fontFamily: SF }}>{meta.label} · {groupedPending[kind].length}</span>
+                                                    <span style={{ width: 6, height: 6, borderRadius: 99, background: meta.color }} />
                                                 </div>
-                                                <div style={{ fontSize: 11, color: '#007AFF', fontWeight: 600, marginBottom: 2, textAlign: 'right' }}>{email.to}</div>
-                                                <div style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{email.subject}</div>
+                                                {groupedPending[kind].map(email => {
+                                                    const isActive = selectedEmail?.id === email.id;
+                                                    const dateStr = fmtEmailDate(email.createdAt);
+                                                    return (
+                                                        <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
+                                                            style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? `3px solid ${meta.color}` : '3px solid transparent', transition: 'all 0.15s' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                                                <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || meta.label}</span>
+                                                                    <KindBadge kind={kind} />
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: meta.color, fontWeight: 600, marginBottom: 2, textAlign: 'right' }}>{email.to}</div>
+                                                            <div style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{email.subject}</div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         );
                                     })
@@ -977,18 +1056,22 @@ export default function AdminCommunications() {
                                 ) : (
                                     emailLog.map(email => {
                                         const isActive = selectedEmail?.id === email.id;
-                                        const dateStr = email.sentAt ? new Date(email.sentAt).toLocaleDateString('he-IL') : email.declinedAt ? new Date(email.declinedAt).toLocaleDateString('he-IL') : '';
+                                        const dateStr = fmtEmailDate(email.sentAt) || fmtEmailDate(email.declinedAt);
                                         const isSent = email.status === 'sent';
+                                        const kind = emailKind(email);
                                         return (
                                             <div key={email.id} onClick={() => { setSelectedEmail(email); setIsEditingEmail(false); }}
                                                 style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)', background: isActive ? 'rgba(0,122,255,0.06)' : 'transparent', borderRight: isActive ? '3px solid #007AFF' : '3px solid transparent', transition: 'all 0.15s' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                                                     <span style={{ fontSize: 10, color: '#AEAEB2' }}>{dateStr}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || 'לקוח'}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>{email.recipientName || EMAIL_KIND_META[kind].label}</span>
+                                                        <KindBadge kind={kind} />
+                                                    </div>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{email.subject}</span>
-                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: isSent ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)', color: isSent ? '#34C759' : '#FF3B30' }}>
+                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: isSent ? toneBg('success') : toneBg('danger'), color: isSent ? toneFg('success') : toneFg('danger') }}>
                                                         {isSent ? 'נשלח' : 'נדחה'}
                                                     </span>
                                                 </div>
@@ -1016,18 +1099,33 @@ export default function AdminCommunications() {
                             </p>
                         </div>
 
+                        {/* KPI band — shared AdminKPICard shell (consistent with other pages) */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 24 }} dir="rtl">
+                            <AdminKPICard title="סה״כ לידים" value={leads.length} subtitle="במערכת" accent="#007AFF" delay={0}
+                                icon={<Users size={20} color="#007AFF" />} />
+                            <AdminKPICard title="לידים חדשים" value={newCount} subtitle="ממתינים לטיפול" accent={toneColor('danger')} delay={0.05}
+                                icon={<Zap size={20} color={toneColor('danger')} />} />
+                            <AdminKPICard title="הודעות שלא נקראו" value={unreadCount} subtitle="בצ׳אט" accent="#007AFF" delay={0.1}
+                                icon={<MessageCircle size={20} color="#007AFF" />} />
+                            <AdminKPICard title="לידים תקועים" value={staleCount} subtitle={`מעל ${STALE_DAYS} ימים`} accent={toneColor('warning')} delay={0.15}
+                                icon={<AlertTriangle size={20} color={toneColor('warning')} />} />
+                        </div>
+
                         {/* #6 Stale leads banner */}
                         {staleCount > 0 && (
                             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderRadius: 16, marginBottom: 20, background: 'rgba(255,149,0,0.08)', border: '1.5px solid rgba(255,149,0,0.22)', fontFamily: SF }}>
+                                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 16, marginBottom: 20, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)', fontFamily: SF }}>
+                                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <AlertTriangle size={20} color="#FF9500" strokeWidth={2.2} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                                    <p style={{ fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>{staleCount} לידים ממתינים לטיפול מעל {STALE_DAYS} ימים</p>
+                                    <p style={{ fontSize: 11.5, color: '#86868B', margin: '2px 0 0', fontWeight: 600, fontFamily: SF }}>לידים בסטטוס "חדש" או "ביצירת קשר" שלא עודכנו</p>
+                                </div>
                                 <button onClick={() => setShowStaleOnly(v => !v)}
-                                    style={{ padding: '7px 16px', borderRadius: 99, border: 'none', background: showStaleOnly ? '#FF9500' : 'rgba(255,149,0,0.15)', color: showStaleOnly ? '#fff' : '#FF9500', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: SF, flexShrink: 0, transition: 'all 0.15s' }}>
+                                    style={{ padding: '8px 16px', borderRadius: 10, border: showStaleOnly ? 'none' : '1.5px solid rgba(255,149,0,0.3)', background: showStaleOnly ? '#FF9500' : '#fff', color: showStaleOnly ? '#fff' : '#FF9500', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: SF, flexShrink: 0, transition: 'all 0.15s' }}>
                                     {showStaleOnly ? 'הצג הכל' : 'צפה בהם'}
                                 </button>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: 14, fontWeight: 800, color: '#FF9500', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={15} style={{ flexShrink: 0 }} />{staleCount} לידים ממתינים לטיפול מעל {STALE_DAYS} ימים</p>
-                                    <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontFamily: SF }}>לידים בסטטוס "חדש" או "ביצירת קשר" שלא עודכנו</p>
-                                </div>
                             </motion.div>
                         )}
 
@@ -1040,7 +1138,7 @@ export default function AdminCommunications() {
                                     <motion.button key={status} whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
                                         onClick={() => setFilterStatus(status)}
                                         style={{ ...CARD, padding: '14px 14px', textAlign: 'right', border: 'none', cursor: 'pointer' }}>
-                                        <p style={{ fontSize: 28, fontWeight: 900, color: meta.color, fontFamily: SF, margin: '0 0 2px', lineHeight: 1 }}>{count}</p>
+                                        <p style={{ fontSize: 28, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: '0 0 2px', lineHeight: 1 }}>{count}</p>
                                         <p style={{ fontSize: 11, fontWeight: 700, color: meta.color, fontFamily: SF, margin: 0, opacity: 0.8 }}>{status}</p>
                                     </motion.button>
                                 );
@@ -1141,10 +1239,10 @@ export default function AdminCommunications() {
                                             position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
                                             padding: '8px 18px', borderRadius: 99, fontSize: 13, fontWeight: 800, fontFamily: SF,
                                             cursor: 'pointer', transition: 'all 0.18s',
-                                            background: isActive ? ch.color + '12' : 'rgba(255,255,255,0.8)',
-                                            border: `2px solid ${isActive ? ch.color : 'rgba(0,0,0,0.08)'}`,
-                                            color: isActive ? ch.color : '#86868B',
-                                            boxShadow: isActive ? `0 2px 14px ${ch.color}22` : 'none',
+                                            background: isActive ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.8)',
+                                            border: `1.5px solid ${isActive ? '#007AFF' : 'rgba(0,0,0,0.08)'}`,
+                                            color: isActive ? '#007AFF' : '#86868B',
+                                            boxShadow: 'none',
                                         }}>
                                         <ch.Icon size={14} strokeWidth={2} />
                                         {ch.label}
@@ -1177,13 +1275,13 @@ export default function AdminCommunications() {
                                     {recommendedTpl && activeTpl?.id !== recommendedTpl.id && (
                                         <motion.button initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                                             onClick={() => setActiveTpl(recommendedTpl)}
-                                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14, marginBottom: 10, border: '1.5px solid rgba(0,122,255,0.22)', background: 'linear-gradient(135deg,rgba(0,122,255,0.05),rgba(88,86,214,0.04))', cursor: 'pointer', textAlign: 'right', transition: 'all 0.15s', fontFamily: SF }}>
+                                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14, marginBottom: 10, border: '1.5px solid rgba(0,122,255,0.22)', background: 'linear-gradient(135deg,rgba(0,122,255,0.05),rgba(90,200,250,0.04))', cursor: 'pointer', textAlign: 'right', transition: 'all 0.15s', fontFamily: SF }}>
                                             <Zap size={14} color="#007AFF" strokeWidth={2} style={{ flexShrink: 0 }} />
                                             <div style={{ flex: 1 }}>
                                                 <p style={{ fontSize: 12, fontWeight: 800, color: '#007AFF', margin: 0 }}>מומלץ לשלב "{selected?.status || 'חדש'}"</p>
                                                 <p style={{ fontSize: 11, color: '#6E6E73', margin: 0 }}>{recommendedTpl.name}</p>
                                             </div>
-                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '3px 10px', borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5856D6)', flexShrink: 0, fontFamily: SF }}>בחר</span>
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '3px 10px', borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', flexShrink: 0, fontFamily: SF }}>בחר</span>
                                         </motion.button>
                                     )}
 
@@ -1286,7 +1384,7 @@ export default function AdminCommunications() {
                                             ) : (
                                                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={sendEmail}
                                                     disabled={!customMsg || !selected?.email}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(0,122,255,0.38)', transition: 'all 0.2s' }}>
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(0,122,255,0.38)', transition: 'all 0.2s' }}>
                                                     <Mail size={15} strokeWidth={2} />
                                                     שלח מייל
                                                 </motion.button>
@@ -1314,20 +1412,21 @@ export default function AdminCommunications() {
                     /* ── Emails Queue Tab ── */
                     !selectedEmail ? (
                         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', paddingTop: 60, fontFamily: SF }}>
-                            <div style={{ width: 80, height: 80, borderRadius: 99, background: 'linear-gradient(135deg, rgba(0,122,255,0.1), rgba(88,86,214,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: '#007AFF' }}>
+                            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING.soft}
+                                style={{ width: 80, height: 80, borderRadius: 24, background: hexA(CORAL, 0.12), border: `1px solid ${hexA(CORAL, 0.24)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: CORAL, boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,1)' }}>
                                 <Mail size={40} />
-                            </div>
+                            </motion.div>
                             <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', margin: '0 0 8px' }}>תור אישור מיילים</h2>
-                            <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 450, margin: '0 auto 24px', lineHeight: 1.5 }}>
-                                כל המיילים האוטומטיים שנוצרים על ידי ה-AI ומערכת הלידים מגיעים לכאן לאישור מנהל ידני לפני שליחתם בפועל ללקוחות.
+                            <p style={{ fontSize: 14, color: '#6E6E73', maxWidth: 470, margin: '0 auto 24px', lineHeight: 1.5 }}>
+                                כל מייל יוצא — ללקוחות, לספקים ופנימי לצוות — נעצר כאן לאישור ידני (וניתן לעריכה) לפני השליחה. שום מייל לא נשלח אוטומטית.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#FF3B30', margin: '0 0 2px' }}>{pendingEmails.length}</p>
+                                <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{pendingEmails.length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>ממתינים לאישור</p>
                                 </div>
-                                <div style={{ ...CARD, padding: '14px 24px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 24, fontWeight: 900, color: '#34C759', margin: '0 0 2px' }}>{emailLog.filter(e => e.status === 'sent').length}</p>
+                                <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
+                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{emailLog.filter(e => e.status === 'sent').length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>נשלחו בהצלחה</p>
                                 </div>
                             </div>
@@ -1373,9 +1472,12 @@ export default function AdminCommunications() {
                             <div style={{ ...CARD, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: 14 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: '0 0 4px' }}>
-                                            אל: {selectedEmail.recipientName || 'לקוח'}
-                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <h3 style={{ fontSize: 16, fontWeight: 900, color: '#1D1D1F', margin: 0 }}>
+                                                אל: {selectedEmail.recipientName || EMAIL_KIND_META[emailKind(selectedEmail)].label}
+                                            </h3>
+                                            <KindBadge kind={emailKind(selectedEmail)} />
+                                        </div>
                                         <p style={{ fontSize: 13, color: '#007AFF', fontWeight: 600, margin: 0 }}>
                                             {selectedEmail.to}
                                         </p>
@@ -1383,14 +1485,14 @@ export default function AdminCommunications() {
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                                         <span style={{
                                             fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99,
-                                            background: selectedEmail.status === 'pending' ? 'rgba(255,149,0,0.1)' : selectedEmail.status === 'sent' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)',
-                                            color: selectedEmail.status === 'pending' ? '#FF9500' : selectedEmail.status === 'sent' ? '#34C759' : '#FF3B30'
+                                            background: selectedEmail.status === 'pending' ? toneBg('warning') : selectedEmail.status === 'sent' ? toneBg('success') : toneBg('danger'),
+                                            color: selectedEmail.status === 'pending' ? toneFg('warning') : selectedEmail.status === 'sent' ? toneFg('success') : toneFg('danger')
                                         }}>
                                             {selectedEmail.status === 'pending' ? 'ממתין לאישור' : selectedEmail.status === 'sent' ? 'נשלח' : 'נדחה'}
                                         </span>
-                                        {selectedEmail.leadId && (
+                                        {emailRefId(selectedEmail) && leads.some(l => l._docId === emailRefId(selectedEmail)) && (
                                             <button onClick={() => {
-                                                const lead = leads.find(l => l._docId === selectedEmail.leadId);
+                                                const lead = leads.find(l => l._docId === emailRefId(selectedEmail));
                                                 if (lead) {
                                                     setSelected(lead);
                                                     setActiveTab('leads');

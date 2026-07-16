@@ -222,7 +222,7 @@ export default function MobileContact() {
                 {[
                     { icon: <Zap size={15} />, title: getSetting('contact_trust_1_title', 'מענה תוך 24שע'), sub: getSetting('contact_trust_1_sub', 'נציג מחכה לכם') },
                     { icon: <HeartHandshake size={15} />, title: getSetting('contact_trust_2_title', 'ייעוץ ללא עלות'), sub: getSetting('contact_trust_2_sub', 'אפיון אישי') },
-                    { icon: <Award size={15} />, title: `+${getSetting('about_stat1_val', '800')} מוסדות`, sub: getSetting('contact_trust_3_sub', 'בוטחים בנו') },
+                    { icon: <Award size={15} />, title: getSetting('contact_trust_3_title', 'שירות אישי'), sub: getSetting('contact_trust_3_sub', 'לכל אורך הדרך') },
                 ].map((item, i) => (
                     <div key={i} style={{ background: c.surface, borderRadius: 14, padding: '12px 10px', boxShadow: c.cardShadow, textAlign: 'center' }}>
                         <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(0,122,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#007AFF', margin: '0 auto 8px' }}>

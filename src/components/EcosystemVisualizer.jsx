@@ -3,48 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { useProducts } from '../context/ProductsContext';
 
-// ─── Hotspot data ─────────────────────────────────────────────────────────────
-const HOTSPOTS = [
- {
- id: 'hs-1',
- x: 22, // % from left
- y: 38, // % from top
- tooltipSide: 'right',
- product: {
- id: 'display-max-86-uhd',
- title: 'מסך מגע Max 86" UHD 4K',
- price: 14500,
- image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=400',
- category: 'מסכים אינטראקטיביים',
- },
- },
- {
- id: 'hs-2',
- x: 58,
- y: 55,
- tooltipSide: 'left',
- product: {
- id: 'teacher-laptop-pro',
- title: 'נייד מורה Core i7 14"',
- price: 4800,
- image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=400',
- category: 'מחשוב',
- },
- },
- {
- id: 'hs-3',
- x: 78,
- y: 30,
- tooltipSide: 'left',
- product: {
- id: 'ptz-camera-tracking-4k',
- title: 'מצלמת PTZ עוקבת 4K',
- price: 4500,
- image: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&q=80&w=400',
- category: 'וידאו',
- },
- },
+// ─── Hotspot positions ────────────────────────────────────────────────────────
+// Fixed anchor points on the classroom image. The PRODUCTS are pulled live from
+// the real catalog (the 3 monitors) — never hardcoded/fabricated.
+const POSITIONS = [
+ { x: 22, y: 38, tooltipSide: 'right' },
+ { x: 58, y: 55, tooltipSide: 'left' },
+ { x: 78, y: 30, tooltipSide: 'left' },
 ];
 
 const TOOLTIP_SPRING = { type: 'spring', stiffness: 380, damping: 26 };
@@ -142,7 +109,7 @@ const Hotspot = memo(({ spot }) => {
  </p>
  <div className="flex items-center justify-between gap-2">
  <span className="text-sm font-black text-[#1D1D1F] tracking-tighter">
- ₪{(spot.product.price ?? 0).toLocaleString()}
+ ₪{(spot.product.salePrice ?? spot.product.price ?? 0).toLocaleString()}
  </span>
  <motion.button
  onClick={handleCartToggle}
@@ -199,14 +166,22 @@ Hotspot.displayName = 'Hotspot';
 // ─── Main Component ───────────────────────────────────────────────────────────
 const EcosystemVisualizer = () => {
  const { getSetting } = useSettings();
- 
+ const { activeProducts } = useProducts();
+
+ // Map fixed image positions onto the REAL catalog products (the 3 monitors).
+ const spots = POSITIONS.slice(0, activeProducts.length).map((pos, i) => ({
+ ...pos, id: `hs-${i}`, product: activeProducts[i],
+ }));
+
  const content = {
- title: getSetting('eco_title', 'למידה שיוצאת מהמסגרת'),
- subtitle: getSetting('eco_desc', 'חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.'),
- badge: getSetting('eco_eyebrow', 'האקוסיסטם שלנו'),
+ title: getSetting('eco_title', 'המסכים שלנו בכיתה'),
+ subtitle: getSetting('eco_desc', 'לחצו על הנקודות כדי לגלות את דגמי המסכים שאנחנו מספקים למוסדות חינוך.'),
+ badge: getSetting('eco_eyebrow', 'המוצרים שלנו'),
  hint: getSetting('eco_hint', 'לחץ על הנקודות הכחולות'),
  bgImage: getSetting('eco_bg_image', 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=85&w=1600')
  };
+
+ if (!spots.length) return null;
 
  return (
  <section className="max-w-7xl mx-auto px-6 md:px-12 py-24">
@@ -256,7 +231,7 @@ const EcosystemVisualizer = () => {
  </div>
 
  {/* Hotspots — outside overflow-hidden so popups aren't clipped */}
- {HOTSPOTS.map(spot => (
+ {spots.map(spot => (
  <Hotspot key={spot.id} spot={spot} />
  ))}
  </motion.div>

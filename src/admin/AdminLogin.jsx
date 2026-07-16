@@ -127,11 +127,11 @@ export default function AdminLogin() {
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at 70% 10%, rgba(0,122,255,0.18) 0%, transparent 55%), radial-gradient(ellipse at 20% 85%, rgba(88,86,214,0.15) 0%, transparent 50%), #050510' }}>
+            style={{ background: 'radial-gradient(ellipse at 70% 10%, rgba(0,122,255,0.18) 0%, transparent 55%), radial-gradient(ellipse at 20% 85%, rgba(90,200,250,0.15) 0%, transparent 50%), #050510' }}>
 
             {/* Ambient orbs */}
             <AmbientOrb x="65%" y="-5%" size={600} color="rgba(0,122,255,0.25)" delay={0} />
-            <AmbientOrb x="-5%" y="60%" size={500} color="rgba(88,86,214,0.2)" delay={2} />
+            <AmbientOrb x="-5%" y="60%" size={500} color="rgba(90,200,250,0.2)" delay={2} />
             <AmbientOrb x="50%" y="80%" size={400} color="rgba(0,122,255,0.12)" delay={4} />
 
             {/* Grain overlay */}
@@ -156,9 +156,9 @@ export default function AdminLogin() {
                     <motion.div className="flex flex-col items-center mb-8"
                         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                         <motion.div
-                            animate={success ? { scale: [1, 1.15, 1], background: ['linear-gradient(135deg,#007AFF,#5856D6)', 'linear-gradient(135deg,#34C759,#30D158)'] } : {}}
+                            animate={success ? { scale: [1, 1.15, 1], background: ['linear-gradient(135deg,#007AFF,#5AC8FA)', 'linear-gradient(135deg,#34C759,#30D158)'] } : {}}
                             className="w-[68px] h-[68px] rounded-[20px] flex items-center justify-center mb-5 relative"
-                            style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)', boxShadow: '0 12px 40px rgba(0,122,255,0.45), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
+                            style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)', boxShadow: '0 12px 40px rgba(0,122,255,0.45), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
                         >
                             <AnimatePresence mode="wait">
                                 {success ? (

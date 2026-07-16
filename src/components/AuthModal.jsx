@@ -144,8 +144,8 @@ export default function AuthModal() {
 
     // CMS-driven hero & benefits
     const heroTitle    = getSetting('auth_hero_title',    'בואו לבנות איתנו את עתיד החינוך');
-    const heroSub      = getSetting('auth_hero_subtitle', 'הצטרפו לקהילה של 800+ מוסדות חינוך שכבר שינו את הכיתה שלהם');
-    const heroStat     = getSetting('auth_hero_stat',     '+800 מוסדות כבר כאן');
+    const heroSub      = getSetting('auth_hero_subtitle', 'פתחו חשבון NextClass — קטלוג מלא, מחירים מוסדיים ושירות ישיר.');
+    const heroStat     = getSetting('auth_hero_stat',     'הרשמה חינם — ללא התחייבות');
     const benefitsOn   = getSetting('auth_benefits_enabled', false);
     const benefitsTitle= getSetting('auth_benefits_title', 'ההצטרפות חינם — היתרונות שמחכים לך');
     const benefits = [

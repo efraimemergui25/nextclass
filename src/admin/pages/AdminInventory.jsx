@@ -1,14 +1,29 @@
 /* eslint-disable */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp, Sparkles, Link2, Upload } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, InfoTooltip } from '../components/AdminComponents';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip, AdminInput } from '../components/AdminComponents';
+import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING, GLASS, toneColor } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
+import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
+
+// Unified brand accent (azure) — DOMAIN_ACCENTS.inventory resolves to #007AFF
+const ORANGE = DOMAIN_ACCENTS.inventory;
+
+// Liquid-glass card surface (token-driven). Only the glass background + blur are
+// applied inline so Tailwind border/hover states on each card stay intact.
+const GLASS_SURFACE = {
+    background: GLASS.base.background,
+    backdropFilter: GLASS.base.backdropFilter,
+    WebkitBackdropFilter: GLASS.base.WebkitBackdropFilter,
+};
 
 // ─── Smart Reorder Modal ──────────────────────────────────────────────────────
 function SmartReorderModal({ open, product, onClose, suppliers }) {
@@ -56,9 +71,9 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
                     {[
-                        { label: 'מלאי נוכחי', value: product.stock || 0, color: (product.stock || 0) === 0 ? '#FF3B30' : '#FF9500' },
-                        { label: 'סף ההתרעה', value: product.threshold || 5, color: '#007AFF' },
-                        { label: 'כמות מוצעת', value: recQty, color: '#34C759' },
+                        { label: 'מלאי נוכחי', value: product.stock || 0, color: (product.stock || 0) === 0 ? toneColor('danger') : toneColor('warning') },
+                        { label: 'סף ההתרעה', value: product.threshold || 5, color: toneColor('info') },
+                        { label: 'כמות מוצעת', value: recQty, color: toneColor('success') },
                     ].map(s => (
                         <div key={s.label} style={{ borderRadius: 12, padding: '10px 12px', background: `${s.color}09`, border: `1px solid ${s.color}20`, textAlign: 'right' }}>
                             <p style={{ fontSize: 20, fontWeight: 900, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
@@ -91,13 +106,63 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
     );
 }
 
-const FILTERS = ['הכל', 'נמוך', 'אזל', 'תקין'];
+const FILTERS = ['הכל', 'במלאי', 'נמוך', 'אזל'];
+// Preferred category ordering for the grouped inventory view
+const CATEGORY_ORDER = ['מסכי מחשב', 'מוצרים משלימים'];
+const NO_CAT = 'ללא קטגוריה';
+const catRank = (c) => { const i = CATEGORY_ORDER.indexOf(c || ''); return i === -1 ? 900 : i; };
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
+// ─── Babushka drill primitives (shared grammar with dashboard/vault) ──────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || ORANGE, 0.07), border: `1px solid ${hexA(s.color || ORANGE, 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = ORANGE, delay = 0 }) {
+    return (
+        <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick} tabIndex={onClick ? 0 : undefined} role={onClick ? 'button' : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={onClick ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${onClick ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {onClick && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
+    </div>
+);
+
 export default function AdminInventory() {
-    const { inventory, orders, updateStock, updateProductDetails, deleteProduct } = useAdminData();
+    const { inventory, orders, updateStock, updateProductDetails, deleteProduct, addProduct, fx, syncFxRate, setFxRate } = useAdminData();
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const [searchParams] = useSearchParams();
     const [search, setSearch] = useState(searchParams.get('search') || '');
     const [filter, setFilter] = useState('הכל');
@@ -105,7 +170,17 @@ export default function AdminInventory() {
     const [draftStock, setDraftStock] = useState({});
     const [viewMode, setViewMode] = useState('grid');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [creating, setCreating]               = useState(false);
+    const [aiImport, setAiImport]               = useState(false);
     const [reorderProduct, setReorderProduct]   = useState(null);
+    const [tab, setTab] = useState('all');
+
+    // ── Babushka drill stack (KPI → product list → product detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
 
     useEffect(() => {
         const query = searchParams.get('search');
@@ -168,13 +243,42 @@ export default function AdminInventory() {
         showToast('פרטי המוצר עודכנו בהצלחה', 'success');
     };
 
+    const handleCreateProduct = async (fields) => {
+        if (!fields.title?.trim()) return;
+        await addProduct({
+            title: fields.title.trim(),
+            price: Number(fields.price) || 0,
+            category: fields.category || '',
+            isFeatured: fields.isFeatured || false,
+            image: fields.image || '',
+            stock: Number(fields.stock) || 0,
+            threshold: Number(fields.threshold) || 5,
+            supplierStocked: fields.supplierStocked || false,
+            supplierInStock: fields.supplierInStock || false,
+            showSupplierQty: fields.showSupplierQty || false,
+            supplierStock: Number(fields.supplierStock) || 0,
+            lowStockMuted: fields.lowStockMuted || false,
+            supplierCost: Number(fields.supplierCost) || 0,
+            supplierCostUSD: Number(fields.supplierCostUSD) || 0,
+            costCurrency: fields.costCurrency || 'ILS',
+            description: fields.description || '',
+            specs: Array.isArray(fields.specs) ? fields.specs : [],
+            isActive: true,
+        });
+        setCreating(false);
+        showToast('מוצר חדש נוסף בהצלחה', 'success');
+    };
+
+    // Blank product used to open ProductModal in create mode
+    const BLANK_PRODUCT = { id: '', title: '', price: 0, category: '', isFeatured: false, image: '', stock: 0, threshold: 5 };
+
     // ── Sales velocity: units sold per day per product (last 30 days) ────────
     const salesVelocity = useMemo(() => {
         const cutoff = Date.now() - 30 * 86400000;
         const vel = {};
         orders.filter(o => (o.dateTs || 0) >= cutoff).forEach(o => {
             (o.items || []).forEach(item => {
-                const id = String(item.id ?? '');
+                const id = String(item.id ?? item.catalogNumber ?? '');
                 if (!id) return;
                 vel[id] = (vel[id] || 0) + (item.qty || 1);
             });
@@ -190,27 +294,60 @@ export default function AdminInventory() {
     };
 
     const available = p => Math.max(0, (p.stock || 0) - (p.reserved || 0));
-    const lowCount  = inventory.filter(p => available(p) > 0 && available(p) <= p.threshold).length;
-    const outCount  = inventory.filter(p => available(p) === 0).length;
-    const okCount   = inventory.filter(p => available(p) > p.threshold).length;
+    // A product held at the supplier AND in stock there is always serviceable,
+    // so it never counts as low/out. lowStockMuted silences only the "low" flag.
+    const supplierCovered = p => !!(p.supplierStocked && p.supplierInStock);
+    const statusKey = (p) => {
+        const a = available(p);
+        if (a === 0) return supplierCovered(p) ? 'supplier' : 'out';
+        if (a <= (p.threshold ?? 5) && !p.lowStockMuted && !supplierCovered(p)) return 'low';
+        return 'ok';
+    };
+    const STATUS_STYLE = {
+        out:      { color: toneColor('danger'),  label: 'אזל' },
+        low:      { color: toneColor('warning'), label: 'נמוך' },
+        ok:       { color: toneColor('success'), label: 'תקין' },
+        supplier: { color: toneColor('info'),    label: 'אצל הספק' },
+    };
+    const lowCount  = inventory.filter(p => statusKey(p) === 'low').length;
+    const outCount  = inventory.filter(p => statusKey(p) === 'out').length;
+    const okCount   = inventory.filter(p => ['ok', 'supplier'].includes(statusKey(p))).length;
+
+    // Below-threshold items still needing a real reorder (excludes muted + supplier-covered)
+    const belowThreshold = useMemo(
+        () => inventory.filter(p => ['low', 'out'].includes(statusKey(p))).sort((a, b) => available(a) - available(b)),
+        [inventory]
+    );
 
     const filtered = useMemo(() => {
         let list = [...inventory];
-        if (filter === 'נמוך') list = list.filter(p => { const a = available(p); return a > 0 && a <= p.threshold; });
-        if (filter === 'אזל') list = list.filter(p => available(p) === 0);
-        if (filter === 'תקין') list = list.filter(p => available(p) > p.threshold);
+        if (filter === 'נמוך') list = list.filter(p => statusKey(p) === 'low');
+        if (filter === 'אזל') list = list.filter(p => statusKey(p) === 'out');
+        if (filter === 'במלאי') list = list.filter(p => ['ok', 'supplier'].includes(statusKey(p)));
         if (search) list = list.filter(p =>
             p.title?.toLowerCase().includes(search.toLowerCase()) ||
             (p.category || '').includes(search)
         );
-        return list.sort((a, b) => a.stock - b.stock);
+        // Group by category (preferred order), then by stock within a category
+        return list.sort((a, b) => {
+            const ra = catRank(a.category), rb = catRank(b.category);
+            if (ra !== rb) return ra - rb;
+            const ca = a.category || NO_CAT, cb = b.category || NO_CAT;
+            if (ca !== cb) return ca.localeCompare(cb, 'he');
+            return a.stock - b.stock;
+        });
     }, [inventory, search, filter]);
 
+    // Count per category (for the group header chips)
+    const catCounts = useMemo(() => {
+        const m = {};
+        filtered.forEach(p => { const c = p.category || NO_CAT; m[c] = (m[c] || 0) + 1; });
+        return m;
+    }, [filtered]);
+
     const stockMeta = (p) => {
-        const avail = available(p);
-        const color = avail === 0 ? '#FF3B30' : avail <= p.threshold ? '#FF9500' : '#34C759';
-        const label = avail === 0 ? 'אזל' : avail <= p.threshold ? 'נמוך' : 'תקין';
-        return { avail, color, label };
+        const key = statusKey(p);
+        return { avail: available(p), key, ...STATUS_STYLE[key] };
     };
 
     return (
@@ -219,55 +356,79 @@ export default function AdminInventory() {
             <AdminSectionHeader
                 title="ניהול מלאי"
                 subtitle={`${inventory.length} מוצרים`}
-                action={
+                action={tab === 'all' ? (
                     <div className="flex items-center gap-2">
                         {/* View toggle */}
                         <div className="flex items-center rounded-xl overflow-hidden border border-black/08" style={{ background: 'rgba(0,0,0,0.03)' }}>
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? '#007AFF' : '#AEAEB2', boxShadow: viewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+                                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
                             ><LayoutGrid size={15} /></button>
                             <button
                                 onClick={() => setViewMode('list')}
                                 className="px-3 py-2 transition-all"
-                                style={{ background: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? '#007AFF' : '#AEAEB2', boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+                                style={{ background: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? ORANGE : '#AEAEB2', boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
                             ><List size={15} /></button>
                         </div>
 
                         {bulkMode ? (
                             <div className="flex gap-2">
                                 <AdminButton variant="ghost" onClick={() => setBulkMode(false)}>ביטול</AdminButton>
-                                <AdminButton onClick={saveBulkMode} disabled={bulkSaving} loading={bulkSaving}>{bulkSaving ? 'שומר...' : 'שמור הכל'}</AdminButton>
+                                <AdminButton accent={ORANGE} onClick={saveBulkMode} disabled={bulkSaving} loading={bulkSaving}>{bulkSaving ? 'שומר...' : 'שמור הכל'}</AdminButton>
                             </div>
                         ) : (
-                            <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
+                            <>
+                                <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                    onClick={() => setAiImport(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-[14px] text-white font-black text-[13px]"
+                                    style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)', fontFamily: 'Heebo, sans-serif', boxShadow: '0 6px 18px rgba(88,86,214,0.30)' }}
+                                >
+                                    <Sparkles size={15} strokeWidth={2.6} />
+                                    ייבוא AI
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setCreating(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-[14px] text-white font-black text-[13px]"
+                                    style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', fontFamily: 'Heebo, sans-serif', boxShadow: '0 6px 18px rgba(0,122,255,0.32)' }}
+                                >
+                                    <Plus size={15} strokeWidth={2.8} />
+                                    מוצר חדש
+                                </motion.button>
+                            </>
                         )}
                     </div>
-                }
+                ) : undefined}
             />
 
-            {/* ── KPI chips ── */}
-            <div className="flex items-center gap-2.5 flex-wrap">
+            {/* ── KPI band ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.' },
-                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.' },
-                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.' },
-                ].map(({ label, value, color, Icon, tooltip }) => (
-                    <motion.div key={label}
-                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl"
-                        style={{ background: `${color}10`, border: `1px solid ${color}22` }}
-                    >
-                        <Icon size={14} style={{ color }} />
-                        <span className="text-[22px] font-black leading-none" style={{ color }}>{value}</span>
-                        <span className="text-[11px] font-bold text-[#86868B] flex items-center gap-0.5">
-                            {label}<InfoTooltip text={tooltip} />
-                        </span>
-                    </motion.div>
+                    { label: 'סה״כ מוצרים', value: inventory.length, color: ORANGE, Icon: Boxes, sub: `${filtered.length} בתצוגה`, tooltip: 'כל המוצרים בקטלוג המלאי.', scope: 'all' },
+                    { label: 'מלאי תקין', value: okCount, color: toneColor('success'), Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.', scope: 'ok' },
+                    { label: 'מלאי נמוך', value: lowCount, color: toneColor('warning'), Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.', scope: 'low' },
+                    { label: 'אזל מהמלאי', value: outCount, color: toneColor('danger'), Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.', scope: 'out' },
+                ].map(({ label, value, color, Icon, sub, tooltip, scope }, i) => (
+                    <AdminKPICard key={label} title={label} value={value} subtitle={sub} tooltip={tooltip}
+                        icon={<Icon size={20} color={color} />} accent={color} delay={i * 0.05}
+                        onClick={value ? () => openDrill({ type: 'products', scope }) : undefined} />
                 ))}
             </div>
 
+            {/* ── In-page sectors ── */}
+            <AdminTabs
+                tabs={[
+                    { id: 'all', label: 'כל המלאי', count: inventory.length },
+                    { id: 'reorder', label: 'להזמנה מספק', count: lowCount + outCount },
+                ]}
+                active={tab} onChange={setTab} id="inventory-tabs"
+            />
+
+            {tab === 'all' && (<>
             {/* ── Search + Filters ── */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
@@ -284,25 +445,36 @@ export default function AdminInventory() {
                         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
                     >
                         {filtered.length === 0 && (
-                            <div className="col-span-full py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                                <Box size={40} className="opacity-30" />
-                                <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
+                            <div className="col-span-full">
+                                <AdminEmpty icon={<Box size={30} style={{ color: ORANGE }} />}
+                                    title="אין מוצרים תואמים לחיפוש"
+                                    subtitle="נסה לשנות את המסננים או מונח החיפוש" />
                             </div>
                         )}
                         <AnimatePresence>
                             {filtered.map((product, i) => {
                                 const { avail, color, label } = stockMeta(product);
                                 const stockVal = bulkMode ? (draftStock[product.id] ?? product.stock) : avail;
+                                const cat = product.category || NO_CAT;
+                                const showHeader = i === 0 || (filtered[i - 1].category || NO_CAT) !== cat;
                                 return (
+                                    <Fragment key={product.id}>
+                                    {showHeader && (
+                                        <div className="col-span-full flex items-center gap-2.5 mt-1 first:mt-0" dir="rtl">
+                                            <h3 className="text-[14px] font-black text-[#1D1D1F]">{cat}</h3>
+                                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: hexA(ORANGE, 0.10), color: ORANGE }}>{catCounts[cat]}</span>
+                                            <div className="flex-1 h-px bg-black/[0.07]" />
+                                        </div>
+                                    )}
                                     <motion.div
-                                        key={product.id}
                                         layout
                                         initial={{ opacity: 0, y: 16 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
+                                        style={GLASS_SURFACE}
+                                        className="relative rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
                                     >
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] bg-[#F5F5F7] overflow-hidden">
@@ -335,15 +507,15 @@ export default function AdminInventory() {
                                             )}
                                             {/* Delete on hover */}
                                             <button
-                                                onClick={e => {
+                                                onClick={async e => {
                                                     e.stopPropagation();
-                                                    if (window.confirm(`למחוק את "${product.title}" לצמיתות?`)) {
+                                                    if (await confirm({ message: `למחוק את "${product.title}" לצמיתות?`, danger: true })) {
                                                         deleteProduct(product.id);
                                                         showToast('המוצר נמחק', 'warning');
                                                     }
                                                 }}
                                                 className="absolute bottom-2.5 left-2.5 w-7 h-7 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                                                style={{ background: 'rgba(255,59,48,0.82)', backdropFilter: 'blur(8px)' }}
+                                                style={{ background: hexA(toneColor('danger'), 0.82), backdropFilter: 'blur(8px)' }}
                                             >
                                                 <Trash2 size={12} />
                                             </button>
@@ -359,7 +531,7 @@ export default function AdminInventory() {
                                             {(() => {
                                                 const days = daysToStockout(product);
                                                 if (days === null) return null;
-                                                const chipColor = days <= 7 ? '#FF3B30' : days <= 30 ? '#FF9500' : '#34C759';
+                                                const chipColor = days <= 7 ? toneColor('danger') : days <= 30 ? toneColor('warning') : toneColor('success');
                                                 return (
                                                     <div className="flex items-center gap-1 mt-1.5">
                                                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
@@ -369,6 +541,31 @@ export default function AdminInventory() {
                                                     </div>
                                                 );
                                             })()}
+
+                                            {/* Supplier fulfilment chips */}
+                                            {(product.supplierStocked || product.showSupplierQty) && (
+                                                <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                                    {product.supplierStocked && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5"
+                                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.22)' }}
+                                                            title={product.supplierInStock ? 'מוחזק אצל הספק — במלאי' : 'מוחזק אצל הספק'}>
+                                                            <Truck size={8} />{product.supplierInStock ? 'אצל הספק ✓' : 'אצל הספק'}
+                                                        </span>
+                                                    )}
+                                                    {product.showSupplierQty && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                                                            style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>
+                                                            ספק: {product.supplierStock ?? 0}
+                                                        </span>
+                                                    )}
+                                                    {product.lowStockMuted && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                                                            style={{ background: 'rgba(0,0,0,0.05)', color: '#AEAEB2' }} title="התרעת מלאי נמוך כבויה">
+                                                            🔕
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Stepper row */}
                                             <div className="flex items-center justify-between mt-3" onClick={e => e.stopPropagation()}>
@@ -386,7 +583,7 @@ export default function AdminInventory() {
                                                             onClick={e => handleQuickStock(e, product, -1)}
                                                             className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[16px] leading-none transition-all"
                                                             style={{ background: 'rgba(0,0,0,0.04)', color: '#86868B' }}
-                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.12)'; e.currentTarget.style.color = '#FF3B30'; }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = hexA(toneColor('danger'), 0.12); e.currentTarget.style.color = toneColor('danger'); }}
                                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = '#86868B'; }}
                                                         >−</button>
                                                         <span className="text-[22px] font-black w-9 text-center leading-none" style={{ color }}>
@@ -396,7 +593,7 @@ export default function AdminInventory() {
                                                             onClick={e => handleQuickStock(e, product, +1)}
                                                             className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[16px] leading-none transition-all"
                                                             style={{ background: 'rgba(0,0,0,0.04)', color: '#86868B' }}
-                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,199,89,0.12)'; e.currentTarget.style.color = '#34C759'; }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = hexA(toneColor('success'), 0.12); e.currentTarget.style.color = toneColor('success'); }}
                                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = '#86868B'; }}
                                                         >+</button>
                                                     </div>
@@ -411,7 +608,7 @@ export default function AdminInventory() {
                                                             whileTap={{ scale: 0.9 }}
                                                             onClick={e => { e.stopPropagation(); setReorderProduct(product); }}
                                                             className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black transition-all"
-                                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.2)' }}
+                                                            style={{ background: hexA(ORANGE, 0.12), color: ORANGE, border: `1px solid ${hexA(ORANGE, 0.25)}` }}
                                                             title="הזמן מספק"
                                                         >
                                                             <Package size={8} />הזמן
@@ -421,6 +618,7 @@ export default function AdminInventory() {
                                             </div>
                                         </div>
                                     </motion.div>
+                                    </Fragment>
                                 );
                             })}
                         </AnimatePresence>
@@ -432,24 +630,33 @@ export default function AdminInventory() {
                         className="space-y-2"
                     >
                         {filtered.length === 0 && (
-                            <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">
-                                <Box size={40} className="opacity-30" />
-                                <p className="text-sm font-bold text-[#6E6E73]">אין מוצרים תואמים לחיפוש</p>
-                            </div>
+                            <AdminEmpty icon={<Box size={30} style={{ color: ORANGE }} />}
+                                title="אין מוצרים תואמים לחיפוש"
+                                subtitle="נסה לשנות את המסננים או מונח החיפוש" />
                         )}
                         <AnimatePresence>
                             {filtered.map((product, i) => {
                                 const { avail, color, label } = stockMeta(product);
+                                const cat = product.category || NO_CAT;
+                                const showHeader = i === 0 || (filtered[i - 1].category || NO_CAT) !== cat;
                                 return (
+                                    <Fragment key={product.id}>
+                                    {showHeader && (
+                                        <div className="flex items-center gap-2.5 px-1 pt-2 pb-0.5 first:pt-0" dir="rtl">
+                                            <h3 className="text-[13px] font-black text-[#1D1D1F]">{cat}</h3>
+                                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: hexA(ORANGE, 0.10), color: ORANGE }}>{catCounts[cat]}</span>
+                                            <div className="flex-1 h-px bg-black/[0.07]" />
+                                        </div>
+                                    )}
                                     <motion.div
-                                        key={product.id}
                                         layout
                                         initial={{ opacity: 0, x: 8 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.98 }}
                                         transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/20 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
+                                        style={GLASS_SURFACE}
+                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
                                     >
                                         {/* Thumb */}
                                         <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
@@ -463,9 +670,12 @@ export default function AdminInventory() {
                                         {/* Name + category */}
                                         <div className="flex-1 min-w-0 text-right">
                                             <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#007AFF] transition-colors">{product.title}</p>
-                                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                                                {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#FF9500]/10 text-[#FF9500]">נבחרת</span>}
-                                                {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>{product.category}</span>}
+                                            <div className="flex items-center justify-end gap-1.5 mt-0.5 flex-wrap">
+                                                {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#007AFF]/10 text-[#007AFF]">נבחרת</span>}
+                                                {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
+                                                {product.supplierStocked && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black inline-flex items-center gap-0.5" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }} title={product.supplierInStock ? 'מוחזק אצל הספק — במלאי' : 'מוחזק אצל הספק'}><Truck size={8} />{product.supplierInStock ? 'אצל הספק ✓' : 'אצל הספק'}</span>}
+                                                {product.showSupplierQty && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>ספק: {product.supplierStock ?? 0}</span>}
+                                                {product.lowStockMuted && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,0,0,0.05)', color: '#AEAEB2' }} title="התרעת מלאי נמוך כבויה">🔕</span>}
                                             </div>
                                         </div>
 
@@ -498,9 +708,9 @@ export default function AdminInventory() {
 
                                         {/* Delete */}
                                         <button
-                                            onClick={e => {
+                                            onClick={async e => {
                                                 e.stopPropagation();
-                                                if (window.confirm(`למחוק את "${product.title}"?`)) {
+                                                if (await confirm({ message: `למחוק את "${product.title}"?`, danger: true })) {
                                                     deleteProduct(product.id);
                                                     showToast('המוצר נמחק', 'warning');
                                                 }
@@ -508,21 +718,101 @@ export default function AdminInventory() {
                                             className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full flex items-center justify-center text-[#AEAEB2] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-all shrink-0"
                                         ><Trash2 size={13} /></button>
                                     </motion.div>
+                                    </Fragment>
                                 );
                             })}
                         </AnimatePresence>
                     </motion.div>
                 )}
             </AnimatePresence>
+            </>)}
+
+            {/* ── להזמנה מספק — below-threshold items + order-from-supplier ── */}
+            {tab === 'reorder' && (
+                <div className="space-y-2">
+                    {belowThreshold.length === 0 ? (
+                        <AdminEmpty icon={<CheckCircle2 size={30} style={{ color: toneColor('success') }} />}
+                            title="כל המוצרים מעל סף ההתרעה"
+                            subtitle="אין פריטים שדורשים חידוש מלאי כרגע" />
+                    ) : belowThreshold.map((product, i) => {
+                        const { avail, color, label } = stockMeta(product);
+                        return (
+                            <motion.div
+                                key={product.id}
+                                layout
+                                initial={{ opacity: 0, x: 8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
+                                style={GLASS_SURFACE}
+                                className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all"
+                            >
+                                <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
+                                    {product.image
+                                        ? <img src={product.image} alt={product.title} className="w-full h-full object-cover"
+                                            onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                                        : <div className="w-full h-full flex items-center justify-center opacity-30"><Box size={16} className="text-[#86868B]" /></div>
+                                    }
+                                </div>
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="font-bold text-[#1D1D1F] text-[13px] truncate">{product.title}</p>
+                                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                        {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
+                                        <span className="text-[10px] text-[#86868B] font-bold">סף התרעה: {product.threshold}</span>
+                                    </div>
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <p className="text-[18px] font-black leading-none" style={{ color }}>{avail}</p>
+                                    <p className="text-[9px] text-[#AEAEB2] font-bold mt-0.5">במלאי</p>
+                                </div>
+                                <span className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0" style={{ background: `${color}15`, color }}>{label}</span>
+                                <AdminButton size="sm" accent={ORANGE} onClick={() => setReorderProduct(product)}>
+                                    <span className="flex items-center gap-1"><Package size={13} /> הזמן מספק</span>
+                                </AdminButton>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Product Detail Modal */}
             {createPortal(
                 <AnimatePresence>
                     {selectedProduct && (
                         <ProductModal
+                            key={selectedProduct.id}
                             product={selectedProduct}
                             onClose={() => setSelectedProduct(null)}
                             onSave={handleSaveProduct}
+                            fx={fx} onSyncFx={syncFxRate} onSetFx={setFxRate}
+                        />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* AI Product Import — image/URL → extract → verify → add */}
+            {createPortal(
+                <AnimatePresence>
+                    {aiImport && (
+                        <AiImportModal onClose={() => setAiImport(false)}
+                            onAdd={async (p) => { await addProduct(p); setAiImport(false); showToast('המוצר נוסף לקטלוג ✓', 'success'); }}
+                            showToast={showToast} />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* New Product Modal — same ProductModal reused in create mode */}
+            {createPortal(
+                <AnimatePresence>
+                    {creating && (
+                        <ProductModal
+                            key="create-product"
+                            product={BLANK_PRODUCT}
+                            createMode
+                            onClose={() => setCreating(false)}
+                            onSave={handleCreateProduct}
+                            fx={fx} onSyncFx={syncFxRate} onSetFx={setFxRate}
                         />
                     )}
                 </AnimatePresence>,
@@ -535,11 +825,106 @@ export default function AdminInventory() {
                 product={reorderProduct}
                 onClose={() => setReorderProduct(null)}
             />
+
+            {/* ── Babushka Drill Drawer — KPI → product list → product detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const scopeMap = {
+                    all: { label: 'כל המלאי', color: ORANGE, Icon: Boxes, filter: () => true },
+                    ok:  { label: 'מלאי תקין', color: toneColor('success'), Icon: CheckCircle2, filter: p => ['ok', 'supplier'].includes(statusKey(p)) },
+                    low: { label: 'מלאי נמוך', color: toneColor('warning'), Icon: AlertTriangle, filter: p => statusKey(p) === 'low' },
+                    out: { label: 'אזל מהמלאי', color: toneColor('danger'), Icon: XCircle, filter: p => statusKey(p) === 'out' },
+                };
+                const prodLeading = (p) => (
+                    <span className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                        {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Box size={16} className="text-[#C7C7CC]" />}
+                    </span>
+                );
+                const stockBadge = (p) => {
+                    const m = stockMeta(p);
+                    return <span className="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0" style={{ background: hexA(m.color, 0.14), color: m.color }}>{m.avail} · {m.label}</span>;
+                };
+
+                let title = '', subtitle = '', icon = null, accent = ORANGE, footer = null, body = null;
+
+                if (current.type === 'products') {
+                    const sc = scopeMap[current.scope] || scopeMap.all;
+                    const list = inventory.filter(sc.filter);
+                    accent = sc.color; icon = <sc.Icon size={17} color={sc.color} />;
+                    title = sc.label; subtitle = `${list.length} מוצרים`;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סה״כ', value: inventory.length, color: ORANGE },
+                                { label: 'תקין', value: okCount, color: toneColor('success') },
+                                { label: 'נמוך', value: lowCount, color: toneColor('warning') },
+                                { label: 'אזל', value: outCount, color: toneColor('danger') },
+                            ]} />
+                            {list.length === 0 ? <DrillEmpty icon={Package} text="אין מוצרים בקטגוריה זו" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים — לחץ לפרטים</p>
+                                    {list.map((p, i) => (
+                                        <DrillRow key={p.id} delay={i * 0.02} tone={sc.color}
+                                            onClick={() => pushDrill({ type: 'product', id: p.id })}
+                                            leading={prodLeading(p)} title={p.title}
+                                            subtitle={p.category || 'ללא קטגוריה'} trailing={stockBadge(p)} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'product') {
+                    const p = inventory.find(x => String(x.id) === String(current.id));
+                    if (!p) { title = 'מוצר'; icon = <Box size={17} color={ORANGE} />; body = <DrillEmpty icon={Box} text="המוצר אינו זמין" />; }
+                    else {
+                        const m = stockMeta(p);
+                        const dts = daysToStockout(p);
+                        accent = m.color; icon = <Box size={17} style={{ color: m.color }} />;
+                        title = p.title; subtitle = p.category || 'ללא קטגוריה';
+                        footer = { label: 'פתח כרטיס מוצר', onClick: () => { closeDrill(); setSelectedProduct(p); } };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-video flex items-center justify-center">
+                                    {p.image ? <img src={p.image} alt={p.title} className="w-full h-full object-contain" /> : <Box size={40} className="text-[#C7C7CC]" />}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black" style={{ background: hexA(m.color, 0.12), color: m.color }}>{m.label}</span>
+                                    <p className="text-[15px] font-black tracking-tight text-[#1D1D1F]">₪{Number(p.salePrice ?? p.price ?? 0).toLocaleString()}</p>
+                                </div>
+                                <DrillStat items={[
+                                    { label: 'במלאי', value: p.stock ?? 0, color: ORANGE },
+                                    { label: 'שמור', value: p.reserved ?? 0, color: '#5AC8FA' },
+                                    { label: 'זמין', value: m.avail, color: m.color },
+                                    { label: 'סף', value: p.threshold ?? 5, color: '#8E8E93' },
+                                ]} />
+                                {dts != null && (
+                                    <div className="flex items-center gap-2 p-3 rounded-[14px]" style={{ background: hexA(dts <= 14 ? toneColor('warning') : toneColor('success'), 0.08) }}>
+                                        <TrendingDown size={15} style={{ color: dts <= 14 ? toneColor('warning') : toneColor('success') }} />
+                                        <span className="text-[12px] font-bold text-[#1D1D1F]">צפי אזילה בעוד ~{dts} ימים</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }
 
-function ProductModal({ product, onClose, onSave }) {
+function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, onSyncFx, onSetFx }) {
     const [title, setTitle]           = useState(product.title);
     const [price, setPrice]           = useState(product.price);
     const [category, setCategory]     = useState(product.category);
@@ -547,9 +932,31 @@ function ProductModal({ product, onClose, onSave }) {
     const [image, setImage]           = useState(product.image);
     const [stock, setStock]           = useState(product.stock ?? 0);
     const [threshold, setThreshold]   = useState(product.threshold ?? 5);
+    // Supplier fulfilment + per-product alert control
+    const [supplierStocked, setSupplierStocked] = useState(product.supplierStocked || false);
+    const [supplierInStock, setSupplierInStock] = useState(product.supplierInStock || false);
+    const [showSupplierQty, setShowSupplierQty] = useState(product.showSupplierQty || false);
+    const [supplierStock, setSupplierStock]     = useState(product.supplierStock ?? 0);
+    const [lowStockMuted, setLowStockMuted]     = useState(product.lowStockMuted || false);
+    // Financial — cost (ILS/USD) + live margin (sell price = `price` above)
+    const [supplierCost, setSupplierCost]       = useState(product.supplierCost ?? '');
+    const [supplierCostUSD, setSupplierCostUSD] = useState(product.supplierCostUSD ?? '');
+    const [costCurrency, setCostCurrency]       = useState(product.costCurrency || 'ILS');
+    const [description, setDescription]         = useState(product.description || '');
+    const [specs, setSpecs]                     = useState(Array.isArray(product.specs) ? product.specs : []);
+    const [modalTab, setModalTab]               = useState('general');
+    const setSpec = (i, k, v) => setSpecs(s => s.map((row, j) => j === i ? { ...row, [k]: v } : row));
+    const addSpec = () => setSpecs(s => [...s, { label: '', value: '' }]);
+    const rmSpec = (i) => setSpecs(s => s.filter((_, j) => j !== i));
+    const fxRate = Number(fx.usdIls) || 3.7;
+    const fin = computeMargins({ price: Number(price) || 0, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency }, fxRate);
 
-    const stockColor = stock === 0 ? '#FF3B30' : stock <= threshold ? '#FF9500' : '#34C759';
-    const stockLabel = stock === 0 ? 'אזל' : stock <= threshold ? 'מלאי נמוך' : 'תקין';
+    const covered = supplierStocked && supplierInStock;
+    const mStatus = stock === 0 ? (covered ? 'supplier' : 'out')
+        : (stock <= threshold && !lowStockMuted && !covered ? 'low' : 'ok');
+    const stockColor = { out: toneColor('danger'), low: toneColor('warning'), ok: toneColor('success'), supplier: toneColor('info') }[mStatus];
+    const stockLabel = { out: 'אזל', low: 'מלאי נמוך', ok: 'תקין', supplier: 'אצל הספק' }[mStatus];
+    const canSave    = !createMode || title.trim().length > 0;
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -563,25 +970,34 @@ function ProductModal({ product, onClose, onSave }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 16 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                className="relative w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}
+                className="relative w-full max-w-lg overflow-hidden"
+                style={{ ...GLASS.sheet, borderRadius: RADIUS.sheet }}
                 dir="rtl"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-black/[0.06]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0">
-                            <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
-                                onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />
+                        <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#F5F5F7] shrink-0 flex items-center justify-center">
+                            {createMode && !image
+                                ? <Plus size={18} className="text-[#AEAEB2]" strokeWidth={2.5} />
+                                : <img src={image || IMG_FALLBACK} className="w-full h-full object-cover" alt=""
+                                    onError={e => { e.target.onerror = null; e.target.src = IMG_FALLBACK; }} />}
                         </div>
-                        <div>
-                            <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
-                                className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
-                                {product.title}
-                                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
-                            </a>
-                            <p className="text-[11px] text-[#AEAEB2] font-medium">SKU: {product.sku || product.id}</p>
-                        </div>
+                        {createMode ? (
+                            <div>
+                                <p className="text-[17px] font-black text-[#1D1D1F] leading-tight">מוצר חדש</p>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">מלא את הפרטים ולחץ צור מוצר</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <a href={`/catalog/${product.id}`} target="_blank" rel="noopener noreferrer"
+                                    className="text-[17px] font-black text-[#1D1D1F] leading-tight hover:text-[#007AFF] transition-colors cursor-pointer flex items-center gap-1 group">
+                                    {product.title}
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#007AFF] text-[12px]">↗</span>
+                                </a>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">SKU: {product.sku || product.id}</p>
+                            </div>
+                        )}
                     </div>
                     <button onClick={onClose}
                         className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA] transition-colors">
@@ -590,10 +1006,10 @@ function ProductModal({ product, onClose, onSave }) {
                 </div>
 
                 <div className="px-7 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-                    {/* Stock */}
-                    <div className="rounded-2xl p-4 border-2 border-[#007AFF]/20 bg-[#007AFF]/04">
+                    {/* Stock — neutral panel; color lives only in the semantic status badge */}
+                    <div className="rounded-2xl p-4 border border-black/[0.06] bg-[#F5F5F7]">
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-[11px] font-black tracking-widest text-[#007AFF]">ניהול מלאי</span>
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B]">ניהול מלאי</span>
                             <span className="text-[11px] font-black px-2.5 py-1 rounded-full" style={{ background: `${stockColor}15`, color: stockColor }}>{stockLabel}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -609,11 +1025,115 @@ function ProductModal({ product, onClose, onSave }) {
                                 <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">סף התרעה (נמוך)</label>
                                 <input type="number" min="0" value={threshold}
                                     onChange={e => setThreshold(Math.max(0, Number(e.target.value)))}
-                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#FF9500] text-center outline-none focus:ring-2 focus:ring-[#FF9500]/30 transition-all border-2 border-[#FF9500]/20"
+                                    className="w-full bg-white rounded-xl px-4 py-3 text-[22px] font-black text-[#1D1D1F] text-center outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all border-2 border-black/10"
                                 />
                             </div>
                         </div>
                         <p className="text-[10px] text-[#AEAEB2] font-medium mt-2 text-right">כשהמלאי יורד מתחת לסף — המוצר מסומן כ"נמוך" בכל המערכת</p>
+                    </div>
+
+                    {/* Supplier fulfilment + alert control */}
+                    <div className="rounded-2xl border border-black/[0.06] bg-[#F5F5F7] overflow-hidden">
+                        <p className="text-[11px] font-black tracking-widest text-[#86868B] px-4 pt-3.5 pb-1 text-right">אספקה מהספק והתרעות</p>
+                        <div className="divide-y divide-black/[0.06]">
+                            <ToggleRow value={supplierStocked} onChange={setSupplierStocked} accent="#007AFF"
+                                title="מוחזק אצל הספק" subtitle="אספקה ישירה (דרופשיפ) — לא מוחזק במלאי שלנו" />
+
+                            {supplierStocked && (
+                                <ToggleRow value={supplierInStock} onChange={setSupplierInStock} accent="#007AFF"
+                                    title="במלאי אצל הספק" subtitle={'זמין להזמנה מיידית — לא ייחשב כ"אזל"'} />
+                            )}
+
+                            <ToggleRow value={showSupplierQty} onChange={setShowSupplierQty} accent="#007AFF"
+                                title="הצג כמות אצל הספק" subtitle="הכמות תוצג על כרטיס המוצר" />
+
+                            {showSupplierQty && (
+                                <div className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        <input type="number" min="0" value={supplierStock}
+                                            onChange={e => setSupplierStock(Math.max(0, Number(e.target.value)))}
+                                            className="w-24 bg-white rounded-xl px-3 py-2.5 text-[17px] font-black text-[#1D1D1F] text-center outline-none border-2 border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        <label className="text-[12px] font-bold text-[#6E6E73] flex-1 text-right">כמות זמינה אצל הספק</label>
+                                    </div>
+                                </div>
+                            )}
+
+                            <ToggleRow value={lowStockMuted} onChange={setLowStockMuted} accent="#FF9500"
+                                title="כבה התרעת מלאי נמוך" subtitle={'המוצר לא יסומן כ"נמוך" ולא ייכלל בהתרעות'} />
+                        </div>
+                    </div>
+
+                    {/* ── Financial tab — cost / sell / margin (single source of truth) ── */}
+                    <div className="rounded-2xl border border-black/[0.06] overflow-hidden" style={{ background: 'linear-gradient(160deg,rgba(52,199,89,0.05),rgba(0,122,255,0.04))' }}>
+                        <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B] flex items-center gap-1.5"><TrendingUp size={13} className="text-[#34C759]" />פיננסי — עלות, מחיר ורווחיות</span>
+                        </div>
+                        <div className="px-4 pb-4 pt-1 space-y-3">
+                            {/* cost currency + inputs */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">עלות מהספק</label>
+                                    <div className="flex items-stretch gap-1.5">
+                                        <div className="flex rounded-xl overflow-hidden border border-black/10 shrink-0" dir="ltr">
+                                            {['ILS', 'USD'].map(cur => (
+                                                <button key={cur} type="button" onClick={() => setCostCurrency(cur)}
+                                                    className="px-2.5 text-[13px] font-black transition-colors"
+                                                    style={{ background: costCurrency === cur ? '#007AFF' : '#fff', color: costCurrency === cur ? '#fff' : '#86868B' }}>
+                                                    {cur === 'ILS' ? '₪' : '$'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {costCurrency === 'ILS' ? (
+                                            <input type="number" min="0" value={supplierCost} onChange={e => setSupplierCost(e.target.value)} placeholder="0"
+                                                className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#1D1D1F] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        ) : (
+                                            <input type="number" min="0" value={supplierCostUSD} onChange={e => setSupplierCostUSD(e.target.value)} placeholder="0"
+                                                className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#1D1D1F] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">מחיר מכירה ללקוח (₪)</label>
+                                    <input type="number" min="0" value={price} onChange={e => setPrice(Number(e.target.value))} placeholder="0"
+                                        className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#007AFF] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                </div>
+                            </div>
+
+                            {/* FX rate row — manual edit + optional auto-sync (USD cost) */}
+                            {costCurrency === 'USD' && (
+                                <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 bg-white/70 border border-black/[0.06] flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <button type="button" onClick={() => onSyncFx && onSyncFx().catch(() => {})} disabled={fx.syncing}
+                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+                                            <RefreshCw size={12} className={fx.syncing ? 'animate-spin' : ''} />{fx.syncing ? 'מסנכרן…' : 'סנכרן'}
+                                        </button>
+                                        <div className="flex items-center gap-1" dir="ltr">
+                                            <span className="text-[11px] font-bold text-[#86868B]">1$ = ₪</span>
+                                            <input key={fxRate} type="number" step="0.01" min="0" defaultValue={fxRate}
+                                                onBlur={e => { const v = parseFloat(e.target.value); if (v > 0 && onSetFx) onSetFx(v); }}
+                                                className="w-16 px-2 py-1 rounded-lg border border-black/10 text-[12px] font-black text-center text-[#1D1D1F] outline-none focus:border-[#007AFF]/40" />
+                                        </div>
+                                    </div>
+                                    <span className="text-[12px] font-bold text-[#6E6E73]">≈ {fmtILS(fin.cost)}</span>
+                                </div>
+                            )}
+
+                            {/* Live profitability metrics */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: 'רווח ליחידה', value: fin.hasData ? fmtILS(fin.profit) : '—', color: fin.hasData ? (fin.profit >= 0 ? '#34C759' : '#FF3B30') : '#AEAEB2' },
+                                    { label: 'אחוז רווחיות', value: fin.marginPct != null ? fmtPct(fin.marginPct) : '—', color: marginColor(fin.marginPct), headline: true },
+                                    { label: 'תמחור (Markup)', value: fin.markupPct != null ? fmtPct(fin.markupPct) : '—', color: '#6E6E73' },
+                                ].map((m, i) => (
+                                    <div key={i} className="rounded-xl p-2.5 text-center bg-white/80" style={{ border: m.headline ? `1.5px solid ${m.color}55` : '1px solid rgba(0,0,0,0.05)' }}>
+                                        <p className="font-black leading-none tabular-nums" style={{ fontSize: m.headline ? 18 : 15, color: m.color }}>{m.value}</p>
+                                        <p className="text-[9.5px] font-bold text-[#AEAEB2] mt-1.5">{m.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-[#AEAEB2] font-medium text-right">"אחוז רווחיות" = הרווח מתוך מחיר המכירה. הנתונים מסתנכרנים אוטומטית לכל מסכי הרכש, המלאי והאנליטיקס.</p>
+                        </div>
                     </div>
 
                     {/* Product details */}
@@ -624,6 +1144,29 @@ function ProductModal({ product, onClose, onSave }) {
                             <AdminInput label="קטגוריה" value={category} onChange={setCategory} />
                             <AdminInput label="מחיר (₪)" type="number" value={price} onChange={v => setPrice(Number(v))} />
                         </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1">תיאור</label>
+                            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} dir="rtl"
+                                className="w-full bg-[#F5F5F7] border-none rounded-2xl px-4 py-3 text-sm font-medium text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all resize-none" placeholder="תיאור המוצר..." />
+                        </div>
+                    </div>
+
+                    {/* Specs editor */}
+                    <div className="rounded-2xl border border-black/[0.06] bg-[#F5F5F7] p-4 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <button type="button" onClick={addSpec} className="text-[11px] font-black px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>+ הוסף מפרט</button>
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B]">מפרט טכני</span>
+                        </div>
+                        {specs.length === 0 && <p className="text-[11px] text-[#AEAEB2] text-right">אין מפרט — הוסף שורות או ייבא עם AI</p>}
+                        {specs.map((row, i) => (
+                            <div key={i} className="grid grid-cols-[1fr_1.4fr_28px] gap-2 items-center">
+                                <input value={row.label || ''} onChange={e => setSpec(i, 'label', e.target.value)} placeholder="מאפיין" dir="rtl"
+                                    className="bg-white rounded-lg px-2.5 py-2 text-[12px] font-bold text-[#1D1D1F] outline-none border border-black/10" />
+                                <input value={row.value || ''} onChange={e => setSpec(i, 'value', e.target.value)} placeholder="ערך" dir="rtl"
+                                    className="bg-white rounded-lg px-2.5 py-2 text-[12px] font-medium text-[#3A3A3C] outline-none border border-black/10" />
+                                <button type="button" onClick={() => rmSpec(i)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,59,48,0.09)', color: '#FF3B30' }}>×</button>
+                            </div>
+                        ))}
                     </div>
 
                     <AdminInput label="כתובת תמונה" value={image} onChange={setImage} />
@@ -639,9 +1182,9 @@ function ProductModal({ product, onClose, onSave }) {
 
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
-                    <AdminButton className="flex-1"
-                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold) })}>
-                        שמור שינויים
+                    <AdminButton className="flex-1" accent={ORANGE} disabled={!canSave}
+                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency, description, specs: specs.filter(s => s.label || s.value) })}>
+                        {createMode ? 'צור מוצר' : 'שמור שינויים'}
                     </AdminButton>
                     <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
                 </div>
@@ -650,30 +1193,162 @@ function ProductModal({ product, onClose, onSave }) {
     );
 }
 
-function AdminInput({ label, value, onChange, type = "text" }) {
+// Uniform RTL settings row — label block on the right, toggle pinned left, so
+// a stack of these lines up perfectly regardless of subtitle length.
+// ── AI Product Import — paste a product page / image URL (or upload) → AI
+// extracts catalog-ready fields → verify/edit → add to the catalog. ──────────
+function AiImportModal({ onClose, onAdd, showToast }) {
+    const CATS = ['מסכי מחשב', 'מוצרים משלימים'];
+    const [url, setUrl] = useState('');
+    const [extracting, setExtracting] = useState(false);
+    const [adding, setAdding] = useState(false);
+    const [data, setData] = useState(null);
+    const fileRef = useRef(null);
+
+    const runExtract = async (body) => {
+        setExtracting(true); setData(null);
+        try {
+            const res = await fetch('/api/extract-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const json = await res.json();
+            if (!json.success) { showToast(json.warnings?.[0] || json.error || 'החילוץ נכשל — נסה קישור אחר', 'error'); return; }
+            const d = json.data;
+            setData({
+                title: d.title || '', brand: d.brand || '', model: d.model || '',
+                category: CATS.includes(d.category) ? d.category : CATS[0], sku: d.sku || '',
+                price: d.price ?? '', image: d.imageUrl || '', description: d.description || '',
+                specs: d.specs || [], confidence: d.confidence, warnings: json.warnings || [],
+            });
+        } catch (e) { console.error(e); showToast('שגיאה בחילוץ', 'error'); }
+        finally { setExtracting(false); }
+    };
+    const extractFromUrl = () => {
+        const u = url.trim(); if (!u) return;
+        const isImg = /\.(jpe?g|png|webp|gif|bmp|avif)(\?|$)/i.test(u);
+        runExtract(isImg ? { imageUrl: u } : { pageUrl: u });
+    };
+    const extractFromFile = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => runExtract({ imageBase64: String(reader.result).split(',')[1], mimeType: file.type || 'image/jpeg' });
+        reader.readAsDataURL(file);
+    };
+    const setF = (k, v) => setData(d => ({ ...d, [k]: v }));
+    const submit = async () => {
+        if (!data?.title?.trim()) { showToast('יש להזין שם מוצר', 'error'); return; }
+        setAdding(true);
+        try {
+            await onAdd({
+                title: data.title.trim(), brand: data.brand || '', model: data.model || '', category: data.category,
+                sku: data.sku || '', price: Number(data.price) || 0, image: data.image || '',
+                description: data.description || '', specs: Array.isArray(data.specs) ? data.specs : [],
+                stock: 0, isActive: true,
+            });
+        } finally { setAdding(false); }
+    };
+
     return (
-        <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1">{label}</label>
-            <input
-                type={type}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                className="w-full bg-[#F5F5F7] border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all"
-            />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/25 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                className="relative w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden" dir="rtl"
+                style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.72)' }}>
+                <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-black/[0.06]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)' }}><Sparkles size={18} className="text-white" /></div>
+                        <div><p className="text-[17px] font-black text-[#1D1D1F] leading-tight">ייבוא מוצר עם AI</p><p className="text-[11px] text-[#AEAEB2] font-medium">הדבק קישור לעמוד מוצר או לתמונה — וה-AI ימלא הכל</p></div>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA]"><X size={14} /></button>
+                </div>
+
+                <div className="px-7 py-5 space-y-4 max-h-[68vh] overflow-y-auto">
+                    <div className="flex gap-2">
+                        <div className="flex-1 flex items-center gap-2 bg-[#F5F5F7] rounded-xl px-3 border border-black/10 focus-within:border-[#5856D6]/40 transition-colors">
+                            <Link2 size={14} className="text-[#AEAEB2] shrink-0" />
+                            <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') extractFromUrl(); }} dir="ltr"
+                                placeholder="https://…  קישור למוצר או לתמונה" className="flex-1 bg-transparent py-2.5 text-[13px] outline-none text-right" />
+                        </div>
+                        <AdminButton accent="#5856D6" onClick={extractFromUrl} disabled={extracting || !url.trim()}>{extracting ? 'מחלץ…' : 'חלץ'}</AdminButton>
+                    </div>
+                    <div className="flex items-center gap-2"><div className="flex-1 h-px bg-black/[0.06]" /><span className="text-[10px] text-[#AEAEB2] font-bold">או</span><div className="flex-1 h-px bg-black/[0.06]" /></div>
+                    <button onClick={() => fileRef.current?.click()} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-black/10 text-[#86868B] text-[12px] font-bold hover:border-[#5856D6]/40 hover:text-[#5856D6] transition-colors">
+                        <Upload size={15} /> העלה תמונת מוצר
+                    </button>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => extractFromFile(e.target.files?.[0])} />
+
+                    {extracting && (
+                        <div className="py-8 text-center">
+                            <div className="w-8 h-8 mx-auto rounded-full animate-spin" style={{ border: '3px solid rgba(88,86,214,0.18)', borderTopColor: '#5856D6' }} />
+                            <p className="text-[12px] text-[#86868B] font-bold mt-3">ה-AI קורא את המוצר…</p>
+                        </div>
+                    )}
+
+                    {data && !extracting && (
+                        <div className="space-y-3">
+                            <div className="flex gap-3 items-start">
+                                {data.image && <img src={data.image} alt="" onError={e => { e.target.style.display = 'none'; }} className="w-20 h-20 rounded-xl object-cover border border-black/[0.06] shrink-0" />}
+                                <div className="flex-1"><AdminInput label="שם מוצר" value={data.title} onChange={v => setF('title', v)} /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <AdminInput label="מותג" value={data.brand} onChange={v => setF('brand', v)} />
+                                <AdminInput label="דגם" value={data.model} onChange={v => setF('model', v)} />
+                                <div>
+                                    <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1 block mb-1.5">קטגוריה</label>
+                                    <select value={data.category} onChange={e => setF('category', e.target.value)} className="w-full bg-[#F5F5F7] rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1D1D1F] outline-none border-none">
+                                        {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <AdminInput label="מחיר מכירה (₪)" type="number" value={data.price} onChange={v => setF('price', v)} />
+                            </div>
+                            <AdminInput label="כתובת תמונה" value={data.image} onChange={v => setF('image', v)} />
+                            {data.specs?.length > 0 && (
+                                <div className="rounded-xl bg-[#F5F5F7] p-3">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] mb-1.5">מפרט שחולץ ({data.specs.length})</p>
+                                    <div className="flex flex-wrap gap-1.5">{data.specs.slice(0, 8).map((s, i) => <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-white text-[#6E6E73] font-bold">{s.label}: {s.value}</span>)}</div>
+                                </div>
+                            )}
+                            {data.confidence != null && (
+                                <p className="text-[10px] text-[#AEAEB2] text-right">ביטחון חילוץ: {data.confidence}%{data.warnings?.[0] ? ` · ${data.warnings[0]}` : ''}</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
+                    <AdminButton className="flex-1" accent="#5856D6" disabled={!data?.title?.trim() || adding} onClick={submit}>{adding ? 'מוסיף…' : 'הוסף לקטלוג'}</AdminButton>
+                    <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
+                </div>
+            </motion.div>
         </div>
     );
 }
 
-function AdminToggle({ value, onChange }) {
+function ToggleRow({ title, subtitle, value, onChange, accent = '#34C759' }) {
+    return (
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+            <AdminToggle value={value} onChange={onChange} accent={accent} />
+            <div className="text-right flex-1 min-w-0">
+                <p className="text-[13px] font-black text-[#1D1D1F] leading-tight">{title}</p>
+                {subtitle && <p className="text-[11px] text-[#AEAEB2] font-medium leading-snug mt-0.5">{subtitle}</p>}
+            </div>
+        </div>
+    );
+}
+
+function AdminToggle({ value, onChange, accent = '#34C759' }) {
+    // dir="ltr" + absolute knob → position is direction-independent, so the knob
+    // never detaches from the track inside an RTL parent.
     return (
         <button
+            type="button"
+            dir="ltr"
             onClick={() => onChange(!value)}
-            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 flex items-center ${value ? 'bg-[#34C759]' : 'bg-[#AEAEB2]'}`}
+            style={{ background: value ? accent : '#D1D1D6' }}
+            className="relative w-12 h-6 rounded-full transition-colors duration-300 shrink-0"
         >
-            <motion.div
-                animate={{ x: value ? 24 : 0 }}
+            <motion.span
+                animate={{ x: value ? 22 : 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="w-4 h-4 bg-white rounded-full shadow-sm"
+                className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm"
             />
         </button>
     );

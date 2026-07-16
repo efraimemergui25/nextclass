@@ -4,6 +4,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
+import { accentFor, hexA } from '../theme/tokens';
 
 // Time-of-day border glow color
 function useTimeColor() {
@@ -14,7 +15,7 @@ function useTimeColor() {
             if (h >= 5  && h < 9)  setColor('rgba(255,149,0,0.35)');
             else if (h >= 9  && h < 17) setColor('rgba(0,122,255,0.30)');
             else if (h >= 17 && h < 20) setColor('rgba(255,59,48,0.30)');
-            else setColor('rgba(88,86,214,0.35)');
+            else setColor('rgba(90,200,250,0.35)');
         };
         update();
         const t = setInterval(update, 60000);
@@ -104,26 +105,32 @@ const NAV_GROUPS = [
         ],
     },
     {
-        id: 'management',
-        label: 'מרכז ניהול',
+        id: 'sales',
+        label: 'מכירות ולקוחות',
         icon: 'orders',
-        accent: '#FF9500',
+        accent: '#007AFF',
         items: [
-            { path: '/admin/orders',      icon: 'orders',      label: 'הזמנות',      badge: 'ordersAll' },
-            { path: '/admin/customers',   icon: 'customers',   label: 'לקוחות',      badge: 'newContacts' },
-            { path: '/admin/users',       icon: 'community',   label: 'משתמשים רשומים', badge: null },
-            { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',        badge: 'lowStock' },
-            { path: '/admin/fulfillment', icon: 'fulfillment', label: 'רכש וספקים',  badge: null },
-            { path: '/admin/suppliers',   icon: 'suppliers',   label: 'הצעות ספקים', badge: null },
-            { path: '/admin/ocr',         icon: 'ocr',         label: '🔍 סריקת הזמנה AI', badge: null },
-            { path: '/admin/vault',       icon: 'vault',       label: '🔒 כספת מסמכים', badge: null },
+            { path: '/admin/order-hub', icon: 'fulfillment', label: 'מרכז ההזמנות',    badge: 'ordersAll' },
+            { path: '/admin/customers', icon: 'customers', label: 'לקוחות ופניות',  badge: 'newContacts' },
+            { path: '/admin/users',     icon: 'community', label: 'משתמשים רשומים', badge: null },
+        ],
+    },
+    {
+        id: 'procurement',
+        label: 'רכש, מלאי ומסמכים',
+        icon: 'fulfillment',
+        accent: '#007AFF',
+        items: [
+            { path: '/admin/fulfillment', icon: 'fulfillment', label: 'הספקה, ספקים וסריקה', badge: null },
+            { path: '/admin/inventory',   icon: 'inventory',   label: 'מלאי',               badge: 'lowStock' },
+            { path: '/admin/vault',       icon: 'vault',       label: 'כספת מסמכים',        badge: null },
         ],
     },
     {
         id: 'website',
-        label: 'עריכת האתר',
+        label: 'חנות ותוכן',
         icon: 'content',
-        accent: '#5856D6',
+        accent: '#007AFF',
         items: [
             { path: '/admin/content',  icon: 'content',  label: 'תוכן האתר', badge: null },
             { path: '/admin/products', icon: 'products', label: 'מוצרים',    badge: null },
@@ -133,9 +140,9 @@ const NAV_GROUPS = [
     },
     {
         id: 'marketing',
-        label: 'שיווק ותקשורת',
+        label: 'שיווק וקהילה',
         icon: 'marketing',
-        accent: '#FF2D55',
+        accent: '#007AFF',
         items: [
             { path: '/admin/marketing',      icon: 'marketing',      label: 'שיווק וקופונים', badge: null },
             { path: '/admin/communications', icon: 'communications', label: 'תקשורת',         badge: 'stalledLeads' },
@@ -147,7 +154,7 @@ const NAV_GROUPS = [
         id: 'analytics',
         label: 'אנליטיקס',
         icon: 'analytics',
-        accent: '#34C759',
+        accent: '#007AFF',
         standalone: true,
         items: [
             { path: '/admin/analytics', icon: 'analytics', label: 'אנליטיקס', badge: null },
@@ -155,12 +162,11 @@ const NAV_GROUPS = [
     },
     {
         id: 'systems',
-        label: 'מערכות',
+        label: 'מערכת',
         icon: 'settings',
-        accent: '#636366',
+        accent: '#007AFF',
         items: [
             { path: '/admin/integrations', icon: 'integrations', label: 'אינטגרציות', badge: null },
-            { path: '/admin/security',     icon: 'security',     label: 'אבטחה',      badge: null },
             { path: '/admin/settings',     icon: 'settings',     label: 'הגדרות',     badge: null },
         ],
     },
@@ -187,14 +193,15 @@ function NavItem({ item, collapsed, badgeValue, accent = '#007AFF' }) {
                     layoutId="nav-active"
                     className="absolute inset-0 rounded-xl"
                     style={{
-                        background: `linear-gradient(135deg, ${accent}22 0%, ${accent}10 100%)`,
-                        border: `1px solid ${accent}38`,
-                        boxShadow: `0 4px 16px ${accent}28, inset 0 1px 0 rgba(255,255,255,0.85)`,
+                        background: `linear-gradient(135deg, ${hexA(accent, 0.16)} 0%, ${hexA(accent, 0.06)} 100%)`,
+                        border: `1px solid ${hexA(accent, 0.32)}`,
+                        boxShadow: `0 4px 16px ${hexA(accent, 0.22)}, inset 0 1px 0 rgba(255,255,255,0.85)`,
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
             )}
-            <div className="relative z-10 shrink-0 transition-colors" style={{ color: isActive ? accent : '#8E8E93' }}>
+            {/* Color-coded per-domain icon — vibrant even when idle */}
+            <div className="relative z-10 shrink-0 transition-colors" style={{ color: isActive ? accent : hexA(accent, 0.82) }}>
                 <NavIcon d={ICONS[item.icon]} />
             </div>
             <AnimatePresence>
@@ -318,7 +325,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     whileHover={{ scale: 1.08 }}
                     className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
                     style={{
-                        background: 'linear-gradient(145deg, #0055FF 0%, #00AAFF 50%, #7B61FF 100%)',
+                        background: 'linear-gradient(145deg, #0055FF 0%, #00AAFF 50%, #0A84FF 100%)',
                         boxShadow: '0 4px 18px rgba(0,100,255,0.50), 0 1px 0 rgba(255,255,255,0.30) inset',
                     }}
                 >
@@ -367,7 +374,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                         <div
                             className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
                             style={{
-                                background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))',
+                                background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(90,200,250,0.08))',
                                 border: '1px solid rgba(0,122,255,0.20)',
                                 boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)',
                             }}
@@ -398,6 +405,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                         item={item}
                                         collapsed={true}
                                         badgeValue={getBadge(item.badge)}
+                                        accent={accentFor(item.path)}
                                     />
                                 ))}
                             </div>
@@ -419,7 +427,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                             item={group.items[0]}
                                             collapsed={false}
                                             badgeValue={getBadge(group.items[0].badge)}
-                                            accent={group.accent}
+                                            accent={accentFor(group.items[0].path)}
                                         />
                                     </div>
                                 );
@@ -505,7 +513,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                             item={item}
                                                             collapsed={false}
                                                             badgeValue={getBadge(item.badge)}
-                                                            accent={group.accent}
+                                                            accent={accentFor(item.path)}
                                                         />
                                                     ))}
                                                 </div>
@@ -591,7 +599,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     {/* Mobile header */}
                     <div className="flex items-center gap-3 px-4 py-4 border-b border-black/06">
                         <div className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
-                            style={{ background: 'linear-gradient(145deg,#0055FF 0%,#00AAFF 50%,#7B61FF 100%)', boxShadow: '0 4px 18px rgba(0,100,255,0.45), 0 1px 0 rgba(255,255,255,0.28) inset' }}>
+                            style={{ background: 'linear-gradient(145deg,#0055FF 0%,#00AAFF 50%,#0A84FF 100%)', boxShadow: '0 4px 18px rgba(0,100,255,0.45), 0 1px 0 rgba(255,255,255,0.28) inset' }}>
                             <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.26) 0%, transparent 65%)' }} />
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="relative z-10">
                                 <path d="M4 14V4L14 14V4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -614,7 +622,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
                     {/* Revenue stat */}
                     <div className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
-                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
+                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                         <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
                         <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
                         <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות</p>
@@ -629,7 +637,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                 if (group.standalone) {
                                     return (
                                         <div key={group.id} className={gi > 0 ? 'border-t border-black/[0.06] pt-1 mt-1' : ''}>
-                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} accent={group.accent} />
+                                            <NavItem item={group.items[0]} collapsed={false} badgeValue={getBadge(group.items[0].badge)} accent={accentFor(group.items[0].path)} />
                                         </div>
                                     );
                                 }
@@ -649,7 +657,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                                                 <motion.div key="open" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                                                     <div className="mt-0.5 space-y-0.5 pr-1 border-r-2" style={{ borderColor: group.accent + '28' }}>
                                                         {group.items.map(item => (
-                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} accent={group.accent} />
+                                                            <NavItem key={item.path} item={item} collapsed={false} badgeValue={getBadge(item.badge)} accent={accentFor(item.path)} />
                                                         ))}
                                                     </div>
                                                 </motion.div>

@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence 
 import { Link } from 'react-router-dom';
 import {
     ArrowLeft, ChevronDown, Sparkles, ShieldCheck, Zap, Users,
-    MessageSquare, Star, Phone, Check, Compass, Calendar,
+    MessageSquare, Phone, Check, Compass, Calendar,
 } from 'lucide-react';
 import PageTransition from '../components/PageTransition';
 import { useSettings } from '../context/SettingsContext';
@@ -219,42 +219,6 @@ function PillarCard({ icon: Icon, title, desc, tag, accent, delay = 0 }) {
     );
 }
 
-// ─── Testimonial card ─────────────────────────────────────────────────────────
-function TestimonialCard({ quote, name, role, stars = 5, delay = 0 }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay, duration: 0.55, ease: EASE }}
-            className="rounded-[1.75rem] p-7 text-right flex flex-col justify-between"
-            style={{
-                background: '#FFFFFF',
-                border: '1px solid rgba(0,0,0,0.06)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            }}
-        >
-            <div>
-                <div className="flex justify-end gap-0.5 mb-4">
-                    {Array.from({ length: stars }).map((_, i) => (
-                        <Star key={i} size={13} className="fill-[#FF9500] text-[#FF9500]" />
-                    ))}
-                </div>
-                <p className="text-[15px] text-[#3C3C43] leading-[1.75] font-medium mb-6">"{quote}"</p>
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-5 border-t border-black/[0.05]">
-                <div className="text-right">
-                    <p className="text-[13px] font-black text-[#1D1D1F]">{name}</p>
-                    <p className="text-[11px] text-[#AEAEB2] font-medium mt-0.5">{role}</p>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white text-[12px] font-black shrink-0">
-                    {name[0]}
-                </div>
-            </div>
-        </motion.div>
-    );
-}
-
 // ─── Main page ─────────────────────────────────────────────────────────────────
 const AboutPage = () => {
     const { getSetting } = useSettings();
@@ -317,9 +281,9 @@ const AboutPage = () => {
                     {/* Floating stat badges */}
                     <div className="absolute inset-0 z-20 pointer-events-none">
                         {[
-                            { label: '800+ מוסדות',    top: '22%', right: '8%',  delay: 0.9  },
-                            { label: '3,000+ כיתות',   top: '32%', left: '7%',   delay: 1.05 },
-                            { label: 'משנת 2019',       bottom: '30%', right: '9%', delay: 1.2 },
+                            { label: 'שירות ישיר ואישי',   top: '22%', right: '8%',  delay: 0.9  },
+                            { label: 'מחיר שקוף',           top: '32%', left: '7%',   delay: 1.05 },
+                            { label: 'עמידה בלוחות זמנים',  bottom: '30%', right: '9%', delay: 1.2 },
                         ].map(({ label, top, right, left, bottom, delay }) => (
                             <motion.div
                                 key={label}
@@ -447,17 +411,17 @@ const AboutPage = () => {
                     <div className="max-w-[1100px] mx-auto">
                         <Reveal className="text-center mb-14">
                             <span className="text-[11px] font-black text-[#007AFF] tracking-widest uppercase block mb-4">
-                                הנתונים מדברים
+                                ההתחייבות שלנו
                             </span>
                             <h2 className="text-[clamp(32px,5vw,56px)] font-black text-[#1D1D1F] tracking-[-0.04em] leading-tight">
-                                השפעה שניתן למדוד.
+                                סטנדרט שאפשר למדוד.
                             </h2>
                         </Reveal>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard value={800}  suffix="+"  label="מוסדות חינוך"     desc="אוניברסיטאות, מכללות ובתי ספר" delay={0}    />
-                            <StatCard value={3000} suffix="+"  label="כיתות חכמות"      desc="מצוידות בטכנולוגיה מהדרגה הראשונה" delay={0.08} />
-                            <StatCard value={24}   suffix="ש׳" label="זמן מענה מרבי"    desc="לכל פנייה, כל ימות השבוע"      delay={0.16} />
-                            <StatCard value={100}  suffix="%"  label="משלוחים בזמן"     desc="ביום שסוכם — תמיד"              delay={0.24} />
+                            <StatCard value={24}  suffix="ש׳"   label="זמן מענה מרבי"     desc="לכל פנייה, כל ימות השבוע"    delay={0}    />
+                            <StatCard value={100} suffix="%"    label="עמידה בלוחות זמנים" desc="ביום שסוכם — תמיד"          delay={0.08} />
+                            <StatCard value={14}  suffix=" יום" label="החלפה ללא שאלות"   desc="מדיניות החזרה פשוטה ומהירה"  delay={0.16} />
+                            <StatCard value={0}   suffix=" ₪"   label="עלות ייעוץ ראשוני" desc="אפיון מקצועי, ללא התחייבות"  delay={0.24} />
                         </div>
                     </div>
                 </section>
@@ -527,15 +491,15 @@ const AboutPage = () => {
                                 {c.storyBody}
                             </p>
 
-                            {/* Timeline milestones */}
+                            {/* Founding principles */}
                             <div className="space-y-3 border-t border-black/[0.06] pt-7">
                                 {[
-                                    { year: '2019', text: 'NextClass נוסדה עם חזון אחד: חינוך ישראלי ראוי לרמה הגבוהה ביותר' },
-                                    { year: '2021', text: 'חצינו את ה-200 מוסדות ועברנו לשרת רשויות מקומיות שלמות' },
-                                    { year: '2024', text: 'מעל 800 מוסדות, 3,000 כיתות — ועוד לא עצרנו' },
-                                ].map(({ year, text }) => (
-                                    <div key={year} className="flex items-start gap-4">
-                                        <span className="text-[11px] font-black text-[#007AFF] pt-0.5 w-10 shrink-0">{year}</span>
+                                    { tag: 'ישיר', text: 'מודל שירות ישיר — בלי מתווכים, בלי ביניים. מי שמוכר הוא מי שמלווה.' },
+                                    { tag: 'שקוף', text: 'הצעת מחיר = חשבונית. מה שהוצע הוא מה שמשלמים, מהשקל הראשון.' },
+                                    { tag: 'מהיר', text: 'מענה תוך שעות ועמידה בלוחות הזמנים שהובטחו — בכל פרויקט.' },
+                                ].map(({ tag, text }) => (
+                                    <div key={tag} className="flex items-start gap-4">
+                                        <span className="text-[11px] font-black text-[#007AFF] pt-0.5 w-10 shrink-0">{tag}</span>
                                         <span className="text-[13px] font-medium text-[#6E6E73] leading-snug">{text}</span>
                                     </div>
                                 ))}
@@ -711,36 +675,7 @@ const AboutPage = () => {
 
 
                 {/* ══════════════════════════════════════════════
-                    10. TESTIMONIALS — social proof
-                ══════════════════════════════════════════════ */}
-                <section className="bg-[#F5F5F7] py-20 md:py-28 px-6">
-                    <div className="max-w-[1100px] mx-auto">
-                        <Reveal className="text-center mb-12">
-                            <p className="text-[11px] font-black text-[#AEAEB2] tracking-widest uppercase mb-3">סומכים עלינו</p>
-                            <h2 className="text-[clamp(26px,4vw,44px)] font-black text-[#1D1D1F] tracking-[-0.04em]">
-                                המילה שלהם.
-                            </h2>
-                        </Reveal>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            <TestimonialCard
-                                quote="ביקשנו 12 מסכים לפני ינואר. הגיעו ב-27 בדצמבר, הותקנו ב-28, ויום אחרי כל הצוות כבר ידע להשתמש. אפס בירוקרטיה."
-                                name="רינת לוי" role="רכזת טכנולוגיה, חט״ב, רמת גן" delay={0}
-                            />
-                            <TestimonialCard
-                                quote="עבדנו עם ספקים אחרים. ההבדל ב-NextClass הוא שיש עם מי לדבר כשיש בעיה — לא רק לפני המכירה."
-                                name="דוד אוחיון" role="מנהל רכש, רשות מקומית דרום" delay={0.08}
-                            />
-                            <TestimonialCard
-                                quote="ציוד בסדר גמור, אבל מה שגרם לנו לחזור זה השירות. אפרים ענה לי ב-WhatsApp בערב. זה לא מובן מאליו בכלל."
-                                name="נועה שפירא" role="מנהלת חינוכית, מכללת עמק" delay={0.16}
-                            />
-                        </div>
-                    </div>
-                </section>
-
-
-                {/* ══════════════════════════════════════════════
-                    11. CTA — gradient, invitation
+                    10. CTA — gradient, invitation
                 ══════════════════════════════════════════════ */}
                 <section className="py-24 md:py-32 px-6 relative overflow-hidden"
                     style={{ background: 'linear-gradient(160deg, #EBF4FF 0%, #F0EEFF 50%, #EBF6FF 100%)' }}>

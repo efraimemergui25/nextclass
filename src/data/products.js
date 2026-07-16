@@ -1,1139 +1,175 @@
+/**
+ * NextClass — Real Product Catalog (seed / offline fallback)
+ *
+ * This file holds NextClass's real products: three computer monitors + three
+ * complementary keyboard/mouse accessories (offered as add-ons on monitor pages).
+ * The live Firestore `products` collection is the source of truth for price/image/stock;
+ * this array is the offline fallback + first-run seed. Specs below are verified against
+ * the official ASUS / HP product pages (July 2026). Any spec that could not be verified
+ * against a manufacturer source is intentionally omitted rather than invented.
+ *
+ * Product model fields: id, brand, model, category, title, price, sku, stock, threshold,
+ * image, description, specs[{label,value}], dimensions[{label,value}].
+ */
+
 const defaultProducts = [
-    // Category 1: מסכים אינטראקטיביים והקרנה (10 items)
     {
-        id: "display-pro-75-uhd",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע אינטראקטיבי Pro 75\" UHD 4K",
-        price: 9500,
-        image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=800",
-        description: "מסך אינטראקטיבי מתקדם למוסדות חינוך עם פאנל 4K UHD, מגע Zero Bonding מדויק ומערכת Android 13 מובנית.",
+        id: "asus-vz24ehf",
+        brand: "ASUS",
+        model: "VZ24EHF",
+        sku: "NC-ASUS-VZ24EHF",
+        category: "מסכי מחשב",
+        title: "מסך מחשב ASUS VZ24EHF 23.8\" Full HD IPS 100Hz",
+        price: 305,
+        stock: 24,
+        threshold: 5,
+        image: "https://dlcdnwebimgs.asus.com/gain/c4173a00-c786-43cf-91fc-8e342ece9394/w692",
+        description: "מסך IPS בגודל 23.8 אינץ' ברזולוציית Full HD עם קצב רענון 100Hz וטכנולוגיית Adaptive-Sync. מסגרת דקה במיוחד, סינון אור כחול ותצוגה נטולת הבהובים לנוחות צפייה לאורך זמן.",
         specs: [
-            { label: "גודל מסך", value: "75 אינץ' UHD" },
-            { label: "טכנולוגיית מגע", value: "40 נקודות מגע Zero Bonding" },
-            { label: "מערכת הפעלה", value: "Android 13 + OPS Slot" },
-            { label: "זכוכית", value: "Anti-Glare 4mm Tempered" }
+            { label: "טכנולוגיית פאנל", value: "IPS" },
+            { label: "גודל תצוגה", value: "23.8 אינץ' (16:9)" },
+            { label: "רזולוציה", value: "Full HD 1920×1080" },
+            { label: "קצב רענון", value: "100Hz" },
+            { label: "זמן תגובה", value: "1ms MPRT" },
+            { label: "בהירות", value: "250 cd/m²" },
+            { label: "יחס ניגודיות", value: "1300:1" },
+            { label: "זווית צפייה", value: "178°/178°" },
+            { label: "סנכרון תמונה", value: "Adaptive-Sync" },
+            { label: "חיבורים", value: "HDMI 1.4" },
+            { label: "תושבת VESA", value: "75×75 מ\"מ" }
         ],
         dimensions: [
-            { label: "רוחב", value: "1,692 מ\"מ" },
-            { label: "גובה", value: "1,002 מ\"מ" },
-            { label: "עומק", value: "78 מ\"מ" },
-            { label: "משקל", value: "36 ק\"ג" },
-            { label: "גודל מסך", value: "75 אינץ'" }
+            { label: "רוחב", value: "540 מ\"מ" },
+            { label: "גובה (עם מעמד)", value: "394 מ\"מ" },
+            { label: "עומק (עם מעמד)", value: "210 מ\"מ" },
+            { label: "עובי (ללא מעמד)", value: "39 מ\"מ" },
+            { label: "משקל", value: "2.85 ק\"ג" }
         ]
     },
     {
-        id: "display-max-86-uhd",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע אינטראקטיבי Max 86\" UHD 4K",
-        price: 14500,
-        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=800",
-        videoUrl: "https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4",
-        description: "פתרון דגל לאולמות הרצאה וספריות. שטח עבודה ענק ברזולוציית 4K עם חיישני אור סביבתי וסינון אור כחול.",
+        id: "hp-524pn",
+        brand: "HP",
+        model: "Series 5 Pro 524pn",
+        sku: "NC-HP-524PN",
+        category: "מסכי מחשב",
+        title: "מסך מחשב HP Series 5 Pro 524pn 24\" WUXGA IPS",
+        price: 460,
+        stock: 18,
+        threshold: 5,
+        image: "https://c1.neweggimages.com/ProductImage/AR0TD2507150OX0PG60.jpg",
+        description: "מסך IPS מקצועי בגודל 24 אינץ' ביחס 16:10 וברזולוציית WUXGA ‏(1920×1200) המספק שטח עבודה אנכי גדול יותר. כיסוי 100% sRGB, מעמד ארגונומי מלא (גובה, הטיה, סיבוב וסבסוב) ורכזת USB מובנית.",
         specs: [
-            { label: "גודל מסך", value: "86 אינץ' UHD" },
-            { label: "בהירות", value: "450 cd/m2" },
-            { label: "רמקולים", value: "2x20W + סאב מובנה" },
-            { label: "מצלמה", value: "4K AI מובנית" }
+            { label: "טכנולוגיית פאנל", value: "IPS" },
+            { label: "גודל תצוגה", value: "24 אינץ' (16:10)" },
+            { label: "רזולוציה", value: "WUXGA 1920×1200" },
+            { label: "קצב רענון", value: "100Hz" },
+            { label: "זמן תגובה", value: "5ms GtG" },
+            { label: "בהירות", value: "350 cd/m²" },
+            { label: "יחס ניגודיות", value: "1500:1" },
+            { label: "מרחב צבע", value: "100% sRGB" },
+            { label: "זווית צפייה", value: "178°/178°" },
+            { label: "חיבורים", value: "HDMI 1.4, DisplayPort 1.2, ‏4×USB-A, ‏USB-B" },
+            { label: "ארגונומיה", value: "גובה 150 מ\"מ, הטיה, סיבוב וסבסוב" },
+            { label: "תושבת VESA", value: "100×100 מ\"מ" }
         ],
         dimensions: [
-            { label: "רוחב", value: "1,939 מ\"מ" },
-            { label: "גובה", value: "1,137 מ\"מ" },
-            { label: "עומק", value: "83 מ\"מ" },
-            { label: "משקל", value: "53 ק\"ג" },
-            { label: "גודל מסך", value: "86 אינץ'" }
+            { label: "רוחב", value: "533 מ\"מ" },
+            { label: "גובה (עם מעמד)", value: "518 מ\"מ" },
+            { label: "עומק (עם מעמד)", value: "190 מ\"מ" },
+            { label: "טווח כוונון גובה", value: "150 מ\"מ" },
+            { label: "משקל (עם מעמד)", value: "5.1 ק\"ג" }
         ]
     },
     {
-        id: "projector-laser-5000",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מקרן לייזר מקצועי 5000 לומן למרחבי למידה",
-        price: 7200,
-        image: "https://images.unsplash.com/photo-1579036095242-fe07594274ca?auto=format&fit=crop&q=80&w=800",
-        description: "מקרן לייזר עוצמתי ללא צורך בהחלפת נורה. בהירות גבוהה במיוחד המאפשרת הקרנה בחדרים מוארים ללא החשכה.",
+        id: "asus-va279qg-j",
+        brand: "ASUS",
+        model: "VA279QG-J",
+        sku: "NC-ASUS-VA279QGJ",
+        category: "מסכי מחשב",
+        title: "מסך מחשב ASUS VA279QG-J 27\" Full HD IPS 120Hz",
+        price: 375,
+        stock: 27,
+        threshold: 5,
+        image: "https://dlcdnwebimgs.asus.com/gain/9c0312c7-452f-4b7e-88ca-22df8be0fc2a/w692",
+        description: "מסך IPS בגודל 27 אינץ' ברזולוציית Full HD עם קצב רענון 120Hz וטכנולוגיית Adaptive-Sync לתמונה חלקה. כולל רמקולים מובנים, מגוון חיבורים (DisplayPort, ‏HDMI, ‏VGA) וטכנולוגיות שמירה על העיניים.",
         specs: [
-            { label: "טכנולוגיה", value: "Laser Phosphor" },
-            { label: "עוצמת הארה", value: "5000 ANSI Lumens" },
-            { label: "אורך חיי המקור", value: "עד 30,000 שעות" },
-            { label: "רזולוציה", value: "WUXGA (1920x1200)" }
+            { label: "טכנולוגיית פאנל", value: "IPS" },
+            { label: "גודל תצוגה", value: "27 אינץ' (16:9)" },
+            { label: "רזולוציה", value: "Full HD 1920×1080" },
+            { label: "קצב רענון", value: "120Hz" },
+            { label: "זמן תגובה", value: "1ms MPRT" },
+            { label: "בהירות", value: "300 cd/m²" },
+            { label: "יחס ניגודיות", value: "1500:1 (עד 3000:1)" },
+            { label: "זווית צפייה", value: "178°/178°" },
+            { label: "סנכרון תמונה", value: "Adaptive-Sync" },
+            { label: "רמקולים", value: "2×2W מובנים" },
+            { label: "חיבורים", value: "DisplayPort 1.2, ‏HDMI 1.4, ‏VGA" },
+            { label: "תושבת VESA", value: "100×100 מ\"מ" }
         ],
         dimensions: [
-            { label: "רוחב", value: "374 מ\"מ" },
-            { label: "עומק", value: "279 מ\"מ" },
-            { label: "גובה", value: "108 מ\"מ" },
-            { label: "משקל", value: "4.2 ק\"ג" },
-            { label: "טווח הקרנה", value: "1.5–12 מטר" }
+            { label: "רוחב", value: "613 מ\"מ" },
+            { label: "גובה (עם מעמד)", value: "447 מ\"מ" },
+            { label: "עומק (עם מעמד)", value: "194 מ\"מ" },
+            { label: "עובי (ללא מעמד)", value: "50 מ\"מ" },
+            { label: "משקל", value: "3.77 ק\"ג" }
+        ]
+    },
+    // ─── Complementary accessories (offered on the monitor product pages). Data
+    //     extracted verbatim from c-data.co.il. Retail price is owner-set (B2B
+    //     wholesale price is login-gated), so priceOnRequest until priced in admin.
+    {
+        id: "asus-cw101", brand: "ASUS", model: "CW101", sku: "CW101 KEYBOARD+MOUSE/BK/IL/104",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי ASUS CW101 — דק ושקט, HEB/EN",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0024204_asus-cw101-wireless-keyboard-mouse-set-slim-silent-design-enheb-24gh-1000dpi-blackcopilot_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית ASUS בעיצוב דק ושקט. חיבור אלחוטי RF בתדר 2.4GHz בטווח עד 10 מטר, פריסת מקשים עברית/אנגלית, עכבר ברזולוציית 1000dpi ותאימות ל-Windows 8 ומעלה. צבע שחור.",
+        specs: [
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "ממשק", value: "Wireless RF 2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "רזולוציית עכבר", value: "1000dpi" },
+            { label: "פריסת מקשים", value: "עברית / אנגלית" },
+            { label: "עיצוב", value: "דק ושקט (Slim & Silent)" },
+            { label: "תאימות", value: "Windows 8 / 10 / 11 ומעלה" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "CW101 KEYBOARD+MOUSE/BK/IL/104" }
         ]
     },
     {
-        id: "display-ultra-98-4k",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע אינטראקטיבי Ultra 98\" 4K",
-        price: 28000,
-        image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=800",
-        videoUrl: "https://videos.pexels.com/video-files/2278095/2278095-uhd_2560_1440_30fps.mp4",
-        description: "מסך ענק לאודיטוריומים ומרכזי חדשנות. מחליף לחלוטין את הצורך במקרן עם ניגודיות עילאית ושחור מוחלט.",
+        id: "hp-235", brand: "HP", model: "235", sku: "1Y4D0UT#ABT",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי HP 235 — 2.4GHz",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0019664_hp-235-wireless-mouse-and-keyboard-combo_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית HP. חיבור אלחוטי בתדר 2.4GHz בטווח עד 10 מטר, בעיצוב נקי וצבע שחור. מתאים לעבודה משרדית יומיומית.",
         specs: [
-            { label: "גודל", value: "98 אינץ'" },
-            { label: "פנל", value: "IPS מסחרי (Portrait/Landscape)" },
-            { label: "שעות פעילות", value: "24/7 רציף" },
-            { label: "משקל", value: "88 ק\"ג" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "2,222 מ\"מ" },
-            { label: "גובה", value: "1,293 מ\"מ" },
-            { label: "עומק", value: "88 מ\"מ" },
-            { label: "משקל", value: "88 ק\"ג" },
-            { label: "גודל מסך", value: "98 אינץ'" }
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "תדר", value: "2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "1Y4D0UT#ABT" }
         ]
     },
     {
-        id: "projector-short-throw",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מקרן טווח קצר (Short Throw) לקולנוע כיתתי",
-        price: 4900,
-        image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=800",
-        description: "מקרן להתקנה קרובה לקיר המונע הצללה של המורה על התמונה. מושלם לשימוש עם לוחות מחיקים אינטראקטיביים.",
+        id: "asus-cw100", brand: "ASUS", model: "CW100", sku: "ACCY CW100",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי ASUS CW100 — HEB/ENG",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0016694_cw100-keyboardmousebk-hebeng-wireless_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית ASUS. חיבור אלחוטי בתדר 2.4GHz בטווח עד 10 מטר, פריסת מקשים עברית/אנגלית ותאימות ל-Windows 8 ומעלה. צבע שחור.",
         specs: [
-            { label: "יחס הקרנה", value: "0.49:1" },
-            { label: "בהירות", value: "3500 ANSI Lumens" },
-            { label: "כניסות", value: "HDMI x2, VGA, LAN" },
-            { label: "רמקול", value: "10W מובנה" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "360 מ\"מ" },
-            { label: "עומק", value: "230 מ\"מ" },
-            { label: "גובה", value: "90 מ\"מ" },
-            { label: "משקל", value: "3.5 ק\"ג" },
-            { label: "מרחק מהקיר", value: "מינימום 25 ס\"מ" }
-        ]
-    },
-    {
-        id: "display-flex-65-mobile",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע נייד Flex 65\" עם עגלה מוטורית",
-        price: 8900,
-        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
-        description: "חוויית למידה ניידת. עגלה מוטורית שקטה המאפשרת שינוי זווית המסך למצב שולחן מגע אינטראקטיבי.",
-        specs: [
-            { label: "גודל", value: "65 אינץ'" },
-            { label: "עגלה", value: "מוטורית עם שלט רחוק" },
-            { label: "זווית הטיה", value: "0°-90° (שולחן מגע)" },
-            { label: "ניידות", value: "גלגלי סיליקון שקטים עם מעצור" }
-        ],
-        dimensions: [
-            { label: "רוחב (עגלה)", value: "1,469 מ\"מ" },
-            { label: "גובה (עמידה)", value: "1,640 מ\"מ" },
-            { label: "עומק (עגלה)", value: "680 מ\"מ" },
-            { label: "משקל כולל", value: "54 ק\"ג" },
-            { label: "גודל מסך", value: "65 אינץ'" }
-        ]
-    },
-    {
-        id: "projector-laser-7000",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מקרן לייזר מקצועי 7000 לומן לאודיטוריום",
-        price: 18500,
-        image: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&q=80&w=800",
-        description: "פתרון עוצמתי לאולמות כנסים בבתי ספר. תומך בעדשות מתחלפות ושליטה מלאה דרך הרשת הארגונית.",
-        specs: [
-            { label: "עוצמה", value: "7000 ANSI Lumens" },
-            { label: "אופטיקה", value: "עדשות מתחלפות (אופציונלי)" },
-            { label: "קישוריות", value: "HDBaseT, SDI, 3D Sync" },
-            { label: "שקט פעולה", value: "32dB (Eco Mode)" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "490 מ\"מ" },
-            { label: "עומק", value: "358 מ\"מ" },
-            { label: "גובה", value: "148 מ\"מ" },
-            { label: "משקל", value: "7.8 ק\"ג" },
-            { label: "טווח הקרנה", value: "3–30 מטר" }
-        ]
-    },
-    {
-        id: "display-zero-75",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע 75\" Zero Bonding Android 13",
-        price: 11200,
-        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
-        description: "הדור הבא של מסכי המגע. טכנולוגיית Zero Bonding המבטלת את המרווח בין הזכוכית לפאנל לכתיבה טבעית.",
-        specs: [
-            { label: "דיוק כתיבה", value: "0.5 מ\"מ" },
-            { label: "מעבד", value: "Octa-Core 8GB RAM 128GB ROM" },
-            { label: "קישוריות", value: "Wi-Fi 6, Bluetooth 5.2" },
-            { label: "חיישנים", value: "NFC, זיהוי אור, קרבה" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "1,692 מ\"מ" },
-            { label: "גובה", value: "1,002 מ\"מ" },
-            { label: "עומק", value: "68 מ\"מ" },
-            { label: "משקל", value: "38 ק\"ג" },
-            { label: "גודל מסך", value: "75 אינץ'" }
-        ]
-    },
-    {
-        id: "projector-led-mobile",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מקרן LED נייד למסעות שטח חינוכיים",
-        price: 1500,
-        image: "https://images.unsplash.com/photo-1637656375538-9dfe600ccfd2?auto=format&fit=crop&q=80&w=800",
-        description: "מקרן קומפקטי קל משקל עם סוללה מובנית. מתאים לפעילויות חוץ ותצוגה מהירה ללא תשתית קבועה.",
-        specs: [
-            { label: "משקל", value: "800 גרם" },
-            { label: "סוללה", value: "עד 3 שעות הקרנה" },
-            { label: "חיבור", value: "USB-C DisplayPort, HDMI" },
-            { label: "פוקוס", value: "אוטומטי מהיר" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "155 מ\"מ" },
-            { label: "עומק", value: "105 מ\"מ" },
-            { label: "גובה", value: "48 מ\"מ" },
-            { label: "משקל", value: "800 גרם" },
-            { label: "גודל תמונה", value: "30\"–120\" (בהתאם למרחק)" }
-        ]
-    },
-    {
-        id: "display-ai-86",
-        category: "מסכים אינטראקטיביים והקרנה",
-        title: "מסך מגע 86\" עם מצלמת AI מובנית",
-        price: 16900,
-        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800",
-        videoUrl: "https://videos.pexels.com/video-files/3194277/3194277-uhd_2560_1440_25fps.mp4",
-        description: "מסך חכם המזהה את הדובר ומבצע עקיבה אוטומטית. מושלם ללמידה היברידית והקלטת שיעורים באיכות גבוהה.",
-        specs: [
-            { label: "מצלמה", value: "4K AI Auto-Framing" },
-            { label: "מיקרופונים", value: "8 Microphone Array" },
-            { label: "ניקוי רעשים", value: "AI Noise Cancellation" },
-            { label: "מערכת", value: "Android 13 Dual OS Ready" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "1,939 מ\"מ" },
-            { label: "גובה", value: "1,137 מ\"מ" },
-            { label: "עומק", value: "75 מ\"מ" },
-            { label: "משקל", value: "55 ק\"ג" },
-            { label: "גודל מסך", value: "86 אינץ'" }
-        ]
-    },
-
-    // Category 2: מחשוב לצוות ותלמידים (10 items)
-    {
-        id: "student-chromebook-rugged",
-        category: "מחשוב לצוות ותלמידים",
-        title: "מחשב נייד מוקשח Chromebook 11.6\" לתלמיד",
-        price: 1250,
-        image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800",
-        description: "מחשב למידה עמיד לנפילות ונוזלים. מיועד לשימוש אינטנסיבי בסביבת כיתה עם סוללה ליום שלם.",
-        specs: [
-            { label: "מעבד", value: "Intel Celeron N5100" },
-            { label: "זיכרון/אחסון", value: "4GB RAM / 64GB eMMC" },
-            { label: "עמידות", value: "MIL-STD-810H זכוכית מחוזקת" },
-            { label: "סוללה", value: "עד 12 שעות עבודה" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "296 מ\"מ" },
-            { label: "עומק", value: "204 מ\"מ" },
-            { label: "עובי (סגור)", value: "19 מ\"מ" },
-            { label: "משקל", value: "1.4 ק\"ג" },
-            { label: "מסך", value: "11.6 אינץ'" }
-        ]
-    },
-    {
-        id: "teacher-laptop-pro",
-        category: "מחשוב לצוות ותלמידים",
-        title: "נייד מורה עוצמתי Core i7 16GB RAM 14\"",
-        price: 4800,
-        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800",
-        description: "תחנת עבודה ניידת לצוות החינוכי. ביצועים גבוהים לניהול שיעורים, עריכת תוכן והרצת אפליקציות כבדות.",
-        specs: [
-            { label: "מעבד", value: "Intel Core i7-1355U" },
-            { label: "מסך", value: "14\" QHD IPS Anti-Glare" },
-            { label: "אבטחה", value: "טביעת אצבע ושבב TPM 2.0" },
-            { label: "משקל", value: "1.3 ק\"ג" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "312 מ\"מ" },
-            { label: "עומק", value: "218 מ\"מ" },
-            { label: "עובי (סגור)", value: "17 מ\"מ" },
-            { label: "משקל", value: "1.3 ק\"ג" },
-            { label: "מסך", value: "14 אינץ'" }
-        ]
-    },
-    {
-        id: "mini-pc-ops-modular",
-        category: "מחשוב לצוות ותלמידים",
-        title: "מחשב Mini-PC OPS למסכים אינטראקטיביים",
-        price: 2500,
-        image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800",
-        description: "יחידת מחשוב מודולרית הנטענת בתוך המסך האינטראקטיבי. הופכת כל מסך למחשב Windows חזק ללא צורך בכבלים.",
-        specs: [
-            { label: "מעבד", value: "Intel Core i5-12400" },
-            { label: "זיכרון", value: "8GB DDR4 (עד 32GB)" },
-            { label: "אחסון", value: "256GB NVMe SSD" },
-            { label: "מערכת", value: "Windows 11 Pro Education" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "207 מ\"מ" },
-            { label: "עומק", value: "154 מ\"מ" },
-            { label: "גובה", value: "37 מ\"מ" },
-            { label: "משקל", value: "1.1 ק\"ג" },
-            { label: "תקן חיבור", value: "OPS (Open Pluggable Spec)" }
-        ]
-    },
-    {
-        id: "tablet-rugged-stem",
-        category: "מחשוב לצוות ותלמידים",
-        title: "טאבלט למידה מוקשח 10\" עם עט סטיילוס",
-        price: 1800,
-        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800",
-        description: "טאבלט למידה אקטיבית. כולל עט רגיש למגע ושכבת הגנה נגד חבטות. מתאים לסיורים לימודיים ושימוש בשטח.",
-        specs: [
-            { label: "מסך", value: "10.1\" WUXGA Touch" },
-            { label: "עט", value: "Active Stylus 4096 levels" },
-            { label: "מעבד", value: "Octa-Core 2.4GHz" },
-            { label: "עמידות", value: "IP52 אבק והתזות מים" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "243 מ\"מ" },
-            { label: "עומק", value: "167 מ\"מ" },
-            { label: "עובי", value: "12 מ\"מ" },
-            { label: "משקל", value: "580 גרם" },
-            { label: "מסך", value: "10.1 אינץ'" }
-        ]
-    },
-    {
-        id: "laptop-media-edit",
-        category: "מחשוב לצוות ותלמידים",
-        title: "נייד עריכה וגרפיקה לתלמידי תקשורת",
-        price: 6900,
-        image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800",
-        description: "מחשב נייד מקצועי עם כרטיס גרפי ייעודי. מיועד למגמות סייבר, עיצוב גרפי ועריכת וידאו 4K.",
-        specs: [
-            { label: "כרטיס מסך", value: "NVIDIA RTX 4050 6GB" },
-            { label: "מעבד", value: "Intel Core i9 Hybrid" },
-            { label: "מסך", value: "15.6\" 100% sRGB Color Accurate" },
-            { label: "אחסון", value: "1TB Gen4 SSD" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "356 מ\"מ" },
-            { label: "עומק", value: "238 מ\"מ" },
-            { label: "עובי (סגור)", value: "19 מ\"מ" },
-            { label: "משקל", value: "2.1 ק\"ג" },
-            { label: "מסך", value: "15.6 אינץ'" }
-        ]
-    },
-    {
-        id: "mini-pc-zero-client",
-        category: "מחשוב לצוות ותלמידים",
-        title: "מחשב Mini-PC Zero Client למעבדות",
-        price: 850,
-        image: "https://images.unsplash.com/photo-1555664424-778a1e5e1b48?auto=format&fit=crop&q=80&w=800",
-        description: "פתרון חסכוני למעבדות מחשבים. עובד בשיטת וירטואליזציה לניהול מרכזי קל וצריכת חשמל אפסית.",
-        specs: [
-            { label: "מעבד", value: "ARM SoC Fanless" },
-            { label: "תמיכה", value: "VMware / Citrix / RDP" },
-            { label: "חיבורים", value: "DisplayPort, 4xUSB, LAN" },
-            { label: "צריכה", value: "≤5W בלבד" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "148 מ\"מ" },
-            { label: "עומק", value: "113 מ\"מ" },
-            { label: "גובה", value: "30 מ\"מ" },
-            { label: "משקל", value: "350 גרם" },
-            { label: "ממשק הרכבה", value: "VESA 75/100 (כלול)" }
-        ]
-    },
-    {
-        id: "chromebook-touch-flip",
-        category: "מחשוב לצוות ותלמידים",
-        title: "Chromebook Touch 2-in-1 מתהפך לתלמיד",
-        price: 1550,
-        image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800",
-        description: "מחשב משולב טאבלט. מסך מגע מסתובב 360 מעלות ומצלמה כפולה (קדמית ואחורית) לתיעוד שיעורים במצב טאבלט.",
-        specs: [
-            { label: "מנגנון", value: "ציר 360 מעלות" },
-            { label: "מסך", value: "12\" IPS Multi-Touch" },
-            { label: "מצלמה", value: "World Facing Camera 8MP" },
-            { label: "מעבד", value: "Kompanio 520 / 8GB RAM" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "294 מ\"מ" },
-            { label: "עומק", value: "208 מ\"מ" },
-            { label: "עובי (סגור)", value: "14 מ\"מ" },
-            { label: "משקל", value: "1.2 ק\"ג" },
-            { label: "מסך", value: "12 אינץ'" }
-        ]
-    },
-    {
-        id: "workstation-it-mobile",
-        category: "מחשוב לצוות ותלמידים",
-        title: "תחנת עבודה ניידת לצוות IT מוסדי",
-        price: 5500,
-        image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800",
-        description: "מחשב נייד מוקשח במיוחד לצוותי תחזוקה. כולל יציאות מורשת (Serial) לניהול תשתיות וסוללה כפולה.",
-        specs: [
-            { label: "חיבוריות", value: "RS232, RJ45, USB-C, SIM 4G" },
-            { label: "מבנה", value: "מארז מגנזיום מחוזק" },
-            { label: "אבטחה", value: "Smart Card Reader + TPM" },
-            { label: "עמידות", value: "נפילה מגובה 1.5 מטר" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "330 מ\"מ" },
-            { label: "עומק", value: "240 מ\"מ" },
-            { label: "עובי (סגור)", value: "23 מ\"מ" },
-            { label: "משקל", value: "2.3 ק\"ג" },
-            { label: "מסך", value: "14 אינץ'" }
-        ]
-    },
-    {
-        id: "laptop-hybrid-student",
-        category: "מחשוב לצוות ותלמידים",
-        title: "מחשב למידה היברידי Surface style לתלמידים",
-        price: 3200,
-        image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800",
-        description: "מחשב נייד עם מקלדת נתיקה. משלב את הקלילות של טאבלט עם הפרודוקטיביות של מחשב Windows.",
-        specs: [
-            { label: "מסך", value: "13\" PixelSense Touch" },
-            { label: "מקלדת", value: "נתיקה עם תאורה (כלול)" },
-            { label: "מעבד", value: "Intel Core i5 Evo" },
-            { label: "משקל", value: "780 גרם (ללא מקלדת)" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "292 מ\"מ" },
-            { label: "עומק", value: "201 מ\"מ" },
-            { label: "עובי (טאבלט)", value: "8.5 מ\"מ" },
-            { label: "משקל (טאבלט)", value: "780 גרם" },
-            { label: "מסך", value: "13 אינץ'" }
-        ]
-    },
-    {
-        id: "teacher-laptop-slim",
-        category: "מחשוב לצוות ותלמידים",
-        title: "מחשב נייד מורה דק סוללה ליום שלם",
-        price: 4200,
-        image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800",
-        description: "האיזון המושלם בין משקל לביצועים. עוצב במיוחד למורים שעוברים בין כיתות עם צורך בסוללה חזקה ואמינה.",
-        specs: [
-            { label: "עובי", value: "14.9 מ\"מ" },
-            { label: "מעבד", value: "AMD Ryzen 7 7000 Series" },
-            { label: "סוללה", value: "עד 15 שעות (Fast Charge)" },
-            { label: "מסך", value: "14\" OLED Low Blue Light" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "311 מ\"מ" },
-            { label: "עומק", value: "216 מ\"מ" },
-            { label: "עובי (סגור)", value: "14.9 מ\"מ" },
-            { label: "משקל", value: "1.2 ק\"ג" },
-            { label: "מסך", value: "14 אינץ'" }
-        ]
-    },
-
-    // Category 3: מעבדות STEM ומרחבי חדשנות (10 items)
-    {
-        id: "3d-printer-pro-grade",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "מדפסת תלת מימד מקצועית Pro-Grade",
-        price: 12500,
-        image: "https://images.unsplash.com/photo-1563520239648-a24e51d4b570?auto=format&fit=crop&q=80&w=800",
-        description: "מדפסת תא סגור עם פילטר פחם ודיוק מיקרוני. מתאימה להדפסה של מגוון חומרים בסביבה חינוכית בטוחה.",
-        specs: [
-            { label: "נפח הדפסה", value: "300x300x350 מ\"מ" },
-            { label: "דיוק שכבה", value: "0.05 - 0.4 מ\"מ" },
-            { label: "חומרים", value: "PLA, ABS, PETG, TPU" },
-            { label: "אבטחה", value: "HEPA פילטר לסינון חלקיקים" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "460 מ\"מ" },
-            { label: "עומק", value: "460 מ\"מ" },
-            { label: "גובה", value: "560 מ\"מ" },
-            { label: "משקל", value: "18 ק\"ג" },
-            { label: "נפח הדפסה", value: "300×300×350 מ\"מ" }
-        ]
-    },
-    {
-        id: "robotics-kit-advanced",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "ערכת רובוטיקה מבוססת Arduino",
-        price: 1850,
-        image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=800",
-        description: "ערכה מקיפה הכוללת בקרים, חיישנים ומנועים. מיועדת ללימודי תכנות, אלקטרוניקה ובקרה ברמה גבוהה.",
-        specs: [
-            { label: "בקר", value: "Arduino Mega / ESP32" },
-            { label: "חיישנים", value: "מרחק, אור, קול, Gyro" },
-            { label: "מנועים", value: "Servo x4, DC Gear x4" },
-            { label: "תוכנה", value: "Arduino IDE / Scratch" }
-        ],
-        dimensions: [
-            { label: "רוחב (ארגז)", value: "400 מ\"מ" },
-            { label: "עומק (ארגז)", value: "300 מ\"מ" },
-            { label: "גובה (ארגז)", value: "90 מ\"מ" },
-            { label: "משקל כולל", value: "3.2 ק\"ג" },
-            { label: "מספר רכיבים", value: "250+ חלקים" }
-        ]
-    },
-    {
-        id: "smart-lab-table-power",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "שולחן למידה חכם עם נקודות חשמל",
-        price: 3400,
-        image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
-        description: "שולחן מעבדה מודולרי על גלגלים. כולל יחידות קישוריות פנימיות למחשבים וציוד מדידה לכל תלמיד.",
-        specs: [
-            { label: "חומר", value: "HPL עמיד לכימיקלים וחום" },
-            { label: "שקעים", value: "4xAC, 2xUSB, 1xLAN" },
-            { label: "גודל", value: "160x80 ס\"מ" },
-            { label: "כיוונון", value: "גובה ידני (72-90 ס\"מ)" }
-        ],
-        dimensions: [
-            { label: "אורך", value: "1,600 מ\"מ" },
-            { label: "רוחב", value: "800 מ\"מ" },
-            { label: "גובה (מתכוונן)", value: "720–900 מ\"מ" },
-            { label: "משקל", value: "45 ק\"ג" },
-            { label: "עומי משטח", value: "25 מ\"מ HPL" }
-        ]
-    },
-    {
-        id: "3d-scanner-mobile-model",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "סורק תלת מימד נייד למידול אובייקטים",
-        price: 4900,
-        image: "https://images.unsplash.com/photo-1589254065878-42c9da997008?auto=format&fit=crop&q=80&w=800",
-        description: "סורק ידני המאפשר הכנסת חפצים פיזיים לעולם הדיגיטלי בתוך שניות. חובה למגמות עיצוב והנדסה.",
-        specs: [
-            { label: "טכנולוגיה", value: "Structured Light" },
-            { label: "דיוק", value: "עד 0.1 מ\"מ" },
-            { label: "פורמט קבצים", value: "STL, OBJ, PLY" },
-            { label: "חיבור", value: "Wireless / USB 3.0" }
-        ],
-        dimensions: [
-            { label: "אורך", value: "280 מ\"מ" },
-            { label: "רוחב", value: "75 מ\"מ" },
-            { label: "גובה", value: "65 מ\"מ" },
-            { label: "משקל", value: "950 גרם" },
-            { label: "טווח סריקה", value: "200–700 מ\"מ מהאובייקט" }
-        ]
-    },
-    {
-        id: "robotic-arm-6-axis-edu",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "זרוע רובוטית לימודית 6 צירים",
-        price: 8200,
-        image: "https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&q=80&w=800",
-        description: "זרוע רובוטית לתעשייה 4.0 בתוך הכיתה. מאפשרת למידה של לוגיקת תפעול פס ייצור ורובוטיקה שיתופית.",
-        specs: [
-            { label: "עומס עבודה", value: "500 גרם" },
-            { label: "טווח הגעה", value: "340 מ\"מ" },
-            { label: "חזרתיות", value: "0.2 מ\"מ" },
-            { label: "שפה", value: "Python, Blocky, ROS" }
-        ],
-        dimensions: [
-            { label: "בסיס (קוטר)", value: "95 מ\"מ" },
-            { label: "גובה (נשיאה)", value: "380 מ\"מ" },
-            { label: "טווח הגעה", value: "340 מ\"מ" },
-            { label: "משקל", value: "1.8 ק\"ג" },
-            { label: "עומס מקסימלי", value: "500 גרם" }
-        ]
-    },
-    {
-        id: "science-sensors-lab-pkg",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "ערכת חיישני מדע (Data Loggers)",
-        price: 2600,
-        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800",
-        description: "מערכת מדידה חכמה למעבדות פיזיקה, כימיה וביולוגיה. תומכת בהצגת נתונים גרפיים בזמן אמת.",
-        specs: [
-            { label: "חיבור", value: "Bluetooth 5.0 / USB" },
-            { label: "חיישנים כלולים", value: "טמפ', pH, לחץ, תאוצה, CO2" },
-            { label: "אפליקציה", value: "תואמת iOS, Android, Windows, Chrome" },
-            { label: "תדירות דגימה", value: "עד 100,000 דגימות לשנייה" }
-        ],
-        dimensions: [
-            { label: "רוחב (מארז)", value: "220 מ\"מ" },
-            { label: "עומק (מארז)", value: "180 מ\"מ" },
-            { label: "גובה (מארז)", value: "55 מ\"מ" },
-            { label: "משקל כולל", value: "1.4 ק\"ג" },
-            { label: "חיישן בודד", value: "75×35×18 מ\"מ, 45 גרם" }
-        ]
-    },
-    {
-        id: "3d-printer-industrial-size",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "מדפסת תלת מימד בנפח תעשייתי",
-        price: 24000,
-        image: "https://images.unsplash.com/photo-1661882217431-b64b303fb1d0?auto=format&fit=crop&q=80&w=800",
-        description: "מדפסת ענקית להדפסת מודלים שלמים בקנה מידה 1:1. מיועדת למרחבי מייקרים אזוריים ומרכזי פסג\"ה.",
-        specs: [
-            { label: "נפח הדפסה", value: "600x600x600 מ\"מ" },
-            { label: "ראש הדפסה", value: "Double Extruder (חומר תמיכה)" },
-            { label: "טמפרטורה", value: "עד 350 מעלות בראש" },
-            { label: "בקרה", value: "מצלמה מובנית לניטור מרחוק" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "780 מ\"מ" },
-            { label: "עומק", value: "780 מ\"מ" },
-            { label: "גובה", value: "880 מ\"מ" },
-            { label: "משקל", value: "65 ק\"ג" },
-            { label: "נפח הדפסה", value: "600×600×600 מ\"מ" }
-        ]
-    },
-    {
-        id: "engineering-construction-pkg",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "ערכת בנייה והנדסה STEM לתלמידים",
-        price: 1100,
-        image: "https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&q=80&w=800",
-        description: "חלקים מכניים, גלגלי שיניים ומנועים לבנייה יצירתית. שלב הראשון בהכנסת הנדסה לבתי ספר יסודיים.",
-        specs: [
-            { label: "מספר חלקים", value: "1000+ רכיבים" },
-            { label: "תמיכה", value: "מדריכי מערכי שיעור (עברית)" },
-            { label: "אחסון", value: "מגירות מיון עמידות" },
-            { label: "גילאים", value: "6-12 שנים" }
-        ],
-        dimensions: [
-            { label: "רוחב (ארגז)", value: "450 מ\"מ" },
-            { label: "עומק (ארגז)", value: "340 מ\"מ" },
-            { label: "גובה (ארגז)", value: "120 מ\"מ" },
-            { label: "משקל כולל", value: "4.5 ק\"ג" },
-            { label: "רכיב גדול ביותר", value: "120×40 מ\"מ" }
-        ]
-    },
-    {
-        id: "vr-headset-classroom-set",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "משקפי מציאות מדומה (VR) ללמידה",
-        price: 2200,
-        image: "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?auto=format&fit=crop&q=80&w=800",
-        description: "משקפי VR עצמאיים המוטענים מראש עם סיורים וירטואליים בהיסטוריה, מדע וחלל. כולל מערכת ניהול מורה.",
-        specs: [
-            { label: "רזולוציה", value: "4K (2K לכל עין)" },
-            { label: "שדה ראייה", value: "110 מעלות" },
-            { label: "אחסון", value: "128GB מובנה" },
-            { label: "ניהול כיתה", value: "סינכרון מורה ל-30 מכשירים" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "198 מ\"מ" },
-            { label: "עומק", value: "142 מ\"מ" },
-            { label: "גובה", value: "105 מ\"מ" },
-            { label: "משקל", value: "503 גרם" },
-            { label: "מרחק בין-אישי", value: "IPD 58–72 מ\"מ (מתכוונן)" }
-        ]
-    },
-    {
-        id: "laser-cutter-desktop-safe",
-        category: "מעבדות STEM ומרחבי חדשנות",
-        title: "מכונת חיתוך לייזר שולחנית בטיחותית",
-        price: 16500,
-        image: "https://images.unsplash.com/photo-1596552571892-2dda2c594670?auto=format&fit=crop&q=80&w=800",
-        description: "חיתוך עץ, אקריליק ונייר בלייזר 40W. מערכת בטיחות המכבה את הלייזר עם פתיחת המכסה. כולל מסנן עשן.",
-        specs: [
-            { label: "שטח עבודה", value: "50x30 ס\"מ" },
-            { label: "סוג לייזר", value: "CO2 40W Glass Tube" },
-            { label: "בטיחות", value: "Class 1 (לסביבת ילדים)" },
-            { label: "תוכנה", value: "תואמת בענן (Cloud-based)" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "780 מ\"מ" },
-            { label: "עומק", value: "480 מ\"מ" },
-            { label: "גובה", value: "420 מ\"מ" },
-            { label: "משקל", value: "18 ק\"ג" },
-            { label: "שטח חיתוך", value: "500×300 מ\"מ" }
-        ]
-    },
-
-    // Category 4: אודיו ווידאו למרחבי למידה (10 items)
-    {
-        id: "ptz-camera-tracking-4k",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מצלמת PTZ עוקבת מרצה 4K",
-        price: 4500,
-        image: "https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&q=80&w=800",
-        description: "מצלמת ועידה מקצועית המזהה את המורה ומבצעת עקיבת תנועה חלקה ללא צורך בצלם. חובה לכיתת למידה היברידית.",
-        specs: [
-            { label: "זום", value: "12x Optical Zoom" },
-            { label: "רזולוציה", value: "4K UHD @ 60fps" },
-            { label: "בינה מלאכותית", value: "Human Tracking + Gesture Control" },
-            { label: "חיבוריות", value: "HDMI, SDI, USB-C, NDI|HX" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "162 מ\"מ" },
-            { label: "עומק", value: "155 מ\"מ" },
-            { label: "גובה", value: "162 מ\"מ" },
-            { label: "משקל", value: "950 גרם" },
-            { label: "זווית פן/טילט", value: "±170° / ±90°" }
-        ]
-    },
-    {
-        id: "voice-amp-teacher-wireless",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מערכת הגברת קול מורה אלחוטית",
-        price: 1200,
-        image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&q=80&w=800",
-        description: "מערכת מדונה אלחוטית קלה המגנה על מיתרי הקול של המורה ומבטיחה שכל תלמיד ישמע בבירור בכל פינה בכיתה.",
-        specs: [
-            { label: "שיטת שידור", value: "DECT 1.9GHz (ללא הפרעות)" },
-            { label: "מיקרופון", value: "Necklace / Headset" },
-            { label: "סוללה", value: "10 שעות עבודה (נטענת)" },
-            { label: "חיבור", value: "Link to Soundbar / Ceiling SPK" }
-        ],
-        dimensions: [
-            { label: "משדר (מיקרופון)", value: "90×55×22 מ\"מ" },
-            { label: "משקל משדר", value: "85 גרם" },
-            { label: "מקלט/רמקול", value: "200×120×55 מ\"מ" },
-            { label: "משקל מקלט", value: "580 גרם" },
-            { label: "טווח שידור", value: "עד 50 מטר" }
-        ]
-    },
-    {
-        id: "soundbar-classroom-120w",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "סאונדבר עוצמתי 120W לכיתות חכמות",
-        price: 850,
-        image: "https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=800",
-        description: "מערכת אודיו ייעודית למסכים אינטראקטיביים. מספקת צליל עשיר וברור לסרטונים, מצגות ושמיעה של תלמידים מרחוק.",
-        specs: [
-            { label: "הספק", value: "120W RMS" },
-            { label: "אלמנטים", value: "4x Full Range + 2x Tweeters" },
-            { label: "חיבור", value: "HDMI ARC, Optical, Bluetooth" },
-            { label: "התקנה", value: "תושבת קיר דקה (כלולה)" }
-        ],
-        dimensions: [
-            { label: "אורך", value: "880 מ\"מ" },
-            { label: "גובה", value: "80 מ\"מ" },
-            { label: "עומק", value: "68 מ\"מ" },
-            { label: "משקל", value: "3.2 ק\"ג" },
-            { label: "התקנה", value: "VESA / ישיר מתחת למסך" }
-        ]
-    },
-    {
-        id: "videobar-aio-conference",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מערכת ועידה (Video Bar) הכל-ב-אחד",
-        price: 3200,
-        image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800",
-        description: "פתרון מושלם לחדרי ישיבות ומרחבי למידה קטנים. משלב מצלמת 4K, מיקרופונים חכמים ורמקולים ביחידה אחת דקה.",
-        specs: [
-            { label: "שדה ראייה", value: "120 מעלות (צילום פנורמי)" },
-            { label: "טווח מיקרופון", value: "עד 6 מטרים" },
-            { label: "בינה מלאכותית", value: "Auto-Framing + Speaker Tracking" },
-            { label: "פלטפורמות", value: "MS Teams, Zoom, Meet" }
-        ],
-        dimensions: [
-            { label: "אורך", value: "640 מ\"מ" },
-            { label: "גובה", value: "90 מ\"מ" },
-            { label: "עומק", value: "74 מ\"מ" },
-            { label: "משקל", value: "1.8 ק\"ג" },
-            { label: "כיסוי חדר", value: "עד 6×8 מטר" }
-        ]
-    },
-    {
-        id: "ceiling-array-mic-noise-cancel",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מיקרופון תקרתי (Ceiling Array)",
-        price: 5800,
-        image: "https://images.unsplash.com/photo-1558317751-bc3ed6f85f72?auto=format&fit=crop&q=80&w=800",
-        description: "מיקרופון המותקן בתקרה אקוסטית וקולט את כל הכיתה בצורה שקופה. טכנולוגיית Beamforming לבידוד קול הדובר.",
-        specs: [
-            { label: "קפסולות", value: "128 MEMS Microphones" },
-            { label: "סינון רעשים", value: "Deep Learning Noise Reduction" },
-            { label: "התקנה", value: "Flush mount (60x60 cell)" },
-            { label: "חיבור", value: "Dante / POE+" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "595 מ\"מ" },
-            { label: "עומק", value: "595 מ\"מ" },
-            { label: "גובה (מסגרת)", value: "48 מ\"מ" },
-            { label: "משקל", value: "2.1 ק\"ג" },
-            { label: "כיסוי קול", value: "עד 50 מ\"ר" }
-        ]
-    },
-    {
-        id: "av-control-lecturer-sys",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מערכת שליטה ובקרה (AV Control)",
-        price: 2400,
-        image: "https://images.unsplash.com/photo-1627393100177-b4297e79a5be?auto=format&fit=crop&q=80&w=800",
-        description: "לוח מגע קטן על שולחן המורה המאפשר שליטה בהדלקת המסך, החלפת מקורות, ווליום והתאורה בכיתה.",
-        specs: [
-            { label: "מסך", value: "7\" IPS Touch Panel" },
-            { label: "קישוריות", value: "LAN/RS232/IR" },
-            { label: "ממשק", value: "עברית מלאה (Customizable)" },
-            { label: "ניהול", value: "שליטה מרחוק ממשרד המנהל" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "197 מ\"מ" },
-            { label: "עומק", value: "120 מ\"מ" },
-            { label: "גובה", value: "21 מ\"מ" },
-            { label: "משקל", value: "450 גרם" },
-            { label: "מסך מגע", value: "7 אינץ' IPS" }
-        ]
-    },
-    {
-        id: "visualizer-4k-doc-cam",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מצלמת מסמכים (Visualizer) 4K Ultra HD",
-        price: 1850,
-        image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800",
-        description: "הצגת ספרים, שרטוטים וניסויים בזמן אמת על המסך הגדול. תומכת בהקלטה ישירה ל-USB באיכות קולנועית.",
-        specs: [
-            { label: "חיישן", value: "13MP 4K Camera" },
-            { label: "תדירות רענון", value: "60fps (תנועה חלקה)" },
-            { label: "זום", value: "230x Total Zoom (Optical+Digital)" },
-            { label: "תאורה", value: "LED מובנית מתכווננת" }
-        ],
-        dimensions: [
-            { label: "בסיס (רוחב)", value: "370 מ\"מ" },
-            { label: "בסיס (עומק)", value: "235 מ\"מ" },
-            { label: "גובה (פרוס)", value: "435 מ\"מ" },
-            { label: "משקל", value: "1.9 ק\"ג" },
-            { label: "שטח צילום מקסימלי", value: "A3" }
-        ]
-    },
-    {
-        id: "anc-headset-student-lab",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "אוזניות למידה עם מסנן רעשים (ANC)",
-        price: 450,
-        image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800",
-        description: "אוזניות מיוחדות המאפשרות ריכוז מקסימלי לתלמידים עם קשיי קשב. מסננות רעשי כיתה ומזגן בצורה אקטיבית.",
-        specs: [
-            { label: "סינון רעשים", value: "Active Noise Cancellation 30dB" },
-            { label: "מבנה", value: "Over-ear נושם לאורך זמן" },
-            { label: "הגבלת ווליום", value: "Safe Hearing 85dB" },
-            { label: "מיקרופון", value: "Noise Cancelling Mic Boom" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "195 מ\"מ" },
-            { label: "גובה", value: "175 מ\"מ" },
-            { label: "עומק (מקופל)", value: "70 מ\"מ" },
-            { label: "משקל", value: "265 גרם" },
-            { label: "קוטר כוס אוזן", value: "95 מ\"מ" }
-        ]
-    },
-    {
-        id: "pa-portable-school-events",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "מערכת הגברה אלחוטית ניידת לאירועים",
-        price: 3800,
-        image: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&q=80&w=800",
-        description: "בידורית מקצועית על גלגלים לטקסים ופעילויות ספורט. כוללת 2 מיקרופונים אלחוטיים ונגן מדיה משולב.",
-        specs: [
-            { label: "הספק", value: "300W Peak" },
-            { label: "מיקרופונים", value: "2x UHF Wireless Handheld" },
-            { label: "ניידות", value: "סוללה נטענת עד 8 שעות" },
-            { label: "קישוריות", value: "BT, SD, USB, AUX, Guitar" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "360 מ\"מ" },
-            { label: "עומק", value: "285 מ\"מ" },
-            { label: "גובה", value: "435 מ\"מ" },
-            { label: "משקל", value: "10.5 ק\"ג" },
-            { label: "ידית/גלגלים", value: "ידית נשיאה + 2 גלגלים" }
-        ]
-    },
-    {
-        id: "ceiling-spk-sound-array",
-        category: "אודיו ווידאו למרחבי למידה",
-        title: "רמקולים תקרתיים לפיזור סאונד אחיד",
-        price: 1500,
-        image: "https://images.unsplash.com/photo-1558317751-bc3ed6f85f72?auto=format&fit=crop&q=80&w=800",
-        description: "מערך של 4 רמקולים איכותיים להתקנה שקועה בתקרה. מבטיח עוצמת קול אחידה בכל מקום ישיבה.",
-        specs: [
-            { label: "כמות", value: "סט של 4 יחידות" },
-            { label: "מבנה", value: "2-way 6.5\" Woofer" },
-            { label: "תקן אש", value: "UL-2043 (Plenum Rated)" },
-            { label: "הגברה", value: "כולל מגבר 100V קומפקטי" }
-        ],
-        dimensions: [
-            { label: "קוטר (כל יחידה)", value: "210 מ\"מ" },
-            { label: "עומק התקנה", value: "74 מ\"מ" },
-            { label: "משקל (ליחידה)", value: "1.4 ק\"ג" },
-            { label: "קיטוע (חור תקרה)", value: "190 מ\"מ" },
-            { label: "כמות בסט", value: "4 יחידות" }
-        ]
-    },
-
-    // Category 5: תשתיות ועגלות טעינה (10 items)
-    {
-        id: "charging-cart-36-devices",
-        category: "תשתיות ועגלות טעינה",
-        title: "עגלת טעינה ואחסון חכמה ל-36 כרומבוקים",
-        price: 4500,
-        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=800",
-        description: "עגלת פלדה ממוגנת עם בקר טעינה חכם המאזן את העומס החשמלי. שומרת על אורך חיי הסוללה של המכשירים.",
-        specs: [
-            { label: "קיבולת", value: "36 מחשבים עד 15.6 אינץ'" },
-            { label: "בקר טעינה", value: "Smart Power Management (Cycles)" },
-            { label: "אבטחה", value: "נעילה שלוש נקודות + אוורור" },
-            { label: "ניידות", value: "גלגלים תעשייתיים עם בלמים" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "660 מ\"מ" },
-            { label: "עומק", value: "440 מ\"מ" },
-            { label: "גובה", value: "1,080 מ\"מ" },
-            { label: "משקל (ריק)", value: "28 ק\"ג" },
-            { label: "קיבולת מכשירים", value: "36 יחידות עד 15.6\"" }
-        ]
-    },
-    {
-        id: "smart-podium-21-touch",
-        category: "תשתיות ועגלות טעינה",
-        title: "פודיום מרצה חכם עם מסך מגע 21\"",
-        price: 12800,
-        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
-        description: "עמדת מרצה אינטראקטיבית. מאפשרת כתיבה ישירה על המצגת תוך כדי דיבור מול הקהל. כולל מחשב OPS פנימי.",
-        specs: [
-            { label: "מסך", value: "21.5\" Multi-Touch IPS" },
-            { label: "כוונון גובה", value: "חשמלי 80-120 ס\"מ" },
-            { label: "אינטגרציה", value: "ממתג AV מובנה (HDMI/USB)" },
-            { label: "חומר", value: "עץ, אלומיניום ופלדה" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "520 מ\"מ" },
-            { label: "עומק", value: "450 מ\"מ" },
-            { label: "גובה (מתכוונן)", value: "800–1,200 מ\"מ" },
-            { label: "משקל", value: "75 ק\"ג" },
-            { label: "גודל מסך", value: "21.5 אינץ'" }
-        ]
-    },
-    {
-        id: "charging-cart-uv-24-tab",
-        category: "תשתיות ועגלות טעינה",
-        title: "עגלת טעינה וחיטוי UV-C ל-24 טאבלטים",
-        price: 5200,
-        image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=800",
-        description: "עגלה המשלבת טעינה מהירה עם מנורות UV-C לחיטוי חיידקים ווירוסים בין שיעור לשיעור.",
-        specs: [
-            { label: "חיטוי", value: "UV-C Germicidal Lamps" },
-            { label: "קיבולת", value: "24 טאבלטים / iPad" },
-            { label: "טעינה", value: "USB-C PD 15W לכל פורט" },
-            { label: "אימות", value: "תקן בטיחות חשמל ישראלי" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "600 מ\"מ" },
-            { label: "עומק", value: "420 מ\"מ" },
-            { label: "גובה", value: "1,020 מ\"מ" },
-            { label: "משקל (ריק)", value: "22 ק\"ג" },
-            { label: "קיבולת", value: "24 טאבלטים עד 11\"" }
-        ]
-    },
-    {
-        id: "av-rack-secure-server",
-        category: "תשתיות ועגלות טעינה",
-        title: "ארון תקשורת (AV Rack) ממוגן לשרתים",
-        price: 3100,
-        image: "https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?auto=format&fit=crop&q=80&w=800",
-        description: "ארון תקשורת כיתתי מעוצב ושקט. שומר על המעבדים, המבצעים והשרתים הכיתתיים מוגנים וקרירים.",
-        specs: [
-            { label: "גודל", value: "12U / 18U" },
-            { label: "אוורור", value: "מניפות אולטרה-שקטות עם תרמוסטט" },
-            { label: "דלת", value: "זכוכית מחוסמת עם מנעול" },
-            { label: "תמיכה", value: "כולל PDU 8 יציאות" }
-        ],
-        dimensions: [
-            { label: "רוחב (תקן 19\")", value: "482 מ\"מ" },
-            { label: "עומק", value: "600 מ\"מ" },
-            { label: "גובה (12U)", value: "700 מ\"מ" },
-            { label: "גובה (18U)", value: "1,000 מ\"מ" },
-            { label: "משקל (ריק)", value: "18 ק\"ג" }
-        ]
-    },
-    {
-        id: "teacher-workstation-mobile-hyd",
-        category: "תשתיות ועגלות טעינה",
-        title: "עמדת עבודה ניידת למורה הידראולית",
-        price: 1850,
-        image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=800",
-        description: "שולחן מורה קטן ונייד המאפשר עמידה או ישיבה בלחיצת כפתור אחת. פתרון ארגונומי גמיש.",
-        specs: [
-            { label: "טווח גובה", value: "70-115 ס\"מ" },
-            { label: "מנגנון", value: "בוכנה הידראולית איכותית" },
-            { label: "משטח", value: "עץ לבן 80x50 ס\"מ" },
-            { label: "תוספות", value: "מתקן למחשב נייד ומעצור כבלים" }
-        ],
-        dimensions: [
-            { label: "רוחב משטח", value: "800 מ\"מ" },
-            { label: "עומק משטח", value: "500 מ\"מ" },
-            { label: "גובה (מתכוונן)", value: "700–1,150 מ\"מ" },
-            { label: "משקל", value: "19 ק\"ג" },
-            { label: "קוטר בסיס", value: "640 מ\"מ" }
-        ]
-    },
-    {
-        id: "charging-cart-12-laptop",
-        category: "תשתיות ועגלות טעינה",
-        title: "עגלת טעינה ל-12 מחשבים ניידים",
-        price: 2400,
-        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=800",
-        description: "גרסה קומפקטית למוסדות עם קבוצות למידה קטנות. קלה לשינוע במדרגות ומעליות צרות.",
-        specs: [
-            { label: "קיבולת", value: "12 מחשבים עד 17 אינץ'" },
-            { label: "מבנה", value: "מתכת מגולוונת עמידה" },
-            { label: "הגנה", value: "נגד נחשולי מתח וחום" },
-            { label: "צבעים", value: "מגוון צבעי RAL (ירוק/כחול/כתום)" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "560 מ\"מ" },
-            { label: "עומק", value: "380 מ\"מ" },
-            { label: "גובה", value: "880 מ\"מ" },
-            { label: "משקל (ריק)", value: "18 ק\"ג" },
-            { label: "קיבולת", value: "12 מחשבים עד 17\"" }
-        ]
-    },
-    {
-        id: "motorized-wall-mount-heavy",
-        category: "תשתיות ועגלות טעינה",
-        title: "תושבת קיר מוטורית למסכי ענק",
-        price: 3600,
-        image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800",
-        description: "מנגנון הרמה חשמלי למסכי 86\"-110\". מאפשר להתאים את גובה המסך לגיל התלמידים (יסודי/תיכון).",
-        specs: [
-            { label: "עומס מקסימלי", value: "160 ק\"ג" },
-            { label: "מהירות הרמה", value: "20 מ\"מ לשנייה" },
-            { label: "בקרה", value: "שלט קווי מובנה" },
-            { label: "התקנה", value: "VESA אקספרטיבי (עד 1200x600)" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "520 מ\"מ" },
-            { label: "עומק (מהקיר)", value: "150 מ\"מ" },
-            { label: "גובה (ניסוע)", value: "780 מ\"מ" },
-            { label: "משקל עצמי", value: "12 ק\"ג" },
-            { label: "VESA תואם", value: "עד 1,200×600 מ\"מ" }
-        ]
-    },
-    {
-        id: "cable-management-pkg-av",
-        category: "תשתיות ועגלות טעינה",
-        title: "מערך כבילה וניהול תקשורת",
-        price: 650,
-        image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=800",
-        description: "פתרון מקצועי להסתרת כבלים בכיתות חכמות. שומר על מראה נקי ומונע תקלות ניתוק בשוגג.",
-        specs: [
-            { label: "תכולה", value: "תעלות, תיבות חיבורים, שרוולים" },
-            { label: "חיבורים", value: "ממתג Keystones (HDMI/LAN)" },
-            { label: "עיצוב", value: "אלומיניום מוברש / PVC איכותי" },
-            { label: "בטיחות", value: "חסין אש ומגן ילדים" }
-        ],
-        dimensions: [
-            { label: "אורך תעלה (כל 1)", value: "2,000 מ\"מ" },
-            { label: "רוחב תעלה", value: "60 מ\"מ" },
-            { label: "עומק תעלה", value: "40 מ\"מ" },
-            { label: "משקל הסט", value: "2.4 ק\"ג" },
-            { label: "כמות תעלות בסט", value: "4 תעלות (סה\"כ 8 מטר)" }
-        ]
-    },
-    {
-        id: "mobile-stand-heavy-110",
-        category: "תשתיות ועגלות טעינה",
-        title: "בסיס נייד כבד למסכים עד 110\"",
-        price: 2200,
-        image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800",
-        description: "עגלה יציבה במיוחד למסכים הגדולים ביותר בשוק. מאפשרת העברה של מסכי 98 אינץ' בין אולמות ללא חשד להתהפכות.",
-        specs: [
-            { label: "מבנה", value: "פלדה עבת דופן (Heavy Duty)" },
-            { label: "מדפים", value: "מדף OPS ומדף מצלמה כלולים" },
-            { label: "סיבוב", value: "גלגלי 4 אינץ' עם נעילה" },
-            { label: "משקל עצמי", value: "32 ק\"ג" }
-        ],
-        dimensions: [
-            { label: "רוחב בסיס", value: "690 מ\"מ" },
-            { label: "עומק בסיס", value: "490 מ\"מ" },
-            { label: "גובה כולל", value: "1,750 מ\"מ" },
-            { label: "משקל עצמי", value: "32 ק\"ג" },
-            { label: "עומס מקסימלי", value: "160 ק\"ג" }
-        ]
-    },
-    {
-        id: "ups-institutional-guard",
-        category: "תשתיות ועגלות טעינה",
-        title: "יחידת UPS אל-פסק מוסדית",
-        price: 1450,
-        image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800",
-        description: "מגן על הציוד היקר בכיתה (מקרנים, מסכים) מפני הפסקות וקפיצות חשמל. מאפשר קירור מקרן לפני כיבוי מלא.",
-        specs: [
-            { label: "הספק", value: "2000VA / 1200W" },
-            { label: "זמן גיבוי", value: "עד 15 דקות בעומס מלא" },
-            { label: "שקעים", value: "6x IEC מוגנים" },
-            { label: "ניהול", value: "חיבור USB לכיבוי אוטומטי של המחשב" }
-        ],
-        dimensions: [
-            { label: "רוחב", value: "433 מ\"מ" },
-            { label: "עומק", value: "186 מ\"מ" },
-            { label: "גובה", value: "230 מ\"מ" },
-            { label: "משקל", value: "8.6 ק\"ג" },
-            { label: "הספק", value: "2000VA / 1200W" }
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "ממשק", value: "Wireless RF 2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "פריסת מקשים", value: "עברית / אנגלית" },
+            { label: "תאימות", value: "Windows 8 / 10 ומעלה" },
+            { label: "מידות מקלדת", value: "445×133×26.8 מ\"מ" },
+            { label: "מידות עכבר", value: "112.5×60×36.7 מ\"מ" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "ACCY CW100" }
         ]
     }
 ];
 
-// ─── Product Metadata ────────────────────────────────────────────────────────
-// sold: historical units sold (seed data — incremented in real-time by orders)
-// isNew: show "חדש" badge in storefront
-// isFeatured: show in DiscoverPage hero spotlight (only one at a time)
-// salePrice: promotional price — admin can override via AdminProducts
-export const productMeta = {
-    // Category 1: מסכים
-    "display-pro-75-uhd":           { sold: 52 },
-    "display-max-86-uhd":           { sold: 38, isFeatured: true },
-    "projector-laser-5000":         { sold: 31 },
-    "display-ultra-98-4k":          { sold: 11 },
-    "projector-short-throw":        { sold: 44 },
-    "display-flex-65-mobile":       { sold: 27 },
-    "projector-laser-7000":         { sold: 8 },
-    "display-zero-75":              { sold: 35, isNew: true },
-    "projector-led-mobile":         { sold: 61, salePrice: 1250 },
-    "display-ai-86":                { sold: 19, isNew: true },
-    // Category 2: מחשוב
-    "student-chromebook-rugged":    { sold: 89 },
-    "teacher-laptop-pro":           { sold: 42 },
-    "mini-pc-ops-modular":          { sold: 28 },
-    "tablet-rugged-stem":           { sold: 55 },
-    "laptop-media-edit":            { sold: 14 },
-    "mini-pc-zero-client":          { sold: 76 },
-    "chromebook-touch-flip":        { sold: 47, isNew: true },
-    "workstation-it-mobile":        { sold: 18 },
-    "laptop-hybrid-student":        { sold: 33 },
-    "teacher-laptop-slim":          { sold: 39 },
-    // Category 3: STEM
-    "3d-printer-pro-grade":         { sold: 22 },
-    "robotics-kit-advanced":        { sold: 48 },
-    "smart-lab-table-power":        { sold: 31 },
-    "3d-scanner-mobile-model":      { sold: 17 },
-    "robotic-arm-6-axis-edu":       { sold: 12 },
-    "science-sensors-lab-pkg":      { sold: 53 },
-    "3d-printer-industrial-size":   { sold: 4 },
-    "engineering-construction-pkg": { sold: 67, salePrice: 890 },
-    "vr-headset-classroom-set":     { sold: 29, isNew: true },
-    "laser-cutter-desktop-safe":    { sold: 9 },
-    // Category 4: אודיו/וידאו
-    "ptz-camera-tracking-4k":       { sold: 24 },
-    "voice-amp-teacher-wireless":   { sold: 78 },
-    "soundbar-classroom-120w":      { sold: 83, salePrice: 680 },
-    "videobar-aio-conference":      { sold: 36 },
-    "ceiling-array-mic-noise-cancel":{ sold: 15 },
-    "av-control-lecturer-sys":      { sold: 22 },
-    "visualizer-4k-doc-cam":        { sold: 41 },
-    "anc-headset-student-lab":      { sold: 94, salePrice: 380 },
-    "pa-portable-school-events":    { sold: 19 },
-    "ceiling-spk-sound-array":      { sold: 33 },
-    // Category 5: תשתיות
-    "charging-cart-36-devices":     { sold: 45 },
-    "smart-podium-21-touch":        { sold: 16 },
-    "charging-cart-uv-24-tab":      { sold: 37 },
-    "av-rack-secure-server":        { sold: 28 },
-    "teacher-workstation-mobile-hyd":{ sold: 52 },
-    "charging-cart-12-laptop":      { sold: 61 },
-    "motorized-wall-mount-heavy":   { sold: 24 },
-    "cable-management-pkg-av":      { sold: 88, salePrice: 549 },
-    "mobile-stand-heavy-110":       { sold: 19 },
-    "ups-institutional-guard":      { sold: 43 },
-};
-
-let products = defaultProducts;
-try {
-    const saved = localStorage.getItem('nextclass_inventory');
-    if (saved) {
-        products = JSON.parse(saved);
-    }
-} catch (e) {
-    console.error("Could not load products from local storage", e);
-}
-
-export default products;
+export default defaultProducts;

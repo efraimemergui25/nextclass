@@ -7,12 +7,16 @@ import {
     AdminInput,
     AdminTextArea,
     AdminToggle,
-    AdminButton
+    AdminButton,
+    AdminKPICard,
+    AdminSkeleton
 } from '../components/AdminComponents';
+import { hexA, accentGradient, GLASS } from '../theme/tokens';
+import DashDrillView from '../components/DashDrillView';
 import {
     Eye, Layout, Type, Image as ImageIcon, Search, Menu,
     ShoppingCart, ShoppingBag, Plus, Trash2, Save, RotateCcw, Check,
-    ChevronDown, ArrowRightLeft, ChevronRight, ExternalLink, Edit2, X,
+    ChevronDown, ArrowRightLeft, ChevronRight, ChevronLeft, ExternalLink, Edit2, X,
     Palette, Navigation, Award, Layers, LayoutGrid, UserCircle, Package,
     Ruler, Shield, Headphones, HelpCircle, Info, Clock, Phone, Compass,
     Heart, BookOpen, Bot, MessageSquare, Video, Wrench, Settings, Home,
@@ -25,6 +29,69 @@ import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
+
+// ─── Shared liquid-glass surface (token-driven — one system everywhere) ────────
+// Replaces the hand-duplicated inline glass recipe that was repeated across the page.
+const CARD_GLASS = { ...GLASS.base };
+
+// ─── Content domain accent (restrained azure brand) ────────────────────────────
+const PURPLE = '#007AFF';
+
+// ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
+function DrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => {
+                const c = s.color || '#1D1D1F';
+                return (
+                    <motion.div key={i}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="rounded-[14px] p-3 text-center"
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+}
+
+function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
+    const clickable = !!onClick;
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick}
+            tabIndex={clickable ? 0 : undefined}
+            role={clickable ? 'button' : undefined}
+            onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+        >
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+
+const DrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
+    </div>
+);
 
 // ─── Visibility Items ─────────────────────────────────────────────────────────
 const VISIBILITY_ITEMS = [
@@ -57,7 +124,7 @@ const FIELD_SECTIONS = [
         id: 'branding',
         label: 'זהות ומיתוג',
         icon: '🎨',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'site_name',          label: 'שם האתר',              type: 'text',     default: 'NextClass' },
             { key: 'site_logo_url',      label: 'לוגו (URL)',            type: 'image',    default: '' },
@@ -109,7 +176,7 @@ const FIELD_SECTIONS = [
             { key: 'hero_bg_image',    label: 'תמונת רקע',     type: 'image',    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80' },
             { key: 'hero_trust_pill_1',label: 'תג אמון 1',     type: 'text',     default: 'שירות ישיר ומהיר' },
             { key: 'hero_trust_pill_2',label: 'תג אמון 2',     type: 'text',     default: 'ייעוץ ללא עלות' },
-            { key: 'hero_trust_pill_3',label: 'תג אמון 3',     type: 'text',     default: '+500 מוסדות חינוך' },
+            { key: 'hero_trust_pill_3',label: 'תג אמון 3',     type: 'text',     default: 'אחריות יצרן מלאה' },
         ],
     },
     {
@@ -132,8 +199,8 @@ const FIELD_SECTIONS = [
         icon: '🧱',
         accent: '#FF9500',
         fields: [
-            { key: 'sp_label',       label: 'כותרת שורת המוסדות',         type: 'text',     default: 'נבחר על ידי מעל 500 מוסדות חינוך ועיריות מובילות' },
-            { key: 'sp_clients',     label: 'שמות מוסדות (מופרדים בפסיק)',  type: 'textarea', default: 'משרד החינוך, רשת אורט, עיריית תל אביב, אוניברסיטת אריאל, רשת עמל' },
+            { key: 'sp_label',       label: 'כותרת שורת המוסדות',         type: 'text',     default: 'ספק ציוד תצוגה לרשת עמל' },
+            { key: 'sp_clients',     label: 'שמות מוסדות (מופרדים בפסיק)',  type: 'textarea', default: 'רשת עמל' },
             { key: 'eco_title',      label: 'מרחב הלמידה: כותרת',          type: 'text',     default: 'למידה שיוצאת מהמסגרת' },
             { key: 'eco_desc',       label: 'מרחב הלמידה: תיאור',          type: 'textarea', default: 'חקור את אקו-סיסטם הלמידה השלם שלנו. פתרונות שמשתלבים אחד בשני ליצירת חוויה פדגוגית חלקה.' },
             { key: 'eco_eyebrow',    label: 'מרחב הלמידה: תווית Badge',    type: 'text',     default: 'האקוסיסטם שלנו' },
@@ -197,7 +264,7 @@ const FIELD_SECTIONS = [
         id: 'quote_wizard',
         label: 'אשף הצעת מחיר',
         icon: '💬',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'quote_eyebrow',        label: 'תווית עליונה',      type: 'text',     default: 'כלי חינמי' },
             { key: 'quote_title',          label: 'כותרת',             type: 'text',     default: 'בונים לכם הצעת מחיר בדקה' },
@@ -260,7 +327,7 @@ const FIELD_SECTIONS = [
         id: 'catalog_full',
         label: 'קטלוג וסינון',
         icon: '🛍️',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'catalog_title',            label: 'כותרת ראשית',         type: 'text',     default: 'הכלים שמעצבים את המחר.' },
             { key: 'catalog_subtitle',         label: 'כותרת משנה',          type: 'textarea', default: 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.' },
@@ -294,7 +361,7 @@ const FIELD_SECTIONS = [
             { key: 'catalog_inst_price_label', label: 'תווית מחיר מוסדי בכרטיס מוצר', type: 'text', default: 'מחיר מוסדי מאושר' },
             { key: 'catalog_filter_drawer_title', label: 'כותרת מגירת סינון', type: 'text',  default: 'סינון מתקדם' },
             { key: 'catalog_filter_drawer_sub',   label: 'תיאור מגירת סינון', type: 'text',  default: 'התאם את הקטלוג לצרכי המוסד שלך' },
-            { key: 'catalog_categories',       label: 'קטגוריות המוצרים (מופרדות בפסיק)', type: 'textarea', default: 'מסכים אינטראקטיביים והקרנה, מחשוב לצוות ותלמידים, מעבדות STEM ומרחבי חדשנות, אודיו ווידאו למרחבי למידה, תשתיות ועגלות טעינה' },
+            { key: 'catalog_categories',       label: 'קטגוריות המוצרים (מידע בלבד — נגזרות אוטומטית מהמוצרים)', type: 'textarea', default: 'מסכי מחשב' },
         ],
     },
     {
@@ -331,13 +398,13 @@ const FIELD_SECTIONS = [
         id: 'sidebar_sections',
         label: 'ניווט פנימי בדף מוצר',
         icon: '📋',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
     },
     {
         id: 'pd_dims_section',
         label: 'ממדים ומידות',
         icon: '📏',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'pd_dims_title',  label: 'כותרת קטע מידות',         type: 'text', default: 'מידות המוצר' },
             { key: 'pd_dims_label1', label: 'ממד 1: שם',              type: 'text', default: 'רוחב' },
@@ -385,7 +452,7 @@ const FIELD_SECTIONS = [
         id: 'pd_faq_section',
         label: 'שאלות נפוצות (FAQ)',
         icon: '❓',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'pd_faq_title', label: 'כותרת קטע שאלות',    type: 'text',     default: 'שאלות נפוצות' },
             { key: 'pd_faq_q1',   label: 'שאלה 1',              type: 'text',     default: 'מהו זמן האספקה הצפוי?' },
@@ -407,20 +474,20 @@ const FIELD_SECTIONS = [
         accent: '#FF9500',
         fields: [
             { key: 'pd_reviews_title', label: 'כותרת קטע ביקורות',    type: 'text',     default: 'חוות דעת' },
-            { key: 'pd_reviews_avg',   label: 'ממוצע דירוג (1–5)',     type: 'text',     default: '4.8' },
-            { key: 'pd_reviews_count', label: 'מספר ביקורות',          type: 'text',     default: '24' },
-            { key: 'pd_review1_name',  label: 'ביקורת 1 — שם',         type: 'text',     default: 'שרה כ.' },
-            { key: 'pd_review1_role',  label: 'ביקורת 1 — תפקיד',      type: 'text',     default: 'מורה, חט"ב גבעתיים' },
+            { key: 'pd_reviews_avg',   label: 'ממוצע דירוג (1–5)',     type: 'text',     default: '' },
+            { key: 'pd_reviews_count', label: 'מספר ביקורות',          type: 'text',     default: '' },
+            { key: 'pd_review1_name',  label: 'ביקורת 1 — שם',         type: 'text',     default: '' },
+            { key: 'pd_review1_role',  label: 'ביקורת 1 — תפקיד',      type: 'text',     default: '' },
             { key: 'pd_review1_stars', label: 'ביקורת 1 — כוכבים',     type: 'text',     default: '5' },
-            { key: 'pd_review1_text',  label: 'ביקורת 1 — טקסט',       type: 'textarea', default: 'ממש שדרגנו את הכיתה! הנוחות והמהירות מדהימים.' },
-            { key: 'pd_review2_name',  label: 'ביקורת 2 — שם',         type: 'text',     default: 'דוד מ.' },
-            { key: 'pd_review2_role',  label: 'ביקורת 2 — תפקיד',      type: 'text',     default: 'רכז טכנולוגיה, יסודי הרצליה' },
+            { key: 'pd_review1_text',  label: 'ביקורת 1 — טקסט',       type: 'textarea', default: '' },
+            { key: 'pd_review2_name',  label: 'ביקורת 2 — שם',         type: 'text',     default: '' },
+            { key: 'pd_review2_role',  label: 'ביקורת 2 — תפקיד',      type: 'text',     default: '' },
             { key: 'pd_review2_stars', label: 'ביקורת 2 — כוכבים',     type: 'text',     default: '5' },
-            { key: 'pd_review2_text',  label: 'ביקורת 2 — טקסט',       type: 'textarea', default: 'התמיכה של NextClass מעולה. התקנה מהירה, ממשק ידידותי.' },
-            { key: 'pd_review3_name',  label: 'ביקורת 3 — שם',         type: 'text',     default: 'מיכל ל.' },
-            { key: 'pd_review3_role',  label: 'ביקורת 3 — תפקיד',      type: 'text',     default: 'מנהלת בית ספר' },
+            { key: 'pd_review2_text',  label: 'ביקורת 2 — טקסט',       type: 'textarea', default: '' },
+            { key: 'pd_review3_name',  label: 'ביקורת 3 — שם',         type: 'text',     default: '' },
+            { key: 'pd_review3_role',  label: 'ביקורת 3 — תפקיד',      type: 'text',     default: '' },
             { key: 'pd_review3_stars', label: 'ביקורת 3 — כוכבים',     type: 'text',     default: '4' },
-            { key: 'pd_review3_text',  label: 'ביקורת 3 — טקסט',       type: 'textarea', default: 'השקענו בכמה מוצרים של NextClass השנה — כולם ממליצים.' },
+            { key: 'pd_review3_text',  label: 'ביקורת 3 — טקסט',       type: 'textarea', default: '' },
         ],
     },
     {
@@ -519,11 +586,11 @@ const FIELD_SECTIONS = [
         id: 'auth_modal',
         label: 'מסך הרשמה / כניסה',
         icon: '🔑',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'auth_hero_title',       label: 'כותרת פאנל הרשמה',              type: 'text',     default: 'בואו לבנות איתנו את עתיד החינוך' },
-            { key: 'auth_hero_subtitle',    label: 'תיאור קצר תחת הכותרת',          type: 'textarea', default: 'הצטרפו לקהילה של 800+ מוסדות חינוך שכבר שינו את הכיתה שלהם' },
-            { key: 'auth_hero_stat',        label: 'נתון בולט (chip ירוק)',          type: 'text',     default: '+800 מוסדות כבר כאן' },
+            { key: 'auth_hero_subtitle',    label: 'תיאור קצר תחת הכותרת',          type: 'textarea', default: 'ציוד תצוגה מקורי למוסדות חינוך, ישירות מהיבואן' },
+            { key: 'auth_hero_stat',        label: 'נתון בולט (chip ירוק)',          type: 'text',     default: 'ציוד מקורי באחריות יצרן' },
             { key: 'auth_benefits_enabled', label: 'הצג כרטיס הטבות בטופס הרשמה',  type: 'boolean',  default: false },
             { key: 'auth_benefits_title',   label: 'כותרת כרטיס הטבות',            type: 'text',     default: 'ההצטרפות חינם — היתרונות שמחכים לך' },
             { key: 'auth_benefit_1_tag',    label: 'הטבה 1: תג (לדוגמה "5%")',      type: 'text',     default: '5%' },
@@ -552,7 +619,7 @@ const FIELD_SECTIONS = [
         id: 'about_page',
         label: 'אודות',
         icon: '📖',
-        accent: '#AF52DE',
+        accent: '#0A84FF',
         fields: [
             { key: 'about_hero_label',    label: 'תווית Badge עליונה',    type: 'text',     default: '' },
             { key: 'about_hero_title',    label: 'כותרת Hero',            type: 'text',     default: 'הטכנולוגיה\nשחינוך ראוי לה.' },
@@ -564,12 +631,12 @@ const FIELD_SECTIONS = [
             { key: 'about_check_1',       label: '✓ נקודת ערך 1',        type: 'text',     default: 'ייעוץ מקצועי ומהיר — ללא עלות' },
             { key: 'about_check_2',       label: '✓ נקודת ערך 2',        type: 'text',     default: 'שירות אישי וישיר, ללא ביניים' },
             { key: 'about_check_3',       label: '✓ נקודת ערך 3',        type: 'text',     default: 'פתרונות מהדרגה הראשונה לחינוך' },
-            { key: 'about_stat1_val',     label: 'נתון 1: מספר',         type: 'text',     default: '1200' },
-            { key: 'about_stat1_label',   label: 'נתון 1: תווית',       type: 'text',     default: 'מוסדות חינוך' },
-            { key: 'about_stat2_val',     label: 'נתון 2: מספר',         type: 'text',     default: '14' },
-            { key: 'about_stat2_label',   label: 'נתון 2: תווית',       type: 'text',     default: 'שנות ניסיון' },
-            { key: 'about_stat3_val',     label: 'נתון 3: מספר',         type: 'text',     default: '98' },
-            { key: 'about_stat3_label',   label: 'נתון 3: תווית',       type: 'text',     default: '% שביעות רצון' },
+            { key: 'about_stat1_val',     label: 'נתון 1: מספר',         type: 'text',     default: '3' },
+            { key: 'about_stat1_label',   label: 'נתון 1: תווית',       type: 'text',     default: 'דגמים מובחרים' },
+            { key: 'about_stat2_val',     label: 'נתון 2: מספר',         type: 'text',     default: '100%' },
+            { key: 'about_stat2_label',   label: 'נתון 2: תווית',       type: 'text',     default: 'ציוד מקורי' },
+            { key: 'about_stat3_val',     label: 'נתון 3: מספר',         type: 'text',     default: 'עמל' },
+            { key: 'about_stat3_label',   label: 'נתון 3: תווית',       type: 'text',     default: 'שותף עסקי' },
             { key: 'about_founder_title', label: 'כותרת מסר המייסד',    type: 'text',     default: 'מקצועיות\nללא פשרות.' },
             { key: 'about_founder_message',label: 'הודעת/ציטוט המייסד', type: 'textarea', default: 'אני מנהל את NextClass כמו שהייתי רוצה שינהלו ספק שאני עובד איתו: ישירות, מהירות, ורמה שלא מתפשרת. כל שיחה, כל הצעת מחיר, כל אספקה — כולם עוברים דרכי. לא כי אין לי ברירה. כי זו ההבטחה שלי לכל לקוח.' },
             { key: 'about_founder_name',  label: 'שם המייסד',           type: 'text',     default: 'אפרים אמרגי' },
@@ -584,7 +651,7 @@ const FIELD_SECTIONS = [
             { key: 'about_v3_title',      label: 'ערך 3: כותרת',        type: 'text',     default: 'רמה מקצועית' },
             { key: 'about_v3_desc',       label: 'ערך 3: תיאור',        type: 'textarea', default: 'כל פרט נבחן. כל בחירה מבוססת. הסטנדרט שאנחנו מציבים לעצמנו גבוה ממה שהלקוח היה מבקש — כי זה הרף שאנחנו מסרבים לרדת ממנו.' },
             { key: 'about_journey_hint',  label: 'כפתור "גלה הסיפור שלנו"', type: 'text',  default: 'גלה את הסיפור שלנו' },
-            { key: 'about_edu_badge',     label: 'תג "מאושר משרד החינוך"', type: 'text',  default: 'מאושרת משרד החינוך' },
+            { key: 'about_edu_badge',     label: 'תג "מאושר משרד החינוך"', type: 'text',  default: '' },
             { key: 'about_way_title',     label: 'כותרת "הדרך שעשינו"', type: 'text',     default: 'הדרך שעשינו' },
             { key: 'about_way_desc',      label: 'תיאור "הדרך שעשינו"', type: 'text',     default: 'עשור של פריצות דרך בחינוך הישראלי.' },
             { key: 'about_founder_label', label: 'תווית "מילה מהמייסד"', type: 'text',     default: 'מילה אישית מהמייסד' },
@@ -596,20 +663,20 @@ const FIELD_SECTIONS = [
         id: 'about_timeline',
         label: 'ציר זמן אודות',
         icon: '📅',
-        accent: '#AF52DE',
+        accent: '#0A84FF',
         fields: [
             { key: 'about_tm1_year',  label: 'אירוע 1: שנה',    type: 'text',     default: '2012' },
             { key: 'about_tm1_title', label: 'אירוע 1: כותרת',  type: 'text',     default: 'ההתחלה' },
             { key: 'about_tm1_desc',  label: 'אירוע 1: תיאור',  type: 'textarea', default: 'הקמנו את NextClass עם חזון אחד ברור.' },
             { key: 'about_tm2_year',  label: 'אירוע 2: שנה',    type: 'text',     default: '2016' },
             { key: 'about_tm2_title', label: 'אירוע 2: כותרת',  type: 'text',     default: 'צמיחה' },
-            { key: 'about_tm2_desc',  label: 'אירוע 2: תיאור',  type: 'textarea', default: 'הגענו ל-200 מוסדות חינוך ברחבי ישראל.' },
+            { key: 'about_tm2_desc',  label: 'אירוע 2: תיאור',  type: 'textarea', default: 'התחלנו לספק ציוד תצוגה למוסדות רשת עמל.' },
             { key: 'about_tm3_year',  label: 'אירוע 3: שנה',    type: 'text',     default: '2020' },
             { key: 'about_tm3_title', label: 'אירוע 3: כותרת',  type: 'text',     default: 'חדשנות' },
             { key: 'about_tm3_desc',  label: 'אירוע 3: תיאור',  type: 'textarea', default: 'השקנו את פלטפורמת הניהול החכמה שלנו.' },
             { key: 'about_tm4_year',  label: 'אירוע 4: שנה',    type: 'text',     default: '2024' },
             { key: 'about_tm4_title', label: 'אירוע 4: כותרת',  type: 'text',     default: 'מנהיגות' },
-            { key: 'about_tm4_desc',  label: 'אירוע 4: תיאור',  type: 'textarea', default: '1,200 מוסדות חינוך בחרו בנו.' },
+            { key: 'about_tm4_desc',  label: 'אירוע 4: תיאור',  type: 'textarea', default: 'השקנו פלטפורמה מקוונת לרכש וניהול הזמנות.' },
         ],
     },
     {
@@ -700,7 +767,7 @@ const FIELD_SECTIONS = [
         id: 'legal',
         label: 'עמודים משפטיים',
         icon: '⚖️',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'legal_privacy_updated', label: 'תאריך עדכון — מדיניות פרטיות', type: 'text',     default: '14 במאי 2026' },
             { key: 'legal_terms_updated',   label: 'תאריך עדכון — תנאי שימוש',     type: 'text',     default: '14 במאי 2026' },
@@ -737,8 +804,8 @@ const FIELD_SECTIONS = [
         fields: [
             // ── Header ──────────────────────────────────────────────────────────
             { key: 'tst_eyebrow',      label: 'תווית Badge עליונה',  type: 'text',     default: 'לקוחות מספרים' },
-            { key: 'tst_header_title', label: 'כותרת הסקציה',        type: 'text',     default: '800+ מוסדות חינוך בחרו בנו' },
-            { key: 'tst_header_desc',  label: 'תיאור הסקציה',        type: 'textarea', default: 'מבתי ספר יסודיים ועד אוניברסיטאות — שותפות ארוכת טווח בכל שלב.' },
+            { key: 'tst_header_title', label: 'כותרת הסקציה',        type: 'text',     default: 'לקוחות מספרים' },
+            { key: 'tst_header_desc',  label: 'תיאור הסקציה',        type: 'textarea', default: 'ציוד תצוגה מקורי ואמין, במחיר הוגן ובליווי אישי.' },
             // ── Stats bar ───────────────────────────────────────────────────────
             { key: 'tst_stat1_val',    label: 'סטטיסטיקה 1: ערך',   type: 'text',     default: 'ייעוץ חינם' },
             { key: 'tst_stat1_lbl',    label: 'סטטיסטיקה 1: תווית', type: 'text',     default: 'ללא התחייבות' },
@@ -749,25 +816,25 @@ const FIELD_SECTIONS = [
             { key: 'tst_stat4_val',    label: 'סטטיסטיקה 4: ערך',   type: 'text',     default: 'מחירי יבואן' },
             { key: 'tst_stat4_lbl',    label: 'סטטיסטיקה 4: תווית', type: 'text',     default: 'ישירות ללא מתווכים' },
             // ── Testimonial 1 ───────────────────────────────────────────────────
-            { key: 'tst_1_quote',  label: 'עדות 1: ציטוט',   type: 'textarea', default: 'מאז שהתקנו את המסכים האינטראקטיביים של NextClass, רמת המעורבות של התלמידים עלתה פלאים. המורים מתלהבים, ההורים מדברים על זה — ואנחנו רואים תוצאות.' },
-            { key: 'tst_1_name',   label: 'עדות 1: שם',      type: 'text',     default: 'רחל לוי' },
-            { key: 'tst_1_role',   label: 'עדות 1: תפקיד',   type: 'text',     default: 'מנהלת בית ספר יסודי' },
-            { key: 'tst_1_school', label: 'עדות 1: מוסד',    type: 'text',     default: 'בית ספר "אורות" – תל אביב' },
+            { key: 'tst_1_quote',  label: 'עדות 1: ציטוט',   type: 'textarea', default: '' },
+            { key: 'tst_1_name',   label: 'עדות 1: שם',      type: 'text',     default: '' },
+            { key: 'tst_1_role',   label: 'עדות 1: תפקיד',   type: 'text',     default: '' },
+            { key: 'tst_1_school', label: 'עדות 1: מוסד',    type: 'text',     default: '' },
             // ── Testimonial 2 ───────────────────────────────────────────────────
-            { key: 'tst_2_quote',  label: 'עדות 2: ציטוט',   type: 'textarea', default: 'ביצענו מכרז ו-NextClass לא רק ניצחו במחיר — הם ניצחו בשירות. הייתה נוכחות אישית, ליווי מקצועי, ועמידה בכל לוחות הזמנים. נדיר.' },
-            { key: 'tst_2_name',   label: 'עדות 2: שם',      type: 'text',     default: 'מנחם כהן' },
-            { key: 'tst_2_role',   label: 'עדות 2: תפקיד',   type: 'text',     default: 'מנהל רכש עיריית רמת גן' },
-            { key: 'tst_2_school', label: 'עדות 2: מוסד',    type: 'text',     default: 'עיריית רמת גן' },
+            { key: 'tst_2_quote',  label: 'עדות 2: ציטוט',   type: 'textarea', default: '' },
+            { key: 'tst_2_name',   label: 'עדות 2: שם',      type: 'text',     default: '' },
+            { key: 'tst_2_role',   label: 'עדות 2: תפקיד',   type: 'text',     default: '' },
+            { key: 'tst_2_school', label: 'עדות 2: מוסד',    type: 'text',     default: '' },
             // ── Testimonial 3 ───────────────────────────────────────────────────
-            { key: 'tst_3_quote',  label: 'עדות 3: ציטוט',   type: 'textarea', default: 'הקמנו מעבדת STEM שלמה תוך שלושה שבועות. הצוות של NextClass הגיע לאתר, הדריך את המורים, ועד היום זמין לכל שאלה. שותפות אמיתית.' },
-            { key: 'tst_3_name',   label: 'עדות 3: שם',      type: 'text',     default: 'ד"ר יוסי אברהם' },
-            { key: 'tst_3_role',   label: 'עדות 3: תפקיד',   type: 'text',     default: 'סמנכ"ל אקדמי' },
-            { key: 'tst_3_school', label: 'עדות 3: מוסד',    type: 'text',     default: 'מכללת צפת' },
+            { key: 'tst_3_quote',  label: 'עדות 3: ציטוט',   type: 'textarea', default: '' },
+            { key: 'tst_3_name',   label: 'עדות 3: שם',      type: 'text',     default: '' },
+            { key: 'tst_3_role',   label: 'עדות 3: תפקיד',   type: 'text',     default: '' },
+            { key: 'tst_3_school', label: 'עדות 3: מוסד',    type: 'text',     default: '' },
             // ── Testimonial 4 ───────────────────────────────────────────────────
-            { key: 'tst_4_quote',  label: 'עדות 4: ציטוט',   type: 'textarea', default: 'פיתרון מקצה לקצה — ממצגת מכירות ועד ההתקנה האחרונה בכיתה. אין ספק שנמשיך לעבוד עם NextClass בכל פרויקט עתידי של הרשת.' },
-            { key: 'tst_4_name',   label: 'עדות 4: שם',      type: 'text',     default: 'שרית מזרחי' },
-            { key: 'tst_4_role',   label: 'עדות 4: תפקיד',   type: 'text',     default: 'מנהלת פדגוגית' },
-            { key: 'tst_4_school', label: 'עדות 4: מוסד',    type: 'text',     default: 'רשת אורט ישראל' },
+            { key: 'tst_4_quote',  label: 'עדות 4: ציטוט',   type: 'textarea', default: '' },
+            { key: 'tst_4_name',   label: 'עדות 4: שם',      type: 'text',     default: '' },
+            { key: 'tst_4_role',   label: 'עדות 4: תפקיד',   type: 'text',     default: '' },
+            { key: 'tst_4_school', label: 'עדות 4: מוסד',    type: 'text',     default: '' },
         ],
     },
 ];
@@ -790,7 +857,7 @@ const SECTION_GROUPS = [
         id: 'pages',
         label: 'עמודים',
         icon: '📄',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         subGroups: [
             { label: 'קטלוג ומנוע חיפוש', sections: ['catalog_full', 'search_section'] },
             { label: 'דף מוצר — פעולות וטקסטים', sections: ['product_detail', 'trust_badges'] },
@@ -856,7 +923,7 @@ const DESKTOP_GROUPS = [
         ],
     },
     {
-        id: 'dg_catalog', label: 'קטלוג', accent: '#5856D6',
+        id: 'dg_catalog', label: 'קטלוג', accent: '#5AC8FA',
         subGroups: [
             { label: null, sections: ['catalog_full', 'search_section'] },
         ],
@@ -918,7 +985,7 @@ const MOBILE_GROUPS = [
         ],
     },
     {
-        id: 'mg_nav', label: 'ניווט מובייל', accent: '#5856D6',
+        id: 'mg_nav', label: 'ניווט מובייל', accent: '#5AC8FA',
         subGroups: [
             { label: null, sections: ['mobile_menu_reorder'] },
         ],
@@ -948,7 +1015,7 @@ const MOBILE_GROUPS = [
         ],
     },
     {
-        id: 'mg_brand', label: 'מיתוג', accent: '#AF52DE',
+        id: 'mg_brand', label: 'מיתוג', accent: '#0A84FF',
         subGroups: [
             { label: null, sections: ['branding'] },
         ],
@@ -1250,7 +1317,7 @@ const VisibilitySection = ({ content, onChange }) => (
     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {VISIBILITY_ITEMS.map(item => (
             <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border transition-all"
-                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                style={{ ...CARD_GLASS }}>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
                         <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
@@ -1311,7 +1378,7 @@ const NavMenuManager = ({ showToast }) => {
                 {items.map((item) => (
                     <div key={item.id}
                         className="flex items-center gap-4 p-4 rounded-2xl border group hover:border-[#007AFF]/30 transition-colors"
-                        style={{ opacity: item.visible === false ? 0.45 : 1, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ opacity: item.visible === false ? 0.45 : 1, ...CARD_GLASS }}>
                         <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
                         <div className="flex-1 text-right">
                             <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
@@ -1376,7 +1443,7 @@ const MobileMenuManager = ({ showToast }) => {
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
                         className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#34C759]/40 transition-colors select-none"
-                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none', ...CARD_GLASS }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#34C759] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
@@ -1440,21 +1507,21 @@ const SidebarSectionManager = ({ showToast }) => {
     return (
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-2">
-                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5856D6] transition-colors font-bold">איפוס לברירת מחדל</button>
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5AC8FA] transition-colors font-bold">איפוס לברירת מחדל</button>
                 <p className="text-[11px] font-black text-[#86868B] tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
             </div>
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
-                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#5856D6]/30 transition-colors select-none"
-                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5856D6] transition-colors">
+                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#5AC8FA]/30 transition-colors select-none"
+                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none', ...CARD_GLASS }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5AC8FA] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
                         <span className="text-[#6E6E73] shrink-0">{SIDEBAR_SECTION_ICONS[item.id] || <List size={14} />}</span>
                         <div className="flex-1 text-right">
                             <input type="text" value={item.label} onChange={e => updateLabel(item.id, e.target.value)} onBlur={() => persist(itemsRef.current)}
-                                className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5856D6] focus:outline-none transition-colors text-right px-0"
+                                className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5AC8FA] focus:outline-none transition-colors text-right px-0"
                                 placeholder={item.defaultLabel} />
                             <p className="text-[10px] text-gray-400 font-mono mt-0.5">{item.id}</p>
                         </div>
@@ -1479,9 +1546,9 @@ const VideosSection = ({ showToast }) => {
             <div className="grid grid-cols-1 gap-3">
                 {videos.map(v => (
                     <div key={v.id} className="flex items-center justify-between p-3 rounded-xl border"
-                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ ...CARD_GLASS }}>
                         <div className="flex items-center gap-4">
-                            <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg" alt="" />
+                            <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg bg-gray-100" alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
                             <div className="text-right"><p className="text-sm font-bold">{v.title}</p><p className="text-[10px] text-gray-400">{v.category} • {v.duration}</p></div>
                         </div>
                         <AdminToggle value={v.visible} onChange={() => toggleVideo(v.id)} />
@@ -1542,7 +1609,7 @@ const StaticArticlesSection = ({ firestoreArticles, showToast }) => {
                         return (
                             <div key={article.id}
                                 className="flex items-center gap-3 p-3 rounded-2xl border text-right"
-                                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                                style={{ ...CARD_GLASS }}>
                                 <button
                                     onClick={() => handleImport(article)}
                                     disabled={importing === article.id}
@@ -1643,7 +1710,7 @@ const MagazineSection = ({ showToast }) => {
                     <motion.div key={a.id}
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
                         className="flex items-center gap-3 p-3 rounded-2xl border hover:border-[#007AFF]/20 transition-colors group"
-                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ ...CARD_GLASS }}>
                         {a.image && (
                             <img src={a.image} alt="" className="w-14 h-10 object-cover rounded-lg shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
                         )}
@@ -1735,12 +1802,12 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-right transition-all relative overflow-hidden"
                         style={{
                             background: isActive
-                                ? `linear-gradient(135deg, ${group.accent} 0%, ${group.accent}CC 100%)`
+                                ? `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE}CC 100%)`
                                 : 'rgba(255,255,255,0.78)',
                             backdropFilter: 'blur(24px) saturate(200%)',
                             WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                             boxShadow: isActive
-                                ? `0 8px 24px ${group.accent}35, 0 0 0 1px ${group.accent}20`
+                                ? `0 8px 24px ${PURPLE}35, 0 0 0 1px ${PURPLE}20`
                                 : '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
                             border: isActive ? 'none' : '1px solid rgba(255,255,255,0.72)',
                         }}
@@ -1752,8 +1819,8 @@ function Sidebar({ activeGroup, setActiveGroup, groups }) {
                         )}
                         <span className="shrink-0 relative z-10 w-5 h-5 flex items-center justify-center rounded-md text-[10px] font-black"
                             style={{
-                                background: isActive ? 'rgba(255,255,255,0.2)' : `${group.accent}15`,
-                                color: isActive ? 'white' : group.accent,
+                                background: isActive ? 'rgba(255,255,255,0.2)' : `${PURPLE}15`,
+                                color: isActive ? 'white' : PURPLE,
                             }}>
                             {gi + 1}
                         </span>
@@ -1805,9 +1872,9 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                 background: isOpen ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.72)',
                 backdropFilter: 'blur(24px) saturate(200%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: `1px solid ${isOpen ? sec.accent + '28' : 'rgba(255,255,255,0.72)'}`,
+                border: `1px solid ${isOpen ? PURPLE + '28' : 'rgba(255,255,255,0.72)'}`,
                 boxShadow: isOpen
-                    ? `0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1px ${sec.accent}12`
+                    ? `0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), 0 0 0 1px ${PURPLE}12`
                     : '0 1px 3px rgba(0,0,0,0.04)',
             }}
         >
@@ -1818,9 +1885,9 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
             >
                 <div
                     className="w-1 h-7 rounded-full shrink-0 transition-all duration-300"
-                    style={{ background: isOpen ? sec.accent : '#E5E5EA' }}
+                    style={{ background: isOpen ? PURPLE : '#E5E5EA' }}
                 />
-                <span className="text-[#6E6E73] shrink-0" style={{ color: isOpen ? sec.accent : undefined }}>{SECTION_ICON_COMPONENTS[sec.id] || <Settings size={13} />}</span>
+                <span className="text-[#6E6E73] shrink-0" style={{ color: isOpen ? PURPLE : undefined }}>{SECTION_ICON_COMPONENTS[sec.id] || <Settings size={13} />}</span>
                 <div className="flex-1 text-right">
                     <p className={`text-[13px] font-bold leading-snug transition-colors ${isOpen ? 'text-[#1D1D1F]' : 'text-[#3C3C43]'}`}>
                         {sec.label}
@@ -1831,14 +1898,14 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                 </div>
                 {location && (
                     <span className="hidden sm:inline-flex text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
-                        style={{ background: `${sec.accent}10`, color: sec.accent, border: `1px solid ${sec.accent}20` }}>
+                        style={{ background: `${PURPLE}10`, color: PURPLE, border: `1px solid ${PURPLE}20` }}>
                         {location}
                     </span>
                 )}
                 {badge && (
                     <span
                         className="text-[10px] font-black px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap"
-                        style={{ background: `${sec.accent}12`, color: sec.accent }}
+                        style={{ background: `${PURPLE}12`, color: PURPLE }}
                     >
                         {badge}
                     </span>
@@ -1858,7 +1925,7 @@ function SectionAccordion({ sec, isOpen, onToggle, content, onChange, onReset, s
                         transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
                         className="overflow-hidden"
                     >
-                        <div className="border-t" style={{ borderColor: `${sec.accent}15` }}>
+                        <div className="border-t" style={{ borderColor: `${PURPLE}15` }}>
                             {/* Special sections */}
                             {sec.type === 'visibility' && <VisibilitySection content={content} onChange={onChange} />}
                             {sec.type === 'menu_reorder' && <NavMenuManager showToast={showToast} />}
@@ -2037,6 +2104,13 @@ export default function AdminContent({ showToast }) {
     const [saved, setSaved] = useState(false);
     const { settings, updateGlobalSettings } = useSettings();
 
+    // ── Babushka drill stack ──────────────────────────────────────────────────
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+
     // Initialize form from live JSON settings — never from stale localStorage
     useEffect(() => {
         const allowed = new Set(Object.keys(ALL_FIELD_DEFAULTS));
@@ -2120,8 +2194,14 @@ export default function AdminContent({ showToast }) {
         setOpenSections(new Set());
     };
 
+    // Content form hydrates from live settings on mount; gate on first population
+    // so the editor never flashes empty fields before Firestore/JSON resolves.
+    const contentReady = Object.keys(content).length > 0;
+
     // ── Shared content panel ───────────────────────────────────────────────────
-    const renderContentPanel = () => (
+    const renderContentPanel = () => {
+        if (!contentReady) return <AdminSkeleton rows={6} />;
+        return (
         <>
             {/* Global Search */}
             <div className="relative">
@@ -2135,8 +2215,8 @@ export default function AdminContent({ showToast }) {
                     className="w-full pr-11 pl-10 py-3.5 rounded-2xl border text-[14px] placeholder-[#C7C7CC] focus:outline-none transition-all"
                     style={{
                         background: 'rgba(255,255,255,0.9)',
-                        borderColor: globalSearch ? '#007AFF40' : 'rgba(0,0,0,0.07)',
-                        boxShadow: globalSearch ? '0 0 0 3px rgba(0,122,255,0.08), 0 1px 4px rgba(0,0,0,0.05)' : '0 1px 4px rgba(0,0,0,0.05)',
+                        borderColor: globalSearch ? hexA(PURPLE, 0.4) : 'rgba(0,0,0,0.07)',
+                        boxShadow: globalSearch ? `0 0 0 3px ${hexA(PURPLE, 0.10)}, 0 1px 4px rgba(0,0,0,0.05)` : '0 1px 4px rgba(0,0,0,0.05)',
                     }}
                 />
                 {globalSearch && (
@@ -2221,8 +2301,8 @@ export default function AdminContent({ showToast }) {
                                                 <div className="h-px flex-1 bg-black/[0.06]" />
                                                 <span className="text-[9px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
                                                     style={{
-                                                        background: `${currentGroupDef?.accent}12`,
-                                                        color: currentGroupDef?.accent || '#86868B',
+                                                        background: `${PURPLE}12`,
+                                                        color: PURPLE,
                                                     }}>
                                                     {sub.label}
                                                 </span>
@@ -2238,7 +2318,8 @@ export default function AdminContent({ showToast }) {
                 </div>
             )}
         </>
-    );
+        );
+    };
 
     return (
         <div dir="rtl" className="space-y-5">
@@ -2249,7 +2330,7 @@ export default function AdminContent({ showToast }) {
                     {/* Hero heading */}
                     <div className="text-center space-y-2">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black tracking-widest mb-3"
-                            style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                            style={{ background: hexA(PURPLE, 0.10), color: PURPLE }}>
                             ניהול תוכן האתר
                         </div>
                         <h1 className="text-[32px] font-black text-[#1D1D1F] tracking-tight leading-none">
@@ -2269,7 +2350,7 @@ export default function AdminContent({ showToast }) {
                             whileTap={{ scale: 0.98 }}
                             className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
                             style={{
-                                background: 'linear-gradient(145deg, #007AFF 0%, #5856D6 100%)',
+                                background: 'linear-gradient(145deg, #007AFF 0%, #5AC8FA 100%)',
                                 boxShadow: '0 24px 60px rgba(0,122,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
                                 minHeight: 300,
                             }}
@@ -2312,8 +2393,8 @@ export default function AdminContent({ showToast }) {
                             whileTap={{ scale: 0.98 }}
                             className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
                             style={{
-                                background: 'linear-gradient(145deg, #FF9500 0%, #FF375F 100%)',
-                                boxShadow: '0 24px 60px rgba(255,149,0,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
+                                background: 'linear-gradient(145deg, #0A84FF 0%, #5AC8FA 100%)',
+                                boxShadow: '0 24px 60px rgba(10,132,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
                                 minHeight: 300,
                             }}
                         >
@@ -2377,7 +2458,7 @@ export default function AdminContent({ showToast }) {
                                     onClick={() => handleSelectPlatform('desktop')}
                                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
                                     style={{
-                                        background: platform === 'desktop' ? 'linear-gradient(135deg, #007AFF, #5856D6)' : 'transparent',
+                                        background: platform === 'desktop' ? 'linear-gradient(135deg, #007AFF, #5AC8FA)' : 'transparent',
                                         color: platform === 'desktop' ? 'white' : '#6E6E73',
                                         boxShadow: platform === 'desktop' ? '0 2px 8px rgba(0,122,255,0.3)' : 'none',
                                     }}
@@ -2389,9 +2470,9 @@ export default function AdminContent({ showToast }) {
                                     onClick={() => handleSelectPlatform('mobile')}
                                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
                                     style={{
-                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #FF9500, #FF375F)' : 'transparent',
+                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #0A84FF, #5AC8FA)' : 'transparent',
                                         color: platform === 'mobile' ? 'white' : '#6E6E73',
-                                        boxShadow: platform === 'mobile' ? '0 2px 8px rgba(255,149,0,0.3)' : 'none',
+                                        boxShadow: platform === 'mobile' ? '0 2px 8px rgba(10,132,255,0.3)' : 'none',
                                     }}
                                 >
                                     <Smartphone size={13} />
@@ -2415,9 +2496,9 @@ export default function AdminContent({ showToast }) {
                                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                 className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
                                 style={{
-                                    background: saved ? '#34C759' : '#007AFF',
+                                    background: saved ? '#34C759' : accentGradient(PURPLE),
                                     color: 'white',
-                                    boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : '0 4px 14px rgba(0,122,255,0.35)',
+                                    boxShadow: saved ? '0 4px 14px rgba(52,199,89,0.35)' : `0 4px 14px ${hexA(PURPLE, 0.38)}`,
                                 }}
                             >
                                 <Save size={14} />
@@ -2426,9 +2507,234 @@ export default function AdminContent({ showToast }) {
                         </div>
                     </div>
 
+                    {/* KPI band — content-management overview */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} onClick={() => openDrill({ type: 'sections' })} />
+                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5AC8FA" subtitle="ניתנים לעריכה" delay={0.05} onClick={() => openDrill({ type: 'fields' })} />
+                        <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} onClick={() => openDrill({ type: 'open' })} />
+                        <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#8E8E93" subtitle="קבוצות ניווט" delay={0.15} onClick={() => openDrill({ type: 'groups' })} />
+                    </div>
+
                     {renderContentPanel()}
                 </>
             )}
+
+            {/* ── Babushka Drill Drawer — nested glass detail view ─────────────── */}
+            {(() => {
+                const shown = drillStack[drillStack.length - 1] || null;
+                const isOpen = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+
+                if (!shown) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                // ── Section metadata helpers ──────────────────────────────────
+                const typeLabel = { text: 'טקסט', textarea: 'טקסט ארוך', image: 'תמונה', boolean: 'מתג' };
+                const sectionTypeLabel = (sec) => {
+                    if (sec.type === 'visibility') return 'נראות רכיבים';
+                    if (sec.type === 'menu_reorder' || sec.type === 'mobile_menu_reorder') return 'סידור תפריט';
+                    if (sec.type === 'videos') return 'ספריית וידאו';
+                    if (sec.type === 'magazine') return 'כתבות מגזין';
+                    if (sec.type === 'users') return 'משתמשים';
+                    return 'שדות תוכן';
+                };
+                const sectionFieldCount = (sec) => sec.type === 'visibility' ? VISIBILITY_ITEMS.length : (sec.fields?.length || 0);
+                const groupSectionCount = (g) => g.subGroups.reduce((n, sg) => n + sg.sections.length, 0);
+                const secIcon = (sec, size = 13) => SECTION_ICON_COMPONENTS[sec.id] || <FileText size={size} />;
+                const totalFields = Object.keys(ALL_FIELD_DEFAULTS).length;
+
+                // ── Navigate the editor to a section / group ──────────────────
+                const goToSection = (id) => {
+                    const grp = currentGroups.find(g => g.subGroups.some(sg => sg.sections.includes(id)));
+                    setGlobalSearch('');
+                    if (grp) {
+                        setActiveGroup(grp.id);
+                        setOpenSections(new Set([id]));
+                    } else {
+                        const sec = ALL_SECTIONS.find(s => s.id === id);
+                        if (sec) setGlobalSearch(sec.label);
+                        setOpenSections(new Set([id]));
+                    }
+                    closeDrill();
+                };
+                const goToGroup = (id) => {
+                    setGlobalSearch('');
+                    setActiveGroup(id);
+                    setOpenSections(new Set());
+                    closeDrill();
+                };
+
+                let title = '', subtitle = '', icon = null, accent = PURPLE, footer = null, body = null;
+
+                const sectionRow = (sec, i) => (
+                    <DrillRow key={sec.id} delay={i * 0.025} tone={sec.accent || PURPLE}
+                        onClick={() => pushDrill({ type: 'section', id: sec.id })}
+                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(sec.accent || PURPLE, 0.12), color: sec.accent || PURPLE }}>{secIcon(sec)}</span>}
+                        title={sec.label}
+                        subtitle={`${sectionTypeLabel(sec)}${SECTION_LOCATIONS[sec.id] ? ` · ${SECTION_LOCATIONS[sec.id]}` : ''}`}
+                        trailing={openSections.has(sec.id)
+                            ? <span className="text-[9px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA('#34C759', 0.12), color: '#1A8C40' }}>פתוח</span>
+                            : (sectionFieldCount(sec) > 0 ? <span className="text-[12px] font-black shrink-0" style={{ color: sec.accent || PURPLE }}>{sectionFieldCount(sec)}</span> : null)} />
+                );
+
+                if (shown.type === 'sections') {
+                    title = 'קטעים לעריכה'; subtitle = `${ALL_SECTIONS.length} סקציות תוכן`; accent = PURPLE;
+                    icon = <span style={{ color: PURPLE, display: 'flex' }}><Layers size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'סקציות', value: ALL_SECTIONS.length, color: PURPLE },
+                                { label: 'שדות', value: totalFields, color: '#5AC8FA' },
+                                { label: 'פתוחים', value: openSections.size, color: '#007AFF' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קטעים — לחץ לפרטים</p>
+                                {ALL_SECTIONS.map((sec, i) => sectionRow(sec, i))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'fields') {
+                    const withFields = [...FIELD_SECTIONS].sort((a, b) => (b.fields?.length || 0) - (a.fields?.length || 0));
+                    title = 'שדות תוכן'; subtitle = `${totalFields} שדות ניתנים לעריכה`; accent = '#5AC8FA';
+                    icon = <span style={{ color: '#5AC8FA', display: 'flex' }}><Type size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'שדות', value: totalFields, color: '#5AC8FA' },
+                                { label: 'סקציות עם שדות', value: FIELD_SECTIONS.length, color: PURPLE },
+                                { label: 'ממוצע לקטע', value: FIELD_SECTIONS.length ? Math.round(totalFields / FIELD_SECTIONS.length) : 0, color: '#007AFF' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">לפי מספר שדות — לחץ לפרטים</p>
+                                {withFields.map((sec, i) => sectionRow(sec, i))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'open') {
+                    const openList = ALL_SECTIONS.filter(s => openSections.has(s.id));
+                    title = 'קטעים פתוחים'; subtitle = `${openSections.size} בעריכה כעת`; accent = '#007AFF';
+                    icon = <span style={{ color: '#007AFF', display: 'flex' }}><Eye size={17} /></span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'פתוחים', value: openSections.size, color: '#007AFF' },
+                                { label: 'סה״כ קטעים', value: ALL_SECTIONS.length, color: PURPLE },
+                            ]} />
+                            {openList.length === 0
+                                ? <DrillEmpty icon={Eye} text="אין קטעים פתוחים כרגע" />
+                                : (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">פתוחים — לחץ לפרטים</p>
+                                        {openList.map((sec, i) => sectionRow(sec, i))}
+                                    </div>
+                                )}
+                        </div>
+                    );
+                } else if (shown.type === 'groups') {
+                    title = platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'; subtitle = `${currentGroups.length} קבוצות ניווט`; accent = '#8E8E93';
+                    icon = <span style={{ color: '#8E8E93', display: 'flex' }}>{platform === 'mobile' ? <Smartphone size={17} /> : <Monitor size={17} />}</span>;
+                    body = (
+                        <div className="space-y-5">
+                            <DrillStat items={[
+                                { label: 'קבוצות', value: currentGroups.length, color: PURPLE },
+                                { label: 'קטעים', value: currentGroups.reduce((n, g) => n + groupSectionCount(g), 0), color: '#5AC8FA' },
+                            ]} />
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קבוצות ניווט — לחץ לפרטים</p>
+                                {currentGroups.map((g, i) => (
+                                    <DrillRow key={g.id} delay={i * 0.03} tone={g.accent || PURPLE}
+                                        onClick={() => pushDrill({ type: 'group', id: g.id })}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(g.accent || PURPLE, 0.12), color: g.accent || PURPLE }}>{GROUP_ICON_COMPONENTS[g.id] || <Settings size={16} />}</span>}
+                                        title={g.label}
+                                        subtitle={`${g.subGroups.length} תת-קבוצות`}
+                                        trailing={g.id === activeGroup
+                                            ? <span className="text-[9px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA('#34C759', 0.12), color: '#1A8C40' }}>פעיל</span>
+                                            : <span className="text-[12px] font-black shrink-0" style={{ color: g.accent || PURPLE }}>{groupSectionCount(g)}</span>} />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                } else if (shown.type === 'group') {
+                    const grp = currentGroups.find(g => g.id === shown.id);
+                    if (grp) {
+                        accent = grp.accent || PURPLE;
+                        title = grp.label; subtitle = `${groupSectionCount(grp)} קטעים · ${grp.subGroups.length} תת-קבוצות`;
+                        icon = <span style={{ color: accent, display: 'flex' }}>{GROUP_ICON_COMPONENTS[grp.id] || <Settings size={17} />}</span>;
+                        footer = { label: `עבור אל ${grp.label}`, onClick: () => goToGroup(grp.id) };
+                        body = (
+                            <div className="space-y-5">
+                                <DrillStat items={[
+                                    { label: 'קטעים', value: groupSectionCount(grp), color: accent },
+                                    { label: 'תת-קבוצות', value: grp.subGroups.length, color: PURPLE },
+                                ]} />
+                                {grp.subGroups.map((sg, si) => (
+                                    <div key={si} className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">{sg.label || 'קטעים'}</p>
+                                        {sg.sections.map((id, i) => {
+                                            const sec = ALL_SECTIONS.find(s => s.id === id);
+                                            return sec ? sectionRow(sec, i) : null;
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    } else { title = 'קבוצה'; icon = <Settings size={17} />; body = <DrillEmpty icon={Settings} text="הקבוצה לא נמצאה" />; }
+                } else if (shown.type === 'section') {
+                    const sec = ALL_SECTIONS.find(s => s.id === shown.id);
+                    if (sec) {
+                        accent = sec.accent || PURPLE;
+                        const fCount = sectionFieldCount(sec);
+                        const loc = SECTION_LOCATIONS[sec.id] || '—';
+                        title = sec.label; subtitle = sectionTypeLabel(sec);
+                        icon = <span style={{ color: accent, display: 'flex' }}>{secIcon(sec, 17)}</span>;
+                        footer = { label: 'פתח בעורך התוכן', onClick: () => goToSection(sec.id) };
+                        body = (
+                            <div className="space-y-5">
+                                <DrillStat items={[
+                                    { label: 'שדות', value: fCount, color: accent },
+                                    { label: 'סוג', value: sectionTypeLabel(sec), color: PURPLE },
+                                    { label: 'מיקום', value: loc, color: '#8E8E93' },
+                                ]} />
+                                {sec.fields?.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">שדות הקטע</p>
+                                        {sec.fields.map((f, i) => (
+                                            <DrillRow key={f.key} delay={i * 0.02} tone={accent}
+                                                leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.12), color: accent }}><Type size={13} /></span>}
+                                                title={f.label}
+                                                subtitle={f.key}
+                                                trailing={<span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA(accent, 0.10), color: accent }}>{typeLabel[f.type] || f.type}</span>} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <DrillRow tone={accent}
+                                        leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.12), color: accent }}>{secIcon(sec)}</span>}
+                                        title={sectionTypeLabel(sec)} subtitle="קטע מותאם — נערך ישירות בעורך" />
+                                )}
+                            </div>
+                        );
+                    } else { title = 'קטע'; icon = <FileText size={17} />; body = <DrillEmpty icon={FileText} text="הקטע לא נמצא" />; }
+                } else {
+                    title = 'פרטים'; icon = <Info size={17} />;
+                    body = <DrillEmpty icon={Info} text="אין נתונים להצגה" />;
+                }
+
+                return (
+                    <DashDrillView
+                        open={isOpen}
+                        title={title}
+                        subtitle={subtitle}
+                        icon={icon}
+                        accent={accent}
+                        canBack={canBack}
+                        onBack={popDrill}
+                        onClose={closeDrill}
+                        footer={footer}
+                        levelKey={`${shown.type}:${shown.id ?? ''}:${drillStack.length}`}
+                    >
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
 
             {/* Floating unsaved-changes banner */}
             <AnimatePresence>
@@ -2447,7 +2753,8 @@ export default function AdminContent({ showToast }) {
                         <span className="w-2 h-2 rounded-full bg-[#FF9500] shrink-0" />
                         <span className="text-white text-[13px] font-bold">יש שינויים שלא נשמרו</span>
                         <button onClick={handleSave}
-                            className="px-4 py-1.5 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">
+                            className="px-4 py-1.5 rounded-xl text-[12px] font-black text-white transition-opacity hover:opacity-90"
+                            style={{ background: accentGradient(PURPLE) }}>
                             שמור עכשיו
                         </button>
                     </motion.div>

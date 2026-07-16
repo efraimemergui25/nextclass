@@ -3,8 +3,8 @@
 /**
  * ProductsContext — Single Source of Truth for the entire site.
  *
- * Reads from Firebase in real-time. productMeta overlays seed data
- * (sold counts, isNew, isFeatured, salePrice) — Firebase admin edits win.
+ * Reads the real `products` collection from Firebase in real-time, with the local
+ * seed (the 3 real monitors) as an offline fallback. No fabricated metadata.
  *
  * Exports:
  *  products         — all products (with _isBestSeller computed)
@@ -19,26 +19,29 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import defaultProducts, { productMeta } from '../data/products';
+import defaultProducts from '../data/products';
 
 const ProductsContext = createContext(null);
 
-// Module-level map: id → seed image URL (always reliable Unsplash URLs)
+// Module-level map: id → seed image URL (real manufacturer image, offline fallback)
 const seedImageById = Object.fromEntries(defaultProducts.map(p => [p.id, p.image || '']));
 
-// Merge productMeta defaults with Firebase data.
-// Firebase wins on all fields EXCEPT image: if Firebase returns an empty/missing
-// image, we restore the seed Unsplash URL so products never go imageless.
+// Neutral monitor placeholder (data-URI, always loads) — used when a product has no
+// image at all (e.g. the HP model before a real photo is uploaded), so nothing renders
+// as a broken/blank <img> anywhere on the site. `<img src="">` never fires onError.
+const GENERIC_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23F5F5F7'/%3E%3Crect x='96' y='72' width='208' height='134' rx='10' fill='%23fff' stroke='%23C7C7CC' stroke-width='6'/%3E%3Crect x='170' y='214' width='60' height='16' rx='4' fill='%23C7C7CC'/%3E%3C/svg%3E";
+
+// Normalise Firebase data. Firebase wins on all fields EXCEPT image: if Firebase
+// returns an empty/missing image we restore the seed image, and if that's also empty
+// we fall back to a neutral placeholder so a product is NEVER imageless anywhere.
 function mergeWithMeta(rawProducts) {
     return rawProducts.map(p => {
-        const meta = productMeta[p.id] || {};
         const seedImage = seedImageById[p.id] || '';
-        const resolvedImage = (p.image && p.image.trim()) ? p.image : seedImage;
+        const resolvedImage = (p.image && p.image.trim()) ? p.image : (seedImage || GENERIC_FALLBACK);
         return {
-            ...meta,
             ...p,
             image: resolvedImage,
-            _seedImage: seedImage,
+            _seedImage: seedImage || GENERIC_FALLBACK,
         };
     });
 }
@@ -71,25 +74,30 @@ export function ProductsProvider({ children }) {
         [products]
     );
 
-    // Computed ranked lists
+    // Main (non-complementary) products power the hero/rank lists; complementary
+    // accessories are surfaced only as add-ons on product pages + their own category.
+    const mainProducts = useMemo(() => activeProducts.filter(p => !p.complementary), [activeProducts]);
+    const complementaryProducts = useMemo(() => activeProducts.filter(p => p.complementary), [activeProducts]);
+
+    // Computed ranked lists (exclude complementary accessories)
     const bestSellers = useMemo(
-        () => [...activeProducts].sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 4),
-        [activeProducts]
+        () => [...mainProducts].sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 4),
+        [mainProducts]
     );
 
     const newArrivals = useMemo(
-        () => activeProducts.filter(p => p.isNew).slice(0, 4),
-        [activeProducts]
+        () => mainProducts.filter(p => p.isNew).slice(0, 4),
+        [mainProducts]
     );
 
     const dealProducts = useMemo(
-        () => activeProducts.filter(p => p.salePrice).slice(0, 4),
-        [activeProducts]
+        () => mainProducts.filter(p => p.salePrice).slice(0, 4),
+        [mainProducts]
     );
 
     const featuredProduct = useMemo(
-        () => activeProducts.find(p => p.isFeatured) || activeProducts[0] || null,
-        [activeProducts]
+        () => mainProducts.find(p => p.isFeatured) || mainProducts[0] || null,
+        [mainProducts]
     );
 
     // Add _isBestSeller flag for ProductCard badges
@@ -118,13 +126,14 @@ export function ProductsProvider({ children }) {
     const value = useMemo(() => ({
         products: productsWithBadges,
         activeProducts: activeProductsWithBadges,
+        complementaryProducts,
         bestSellers,
         newArrivals,
         dealProducts,
         featuredProduct,
         getProductById,
         getActiveProductById,
-    }), [productsWithBadges, activeProductsWithBadges, bestSellers, newArrivals, dealProducts, featuredProduct, getProductById, getActiveProductById]);
+    }), [productsWithBadges, activeProductsWithBadges, complementaryProducts, bestSellers, newArrivals, dealProducts, featuredProduct, getProductById, getActiveProductById]);
 
     return (
         <ProductsContext.Provider value={value}>

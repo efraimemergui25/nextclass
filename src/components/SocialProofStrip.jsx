@@ -5,8 +5,8 @@ import { useSettings } from '../context/SettingsContext';
 const SocialProofStrip = () => {
  const { getSetting } = useSettings();
  
- const title = getSetting('sp_label', 'נבחר על ידי מעל 500 מוסדות חינוך ועיריות מובילות');
- const clientsRaw = getSetting('sp_clients', 'משרד החינוך, רשת אורט, עיריית תל אביב, אוניברסיטת אריאל, רשת עמל');
+ const title = getSetting('sp_label', 'בין השותפים שלנו');
+ const clientsRaw = getSetting('sp_clients', 'עמל');
  
  const clients = useMemo(() => {
  return (clientsRaw || '').split(',').map(name => ({ name: name.trim(), width: "w-fit" }));

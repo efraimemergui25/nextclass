@@ -1,13 +1,14 @@
 /* eslint-disable */
 import { useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, glow } from '../theme/tokens';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STAGES = ['חדש', 'ביצירת קשר', 'בדיקת מלאי', 'הוצע מחיר', 'ממתין לאישור', 'נסגר', 'הועבר לספק', 'בדרך', 'סופק'];
 const COLORS = {
   'חדש':           '#FF3B30', 'ביצירת קשר':   '#FF9500', 'בדיקת מלאי':  '#F59E0B',
-  'הוצע מחיר':    '#007AFF', 'ממתין לאישור': '#5856D6',  'נסגר':         '#34C759',
-  'הועבר לספק':   '#0891B2', 'בדרך':          '#7C3AED',  'סופק':         '#1DB954',
+  'הוצע מחיר':    '#007AFF', 'ממתין לאישור': '#5AC8FA',  'נסגר':         '#34C759',
+  'הועבר לספק':   '#0891B2', 'בדרך':          '#0A84FF',  'סופק':         '#1DB954',
 };
 // SVG paths for stage icons (24×24 viewBox, stroke-based)
 const STAGE_ICON_PATHS = {
@@ -59,24 +60,27 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
       draggable="true"
       onDragStart={(e) => onDragStart(e, quote.id)}
       onClick={() => onOpen(quote)}
-      className="group relative cursor-pointer select-none"
+      className="group relative cursor-pointer select-none overflow-hidden"
       style={{
-        borderRadius: 16,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: `1px solid ${urgency === 'critical' ? 'rgba(255,59,48,0.35)' : 'rgba(255,255,255,0.7)'}`,
+        borderRadius: RADIUS.smCard,
+        background: 'rgba(255,255,255,0.82)',
+        backdropFilter: `blur(32px) saturate(200%)`,
+        WebkitBackdropFilter: `blur(32px) saturate(200%)`,
+        border: `1.5px solid ${urgency === 'critical' ? hexA('#FF3B30', 0.35) : 'rgba(255,255,255,0.9)'}`,
         boxShadow: urgency === 'critical'
-          ? `0 4px 16px rgba(255,59,48,0.18), 0 0 0 1px rgba(255,59,48,0.12)`
-          : '0 2px 12px rgba(0,0,0,0.07)',
+          ? `${SHADOW.md}, ${glow('#FF3B30', 0.18, 18)}, ${SHADOW.specular}`
+          : `${SHADOW.sm}, ${SHADOW.specular}`,
         padding: '10px 11px 9px',
         userSelect: 'none',
       }}
-      whileHover={{ y: -2, boxShadow: `0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${color}30` }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -3, scale: 1.02, boxShadow: `${SHADOW.lg}, 0 0 0 1px ${hexA(color, 0.3)}, ${glow(color, 0.16, 22)}, ${SHADOW.specular}` }}
+      whileTap={{ scale: 0.97 }}
     >
       {/* Top accent strip */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, borderRadius: '16px 16px 0 0', background: `linear-gradient(90deg, ${color}, ${color}60)` }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, borderRadius: `${RADIUS.smCard}px ${RADIUS.smCard}px 0 0`, background: `linear-gradient(90deg, ${color}, ${hexA(color, 0.55)})` }} />
+      {/* Corner glow orb — Heaven halo behind the glass */}
+      <div className="absolute -top-10 -left-8 w-28 h-28 rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${hexA(color, 0.16)} 0%, transparent 66%)`, filter: 'blur(4px)' }} />
 
       {/* Unread indicator */}
       {quote.unreadAdmin && (
@@ -84,7 +88,7 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
       )}
 
       {/* Header: avatar + name */}
-      <div className="flex items-start justify-between gap-2 mt-1">
+      <div className="flex items-start justify-between gap-2 mt-1 relative z-10">
         <div className="flex items-center gap-2 min-w-0">
           <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-black"
             style={{ background: `linear-gradient(135deg,${color},${color}80)` }}>
@@ -120,7 +124,7 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
 
       {/* Total amount */}
       {total > 0 && (
-        <div className="mt-2.5 flex items-center justify-between">
+        <div className="mt-2.5 flex items-center justify-between relative z-10">
           <span className="text-[11px] font-black" style={{ color }}>₪{total.toLocaleString()}</span>
           <span className="text-[9px] text-[#C7C7CC] font-mono">{quote.id?.slice(-6)}</span>
         </div>
@@ -128,7 +132,7 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
 
       {/* Items count pill */}
       {(quote.items?.length || 0) > 0 && (
-        <div className="mt-2 flex gap-1 flex-wrap">
+        <div className="mt-2 flex gap-1 flex-wrap relative z-10">
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
             style={{ background: `${color}12`, color }}>
             {quote.items.length} פריטים
@@ -146,31 +150,31 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
 }
 
 // ─── KanbanColumn ─────────────────────────────────────────────────────────────
-function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDragOver, draggingId, onNameClick }) {
+function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, onDragEnter, isDragOver, draggingId, onNameClick }) {
   const total = quotes.reduce((s, q) => s + quoteTotal(q), 0);
   const criticalCount = quotes.filter(q => urgencyLevel(q) === 'critical').length;
 
   return (
     <div
       style={{ minWidth: 210, maxWidth: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0 }}
-      onDragOver={e => e.preventDefault()}
+      onDragOver={e => { e.preventDefault(); onDragEnter?.(stage); }}
       onDrop={e => onDrop(e, stage)}
     >
       {/* Column header */}
       <motion.div
-        animate={isDragOver ? { scale: 1.02 } : { scale: 1 }}
+        animate={isDragOver ? { scale: 1.03, y: -1 } : { scale: 1, y: 0 }}
+        transition={SPRING.snappy}
         style={{
           padding: '8px 11px 9px',
-          borderRadius: 14,
+          borderRadius: RADIUS.sm,
           background: isDragOver
-            ? `${color}18`
-            : 'rgba(255,255,255,0.65)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          border: isDragOver ? `1.5px dashed ${color}` : '1px solid rgba(255,255,255,0.6)',
-          boxShadow: isDragOver ? `0 0 0 3px ${color}20, 0 4px 16px rgba(0,0,0,0.08)` : '0 2px 8px rgba(0,0,0,0.05)',
+            ? `linear-gradient(145deg, ${hexA(color, 0.18)} 0%, rgba(255,255,255,0.9) 80%)`
+            : 'rgba(255,255,255,0.7)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+          border: isDragOver ? `1.5px dashed ${color}` : '1px solid rgba(255,255,255,0.75)',
+          boxShadow: isDragOver ? `0 0 0 3px ${hexA(color, 0.16)}, ${SHADOW.md}, ${SHADOW.specular}` : `${SHADOW.sm}, ${SHADOW.specular}`,
           marginBottom: 8,
-          transition: 'all 0.15s',
         }}
       >
         <div className="flex items-center justify-between">
@@ -208,10 +212,10 @@ function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, isDra
           flex: 1,
           minHeight: 120,
           padding: isDragOver ? '6px' : '0',
-          borderRadius: 14,
-          border: isDragOver ? `1.5px dashed ${color}80` : '1.5px dashed transparent',
-          background: isDragOver ? `${color}06` : 'transparent',
-          transition: 'all 0.15s',
+          borderRadius: RADIUS.sm,
+          border: isDragOver ? `1.5px dashed ${hexA(color, 0.5)}` : '1.5px dashed transparent',
+          background: isDragOver ? hexA(color, 0.05) : 'transparent',
+          transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)',
           display: 'flex',
           flexDirection: 'column',
           gap: 7,
@@ -326,16 +330,18 @@ export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showT
 
       {/* Pipeline summary bar */}
       <div className="flex items-center gap-4 px-1 flex-wrap">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-          style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.18)' }}>
-          <span className="text-[11px] font-black text-[#007AFF]">Pipeline: ₪{totalPipeline.toLocaleString()}</span>
-        </div>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SPRING.soft}
+          className="flex items-center gap-2 px-3 py-1.5"
+          style={{ borderRadius: RADIUS.pill, background: hexA('#007AFF', 0.08), border: `1px solid ${hexA('#007AFF', 0.2)}`, boxShadow: `${glow('#007AFF', 0.1, 14)}, ${SHADOW.specular}` }}>
+          <span className="text-[11px] font-black text-[#007AFF] tracking-tight">Pipeline: ₪{totalPipeline.toLocaleString()}</span>
+        </motion.div>
         {criticalAll > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-            style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.2)' }}>
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING.soft, delay: 0.05 }}
+            className="flex items-center gap-1.5 px-3 py-1.5"
+            style={{ borderRadius: RADIUS.pill, background: hexA('#FF3B30', 0.08), border: `1px solid ${hexA('#FF3B30', 0.2)}`, boxShadow: `${glow('#FF3B30', 0.1, 14)}, ${SHADOW.specular}` }}>
             <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
             <span className="text-[11px] font-black text-[#FF3B30]">{criticalAll} הצעות זקוקות לתשומת לב</span>
-          </div>
+          </motion.div>
         )}
         <span className="text-[10px] text-[#AEAEB2] font-bold mr-auto">גרור כרטיס לעמודה אחרת לשינוי סטטוס</span>
       </div>
@@ -355,6 +361,7 @@ export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showT
             onOpen={onOpen}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
+            onDragEnter={setDragOverStage}
             isDragOver={dragOverStage === stage && draggingId !== null}
             draggingId={draggingId}
             onNameClick={onNameClick}

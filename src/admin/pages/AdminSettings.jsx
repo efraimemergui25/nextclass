@@ -2,41 +2,70 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench, Check, X } from 'lucide-react';
+import { Building2, Smartphone, Lock, Bell, Settings, PenLine, Wrench, Check, X, ShieldCheck } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle } from '../components/AdminComponents';
+import { AdminSectionHeader, AdminButton, AdminInput, AdminToggle, AdminTabs } from '../components/AdminComponents';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { useSettings } from '../../context/SettingsContext';
+import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow } from '../theme/tokens';
+import AdminSecurity from './AdminSecurity';
 
-function SettingCard({ title, Icon, accent = '#007AFF', children }) {
+// ─── Unified brand accent (restrained azure — no per-card rainbow) ─────────────
+const BRAND = '#007AFF';
+
+function SettingCard({ title, Icon, accent = BRAND, children, delay = 0 }) {
     return (
-        <div className="rounded-[22px] overflow-hidden" style={{
-            background: 'rgba(255,255,255,0.78)',
-            backdropFilter: 'blur(24px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-            border: '1px solid rgba(255,255,255,0.72)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-        }}>
-            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60)` }} />
-            <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
-                style={{ background: 'rgba(248,248,250,0.85)' }}>
+        <motion.div
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, ...SPRING.soft }}
+            whileHover={{ boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
+            className="overflow-hidden relative transition-shadow"
+            style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
+        >
+            {/* Specular top edge */}
+            <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none z-10"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
+            <div className="px-6 py-4 flex items-center justify-between"
+                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(248,248,250,0.6)' }}>
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: `${accent}14`, border: `1px solid ${accent}20` }}>
+                    style={{ background: hexA(accent, 0.12), border: `1px solid ${hexA(accent, 0.20)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
                     {Icon && <Icon size={15} style={{ color: accent }} />}
                 </div>
-                <h3 className="text-[#1D1D1F] font-black text-base">{title}</h3>
+                <h3 className="text-[#1D1D1F] font-black text-base tracking-tight">{title}</h3>
             </div>
             <div className="p-6 space-y-4">{children}</div>
-        </div>
+        </motion.div>
     );
 }
 
+const SETTINGS_TABS = [
+    { id: 'business',      label: 'עסק' },
+    { id: 'site',          label: 'אתר' },
+    { id: 'notifications', label: 'התראות' },
+    { id: 'security',      label: 'אבטחה' },
+    { id: 'maintenance',   label: 'תחזוקה' },
+];
+
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
-    const { repairProductImages, reseedDatabase } = useAdminData();
+    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, business, saveBusiness } = useAdminData();
+    // Legal identity (config/business) — feeds invoices + email footers
+    const [legal, setLegal] = useState({});
+    const [legalSaved, setLegalSaved] = useState(false);
+    useEffect(() => { setLegal(l => ({ legalName: business.legalName || '', taxId: business.taxId || '', address: business.address || '', entityLabel: business.entityLabel || '', vatRate: business.vatRate ?? 18, invoiceSeq: business.invoiceSeq ?? 1000, ...l })); }, [business]);
+    const setLg = (k, v) => setLegal(p => ({ ...p, [k]: v }));
+    const saveLegal = async () => {
+        await saveBusiness({ legalName: legal.legalName, taxId: legal.taxId, address: legal.address, entityLabel: legal.entityLabel, vatRate: Number(legal.vatRate) || 18, invoiceSeq: Number(legal.invoiceSeq) || 1000 });
+        setLegalSaved(true); setTimeout(() => setLegalSaved(false), 1500);
+    };
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     const { getSetting, updateGlobalSettings } = useSettings();
+
+    // ─── Active tab ───────────────────────────────────────────────────────────────
+    const [tab, setTab] = useState('business');
 
     // ─── PIN ────────────────────────────────────────────────────────────────────
     const [currentPin, setCurrentPin] = useState('');
@@ -87,6 +116,7 @@ export default function AdminSettings() {
         setBizInstagram(getSetting('biz_instagram',''));
         setBizFacebook(getSetting('biz_facebook',  ''));
         setBizYoutube(getSetting('biz_youtube',    ''));
+        setRevenueTarget(getSetting('monthly_revenue_target', 0)); // re-sync so saving never overwrites a real target with 0
     }, [getSetting]);
 
     const saveBiz = async () => {
@@ -158,164 +188,262 @@ export default function AdminSettings() {
 
     return (
         <div dir="rtl" className="space-y-6">
-            <AdminSectionHeader title="הגדרות" subtitle="ניהול עסק, תוכן, אבטחה ומערכת — כל שינוי מסתנכרן עם השרתים בזמן-אמת" />
+            <AdminSectionHeader title="הגדרות" subtitle="ניהול עסק, תוכן, אבטחה ומערכת — כל שינוי מסתנכרן עם השרתים בזמן-אמת" icon={Settings} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* In-page sectors — no more endless scroll */}
+            <AdminTabs tabs={SETTINGS_TABS} active={tab} onChange={setTab} id="settings-tabs" />
 
-                {/* ── Business Info ──────────────────────────────────────────── */}
-                <SettingCard title="פרטי עסק ויצירת קשר" Icon={Building2} accent="#007AFF">
-                    <AdminInput label="שם העסק" value={bizName} onChange={setBizName} />
-                    <AdminInput label="טלפון (מוצג בפוטר ובדף צור קשר)" value={bizPhone} onChange={setBizPhone} dir="ltr" placeholder="058-5856356" />
-                    <AdminInput label="WhatsApp (מספר בינלאומי, ללא +)" value={bizWhatsapp} onChange={setBizWhatsapp} dir="ltr" placeholder="972585856356" />
-                    <AdminInput label="מייל" value={bizEmail} onChange={setBizEmail} dir="ltr" placeholder="nextclass.en@gmail.com" />
-                    <AdminInput label="כתובת" value={bizAddress} onChange={setBizAddress} placeholder="בראלי 10, תל אביב" />
-                    <AdminInput label="שעות פעילות" value={bizHours} onChange={setBizHours} placeholder="ראשון–חמישי 08:00–18:00" />
-                    <AdminButton onClick={saveBiz}>
-                        {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור פרטי עסק'}
-                    </AdminButton>
-                    <p className="text-[#AEAEB2] text-xs">נשמר ב-Firestore · מתעדכן בפוטר, דף צור קשר ו-SmartConcierge</p>
-                </SettingCard>
+            {/* ══ עסק — פרטי עסק + רשתות חברתיות ══════════════════════════════ */}
+            {tab === 'business' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SettingCard title="פרטי עסק ויצירת קשר" Icon={Building2} accent={BRAND}>
+                        <AdminInput label="שם העסק" value={bizName} onChange={setBizName} />
+                        <AdminInput label="טלפון (מוצג בפוטר ובדף צור קשר)" value={bizPhone} onChange={setBizPhone} dir="ltr" placeholder="058-5856356" />
+                        <AdminInput label="WhatsApp (מספר בינלאומי, ללא +)" value={bizWhatsapp} onChange={setBizWhatsapp} dir="ltr" placeholder="972585856356" />
+                        <AdminInput label="מייל" value={bizEmail} onChange={setBizEmail} dir="ltr" placeholder="nextclass.en@gmail.com" />
+                        <AdminInput label="כתובת" value={bizAddress} onChange={setBizAddress} placeholder="בראלי 10, תל אביב" />
+                        <AdminInput label="שעות פעילות" value={bizHours} onChange={setBizHours} placeholder="ראשון–חמישי 08:00–18:00" />
+                        <AdminButton onClick={saveBiz}>
+                            {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור פרטי עסק'}
+                        </AdminButton>
+                        <p className="text-[#AEAEB2] text-xs">נשמר ב-Firestore · מתעדכן בפוטר, דף צור קשר ו-SmartConcierge</p>
+                    </SettingCard>
 
-                {/* ── Social Media ───────────────────────────────────────────── */}
-                <SettingCard title="רשתות חברתיות" Icon={Smartphone} accent="#AF52DE">
-                    <AdminInput label="Instagram (שם משתמש בלבד)" value={bizInstagram} onChange={setBizInstagram} dir="ltr" placeholder="nextclass.il" />
-                    <AdminInput label="Facebook (URL מלא או שם)" value={bizFacebook} onChange={setBizFacebook} dir="ltr" placeholder="nextclassil" />
-                    <AdminInput label="YouTube (URL ערוץ)" value={bizYoutube} onChange={setBizYoutube} dir="ltr" placeholder="@nextclass" />
-                    <AdminButton onClick={saveBiz}>
-                        {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור קישורים'}
-                    </AdminButton>
-                    <p className="text-[#AEAEB2] text-xs">מוצג בפוטר ובדף "הסיפור שלנו"</p>
-                </SettingCard>
+                    <SettingCard title="רשתות חברתיות" Icon={Smartphone} accent={BRAND}>
+                        <AdminInput label="Instagram (שם משתמש בלבד)" value={bizInstagram} onChange={setBizInstagram} dir="ltr" placeholder="nextclass.il" />
+                        <AdminInput label="Facebook (URL מלא או שם)" value={bizFacebook} onChange={setBizFacebook} dir="ltr" placeholder="nextclassil" />
+                        <AdminInput label="YouTube (URL ערוץ)" value={bizYoutube} onChange={setBizYoutube} dir="ltr" placeholder="@nextclass" />
+                        <AdminButton onClick={saveBiz}>
+                            {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור קישורים'}
+                        </AdminButton>
+                        <p className="text-[#AEAEB2] text-xs">מוצג בפוטר ובדף "הסיפור שלנו"</p>
+                    </SettingCard>
 
-                {/* ── Security / PIN ────────────────────────────────────────── */}
-                <SettingCard title="אבטחה — שינוי PIN" Icon={Lock} accent="#5856D6">
-                    <AdminInput label="PIN נוכחי" type="password" value={currentPin} onChange={setCurrentPin} placeholder="••••" dir="ltr" />
-                    <AdminInput label="PIN חדש (מינימום 4 ספרות)" type="password" value={newPin} onChange={setNewPin} placeholder="••••" dir="ltr" />
-                    <AdminInput label="אישור PIN חדש" type="password" value={confirmPin} onChange={setConfirmPin} placeholder="••••" dir="ltr" />
-                    {pinStatus && (
-                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                            className="text-sm font-bold text-right"
-                            style={{ color: pinStatus === 'success' ? '#34C759' : '#FF3B30' }}>
-                            {pinStatus === 'success' && <span className="flex items-center gap-1 justify-end"><Check size={13} /> קוד הגישה עודכן בהצלחה</span>}
-                            {pinStatus === 'wrong'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד הגישה הנוכחי שגוי</span>}
-                            {pinStatus === 'error'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> הקודים החדשים אינם תואמים</span>}
-                            {pinStatus === 'short'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד חדש קצר מדי (מינימום 4)</span>}
-                        </motion.p>
-                    )}
-                    <AdminButton onClick={handlePinChange} variant="outline">עדכן קוד גישה</AdminButton>
-                </SettingCard>
-
-                {/* ── Notifications ─────────────────────────────────────────── */}
-                <SettingCard title="התראות מערכת" Icon={Bell} accent="#FF9500">
-                    <div className="space-y-4">
-                        <AdminToggle label="הזמנות חדשות" sub="קבל התראה על כל הזמנה נכנסת" value={notifOrders} onChange={setNotifOrders} />
-                        <AdminToggle label="מלאי נמוך" sub="התראה כאשר מוצר מתחת לסף" value={notifLowStock} onChange={setNotifLowStock} />
-                        <AdminToggle label="פניות לקוחות" sub="התראה על פנייה חדשה מהאתר" value={notifContacts} onChange={setNotifContacts} />
-                    </div>
-                </SettingCard>
-
-                {/* ── Site Toggles ──────────────────────────────────────────── */}
-                <SettingCard title="הגדרות אתר" Icon={Settings} accent="#34C759">
-                    <div className="space-y-4">
-                        <AdminToggle
-                            label="מצב תחזוקה"
-                            sub="הצג עמוד 'בקרוב' לכל המבקרים"
-                            value={maintenanceMode}
-                            onChange={v => setSiteSetting('maintenance_mode', v)}
-                        />
-                        <AdminToggle
-                            label="הצג מחירים"
-                            sub="הצג מחירי מוצרים בקטלוג"
-                            value={showPrices}
-                            onChange={v => setSiteSetting('show_prices', v)}
-                        />
-                        <AdminToggle
-                            label="אפשר הזמנות"
-                            sub="לקוחות יכולים להשלים רכישות"
-                            value={allowOrders}
-                            onChange={v => setSiteSetting('allow_orders', v)}
-                        />
-                    </div>
-                    {/* Monthly revenue target */}
-                    <div className="pt-4 border-t border-black/06">
-                        <p className="text-[13px] font-black text-[#1D1D1F] mb-1">יעד הכנסות חודשי</p>
-                        <p className="text-[11px] text-[#86868B] mb-3 font-medium">משמש ב-GoalRing בדשבורד. ריק = חישוב אוטומטי (×1.5 מהחודש הקודם).</p>
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-1">
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-black text-[#86868B]">₪</span>
-                                <input
-                                    type="number"
-                                    value={revenueTarget || ''}
-                                    onChange={e => setRevenueTarget(Number(e.target.value) || 0)}
-                                    placeholder="ריק = אוטומטי"
-                                    min="0"
-                                    dir="ltr"
-                                    className="w-full rounded-xl pr-8 pl-4 py-2.5 text-sm font-bold text-[#1D1D1F] outline-none transition-all"
-                                    style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.10)', fontFamily: 'Heebo, sans-serif' }}
-                                    onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.09)'; }}
-                                    onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.10)'; e.target.style.boxShadow = 'none'; }}
-                                />
-                            </div>
-                            <AdminButton onClick={() => {
-                                setSiteSetting('monthly_revenue_target', revenueTarget);
-                                showToast(revenueTarget > 0 ? `יעד עודכן: ₪${revenueTarget.toLocaleString()}` : 'יעד אוטומטי הופעל', 'success');
-                            }} size="sm">שמור יעד</AdminButton>
+                    <SettingCard title="זהות משפטית וחשבוניות" Icon={Building2} accent={BRAND}>
+                        <AdminInput label="שם משפטי (כפי שרשום ברשות המסים)" value={legal.legalName || ''} onChange={v => setLg('legalName', v)} placeholder="נקסט קלאס בע״מ" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="ע.מ / ח.פ" value={legal.taxId || ''} onChange={v => setLg('taxId', v)} dir="ltr" placeholder="510942360" />
+                            <AdminInput label="מעמד" value={legal.entityLabel || ''} onChange={v => setLg('entityLabel', v)} placeholder="חברה בע״מ" />
                         </div>
-                    </div>
-                    <p className="text-[#AEAEB2] text-xs">שינויים נכנסים לתוקף מיידי דרך Firestore</p>
-                </SettingCard>
-
-                {/* ── Catalog & Content ─────────────────────────────────────── */}
-                <SettingCard title="תוכן קטלוג ואתר" Icon={PenLine} accent="#FF9500">
-                    <AdminInput label="כותרת ראשית (עמוד קטלוג)" value={catTitle} onChange={setCatTitle} />
-                    <AdminInput label="תת-כותרת" value={catSubtitle} onChange={setCatSubtitle} rows={2} />
-                    <AdminInput label="תווית Badge" value={catBadge} onChange={setCatBadge} placeholder="הקטלוג המוסדי" />
-                    <AdminInput label="שם קטגוריה 'הכל'" value={catAllCat} onChange={setCatAllCat} placeholder="הכל" />
-                    <AdminInput label="טקסט פס הכרזה (ריק = ללא)" value={announcText} onChange={setAnnouncText} placeholder="משלוח חינם מעל ₪500..." />
-                    <AdminButton onClick={saveContent}>
-                        {contentSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור תוכן'}
-                    </AdminButton>
-                    <p className="text-[#AEAEB2] text-xs">מסתנכרן עם Firestore · תוצאות נראות מיידית</p>
-                </SettingCard>
-
-                {/* ── System Maintenance ────────────────────────────────────── */}
-                <SettingCard title="תחזוקת מערכת" Icon={Wrench} accent="#8E8E93">
-                    <div className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                            <AdminButton variant="outline" onClick={async () => {
-                                const count = await repairProductImages();
-                                showToast(count > 0 ? `תוקנו ${count} תמונות מוצרים` : 'כל התמונות תקינות', count > 0 ? 'success' : 'info');
-                            }}>תיקון תמונות שבורות</AdminButton>
-                            <p className="text-[10px] text-[#AEAEB2]">משווה תמונות ב-Firebase לקובץ המקור ומתקן שוני.</p>
+                        <AdminInput label="כתובת (לחשבונית)" value={legal.address || ''} onChange={v => setLg('address', v)} placeholder="אזור התעשייה 100, רמלה" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="מע״מ %" type="number" value={legal.vatRate ?? 18} onChange={v => setLg('vatRate', v)} dir="ltr" />
+                            <AdminInput label="מונה חשבוניות (הבא = +1)" type="number" value={legal.invoiceSeq ?? 1000} onChange={v => setLg('invoiceSeq', v)} dir="ltr" />
                         </div>
-                        <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
-                            <AdminButton variant="ghost" onClick={async () => {
-                                if (confirm('האם אתה בטוח? פעולה זו תעדכן את כל שדות המוצרים (למעט מלאי ומכירות) לפי קובץ המקור.')) {
-                                    await reseedDatabase();
-                                    showToast('בסיס הנתונים סונכרן מחדש בהצלחה', 'success');
-                                }
-                            }}>סנכרון מלא מחדש (Reseed)</AdminButton>
-                            <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף מהמקור. שומר על מלאי ומכירות קיימים.</p>
-                        </div>
-                    </div>
-                </SettingCard>
-            </div>
-
-            {/* Session / Logout */}
-            <div className="rounded-[20px] p-6 flex items-center justify-between"
-                style={{
-                    background: 'rgba(255,255,255,0.78)',
-                    backdropFilter: 'blur(24px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                    border: '1px solid rgba(255,59,48,0.18)',
-                    boxShadow: '0 8px 32px rgba(255,59,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95)',
-                }}>
-                <AdminButton variant="danger" onClick={logout}>יציאה מהמערכת</AdminButton>
-                <div className="text-right">
-                    <p className="text-[#1D1D1F] font-black text-sm">סיום Session</p>
-                    <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת · נתונים ב-Firestore</p>
+                        <AdminButton onClick={saveLegal}>
+                            {legalSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור זהות משפטית'}
+                        </AdminButton>
+                        <p className="text-[#AEAEB2] text-xs">מוזן אוטומטית לכל חשבונית מס ולפוטר של כל המיילים · מונה חשבוניות רץ נשמר אוטומטית עם כל הנפקה</p>
+                    </SettingCard>
                 </div>
-            </div>
+            )}
+
+            {/* ══ אתר — הגדרות אתר + תוכן קטלוג ═══════════════════════════════ */}
+            {tab === 'site' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SettingCard title="הגדרות אתר" Icon={Settings} accent={BRAND}>
+                        <div className="space-y-4">
+                            <AdminToggle
+                                label="מצב תחזוקה"
+                                sub="הצג עמוד 'בקרוב' לכל המבקרים"
+                                value={maintenanceMode}
+                                onChange={v => setSiteSetting('maintenance_mode', v)}
+                            />
+                            <AdminToggle
+                                label="הצג מחירים"
+                                sub="הצג מחירי מוצרים בקטלוג"
+                                value={showPrices}
+                                onChange={v => setSiteSetting('show_prices', v)}
+                            />
+                            <AdminToggle
+                                label="אפשר הזמנות"
+                                sub="לקוחות יכולים להשלים רכישות"
+                                value={allowOrders}
+                                onChange={v => setSiteSetting('allow_orders', v)}
+                            />
+                        </div>
+                        {/* Monthly revenue target */}
+                        <div className="pt-4 border-t border-black/06">
+                            <p className="text-[13px] font-black text-[#1D1D1F] mb-1">יעד הכנסות חודשי</p>
+                            <p className="text-[11px] text-[#86868B] mb-3 font-medium">משמש ב-GoalRing בדשבורד. ריק = חישוב אוטומטי (×1.5 מהחודש הקודם).</p>
+                            <div className="flex items-center gap-3">
+                                <div className="relative flex-1">
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-black text-[#86868B]">₪</span>
+                                    <input
+                                        type="number"
+                                        value={revenueTarget || ''}
+                                        onChange={e => setRevenueTarget(Number(e.target.value) || 0)}
+                                        placeholder="ריק = אוטומטי"
+                                        min="0"
+                                        dir="ltr"
+                                        className="w-full rounded-xl pr-8 pl-4 py-2.5 text-sm font-bold text-[#1D1D1F] outline-none transition-all"
+                                        style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.10)', fontFamily: 'Heebo, sans-serif' }}
+                                        onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.09)'; }}
+                                        onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.10)'; e.target.style.boxShadow = 'none'; }}
+                                    />
+                                </div>
+                                <AdminButton onClick={() => {
+                                    setSiteSetting('monthly_revenue_target', revenueTarget);
+                                    showToast(revenueTarget > 0 ? `יעד עודכן: ₪${revenueTarget.toLocaleString()}` : 'יעד אוטומטי הופעל', 'success');
+                                }} size="sm">שמור יעד</AdminButton>
+                            </div>
+                        </div>
+                        <p className="text-[#AEAEB2] text-xs">שינויים נכנסים לתוקף מיידי דרך Firestore</p>
+                    </SettingCard>
+
+                    <SettingCard title="תוכן קטלוג ואתר" Icon={PenLine} accent={BRAND}>
+                        <AdminInput label="כותרת ראשית (עמוד קטלוג)" value={catTitle} onChange={setCatTitle} />
+                        <AdminInput label="תת-כותרת" value={catSubtitle} onChange={setCatSubtitle} rows={2} />
+                        <AdminInput label="תווית Badge" value={catBadge} onChange={setCatBadge} placeholder="הקטלוג המוסדי" />
+                        <AdminInput label="שם קטגוריה 'הכל'" value={catAllCat} onChange={setCatAllCat} placeholder="הכל" />
+                        <AdminInput label="טקסט פס הכרזה (ריק = ללא)" value={announcText} onChange={setAnnouncText} placeholder="משלוח חינם מעל ₪500..." />
+                        <AdminButton onClick={saveContent}>
+                            {contentSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור תוכן'}
+                        </AdminButton>
+                        <p className="text-[#AEAEB2] text-xs">מסתנכרן עם Firestore · תוצאות נראות מיידית</p>
+                    </SettingCard>
+                </div>
+            )}
+
+            {/* ══ התראות — התראות מערכת ══════════════════════════════════════ */}
+            {tab === 'notifications' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SettingCard title="התראות מערכת" Icon={Bell} accent={BRAND}>
+                        <div className="space-y-4">
+                            <AdminToggle label="הזמנות חדשות" sub="קבל התראה על כל הזמנה נכנסת" value={notifOrders} onChange={setNotifOrders} />
+                            <AdminToggle label="מלאי נמוך" sub="התראה כאשר מוצר מתחת לסף" value={notifLowStock} onChange={setNotifLowStock} />
+                            <AdminToggle label="פניות לקוחות" sub="התראה על פנייה חדשה מהאתר" value={notifContacts} onChange={setNotifContacts} />
+                        </div>
+                    </SettingCard>
+                </div>
+            )}
+
+            {/* ══ אבטחה — שינוי PIN + סיום Session ═══════════════════════════ */}
+            {tab === 'security' && (
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <SettingCard title="אבטחה — שינוי PIN" Icon={Lock} accent={BRAND}>
+                            <AdminInput label="PIN נוכחי" type="password" value={currentPin} onChange={setCurrentPin} placeholder="••••" dir="ltr" />
+                            <AdminInput label="PIN חדש (מינימום 4 ספרות)" type="password" value={newPin} onChange={setNewPin} placeholder="••••" dir="ltr" />
+                            <AdminInput label="אישור PIN חדש" type="password" value={confirmPin} onChange={setConfirmPin} placeholder="••••" dir="ltr" />
+                            {pinStatus && (
+                                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    className="text-sm font-bold text-right"
+                                    style={{ color: pinStatus === 'success' ? '#34C759' : '#FF3B30' }}>
+                                    {pinStatus === 'success' && <span className="flex items-center gap-1 justify-end"><Check size={13} /> קוד הגישה עודכן בהצלחה</span>}
+                                    {pinStatus === 'wrong'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד הגישה הנוכחי שגוי</span>}
+                                    {pinStatus === 'error'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> הקודים החדשים אינם תואמים</span>}
+                                    {pinStatus === 'short'   && <span className="flex items-center gap-1 justify-end"><X size={13} /> קוד חדש קצר מדי (מינימום 4)</span>}
+                                </motion.p>
+                            )}
+                            <AdminButton onClick={handlePinChange} variant="outline">עדכן קוד גישה</AdminButton>
+                        </SettingCard>
+                    </div>
+
+                    {/* Session / Logout — danger tone kept (semantic) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={SPRING.soft}
+                        className="p-6 flex items-center justify-between relative overflow-hidden"
+                        style={{
+                            ...GLASS.base,
+                            borderRadius: RADIUS.card,
+                            border: `1px solid ${hexA('#FF3B30', 0.18)}`,
+                            boxShadow: `${SHADOW.md}, ${SHADOW.specular}`,
+                        }}>
+                        <AdminButton variant="danger" onClick={logout}>יציאה מהמערכת</AdminButton>
+                        <div className="text-right">
+                            <p className="text-[#1D1D1F] font-black text-sm">סיום Session</p>
+                            <p className="text-[#AEAEB2] text-xs">Session בת 8 שעות · כל פעולה מתועדת · נתונים ב-Firestore</p>
+                        </div>
+                    </motion.div>
+
+                    {/* ── יומן אבטחה — live Firestore event log (folded-in AdminSecurity) ── */}
+                    <div className="pt-2">
+                        <div className="flex items-center gap-2 mb-4 px-1">
+                            <div className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
+                                style={{ background: hexA(BRAND, 0.12), border: `1px solid ${hexA(BRAND, 0.20)}` }}>
+                                <ShieldCheck size={14} style={{ color: BRAND }} />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-[#1D1D1F] font-black text-base tracking-tight leading-none">יומן אבטחה</h3>
+                                <p className="text-[#AEAEB2] text-[11px] font-medium mt-0.5">ניטור אירועי אבטחה בזמן-אמת מתוך Firestore · מתרענן כל 30 שניות</p>
+                            </div>
+                        </div>
+                        <AdminSecurity embedded />
+                    </div>
+                </>
+            )}
+
+            {/* ══ תחזוקה — תחזוקת מערכת + ניקוי להשקה ═══════════════════════ */}
+            {tab === 'maintenance' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SettingCard title="תחזוקת מערכת" Icon={Wrench} accent={BRAND}>
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                                <AdminButton variant="outline" onClick={async () => {
+                                    const count = await repairProductImages();
+                                    showToast(count > 0 ? `תוקנו ${count} תמונות מוצרים` : 'כל התמונות תקינות', count > 0 ? 'success' : 'info');
+                                }}>תיקון תמונות שבורות</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">משווה תמונות ב-Firebase לקובץ המקור ומתקן שוני.</p>
+                            </div>
+                            <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                                <AdminButton variant="ghost" onClick={async () => {
+                                    if (await confirm({ title: 'סנכרון מלא מחדש?', message: 'פעולה זו תעדכן את כל שדות המוצרים (למעט מלאי ומכירות) לפי קובץ המקור.', confirmLabel: 'סנכרן', danger: true })) {
+                                        await reseedDatabase();
+                                        showToast('בסיס הנתונים סונכרן מחדש בהצלחה', 'success');
+                                    }
+                                }}>סנכרון מלא מחדש (Reseed)</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">עדכון מקיף מהמקור. שומר על מלאי ומכירות קיימים.</p>
+                            </div>
+                        </div>
+                    </SettingCard>
+
+                    <SettingCard title="ניקוי להשקה (Launch Cleanup)" Icon={Wrench} accent={BRAND}>
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                                <AdminButton variant="outline" onClick={async () => {
+                                    if (await confirm({ title: 'לאפס את התוכן השיווקי לברירת מחדל נקייה?', message: 'הפעולה מסירה נתונים פקטיביים שהוזנו בעבר (המלצות, סטטיסטיקות, שותפים, ביקורות, טיימליין). הגדרות אמיתיות (טלפונים, מתגים) לא ייפגעו.', confirmLabel: 'אפס', danger: true })) {
+                                        try {
+                                            const n = await resetMarketingContent();
+                                            showToast(`תוכן שיווקי נוקה — ${n} שדות אופסו לברירת מחדל נקייה`, 'success');
+                                        } catch (e) { showToast('שגיאה בניקוי התוכן', 'error'); }
+                                    }
+                                }}>אפס תוכן שיווקי לברירת מחדל נקייה</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">מסיר מה-Firestore החי המלצות, סטטיסטיקות ושותפים פקטיביים. בטוח — לא נוגע בהגדרות אמיתיות.</p>
+                            </div>
+                            <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                                <AdminButton variant="danger" onClick={async () => {
+                                    if (await confirm({ title: 'אזהרה: לאפס את הקטלוג ל-3 המסכים בלבד?', message: 'פעולה זו תמחק את כל המוצרים בבסיס הנתונים ותטען מחדש רק את 3 המסכים האמיתיים.\n\nמוצרים שהוספת (כולל תמונות שהעלית) יוחלפו בנתוני המקור. השתמש רק אם יש מוצרי דמו ישנים לנקות.', confirmLabel: 'אפס קטלוג', danger: true })) {
+                                        try {
+                                            const r = await wipeAndReseedCatalog();
+                                            showToast(`הקטלוג אופס: נמחקו ${r.removed}, נטענו ${r.seeded} מסכים אמיתיים`, 'success');
+                                        } catch (e) { showToast('שגיאה באיפוס הקטלוג', 'error'); }
+                                    }
+                                }}>אפס קטלוג ל-3 המסכים בלבד</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">מוחק את כל המוצרים וטוען מחדש 3 מסכים אמיתיים. לאחר מכן אפשר לערוך פרטים ולהעלות תמונות אמיתיות ב"מוצרים".</p>
+                            </div>
+                            <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                                <AdminButton variant="danger" onClick={async () => {
+                                    if (await confirm({ title: 'למחוק את כל נתוני הדמו מהדשבורד?', message: 'נמחק: הזמנות, הצעות מחיר, לידים, אנשי קשר, לקוחות, שאלות, ניוזלטר, יומן פעילות, צפיות, מיילים ממתינים, קופונים, לוגים.\nלא ייגע: מלאי, ספקים, הצעות ספקים.\n\nפעולה בלתי הפיכה.', confirmLabel: 'מחק', danger: true })) {
+                                        try { const n = await purgeDemoData(); showToast(`נמחקו ${n} רשומות דמו מהדשבורד`, 'success'); }
+                                        catch (err) { showToast('שגיאה במחיקת נתוני הדמו', 'error'); }
+                                    }
+                                }}>מחק נתוני דמו מהדשבורד</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">מנקה הזמנות/לקוחות/אנליטיקות דמו. שומר על מלאי, ספקים והצעות ספקים.</p>
+                            </div>
+                            <div className="border-t border-black/06 pt-4 flex flex-col gap-2">
+                                <AdminButton variant="outline" onClick={async () => {
+                                    if (await confirm({ title: 'ליצור את ההזמנה הראשונה מ-PO של עמל (#80363169) ולשמור אותה בכספת?', message: '2× מסך ASUS VA279QG-J 27", סה"כ ₪885 כולל מע"מ.', confirmLabel: 'צור הזמנה', danger: true })) {
+                                        try { await createAmalFirstOrder(); showToast('ההזמנה הראשונה (PO עמל 80363169) נוצרה ונשמרה בכספת ✓', 'success'); }
+                                        catch (err) { showToast('שגיאה ביצירת ההזמנה: ' + err.message, 'error'); }
+                                    }
+                                }}>צור הזמנה ראשונה מ-PO עמל (#80363169)</AdminButton>
+                                <p className="text-[10px] text-[#AEAEB2]">יוצר את ההזמנה הראשונה בפייפליין (הצעות מחיר) עם כל פרטי ה-PO, ושומר מסמך בכספת. פעולה חד-פעמית.</p>
+                            </div>
+                        </div>
+                    </SettingCard>
+                </div>
+            )}
 
             <div className="text-center">
                 <p className="text-[#AEAEB2] text-xs">NextClass Admin v2.0 · React + Vite + Firebase · 2026</p>

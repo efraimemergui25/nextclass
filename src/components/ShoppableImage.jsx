@@ -7,13 +7,7 @@ import { useProducts } from '../context/ProductsContext';
 import useCartPop from '../hooks/useCartPop';
 import { ShoppingCart, ArrowLeft, Check } from 'lucide-react';
 
-// Maps hotspot IDs to real product IDs from the catalog
-const HOTSPOT_PRODUCT_MAP = {
- "touch-pro-75": "display-pro-75-uhd",
- "pc-staff-setup": "laptop-teacher-i7",
- "edu-edit-basic": "stem-kit-basic",
-};
-
+// Hotspot anchor points on the image; each maps to a REAL catalog monitor by index.
 const RAW_HOTSPOTS = [
  { id: "touch-pro-75", x: "48%", y: "35%", direction: "top" },
  { id: "pc-staff-setup", x: "72%", y: "65%", direction: "top" },
@@ -26,13 +20,14 @@ function PopupCartBtn({ product }) {
  const { state, trigger } = useCartPop();
  const isInCart = (cartItems ?? []).some(i => i.id === product?.id);
 
- if (!product) return null;
-
  const handleAdd = useCallback((e) => {
  e.preventDefault();
  e.stopPropagation();
  if (!isInCart) trigger(() => addToCart(product))();
  }, [isInCart, product, addToCart, trigger]);
+
+ // Early return AFTER all hooks (rules-of-hooks).
+ if (!product) return null;
 
  return (
  <motion.button
@@ -66,12 +61,10 @@ const ShoppableImage = () => {
  bgImage: getSetting('shop_bg_image', 'https://images.unsplash.com/photo-1588702545911-5f940bb36109?q=80&w=2000&auto=format&fit=crop'),
  };
 
- // Enrich hotspots with product data
- const hotspots = RAW_HOTSPOTS.map(spot => {
- const productId = HOTSPOT_PRODUCT_MAP[spot.id];
- const product = activeProducts.find(p => p.id === productId) || activeProducts[0];
- return { ...spot, product };
- });
+ // Map each hotspot to a distinct real catalog product (by index).
+ const hotspots = RAW_HOTSPOTS
+ .slice(0, activeProducts.length)
+ .map((spot, i) => ({ ...spot, product: activeProducts[i] }));
 
  return (
  <section className="w-full bg-[#F5F5F7] py-10 sm:py-14 px-6 md:px-12">

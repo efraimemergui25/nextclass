@@ -3,11 +3,13 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
+import { GLASS, RADIUS, SHADOW, SPRING, hexA, glow, PALETTE } from '../theme/tokens';
 
 // ─── Page meta ───────────────────────────────────────────────────────────────
 const PAGE_META = {
   '/admin/dashboard':       { label: 'לוח בקרה',     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  '/admin/orders':          { label: 'הצעות מחיר',   icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  '/admin/orders':          { label: 'מרכז ההזמנות', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  '/admin/order-hub':       { label: 'מרכז ההזמנות', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
   '/admin/products':        { label: 'מוצרים',        icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   '/admin/inventory':       { label: 'מלאי',           icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8' },
   '/admin/customers':       { label: 'פניות לקוחות',  icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z' },
@@ -66,7 +68,7 @@ function SearchModal({ onClose }) {
     },
     {
       label: 'עבור לאנליטיקס', sub: 'ניווט', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-      color: '#5856D6', tags: ['analytics','אנליטיקס','דוחות','ניווט'],
+      color: '#5AC8FA', tags: ['analytics','אנליטיקס','דוחות','ניווט'],
       action: () => { navigate('/admin/analytics'); onClose(); },
     },
     {
@@ -76,7 +78,7 @@ function SearchModal({ onClose }) {
     },
     {
       label: 'עבור לספקים', sub: 'ניווט', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
-      color: '#AF52DE', tags: ['suppliers','ספקים','ניווט'],
+      color: '#0A84FF', tags: ['suppliers','ספקים','ניווט'],
       action: () => { navigate('/admin/suppliers'); onClose(); },
     },
     {
@@ -144,7 +146,7 @@ function SearchModal({ onClose }) {
     if (e.key === 'Enter' && displayList[active]) displayList[active].action();
   };
 
-  const typeColor = { product: '#007AFF', order: '#FF9500', contact: '#5856D6' };
+  const typeColor = { product: '#007AFF', order: '#FF9500', contact: '#5AC8FA' };
   const typeLabel = { product: 'מוצר', order: 'הזמנה', contact: 'פנייה' };
 
   const QUICK = [
@@ -172,7 +174,7 @@ function SearchModal({ onClose }) {
         {/* Input */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{ borderBottom: `1px solid ${isActionMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
           <motion.div
-            animate={{ background: isActionMode ? 'linear-gradient(135deg,#FF9500,#FF3B30)' : 'linear-gradient(135deg,#007AFF,#5856D6)' }}
+            animate={{ background: isActionMode ? 'linear-gradient(135deg,#FF9500,#FF3B30)' : 'linear-gradient(135deg,#007AFF,#5AC8FA)' }}
             transition={{ duration: 0.3 }}
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ boxShadow: isActionMode ? '0 4px 12px rgba(255,149,0,0.35)' : '0 4px 12px rgba(0,122,255,0.30)' }}
@@ -242,7 +244,7 @@ function SearchModal({ onClose }) {
                   onClick={q.action}
                   className="flex items-center gap-3 px-4 py-3 rounded-[14px] text-right transition-colors"
                   style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.10))' }}>
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(90,200,250,0.10))' }}>
                     <svg className="w-3.5 h-3.5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d={q.icon} /></svg>
                   </span>
                   <span className="text-[#1D1D1F] text-xs font-bold">{q.label}</span>
@@ -310,8 +312,9 @@ function SearchModal({ onClose }) {
 function NotificationsPanel({ kpis, orders, onClose, onNavigate }) {
   const items = useMemo(() => {
     const out = [];
+    if (kpis.unreadQuotes > 0) out.push({ color: '#007AFF', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: `${kpis.unreadQuotes} הזמנות חדשות נכנסו`, sub: 'ממתינות לבדיקת מסמך ואישור', path: '/admin/order-hub' });
     if (kpis.pendingOrders > 0) out.push({ color: '#FF9500', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: `${kpis.pendingOrders} הצעות ממתינות`, sub: 'דורשות טיפול', path: '/admin/orders' });
-    if (kpis.contactsNew > 0) out.push({ color: '#5856D6', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z', label: `${kpis.contactsNew} פניות חדשות`, sub: 'ממתינות למענה', path: '/admin/customers' });
+    if (kpis.contactsNew > 0) out.push({ color: '#5AC8FA', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z', label: `${kpis.contactsNew} פניות חדשות`, sub: 'ממתינות למענה', path: '/admin/customers' });
     if (kpis.lowStockCount > 0) out.push({ color: '#FF3B30', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', label: `${kpis.lowStockCount} מוצרים במלאי נמוך`, sub: 'זקוקים להזמנה', path: '/admin/inventory' });
     if (out.length === 0) out.push({ color: '#34C759', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', label: 'הכל תקין', sub: 'אין התראות פעילות', path: null });
     return out;
@@ -355,12 +358,12 @@ function NotificationsPanel({ kpis, orders, onClose, onNavigate }) {
 // ─── Quick-Actions Launcher ───────────────────────────────────────────────────
 function QuickLaunchPanel({ onClose, onNavigate }) {
   const ACTIONS = [
-    { label: 'הצעות מחיר', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', path: '/admin/orders',    color: '#FF9500' },
+    { label: 'מרכז ההזמנות', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', path: '/admin/order-hub',    color: '#FF9500' },
     { label: 'מוצרים',    icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',           path: '/admin/products',  color: '#007AFF' },
     { label: 'מלאי',      icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8', path: '/admin/inventory', color: '#34C759' },
-    { label: 'לקוחות',    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0', path: '/admin/users',     color: '#5856D6' },
+    { label: 'לקוחות',    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0', path: '/admin/users',     color: '#5AC8FA' },
     { label: 'אנליטיקס',  icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', path: '/admin/analytics', color: '#FF2D55' },
-    { label: 'ספקים',     icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',                          path: '/admin/suppliers', color: '#AF52DE' },
+    { label: 'ספקים',     icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',                          path: '/admin/suppliers', color: '#0A84FF' },
   ];
   return (
     <motion.div
@@ -435,9 +438,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const urgentCount   = kpis.pendingOrders + kpis.contactsNew + kpis.lowStockCount;
+  const urgentCount   = kpis.pendingOrders + kpis.contactsNew + kpis.lowStockCount + (kpis.unreadQuotes || 0);
   const today         = new Date().toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short' });
   const pageMeta      = PAGE_META[location.pathname] || { label: 'ניהול', icon: 'M4 6h16M4 12h16M4 18h16' };
+  const greeting      = (() => {
+    const h = new Date().getHours();
+    if (h < 5)  return 'לילה טוב';
+    if (h < 12) return 'בוקר טוב';
+    if (h < 17) return 'צהריים טובים';
+    if (h < 21) return 'ערב טוב';
+    return 'לילה טוב';
+  })();
 
   const todayRevenue = useMemo(() => {
     const now = new Date();
@@ -453,14 +464,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
       <div className="h-[60px] shrink-0 flex items-center gap-2 px-4 lg:px-5 relative"
         style={{
-          background: 'rgba(252,252,255,0.78)',
-          backdropFilter: 'blur(60px) saturate(240%)',
-          WebkitBackdropFilter: 'blur(60px) saturate(240%)',
-          borderBottom: '0.5px solid rgba(0,0,0,0.09)',
-          boxShadow: '0 1px 0 rgba(255,255,255,0.8), 0 4px 32px rgba(0,0,0,0.06)',
+          background: 'rgba(252,252,255,0.72)',
+          backdropFilter: 'blur(64px) saturate(240%)',
+          WebkitBackdropFilter: 'blur(64px) saturate(240%)',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: `0 4px 32px rgba(0,0,0,0.06), ${SHADOW.specular}`,
         }}
         dir="rtl"
       >
+        {/* Specular top edge — glass chrome highlight */}
+        <div className="absolute top-0 left-[6%] right-[6%] h-px pointer-events-none"
+          style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
 
         {/* ── Mobile hamburger ── */}
         <motion.button whileTap={{ scale: 0.88 }} onClick={onMobileMenuToggle}
@@ -493,12 +507,16 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
           className="flex items-center gap-2.5 mr-1"
         >
           <span className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.10))' }}>
+            style={{
+              background: `linear-gradient(135deg,${hexA(PALETTE.azure, 0.14)},${hexA(PALETTE.indigo, 0.10)})`,
+              border: `1px solid ${hexA(PALETTE.azure, 0.16)}`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7)`,
+            }}>
             <svg className="w-3.5 h-3.5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d={pageMeta.icon} />
             </svg>
           </span>
-          <h1 className="text-[#1D1D1F] text-[15px] font-black hidden sm:block" style={{ letterSpacing: '-0.02em' }}>
+          <h1 className="text-[#1D1D1F] text-[15px] font-black hidden sm:block tracking-tight" style={{ letterSpacing: '-0.02em' }}>
             {pageMeta.label}
           </h1>
         </motion.div>
@@ -558,10 +576,10 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
 
         {/* ── Notifications ── */}
         <div className="relative" ref={notifRef}>
-          <motion.button whileTap={{ scale: 0.90 }}
+          <motion.button whileTap={{ scale: 0.90 }} whileHover={{ y: -1 }} transition={SPRING.snappy}
             onClick={() => { setNotifOpen(o => !o); setLaunchOpen(false); }}
-            className="relative w-9 h-9 rounded-[12px] flex items-center justify-center transition-all"
-            style={{ background: notifOpen ? 'rgba(0,122,255,0.08)' : 'rgba(0,0,0,0.05)', border: '0.5px solid rgba(0,0,0,0.08)', color: '#3C3C43' }}
+            className="relative w-9 h-9 flex items-center justify-center transition-all"
+            style={{ borderRadius: RADIUS.button, background: notifOpen ? hexA(PALETTE.azure, 0.10) : 'rgba(0,0,0,0.045)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: notifOpen ? glow(PALETTE.azure, 0.14, 14) : SHADOW.specular, color: '#3C3C43' }}
           >
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -580,9 +598,9 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
         </div>
 
         {/* ── Back to site ── */}
-        <motion.a href="/" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}
-          className="flex items-center justify-center w-9 h-9 rounded-[12px] shrink-0 transition-all"
-          style={{ background: 'linear-gradient(135deg,#5856D6,#007AFF)', boxShadow: '0 3px 12px rgba(88,86,214,0.40), inset 0 1px 0 rgba(255,255,255,0.22)', color: 'white' }}
+        <motion.a href="/" whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.94 }} transition={SPRING.snappy}
+          className="flex items-center justify-center w-9 h-9 shrink-0 transition-all"
+          style={{ borderRadius: RADIUS.button, background: 'linear-gradient(135deg,#5AC8FA,#007AFF)', boxShadow: `${glow(PALETTE.indigo, 0.34, 12)}, inset 0 1px 0 rgba(255,255,255,0.22)`, color: 'white' }}
           title="חזרה לאתר"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -590,11 +608,17 @@ export default function AdminTopBar({ collapsed, onMobileMenuToggle }) {
           </svg>
         </motion.a>
 
-        {/* ── Admin avatar ── */}
-        <div className="w-8 h-8 rounded-[12px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
-          style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 3px 10px rgba(0,122,255,0.35), 0 0 0 2px rgba(255,255,255,0.9)', cursor: 'default' }}>
-          N
+        {/* ── Greeting + Admin avatar ── */}
+        <div className="hidden xl:flex flex-col items-end leading-none mr-0.5">
+          <span className="text-[11px] font-black text-[#1D1D1F] tracking-tight">{greeting}</span>
+          <span className="text-[9px] font-bold text-[#AEAEB2] mt-0.5">מנהל NextClass</span>
         </div>
+        <motion.div
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }} transition={SPRING.snappy}
+          className="w-8 h-8 flex items-center justify-center text-white text-[11px] font-black shrink-0"
+          style={{ borderRadius: RADIUS.button, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: `${glow(PALETTE.azure, 0.3, 10)}, 0 0 0 2px rgba(255,255,255,0.9)`, cursor: 'default' }}>
+          N
+        </motion.div>
       </div>
 
       <AnimatePresence>
