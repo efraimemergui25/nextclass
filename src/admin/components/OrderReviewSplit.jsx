@@ -201,7 +201,7 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove, ca
                                     <div style={{ background: '#fff', minHeight: 420 }}>
                                         {order.documentStoreFailed && (
                                             <div style={{ margin: 16, padding: '11px 13px', borderRadius: 12, background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.25)' }}>
-                                                <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, color: '#B25E00' }}>הגיע קובץ מצורף ({order.attachmentName || 'מסמך'}) אך הוא גדול מכדי להישמר — הנתונים חולצו, אך המסמך המקורי אינו זמין לתצוגה.</p>
+                                                <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, color: '#B25E00' }}>הגיע קובץ מצורף ({order.attachmentName || 'מסמך'}) אך לא ניתן היה לשמור אותו (גדול מדי או שגיאת שמירה) — הנתונים חולצו, אך המסמך המקורי אינו זמין לתצוגה.</p>
                                             </div>
                                         )}
                                         <pre dir="rtl" style={{ margin: 0, padding: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11.5, lineHeight: 1.75, color: '#3A3A3C', fontFamily: HE }}>{order.rawEmail || order.emailSubject || 'אין תצוגה מקדימה — הנתונים חולצו מגוף המייל.'}</pre>

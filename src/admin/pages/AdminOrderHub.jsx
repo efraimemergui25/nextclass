@@ -1953,6 +1953,7 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
     const [file, setFile] = useState(null); // { name, base64, mime }
     const [fileErr, setFileErr] = useState('');
     const [dragOver, setDragOver] = useState(false);
+    const [reading, setReading] = useState(false); // FileReader in flight
     const fileRef = useRef(null);
 
     const pickFile = (f) => {
@@ -1962,12 +1963,16 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
         const ok = mime.startsWith('image/') || mime === 'application/pdf';
         if (!ok) { setFileErr('ניתן לצרף תמונה או PDF בלבד'); return; }
         if (f.size > 12 * 1024 * 1024) { setFileErr('הקובץ גדול מדי (עד 12MB)'); return; }
+        setReading(true);
         const reader = new FileReader();
-        reader.onload = e => setFile({ name: f.name, base64: String(e.target.result).split(',')[1], mime, raw: f });
+        reader.onload = e => { setFile({ name: f.name, base64: String(e.target.result).split(',')[1], mime, raw: f }); setReading(false); };
+        reader.onerror = () => { setReading(false); setFileErr('שגיאה בקריאת הקובץ'); };
         reader.readAsDataURL(f);
     };
 
-    const canSubmit = !busy && (text.trim() || file);
+    // Block submit while a picked file is still being read, so an attached
+    // document can never be silently dropped by an early click.
+    const canSubmit = !busy && !reading && (text.trim() || file);
 
     return createPortal(
         <div dir="rtl" onClick={e => e.target === e.currentTarget && onClose()}
@@ -2011,7 +2016,7 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button disabled={!canSubmit} onClick={() => onCreate({ text: text.trim(), subject: subject.trim(), fileBase64: file?.base64, mimeType: file?.mime, fileName: file?.name, attachment: file?.raw })}
                         style={{ flex: 1, padding: '13px', borderRadius: 13, border: 'none', cursor: canSubmit ? 'pointer' : 'not-allowed', background: canSubmit ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#D1D1D6', color: '#fff', fontFamily: HE, fontWeight: 800, fontSize: 14 }}>
-                        {busy ? 'מחלץ…' : '✨ חלץ וצור הזמנה'}
+                        {busy ? 'מחלץ…' : reading ? 'קורא קובץ…' : '✨ חלץ וצור הזמנה'}
                     </button>
                     <button onClick={onClose} style={{ padding: '13px 20px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#6E6E73', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 13 }}>ביטול</button>
                 </div>
