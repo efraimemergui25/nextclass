@@ -256,7 +256,12 @@ export function AdminDataProvider({ children }) {
             const rate = await fetchUsdIlsRate();
             await setDoc(doc(db, 'config', 'fx'), { usdIls: Number(rate), updatedAt: Date.now(), source: 'auto' }, { merge: true });
             addActivity(`שער הדולר סונכרן: 1$ = ₪${Number(rate).toFixed(3)}`, 'info');
+            showToast(`שער עודכן: 1$ = ₪${Number(rate).toFixed(2)}`, 'success');
             return rate;
+        } catch (err) {
+            console.error('[syncFxRate]', err);
+            showToast('סנכרון אוטומטי נכשל — ניתן להזין שער ידנית', 'error');
+            throw err;
         } finally {
             setFx(prev => ({ ...prev, syncing: false }));
         }

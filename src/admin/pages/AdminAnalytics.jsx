@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart2, Box, TrendingDown, Clock, ArrowDown, TrendingUp, AlertTriangle, CheckCircle2, Zap, Target, ChevronLeft, ChevronRight, Activity, Layers, Users, Package, ShoppingCart, Percent, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
-import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, InfoTooltip } from '../components/AdminComponents';
+import { AdminKPICard, AdminTabs, HeatGrid, DonutChart, AdminModal, BarChart, InfoTooltip, AdminSkeleton } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
-import { GLASS, RADIUS, hexA } from '../theme/tokens';
+import { GLASS, RADIUS, hexA, toneColor, toneFg } from '../theme/tokens';
 import initialProducts from '../../data/products';
+import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
 
 // ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
 const computeStats = (data) => {
@@ -132,7 +133,7 @@ function StatRow({ label, value, pct, color, onClick }) {
     );
 }
 
-const DONUT_COLORS = ['#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30', '#AF52DE'];
+const DONUT_COLORS = ['#007AFF', '#5AC8FA', '#34C759', '#FF9500', '#FF3B30', '#0A84FF'];
 
 const TABS = [
     { id: 'overview', label: 'סקירה' },
@@ -150,8 +151,25 @@ const RANGES = [
 ];
 
 export default function AdminAnalytics() {
-    const { analytics, orders, kpis, inventory, quotes } = useAdminData();
+    const { analytics, orders, kpis, inventory, quotes, loading, fx } = useAdminData();
+    const fxRate = Number(fx?.usdIls) || 3.7;
+
+    // Per-product profitability from the configured cost + sell price (synced live
+    // from the product doc). Lets you compare margin across the catalog.
+    const profitability = useMemo(() => {
+        return (inventory || [])
+            .map(p => ({ p, fin: computeMargins(p, fxRate) }))
+            .filter(x => x.fin.hasData)
+            .sort((a, b) => (b.fin.marginPct ?? -999) - (a.fin.marginPct ?? -999));
+    }, [inventory, fxRate]);
+    const avgMargin = useMemo(() => {
+        if (!profitability.length) return null;
+        return profitability.reduce((s, x) => s + (x.fin.marginPct || 0), 0) / profitability.length;
+    }, [profitability]);
     const navigate = useNavigate();
+    // Loading proxy: analytics is null until the first Firestore snapshot resolves,
+    // so empty charts never masquerade as "no data".
+    const dataLoading = loading || analytics == null;
     const [tab,         setTab]         = useState('overview');
     const [range,       setRange]       = useState('30');
     const [monthPage,   setMonthPage]   = useState(0);
@@ -370,7 +388,7 @@ export default function AdminAnalytics() {
             .slice(0, 3)
             .forEach(q => {
                 const days = Math.round((now - ([...(q.history || [])].reverse()[0]?.ts || q.dateTs)) / 86400000);
-                items.push({ type: 'pending', icon: '✍️', color: '#5856D6', text: `ממתין לאישור: ${q.contactName || q.institution || q.id}`, sub: `₪${(Number(q.subtotal) || 0).toLocaleString()} · ${days} ימים`, quoteId: q.id });
+                items.push({ type: 'pending', icon: '✍️', color: '#5AC8FA', text: `ממתין לאישור: ${q.contactName || q.institution || q.id}`, sub: `₪${(Number(q.subtotal) || 0).toLocaleString()} · ${days} ימים`, quoteId: q.id });
             });
 
         // Stale > 10 days
@@ -396,8 +414,8 @@ export default function AdminAnalytics() {
     const funnelData = useMemo(() => {
         const STAGES = [
             { key: 'חדש',            label: 'ליד נכנס',         color: '#007AFF' },
-            { key: 'ביצירת קשר',    label: 'יצירת קשר',        color: '#5856D6' },
-            { key: 'בדיקת מלאי',    label: 'בדיקת מלאי',       color: '#AF52DE' },
+            { key: 'ביצירת קשר',    label: 'יצירת קשר',        color: '#5AC8FA' },
+            { key: 'בדיקת מלאי',    label: 'בדיקת מלאי',       color: '#0A84FF' },
             { key: 'הוצע מחיר',     label: 'הצעת מחיר נשלחה',  color: '#FF9500' },
             { key: 'ממתין לאישור',   label: 'ממתין לאישור',     color: '#FF6B00' },
             { key: 'נסגר',          label: 'עסקה נסגרה',        color: '#34C759' },
@@ -593,7 +611,7 @@ export default function AdminAnalytics() {
                         {RANGES.map(r => (
                             <motion.button key={r.id} onClick={() => setRange(r.id)} whileTap={{ scale: 0.96 }}
                                 className="relative px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap"
-                                style={{ color: range === r.id ? '#005EC4' : '#86868B' }}>
+                                style={{ color: range === r.id ? toneFg('info') : '#86868B' }}>
                                 {range === r.id && (
                                     <motion.div layoutId="range-pill" className="absolute inset-0 rounded-xl"
                                         style={{ background: `linear-gradient(135deg, ${hexA(ACCENT, 0.16)} 0%, ${hexA(ACCENT, 0.08)} 100%)`, border: `1px solid ${hexA(ACCENT, 0.28)}`, boxShadow: `0 2px 8px ${hexA(ACCENT, 0.18)}` }}
@@ -608,26 +626,31 @@ export default function AdminAnalytics() {
 
             {/* ── KPI Row (always visible) ─────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <AdminKPICard title="כניסות ייחודיות" icon="traffic" value={totalVisits}
+                <AdminKPICard title="כניסות ייחודיות" icon="traffic" value={totalVisits} loading={dataLoading}
                     trend={weekTrend.visits !== null ? Math.abs(weekTrend.visits) : undefined}
                     trendUp={weekTrend.visits === null || weekTrend.visits >= 0}
                     color="#007AFF" delay={0} onClick={() => openDrill({ type: 'visits' })}
                     tooltip={{ text: 'סך כל הביקורים הייחודיים באתר. session חדש = כניסה חדשה. השוואה: 7 ימים אחרונים לעומת 7 לפניהם.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }} />
-                <AdminKPICard title="עסקאות מוצלחות" icon="orders" value={totalSales}
+                <AdminKPICard title="עסקאות מוצלחות" icon="orders" value={totalSales} loading={dataLoading}
                     trend={weekTrend.sales !== null ? Math.abs(weekTrend.sales) : undefined}
                     trendUp={weekTrend.sales === null || weekTrend.sales >= 0}
                     color="#34C759" delay={0.05} onClick={() => openDrill({ type: 'sales' })}
                     tooltip={{ text: 'כמות ה-sessions שהסתיימו ברכישה. מחושב מנתוני analytics.sales ב-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }} />
-                <AdminKPICard title="יחס המרה" icon="traffic" value={`${avgConv}%`}
-                    color="#5856D6" delay={0.1} onClick={() => openDrill({ type: 'conversion' })}
+                <AdminKPICard title="יחס המרה" icon="traffic" value={`${avgConv}%`} loading={dataLoading}
+                    color="#5AC8FA" delay={0.1} onClick={() => openDrill({ type: 'conversion' })}
                     tooltip={{ text: 'אחוז הגולשים שהפכו ללקוחות. מחושב: עסקאות ÷ כניסות × 100. ממוצע כל-הזמן.', source: 'analytics.sales ÷ analytics.visits × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' }} />
-                <AdminKPICard title="הכנסות ברוטו" icon="revenue" value={`₪${kpis.totalRevenue.toLocaleString()}`}
+                <AdminKPICard title="הכנסות ברוטו" icon="revenue" value={`₪${kpis.totalRevenue.toLocaleString()}`} loading={dataLoading}
                     trend={weekTrend.revenue !== null ? Math.abs(weekTrend.revenue) : undefined}
                     trendUp={weekTrend.revenue === null || weekTrend.revenue >= 0}
                     color="#FF9500" delay={0.15} onClick={() => openDrill({ type: 'revenue' })}
                     tooltip={{ text: 'סך כל ההכנסות הגולמיות מהזמנות שנסגרו. לפני ניכוי עמלות ועלויות ספק.', source: 'Firestore · orders · total (סכום כולל)', link: '/admin/orders', linkLabel: 'ראה הזמנות' }} />
             </div>
 
+            {dataLoading ? (
+                <div className="space-y-5">
+                    <AdminSkeleton rows={6} />
+                </div>
+            ) : (
             <AnimatePresence mode="wait">
 
                 {/* ── Overview Tab ─────────────────────────────────────────────── */}
@@ -638,6 +661,61 @@ export default function AdminAnalytics() {
                         exit={{ opacity: 0, y: -8 }}
                         className="space-y-5"
                     >
+                        {/* ── Product profitability — compare margin across the catalog ── */}
+                        <div style={{ ...GLASS.base, borderRadius: RADIUS.card }} className="overflow-hidden" dir="rtl">
+                            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-black/[0.05]">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: hexA('#34C759', 0.12) }}><Percent size={17} style={{ color: '#34C759' }} /></div>
+                                    <div className="text-right">
+                                        <p className="text-[15px] font-black text-[#1D1D1F]">רווחיות מוצרים</p>
+                                        <p className="text-[11px] text-[#86868B] font-medium">אחוז רווחיות לכל מוצר — עלות מול מחיר מכירה</p>
+                                    </div>
+                                </div>
+                                {avgMargin != null && (
+                                    <div className="text-center px-4 py-2 rounded-2xl" style={{ background: hexA(marginColor(avgMargin), 0.10) }}>
+                                        <p className="text-[20px] font-black leading-none tabular-nums" style={{ color: marginColor(avgMargin) }}>{fmtPct(avgMargin)}</p>
+                                        <p className="text-[9px] font-bold text-[#AEAEB2] mt-1">רווחיות ממוצעת</p>
+                                    </div>
+                                )}
+                            </div>
+                            {profitability.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <p className="text-[#AEAEB2] text-[13px] font-medium">הזן עלות ומחיר מכירה למוצרים (במלאי או במיפוי) כדי לראות רווחיות</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-black/[0.04]">
+                                    {/* header */}
+                                    <div className="hidden sm:grid grid-cols-[1.8fr_90px_90px_1.4fr] gap-4 px-5 py-2 bg-black/[0.015]">
+                                        {['מוצר', 'עלות', 'מכירה', 'רווחיות'].map((h, i) => <p key={i} className="text-[10px] font-black tracking-wider text-[#AEAEB2] uppercase">{h}</p>)}
+                                    </div>
+                                    {profitability.slice(0, 12).map(({ p, fin }, i) => {
+                                        const col = marginColor(fin.marginPct);
+                                        const barPct = Math.max(2, Math.min(100, fin.marginPct || 0));
+                                        return (
+                                            <motion.div key={p.id} initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}
+                                                onClick={() => navigate(`/admin/inventory?open=${encodeURIComponent(p.title || p.id)}`)}
+                                                className="grid grid-cols-[1.8fr_90px_90px_1.4fr] gap-4 px-5 py-3 items-center cursor-pointer hover:bg-[#007AFF]/[0.03] transition-colors group">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    {p.image
+                                                        ? <img src={p.image} alt="" onError={e => { e.target.style.display = 'none'; }} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-black/[0.06]" />
+                                                        : <div className="w-9 h-9 rounded-lg bg-[#F5F5F7] flex items-center justify-center shrink-0"><Box size={14} className="text-[#C7C7CC]" /></div>}
+                                                    <p className="text-[13px] font-bold text-[#1D1D1F] truncate group-hover:text-[#007AFF] transition-colors">{p.title}</p>
+                                                </div>
+                                                <p className="text-[12.5px] font-bold text-[#6E6E73] tabular-nums">{fmtILS(fin.cost)}</p>
+                                                <p className="text-[12.5px] font-black text-[#007AFF] tabular-nums">{fmtILS(fin.sell)}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 h-2 rounded-full bg-black/[0.06] overflow-hidden">
+                                                        <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: col }} />
+                                                    </div>
+                                                    <span className="text-[13px] font-black tabular-nums w-12 text-left" style={{ color: col }}>{fmtPct(fin.marginPct)}</span>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
                         {/* ── Action Items Panel ─── */}
                         <Card
                             accent={actionItems.length > 0 ? 'linear-gradient(90deg,#FF9500,#FF3B30)' : 'linear-gradient(90deg,#34C759,#30D158)'}
@@ -646,7 +724,7 @@ export default function AdminAnalytics() {
                             subtitle={actionItems.length > 0 ? `${actionItems.length} פריטים דורשים תשומת לב` : 'הכל תקין — אין פעולות נדרשות'}
                             action={
                                 <span className="text-[11px] font-black rounded-full px-2.5 py-0.5 text-white"
-                                    style={{ background: actionItems.length > 0 ? '#FF3B30' : '#34C759' }}>
+                                    style={{ background: actionItems.length > 0 ? toneColor('danger') : toneColor('success') }}>
                                     {actionItems.length}
                                 </span>
                             }
@@ -668,7 +746,7 @@ export default function AdminAnalytics() {
                                             initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.05 }}
                                             className="flex items-center gap-3 rounded-[14px] p-3 cursor-pointer group"
-                                            style={{ background: item.type === 'win' ? 'rgba(52,199,89,0.06)' : item.type === 'pending' ? 'rgba(88,86,214,0.06)' : 'rgba(255,149,0,0.06)', border: `1px solid ${item.color}18` }}
+                                            style={{ background: item.type === 'win' ? 'rgba(52,199,89,0.06)' : item.type === 'pending' ? 'rgba(90,200,250,0.06)' : 'rgba(255,149,0,0.06)', border: `1px solid ${item.color}18` }}
                                             onClick={() => openDrill({ type: 'quote', id: item.quoteId })}
                                         >
                                             <span className="text-[18px] shrink-0">{item.icon}</span>
@@ -688,8 +766,8 @@ export default function AdminAnalytics() {
                             {[
                                 { key: 'pipeline', label: 'שווי Pipeline', value: `₪${pipelineStats.pipelineValue.toLocaleString()}`, color: '#007AFF', icon: <Target size={14} />, sub: `${pipelineStats.openCount} הצעות פתוחות`, tooltip: { text: 'סך שווי כל ההצעות הפתוחות (לא נסגרו/בוטלו). זה הכסף הפוטנציאלי שיכול להיסגר.', source: 'Firestore · quotes (סטטוסים פתוחים) · subtotal', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                 { key: 'winrate',  label: 'שיעור סגירה', value: pipelineStats.winRate !== null ? `${pipelineStats.winRate}%` : '—', color: '#34C759', icon: <TrendingUp size={14} />, sub: `${closedStats.total} נסגרו`, tooltip: { text: 'אחוז ההצעות שהתסיימו בעסקה. מחושב: נסגרו ÷ (נסגרו + אבדו/בוטלו) × 100.', source: 'Firestore · quotes (נסגר+סופק vs אבד+בוטל)', link: '/admin/analytics', linkLabel: 'ניתוח משפך' } },
-                                { key: 'cycle',    label: 'זמן ממוצע לסגירה', value: pipelineStats.avgCycle !== null ? `${pipelineStats.avgCycle} יום` : '—', color: '#5856D6', icon: <Clock size={14} />, sub: 'מליד לעסקה', tooltip: { text: 'ממוצע ימים מיצירת ההצעה ועד שנסגרה. מחושב מה-history timestamps של כל הצעה.', source: 'Firestore · quotes · history[].ts (ראשון → סגירה)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
-                                { key: 'risk',     label: 'ב-Risk', value: `₪${pipelineStats.atRiskValue.toLocaleString()}`, color: pipelineStats.atRisk.length > 0 ? '#FF3B30' : '#34C759', icon: <AlertTriangle size={14} />, sub: `${pipelineStats.atRisk.length} הצעות מעל 21 יום`, tooltip: { text: 'שווי הצעות פתוחות שנוצרו לפני יותר מ-21 יום ועדיין לא נסגרו. סיכון גבוה לאובדן.', source: 'Firestore · quotes (פתוחות, dateTs > 21 ימים)', link: '/admin/orders', linkLabel: 'בדוק הצעות' } },
+                                { key: 'cycle',    label: 'זמן ממוצע לסגירה', value: pipelineStats.avgCycle !== null ? `${pipelineStats.avgCycle} יום` : '—', color: '#5AC8FA', icon: <Clock size={14} />, sub: 'מליד לעסקה', tooltip: { text: 'ממוצע ימים מיצירת ההצעה ועד שנסגרה. מחושב מה-history timestamps של כל הצעה.', source: 'Firestore · quotes · history[].ts (ראשון → סגירה)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
+                                { key: 'risk',     label: 'ב-Risk', value: `₪${pipelineStats.atRiskValue.toLocaleString()}`, color: pipelineStats.atRisk.length > 0 ? toneColor('danger') : toneColor('success'), icon: <AlertTriangle size={14} />, sub: `${pipelineStats.atRisk.length} הצעות מעל 21 יום`, tooltip: { text: 'שווי הצעות פתוחות שנוצרו לפני יותר מ-21 יום ועדיין לא נסגרו. סיכון גבוה לאובדן.', source: 'Firestore · quotes (פתוחות, dateTs > 21 ימים)', link: '/admin/orders', linkLabel: 'בדוק הצעות' } },
                             ].map((kpi, i) => (
                                 <motion.div key={i}
                                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -720,7 +798,7 @@ export default function AdminAnalytics() {
                                     : <EmptyChart />}
                             </Card>
                             <Card title="תנועת מבקרים" subtitle={`${range} ימים אחרונים`}
-                                accent="linear-gradient(90deg,#007AFF,#5856D6)"
+                                accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                 titleTooltip={{ text: 'כניסות ייחודיות לאתר לפי יום. session חדש = כניסה חדשה.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
                                 action={<span className="text-[#007AFF] text-xs font-black">{totalVisits.toLocaleString()}</span>}>
                                 {totalVisits > 0
@@ -731,7 +809,7 @@ export default function AdminAnalytics() {
 
                         {/* ── Pipeline Waterfall ─── */}
                         <Card title="ערך Pipeline לפי שלב" subtitle="כמה כסף יושב בכל שלב · לייב"
-                            accent="linear-gradient(90deg,#007AFF,#5856D6)"
+                            accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                             titleTooltip={{ text: 'פיזור שווי ההצעות הפתוחות לפי שלב במשפך. עוזר לזהות איפה הכסף תקוע.', source: 'Firestore · quotes (פתוחות) · status + subtotal', link: '/admin/orders', linkLabel: 'ניהול הצעות' }}>
                             {pipelineStats.openCount === 0 ? (
                                 <EmptyChart label="אין הצעות פתוחות כרגע" />
@@ -740,11 +818,11 @@ export default function AdminAnalytics() {
                                     {[
                                         { key: 'חדש', label: 'ליד חדש', color: '#FF3B30' },
                                         { key: 'ביצירת קשר', label: 'ביצירת קשר', color: '#FF9500' },
-                                        { key: 'בדיקת מלאי', label: 'בדיקת מלאי', color: '#AF52DE' },
+                                        { key: 'בדיקת מלאי', label: 'בדיקת מלאי', color: '#0A84FF' },
                                         { key: 'הוצע מחיר', label: 'הצעה נשלחה', color: '#007AFF' },
-                                        { key: 'ממתין לאישור', label: 'ממתין לאישור', color: '#5856D6' },
+                                        { key: 'ממתין לאישור', label: 'ממתין לאישור', color: '#5AC8FA' },
                                         { key: 'הועבר לספק', label: 'הועבר לספק', color: '#0891B2' },
-                                        { key: 'בדרך', label: 'בדרך', color: '#7C3AED' },
+                                        { key: 'בדרך', label: 'בדרך', color: '#0A84FF' },
                                     ].map((stage, i) => {
                                         const sv = pipelineStats.stageValues[stage.key] || { count: 0, value: 0 };
                                         if (sv.count === 0) return null;
@@ -783,7 +861,7 @@ export default function AdminAnalytics() {
                         {/* Weekly Summary */}
                         <Card title="סיכום שבועי"
                             subtitle={weekPage === 0 ? '4 שבועות אחרונים' : `${weekPage * 4 + 1}–${(weekPage + 1) * 4} שבועות אחורה`}
-                            accent="linear-gradient(90deg,#FF9500,#5856D6)"
+                            accent="linear-gradient(90deg,#FF9500,#5AC8FA)"
                             titleTooltip={{ text: 'כניסות, מכירות והכנסות לכל שבוע. נחלק לפי שבוע קלנדרי.', source: 'Firestore · analytics · visits[] + sales[] + revenue[]', link: '/admin/analytics', linkLabel: 'דוח אנליטיקה' }}
                             action={
                                 <div className="flex items-center gap-1">
@@ -831,7 +909,7 @@ export default function AdminAnalytics() {
                         className="space-y-5"
                     >
                         <Card title="כניסות ייחודיות — 30 ימים" subtitle="מבוסס על sessions ייחודיים · Firestore"
-                            accent="linear-gradient(90deg,#007AFF,#5856D6)"
+                            accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                             titleTooltip={{ text: 'כניסות ייחודיות = session חדש שנפתח באתר. נרשם ב-Firestore בכל פעם שגולש פותח את האתר.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
                             action={<span className="text-[#007AFF] text-xs font-black">{totalVisits.toLocaleString()} סה״כ</span>}>
                             {totalVisits > 0 ? (
@@ -841,18 +919,18 @@ export default function AdminAnalytics() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                             <Card title="כניסות ב-7 ימים אחרונים" subtitle="תצוגת רשת אינטנסיביות"
-                                accent="linear-gradient(90deg,#5856D6,#007AFF)">
+                                accent="linear-gradient(90deg,#5AC8FA,#007AFF)">
                                 {totalVisits > 0
-                                    ? <HeatGrid data={(rangeData?.visits || analytics.visits).slice(-7)} color="#5856D6" labels={(rangeData?.labels || analytics.labels).slice(-7)} />
+                                    ? <HeatGrid data={(rangeData?.visits || analytics.visits).slice(-7)} color="#5AC8FA" labels={(rangeData?.labels || analytics.labels).slice(-7)} />
                                     : <EmptyChart />}
                             </Card>
-                            <Card title="מדדי תנועה" accent="linear-gradient(90deg,#007AFF,#5856D6)"
+                            <Card title="מדדי תנועה" accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                 titleTooltip={{ text: 'מדדי תנועה מסכמים: ממוצע יומי, שיא, ימים פעילים ויחס המרה — כולם מחושבים ממאגר analytics ב-Firestore.', source: 'Firestore · analytics · visits[] + sales[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}>
                                 <div className="space-y-4 mt-1">
                                     <StatRow label="ממוצע יומי" value={`${(totalVisits / 30).toFixed(0)} כניסות`}
                                         pct={Math.min((totalVisits / 30) / 10 * 100, 100)} color="#007AFF" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="שיא יומי" value={`${Math.max(...(analytics?.visits || [0]))} כניסות`}
-                                        pct={100} color="#5856D6" onClick={() => openDrill({ type: 'visits' })} />
+                                        pct={100} color="#5AC8FA" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="ימים עם תנועה" value={`${(analytics?.visits || []).filter(v => v > 0).length} ימים`}
                                         pct={((analytics?.visits || []).filter(v => v > 0).length / 30) * 100} color="#34C759" onClick={() => openDrill({ type: 'visits' })} />
                                     <StatRow label="יחס המרה כולל" value={`${avgConv}%`}
@@ -872,7 +950,7 @@ export default function AdminAnalytics() {
                             {[
                                 { dk: 'revenue', label: 'הכנסות כוללות', value: `₪${kpis.totalRevenue.toLocaleString()}`, color: '#34C759', sub: `${closedStats.total} עסקאות`, tooltip: { text: 'סך כל ההכנסות הגולמיות מכלל הזמנות שנסגרו. לפני ניכויים.', source: 'Firestore · orders · total (מצטבר)', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
                                 { dk: 'revenue', label: 'החודש הנוכחי', value: `₪${kpis.thisMonthRevenue.toLocaleString()}`, color: '#007AFF', sub: kpis.totalRevenue > 0 ? `${Math.round(kpis.thisMonthRevenue / kpis.totalRevenue * 100)}% מהסה"כ` : '—', tooltip: { text: 'הכנסות שנרשמו מתחילת החודש הנוכחי בלבד.', source: 'Firestore · kpis · thisMonthRevenue', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
-                                { dk: 'winrate', label: 'ממוצע לעסקה (AOV)', value: `₪${kpis.avgOrderValue.toLocaleString()}`, color: '#5856D6', sub: 'ממוצע כל הזמנה', tooltip: { text: 'Average Order Value — כמה שווה כל עסקה בממוצע. מחושב: הכנסות ÷ מספר הזמנות.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
+                                { dk: 'winrate', label: 'ממוצע לעסקה (AOV)', value: `₪${kpis.avgOrderValue.toLocaleString()}`, color: '#5AC8FA', sub: 'ממוצע כל הזמנה', tooltip: { text: 'Average Order Value — כמה שווה כל עסקה בממוצע. מחושב: הכנסות ÷ מספר הזמנות.', source: 'Firestore · orders · total ÷ count', link: '/admin/orders', linkLabel: 'ראה הזמנות' } },
                                 { dk: 'cycle', label: 'רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: closedStats.avgProfit >= 20 ? '#34C759' : '#FF9500', sub: 'מהגזמאות עם נתוני עלות', tooltip: { text: 'ממוצע שיעור הרווח (%) מהצעות שנסגרו ושיש להן נתוני עלות ספק ב-ProfitCalculator.', source: 'Firestore · quotes · pricingData.profitPct', link: '/admin/orders', linkLabel: 'ראה הצעות' } },
                             ].map((k, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -900,18 +978,18 @@ export default function AdminAnalytics() {
                         {/* ── Monthly trend + Top Customers ── */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Monthly breakdown */}
-                            <Card title="מגמה חודשית" subtitle="הכנסות לפי חודש" accent="linear-gradient(90deg,#5856D6,#007AFF)"
+                            <Card title="מגמה חודשית" subtitle="הכנסות לפי חודש" accent="linear-gradient(90deg,#5AC8FA,#007AFF)"
                                 titleTooltip={{ text: 'הכנסות מצטברות לפי חודש קלנדרי. מחושב מה-labels של analytics ב-Firestore.', source: 'Firestore · analytics · labels[] + revenue[]', link: '/admin/analytics', linkLabel: 'דוח הכנסות' }}
                                 action={
                                     <div className="flex items-center gap-1">
                                         <motion.button whileTap={{ scale: 0.85 }} onClick={() => setMonthPage(p => p + 1)} disabled={!monthlyRevenue.hasOlder}
                                             className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                                            style={{ background: monthlyRevenue.hasOlder ? 'rgba(88,86,214,0.12)' : 'rgba(0,0,0,0.04)', color: monthlyRevenue.hasOlder ? '#5856D6' : '#C7C7CC', cursor: monthlyRevenue.hasOlder ? 'pointer' : 'default' }}>
+                                            style={{ background: monthlyRevenue.hasOlder ? 'rgba(90,200,250,0.12)' : 'rgba(0,0,0,0.04)', color: monthlyRevenue.hasOlder ? '#5AC8FA' : '#C7C7CC', cursor: monthlyRevenue.hasOlder ? 'pointer' : 'default' }}>
                                             <ChevronRight size={13} />
                                         </motion.button>
                                         <motion.button whileTap={{ scale: 0.85 }} onClick={() => setMonthPage(p => Math.max(0, p - 1))} disabled={!monthlyRevenue.hasNewer}
                                             className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                                            style={{ background: monthlyRevenue.hasNewer ? 'rgba(88,86,214,0.12)' : 'rgba(0,0,0,0.04)', color: monthlyRevenue.hasNewer ? '#5856D6' : '#C7C7CC', cursor: monthlyRevenue.hasNewer ? 'pointer' : 'default' }}>
+                                            style={{ background: monthlyRevenue.hasNewer ? 'rgba(90,200,250,0.12)' : 'rgba(0,0,0,0.04)', color: monthlyRevenue.hasNewer ? '#5AC8FA' : '#C7C7CC', cursor: monthlyRevenue.hasNewer ? 'pointer' : 'default' }}>
                                             <ChevronLeft size={13} />
                                         </motion.button>
                                     </div>
@@ -932,7 +1010,7 @@ export default function AdminAnalytics() {
                                                         <motion.div className="h-full rounded-[8px] flex items-center justify-end pr-2.5"
                                                             initial={{ width: 0 }} animate={{ width: `${Math.max(pct, m.value > 0 ? 8 : 0)}%` }}
                                                             transition={{ delay: i * 0.07, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                                                            style={{ background: isLatest ? '#007AFF' : 'rgba(88,86,214,0.5)' }}>
+                                                            style={{ background: isLatest ? '#007AFF' : 'rgba(90,200,250,0.5)' }}>
                                                             {pct >= 18 && <span className="text-white text-[10px] font-black">₪{(m.value / 1000).toFixed(0)}k</span>}
                                                         </motion.div>
                                                     </div>
@@ -954,7 +1032,7 @@ export default function AdminAnalytics() {
                                                 className="flex items-center gap-3 py-2.5 px-1 cursor-pointer group rounded-[10px] hover:bg-black/02 transition-colors"
                                                 onClick={() => openDrill({ type: 'quote', id: c.quoteId })}>
                                                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black text-white"
-                                                    style={{ background: ['#007AFF','#5856D6','#34C759','#FF9500','#FF3B30','#AF52DE'][i] }}>
+                                                    style={{ background: ['#007AFF','#5AC8FA','#34C759','#FF9500','#FF3B30','#0A84FF'][i] }}>
                                                     {(c.name || c.institution || '?')[0]}
                                                 </div>
                                                 <div className="flex-1 min-w-0 text-right">
@@ -975,7 +1053,7 @@ export default function AdminAnalytics() {
 
                         {/* ── Category breakdown ── */}
                         {categoryRevenue.length > 0 && (
-                            <Card title="הכנסות לפי קטגוריה" subtitle="פיזור כספי לפי תחום" accent="linear-gradient(90deg,#FF9500,#5856D6)"
+                            <Card title="הכנסות לפי קטגוריה" subtitle="פיזור כספי לפי תחום" accent="linear-gradient(90deg,#FF9500,#5AC8FA)"
                                 titleTooltip={{ text: 'פיזור ההכנסות לפי קטגוריית מוצר. שדה category של כל הזמנה ב-Firestore.', source: 'Firestore · orders · category + total', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-3 mt-1">
                                     {categoryRevenue.map(([cat, rev], i) => {
@@ -1018,7 +1096,7 @@ export default function AdminAnalytics() {
                             const maxM = Math.max(...margins, 1);
                             return (
                                 <Card title="מגמת רווחיות" subtitle="% רווח נטו לפי עסקאות סגורות עם נתוני מחיר"
-                                    accent="linear-gradient(90deg,#AF52DE,#5856D6)"
+                                    accent="linear-gradient(90deg,#0A84FF,#5AC8FA)"
                                     action={<span className="text-[11px] font-black px-2.5 py-0.5 rounded-full" style={{ background: avgMargin >= 20 ? 'rgba(52,199,89,0.14)' : 'rgba(255,149,0,0.14)', color: avgMargin >= 20 ? '#34C759' : '#FF9500' }}>ממוצע {avgMargin}%</span>}
                                 >
                                     <div className="relative h-[90px] mt-2">
@@ -1143,7 +1221,7 @@ export default function AdminAnalytics() {
                         })()}
 
                         {/* ── Product leaderboard ── */}
-                        <Card title="טבלת ביצועי מוצרים" subtitle="לפי הכנסות — לחץ לפתיחה במלאי" accent="linear-gradient(90deg,#007AFF,#5856D6)"
+                        <Card title="טבלת ביצועי מוצרים" subtitle="לפי הכנסות — לחץ לפתיחה במלאי" accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                             titleTooltip={{ text: 'דירוג מוצרים לפי הכנסה כוללת. עמודת "אחמ׳" = AOV של המוצר הספציפי (הכנסות ÷ יחידות).', source: 'Firestore · orders · productId + total + qty', link: '/admin/inventory', linkLabel: 'ניהול מוצרים' }}>
                             {productTable.length === 0 ? <EmptyChart label="אין הזמנות עדיין" /> : (
                                 <div className="-mx-1 mt-1">
@@ -1211,9 +1289,9 @@ export default function AdminAnalytics() {
                             </Card>
 
                             {/* Sales volume heatgrid */}
-                            <Card title="נפח עסקאות" subtitle={`${range} ימים אחרונים`} accent="linear-gradient(90deg,#5856D6,#007AFF)">
+                            <Card title="נפח עסקאות" subtitle={`${range} ימים אחרונים`} accent="linear-gradient(90deg,#5AC8FA,#007AFF)">
                                 {totalSales > 0
-                                    ? <HeatGrid data={rangeData?.sales || analytics.sales} color="#5856D6" labels={rangeData?.labels || analytics.labels} />
+                                    ? <HeatGrid data={rangeData?.sales || analytics.sales} color="#5AC8FA" labels={rangeData?.labels || analytics.labels} />
                                     : <EmptyChart label="טרם בוצעו עסקאות" />}
                             </Card>
                         </div>
@@ -1234,7 +1312,7 @@ export default function AdminAnalytics() {
                                     {[
                                         { dk: 'leads', label: 'סה"כ לידים', value: total, color: '#007AFF', tooltip: { text: 'כמות הצעות המחיר שנוצרו בסיסטם. כל הצעה = ליד אחד שנכנס למשפך.', source: 'Firestore · quotes (כל הסטטוסים)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                         { dk: 'closedList', label: 'עסקאות נסגרו', value: closed, color: '#34C759', tooltip: { text: 'הצעות שהגיעו לסטטוס "נסגר" או "סופק". אלה ההכנסות בפועל.', source: 'Firestore · quotes (status: נסגר, סופק)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
-                                        { dk: 'conversion', label: 'יחס המרה', value: `${total > 0 ? Math.round(closed / total * 100) : 0}%`, color: '#5856D6', tooltip: { text: 'אחוז הלידים שהתסיימו בעסקה. מחושב: נסגרו ÷ סה"כ לידים × 100.', source: 'quotes (נסגר+סופק) ÷ quotes (הכל) × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' } },
+                                        { dk: 'conversion', label: 'יחס המרה', value: `${total > 0 ? Math.round(closed / total * 100) : 0}%`, color: '#5AC8FA', tooltip: { text: 'אחוז הלידים שהתסיימו בעסקה. מחושב: נסגרו ÷ סה"כ לידים × 100.', source: 'quotes (נסגר+סופק) ÷ quotes (הכל) × 100', link: '/admin/analytics', linkLabel: 'ניתוח משפך' } },
                                         { dk: 'risk', label: 'ממתינות · אבדו', value: `${active} · ${lost}`, color: '#FF9500', tooltip: { text: 'ממתינות = הצעות פתוחות עדיין. אבדו = הצעות שבוטלו או סומנו כ"אבד". שתיהן בנפרד.', source: 'Firestore · quotes · status (פתוחות vs אבד+בוטל)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                     ].map((s, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -1367,6 +1445,7 @@ export default function AdminAnalytics() {
                 )}
 
             </AnimatePresence>
+            )}
 
             {/* ── Babushka Drill Drawer — nested glass detail view ─────────────── */}
             {(() => {
@@ -1436,13 +1515,13 @@ export default function AdminAnalytics() {
                     );
                 } else if (shown.type === 'conversion') {
                     const topFunnel = funnelData.slice(0, 6);
-                    title = 'יחס המרה'; subtitle = 'משפך המכירות · לחץ שלב לצלילה'; accent = '#5856D6';
-                    icon = <TrendingUp size={17} color="#5856D6" />;
+                    title = 'יחס המרה'; subtitle = 'משפך המכירות · לחץ שלב לצלילה'; accent = '#5AC8FA';
+                    icon = <TrendingUp size={17} color="#5AC8FA" />;
                     footer = { label: 'מעבר למשפך המרה', onClick: goFunnel };
                     body = (
                         <div className="space-y-5">
                             <DrillStat items={[
-                                { label: 'יחס המרה', value: `${avgConv}%`, color: '#5856D6' },
+                                { label: 'יחס המרה', value: `${avgConv}%`, color: '#5AC8FA' },
                                 { label: 'כניסות', value: totalVisits.toLocaleString(), color: '#007AFF' },
                                 { label: 'רכישות', value: totalSales.toLocaleString(), color: '#34C759' },
                             ]} />
@@ -1498,7 +1577,7 @@ export default function AdminAnalytics() {
                         <div className="space-y-5">
                             <DrillStat items={[
                                 { label: 'שווי', value: `₪${pipelineStats.pipelineValue.toLocaleString()}`, color: '#007AFF' },
-                                { label: 'הצעות פתוחות', value: pipelineStats.openCount, color: '#5856D6' },
+                                { label: 'הצעות פתוחות', value: pipelineStats.openCount, color: '#5AC8FA' },
                                 { label: 'שלבים פעילים', value: stages.length, color: '#34C759' },
                             ]} />
                             {stages.length === 0 ? <DrillEmpty icon={Target} text="אין הצעות פתוחות בצינור" /> : (
@@ -1524,7 +1603,7 @@ export default function AdminAnalytics() {
                             <DrillStat items={[
                                 { label: 'שיעור סגירה', value: pipelineStats.winRate !== null ? `${pipelineStats.winRate}%` : '—', color: '#34C759' },
                                 { label: 'עסקאות סגורות', value: closedStats.total, color: '#007AFF' },
-                                { label: 'ממוצע לעסקה', value: `₪${closedStats.avgDeal.toLocaleString()}`, color: '#5856D6' },
+                                { label: 'ממוצע לעסקה', value: `₪${closedStats.avgDeal.toLocaleString()}`, color: '#5AC8FA' },
                             ]} />
                             {closedDeals.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין עסקאות סגורות עדיין" /> : (
                                 <div className="space-y-2">
@@ -1541,13 +1620,13 @@ export default function AdminAnalytics() {
                         </div>
                     );
                 } else if (shown.type === 'cycle') {
-                    title = 'זמן ממוצע לסגירה'; subtitle = 'מליד לעסקה'; accent = '#5856D6';
-                    icon = <Clock size={17} color="#5856D6" />;
+                    title = 'זמן ממוצע לסגירה'; subtitle = 'מליד לעסקה'; accent = '#5AC8FA';
+                    icon = <Clock size={17} color="#5AC8FA" />;
                     footer = { label: 'מעבר לניהול הזמנות', onClick: () => drillTo('/admin/orders') };
                     body = (
                         <div className="space-y-5">
                             <DrillStat items={[
-                                { label: 'ממוצע ימים', value: pipelineStats.avgCycle ?? '—', color: '#5856D6' },
+                                { label: 'ממוצע ימים', value: pipelineStats.avgCycle ?? '—', color: '#5AC8FA' },
                                 { label: 'עסקאות שנמדדו', value: closedStats.total, color: '#007AFF' },
                                 { label: '% רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: '#34C759' },
                             ]} />
@@ -1555,9 +1634,9 @@ export default function AdminAnalytics() {
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">עסקאות אחרונות — לחץ לפרטים</p>
                                     {closedDeals.slice(0, 6).map((d, i) => (
-                                        <DrillRow key={d.id} delay={i * 0.04} tone="#5856D6"
+                                        <DrillRow key={d.id} delay={i * 0.04} tone="#5AC8FA"
                                             onClick={() => pushDrill({ type: 'quote', id: d.id })}
-                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5856D6', 0.1) }}><Clock size={13} color="#5856D6" /></span>}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5AC8FA', 0.1) }}><Clock size={13} color="#5AC8FA" /></span>}
                                             title={d.contactName || d.institution || d.id}
                                             subtitle={d.closedAt ? `נסגר לפני ${Math.round((Date.now() - d.closedAt.getTime()) / 86400000)} ימים` : '—'}
                                             trailing={<span className="text-[12px] font-black text-[#1D1D1F] shrink-0">₪{d.revenue.toLocaleString()}</span>} />
@@ -1575,7 +1654,7 @@ export default function AdminAnalytics() {
                             <DrillStat items={[
                                 { label: 'סכום בסיכון', value: `₪${pipelineStats.atRiskValue.toLocaleString()}`, color: '#FF3B30' },
                                 { label: 'הצעות', value: pipelineStats.atRisk.length, color: '#FF9500' },
-                                { label: 'ממתינות לאישור', value: pipelineStats.pendingApproval.length, color: '#5856D6' },
+                                { label: 'ממתינות לאישור', value: pipelineStats.pendingApproval.length, color: '#5AC8FA' },
                             ]} />
                             {pipelineStats.atRisk.length === 0 ? <DrillEmpty icon={CheckCircle2} text="אין הצעות בסיכון 🎉" /> : (
                                 <div className="space-y-2">
@@ -1606,7 +1685,7 @@ export default function AdminAnalytics() {
                             <DrillStat items={[
                                 { label: 'הצעות', value: list.length, color: accent },
                                 { label: 'שווי כולל', value: `₪${Math.round(stageTotal).toLocaleString()}`, color: '#34C759' },
-                                { label: 'זמן ממוצע', value: meta?.avgDays !== null && meta?.avgDays !== undefined ? `${meta.avgDays}י` : '—', color: '#5856D6' },
+                                { label: 'זמן ממוצע', value: meta?.avgDays !== null && meta?.avgDays !== undefined ? `${meta.avgDays}י` : '—', color: '#5AC8FA' },
                             ]} />
                             {list.length === 0 ? <DrillEmpty icon={Layers} text="אין הצעות בשלב זה" /> : (
                                 <div className="space-y-2">
@@ -1655,16 +1734,16 @@ export default function AdminAnalytics() {
                     const q = quotes.find(x => String(x.id) === String(shown.id));
                     title = q ? (q.contactName || q.institution || 'הצעה') : 'הצעה';
                     subtitle = q ? `${q.status || ''} · ₪${qVal(q).toLocaleString()}` : String(shown.id);
-                    accent = '#5856D6'; icon = <Layers size={17} color="#5856D6" />;
+                    accent = '#5AC8FA'; icon = <Layers size={17} color="#5AC8FA" />;
                     footer = { label: 'פתח בניהול הזמנות', onClick: () => drillTo(`/admin/orders?quoteId=${shown.id}`) };
                     body = q ? (
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA('#5856D6', 0.1), color: '#5856D6' }}>{q.status || '—'}</span>
+                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA('#5AC8FA', 0.1), color: '#5AC8FA' }}>{q.status || '—'}</span>
                                 <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{qVal(q).toLocaleString()}</p>
                             </div>
                             <DrillStat items={[
-                                { label: 'מוסד', value: q.institution || '—', color: '#5856D6' },
+                                { label: 'מוסד', value: q.institution || '—', color: '#5AC8FA' },
                                 { label: 'פריטים', value: (q.items || []).length, color: '#007AFF' },
                                 { label: 'תאריך', value: dateShort(q.dateTs) },
                             ]} />
@@ -1744,7 +1823,7 @@ export default function AdminAnalytics() {
                             <DrillStat items={[
                                 { label: 'הכנסות', value: `₪${sales.revenue.toLocaleString()}`, color: '#34C759' },
                                 { label: 'יח׳ נמכרו', value: sales.count, color: '#007AFF' },
-                                ...(stock != null ? [{ label: 'במלאי', value: `${stock}${threshold != null ? `/${threshold}` : ''}`, color: stock <= (threshold ?? 0) ? '#FF3B30' : '#34C759' }] : []),
+                                ...(stock != null ? [{ label: 'במלאי', value: `${stock}${threshold != null ? `/${threshold}` : ''}`, color: stock <= (threshold ?? 0) ? toneColor('danger') : toneColor('success') }] : []),
                             ]} />
                             {!prod && (
                                 <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>
@@ -1794,7 +1873,7 @@ export default function AdminAnalytics() {
                             <DrillStat items={[
                                 { label: 'הכנסות', value: `₪${(shown.rev || 0).toLocaleString()}`, color: '#FF9500' },
                                 { label: 'הזמנות', value: list.length, color: '#007AFF' },
-                                { label: 'מסך הכנסות', value: `${pct}%`, color: '#5856D6' },
+                                { label: 'מסך הכנסות', value: `${pct}%`, color: '#5AC8FA' },
                             ]} />
                             {list.length === 0 ? <DrillEmpty icon={ShoppingCart} text="אין הזמנות בקטגוריה זו" /> : (
                                 <div className="space-y-2">
@@ -1812,13 +1891,13 @@ export default function AdminAnalytics() {
                     );
                 } else if (shown.type === 'month') {
                     const mo = shown.month || {};
-                    title = mo.label || 'חודש'; subtitle = 'הכנסות חודשיות'; accent = '#5856D6';
-                    icon = <BarChart2 size={17} color="#5856D6" />;
+                    title = mo.label || 'חודש'; subtitle = 'הכנסות חודשיות'; accent = '#5AC8FA';
+                    icon = <BarChart2 size={17} color="#5AC8FA" />;
                     footer = { label: 'מעבר לדוח הכנסות', onClick: goRevenueTab };
                     body = (
                         <div className="space-y-5">
                             <DrillStat items={[
-                                { label: 'הכנסות בחודש', value: `₪${(mo.value || 0).toLocaleString()}`, color: '#5856D6' },
+                                { label: 'הכנסות בחודש', value: `₪${(mo.value || 0).toLocaleString()}`, color: '#5AC8FA' },
                                 { label: 'מסך שנתי', value: kpis.totalRevenue > 0 ? `${Math.round((mo.value || 0) / kpis.totalRevenue * 100)}%` : '—', color: '#007AFF' },
                             ]} />
                             <div className="rounded-[14px] p-4 text-right text-[12px] text-[#86868B]" style={{ background: 'rgba(0,0,0,0.03)' }}>

@@ -15,7 +15,7 @@ import {
     AdminToggle, AdminModal, AdminKPICard, AdminEmpty
 } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
-import { GLASS, RADIUS, TAP, hexA, DOMAIN_ACCENTS } from '../theme/tokens';
+import { GLASS, RADIUS, TAP, hexA, DOMAIN_ACCENTS, toneColor, toneBg } from '../theme/tokens';
 import {
     Truck, Package, Building2, Link2, Plus, Trash2, Edit2,
     Clock, CheckCircle, AlertTriangle, Send, X, Phone,
@@ -23,8 +23,9 @@ import {
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
     Copy, Check, Tag, ExternalLink, Star, MessageSquare,
     DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download,
-    ScanLine
+    ScanLine, RefreshCw
 } from 'lucide-react';
+import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
 import AdminOCR from './AdminOCR';
 import AdminSuppliers from './AdminSuppliers';
 
@@ -39,7 +40,7 @@ const FULFILLMENT_TYPES = [
 const STATUSES = [
     { id: 'pending',    label: 'ממתין',      color: '#FF9500', bg: 'rgba(255,149,0,0.10)',    icon: Clock },
     { id: 'forwarded',  label: 'הועבר',      color: '#007AFF', bg: 'rgba(0,122,255,0.10)',    icon: Send },
-    { id: 'confirmed',  label: 'אושר',       color: '#5856D6', bg: 'rgba(88,86,214,0.10)',    icon: CheckCircle },
+    { id: 'confirmed',  label: 'אושר',       color: '#5AC8FA', bg: 'rgba(90,200,250,0.10)',    icon: CheckCircle },
     { id: 'in_transit', label: 'בדרך',       color: '#FF9F0A', bg: 'rgba(255,159,10,0.10)',   icon: Truck },
     { id: 'arrived',    label: 'הגיע',       color: '#34C759', bg: 'rgba(52,199,89,0.10)',    icon: Package },
     { id: 'shipped',    label: 'נשלח',       color: '#30D158', bg: 'rgba(48,209,88,0.10)',    icon: CheckCircle },
@@ -59,7 +60,7 @@ const NEXT_STATUS = {
 // reaching 'סופק' writes the sale record + settles inventory (see AdminDataContext).
 const PIPELINE_STATUS = {
     'הועבר לספק': { label: 'הועבר לספק', color: '#0891B2', bg: 'rgba(8,145,178,0.10)',  Icon: Send,        next: 'בדרך', nextLabel: 'עדכן ל: בדרך' },
-    'בדרך':        { label: 'בדרך',        color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', Icon: Truck,       next: 'סופק', nextLabel: 'סמן כסופק' },
+    'בדרך':        { label: 'בדרך',        color: '#0A84FF', bg: 'rgba(10,132,255,0.10)', Icon: Truck,       next: 'סופק', nextLabel: 'סמן כסופק' },
     'סופק':        { label: 'סופק',        color: '#1DB954', bg: 'rgba(29,185,84,0.10)',  Icon: CheckCircle, next: null,   nextLabel: null },
 };
 const PIPELINE_ORDER = ['הועבר לספק', 'בדרך', 'סופק'];
@@ -221,7 +222,7 @@ function generatePO(order, customerOrder, supplier) {
     win.document.close();
 }
 
-function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToast }) {
+function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete, onSetStatus, showToast }) {
     const [edits, setEdits] = useState({});
     const [saving, setSaving] = useState(false);
     const [advancing, setAdvancing] = useState(false);
@@ -369,7 +370,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
             label: 'נמסרה',
             icon: Package,
             text: `שלום ${customerFirstName}, הזמנתך נמסרה! תודה שבחרת בנקסטקלאס.`,
-            color: '#5856D6',
+            color: '#5AC8FA',
         },
     ];
 
@@ -408,6 +409,23 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                         </div>
                         <p className="font-black text-[#1D1D1F] text-[15px] truncate">{order.customerName}</p>
                         <p className="text-[11px] text-[#86868B] truncate">{order.productTitle} × {order.qty}</p>
+                    </div>
+                    {/* Edit status + delete — available at every stage */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="relative">
+                            <select value={order.status} onChange={e => onSetStatus?.(order.id, e.target.value)}
+                                className="appearance-none pr-3 pl-7 py-1.5 rounded-xl text-[11px] font-black cursor-pointer focus:outline-none border border-black/10 bg-white text-[#1D1D1F]"
+                                title="שנה סטטוס">
+                                {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                            <ChevronDown size={10} className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#86868B]" />
+                        </div>
+                        {onDelete && (
+                            <button onClick={onDelete} title="מחק הזמנה"
+                                className="p-2 rounded-xl transition-colors cursor-pointer" style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30' }}>
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -533,8 +551,8 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                         <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                             <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                                 <p className="text-[12px] font-black text-[#1D1D1F]">{supplier.name}</p>
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(88,86,214,0.10)' }}>
-                                    <Building2 size={13} style={{ color: '#5856D6' }} />
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(90,200,250,0.10)' }}>
+                                    <Building2 size={13} style={{ color: '#5AC8FA' }} />
                                 </div>
                             </div>
                             <div className="px-4 py-2">
@@ -626,8 +644,8 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                                     {[
                                         { label: 'הכנסה', value: `₪${revenue.toFixed(0)}`, color: '#007AFF' },
                                         { label: 'עלות ספק', value: cost > 0 ? `₪${cost.toFixed(0)}` : '—', color: '#FF9500' },
-                                        { label: 'רווח גולמי', value: cost > 0 ? `₪${profit.toFixed(0)}` : '—', color: profit >= 0 ? '#34C759' : '#FF3B30' },
-                                        { label: 'מרווח', value: margin !== null && cost > 0 ? `${margin}%` : '—', color: parseFloat(margin) >= 20 ? '#34C759' : parseFloat(margin) >= 0 ? '#FF9500' : '#FF3B30' },
+                                        { label: 'רווח גולמי', value: cost > 0 ? `₪${profit.toFixed(0)}` : '—', color: profit >= 0 ? toneColor('success') : toneColor('danger') },
+                                        { label: 'מרווח', value: margin !== null && cost > 0 ? `${margin}%` : '—', color: parseFloat(margin) >= 20 ? toneColor('success') : parseFloat(margin) >= 0 ? toneColor('warning') : toneColor('danger') },
                                     ].map((m, i) => (
                                         <div key={i} style={{ background: 'rgba(0,0,0,0.02)', borderRadius: 12, padding: '10px 12px', textAlign: 'right', border: `1px solid ${m.color}18` }}>
                                             <p style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', marginBottom: 3 }}>{m.label}</p>
@@ -637,7 +655,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                                 </div>
                                 {margin !== null && cost > 0 && (
                                     <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 12px', borderRadius: 99, background: parseFloat(margin) >= 20 ? 'rgba(52,199,89,0.12)' : parseFloat(margin) >= 0 ? 'rgba(255,149,0,0.12)' : 'rgba(255,59,48,0.12)', color: parseFloat(margin) >= 20 ? '#34C759' : parseFloat(margin) >= 0 ? '#FF9500' : '#FF3B30' }}>
+                                        <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 12px', borderRadius: 99, background: parseFloat(margin) >= 20 ? toneBg('success') : parseFloat(margin) >= 0 ? toneBg('warning') : toneBg('danger'), color: parseFloat(margin) >= 20 ? toneColor('success') : parseFloat(margin) >= 0 ? toneColor('warning') : toneColor('danger') }}>
                                             מרווח {margin}%
                                         </span>
                                     </div>
@@ -753,8 +771,8 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>היסטוריית פעולות</p>
-                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(88,86,214,0.10)' }}>
-                                    <Activity size={13} style={{ color: '#5856D6' }} />
+                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(90,200,250,0.10)' }}>
+                                    <Activity size={13} style={{ color: '#5AC8FA' }} />
                                 </div>
                             </div>
                         </button>
@@ -766,10 +784,10 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, showToas
                                             <p style={{ fontSize: 12, color: '#AEAEB2', textAlign: 'center', padding: '12px 0' }}>אין אירועים עדיין</p>
                                         ) : (
                                             <div style={{ position: 'relative', paddingRight: 16 }}>
-                                                <div style={{ position: 'absolute', right: 7, top: 0, bottom: 0, width: 2, background: 'rgba(88,86,214,0.12)', borderRadius: 99 }} />
+                                                <div style={{ position: 'absolute', right: 7, top: 0, bottom: 0, width: 2, background: 'rgba(90,200,250,0.12)', borderRadius: 99 }} />
                                                 {[...order.timeline].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).map((evt, i) => (
                                                     <div key={i} style={{ position: 'relative', paddingBottom: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                                                        <div style={{ position: 'absolute', right: -9, top: 4, width: 10, height: 10, borderRadius: 99, background: '#5856D6', border: '2px solid #fff', flexShrink: 0 }} />
+                                                        <div style={{ position: 'absolute', right: -9, top: 4, width: 10, height: 10, borderRadius: 99, background: '#5AC8FA', border: '2px solid #fff', flexShrink: 0 }} />
                                                         <div style={{ flex: 1, textAlign: 'right' }}>
                                                             <p style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F' }}>{evt.action}</p>
                                                             <p style={{ fontSize: 10, color: '#AEAEB2', marginTop: 2 }}>
@@ -894,7 +912,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
     </div>
 );
 
-function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder, onForwardOrder, pipelineQuotes = [], onGoToPipeline }) {
+function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder, onForwardOrder, pipelineQuotes = [], onGoToPipeline, onDeleteOrder, onSetStatus }) {
     const pending   = supplierOrders.filter(o => o.status === 'pending').length;
     const inTransit = supplierOrders.filter(o => o.status === 'in_transit').length;
     const forwarded = supplierOrders.filter(o => o.status === 'forwarded' || o.status === 'confirmed').length;
@@ -1129,8 +1147,23 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                                 <DrillStat items={[
                                     { label: 'מוצר', value: o.productTitle || '—', color: BROWN },
                                     { label: 'כמות', value: o.qty || 1, color: '#007AFF' },
-                                    { label: 'ETA', value: o.eta || '—', color: '#5856D6' },
+                                    { label: 'ETA', value: o.eta || '—', color: '#5AC8FA' },
                                 ]} />
+                                {/* Edit + delete — available at every stage, from the drill itself */}
+                                <div>
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest mb-2">עריכה מהירה</p>
+                                    <div className="flex items-center gap-2">
+                                        <select value={o.status} onChange={e => onSetStatus?.(o.id, e.target.value)}
+                                            className="flex-1 px-3 py-2.5 rounded-xl text-[12px] font-black cursor-pointer focus:outline-none border border-black/10 bg-white text-[#1D1D1F]">
+                                            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                                        </select>
+                                        <button onClick={() => onDeleteOrder?.(o.id)}
+                                            className="px-3 py-2.5 rounded-xl text-[12px] font-black flex items-center gap-1.5 transition-colors"
+                                            style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.2)' }}>
+                                            <Trash2 size={14} /> מחק
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         );
                     }
@@ -1170,7 +1203,7 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                                 </div>
                                 <DrillStat items={[
                                     { label: 'פריטים', value: (q.items || []).length, color: '#0891B2' },
-                                    { label: 'סטטוס', value: (PIPELINE_STATUS[q.status] || {}).label || q.status || '—', color: '#7C3AED' },
+                                    { label: 'סטטוס', value: (PIPELINE_STATUS[q.status] || {}).label || q.status || '—', color: '#0A84FF' },
                                     { label: 'סכום', value: q.total ? money(q.total) : '—', color: '#34C759' },
                                 ]} />
                             </div>
@@ -1685,7 +1718,7 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                             <motion.button whileTap={{ scale: 0.95 }}
                                                 onClick={e => { e.stopPropagation(); setStatus(o.id, nextId, e); }}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black text-white cursor-pointer whitespace-nowrap"
-                                                style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>
+                                                style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)' }}>
                                                 <ArrowRight size={11} />
                                                 {nextLabel}
                                             </motion.button>
@@ -1701,7 +1734,7 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                         <p className="font-black text-[#1D1D1F] text-[15px] mb-1">{o.productTitle} × {o.qty}</p>
                                         <div className="flex items-center gap-3 justify-end flex-wrap">
                                             <span className="text-[11px] text-[#86868B] flex items-center gap-1"><User size={10} />{o.customerName}</span>
-                                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: '#5856D6' }}><Factory size={10} />{o.supplierName || '—'}</span>
+                                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: '#5AC8FA' }}><Factory size={10} />{o.supplierName || '—'}</span>
                                             {o.totalCost > 0 && <span className="text-[11px] text-[#86868B] flex items-center gap-1"><DollarSign size={10} />₪{o.totalCost}</span>}
                                             {o.eta && <span className="text-[11px] text-[#86868B] flex items-center gap-1"><Clock size={10} />{o.eta}</span>}
                                         </div>
@@ -1823,7 +1856,7 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
                             {/* Email supplier button */}
                             {buildSupplierEmail(successData) && (
                                 <a href={buildSupplierEmail(successData)}
-                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '13px 20px', borderRadius: 16, background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, textDecoration: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '13px 20px', borderRadius: 16, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 14, fontWeight: 800, textDecoration: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                                     <Mail size={17} />
                                     שלח מייל לספק
                                 </a>
@@ -1890,7 +1923,7 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
                             </button>
                             <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit} disabled={loading}
                                 className="flex-1 py-3 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 cursor-pointer"
-                                style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                                style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                                 <Send size={15} />
                                 {loading ? 'שולח...' : 'שלח לספק'}
                             </motion.button>
@@ -1974,7 +2007,7 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
             <div className="flex justify-end" dir="rtl">
                 <motion.button whileTap={{ scale: 0.97 }} onClick={openAdd}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black text-white cursor-pointer"
-                    style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
+                    style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 4px 16px rgba(0,122,255,0.25)' }}>
                     <Plus size={15} />
                     הוסף ספק
                 </motion.button>
@@ -2081,7 +2114,7 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
                         </button>
                         <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={loading}
                             className="flex-1 py-3 rounded-2xl text-sm font-black text-white cursor-pointer"
-                            style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 4px 16px rgba(0,122,255,0.2)' }}>
+                            style={{ background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 4px 16px rgba(0,122,255,0.2)' }}>
                             {loading ? 'שומר...' : editId ? 'עדכן ספק' : 'הוסף ספק'}
                         </motion.button>
                     </div>
@@ -2094,6 +2127,8 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
 // ── Product Mapping Tab ───────────────────────────────────────────────────────
 
 function ProductMappingTab({ suppliers, showToast }) {
+    const { fx, syncFxRate, setFxRate } = useAdminData();
+    const fxRate = Number(fx?.usdIls) || 3.7;
     const [products, setProducts] = useState([]);
     const [edits,    setEdits]    = useState({});
     const [saving,   setSaving]   = useState(null);
@@ -2113,50 +2148,84 @@ function ProductMappingTab({ suppliers, showToast }) {
         setSaving(pid);
         try {
             await updateDoc(doc(db, 'products', pid), changes);
-            showToast('מוצר עודכן', 'success');
+            showToast('מוצר עודכן — סונכרן לכל המערכת', 'success');
             setEdits(p => { const n = { ...p }; delete n[pid]; return n; });
         } catch { showToast('שגיאה', 'error'); }
         setSaving(null);
     };
 
+    const doSyncFx = async () => {
+        try { const r = await syncFxRate(); showToast(`שער עודכן: 1$ = ₪${Number(r).toFixed(2)}`, 'success'); }
+        catch { showToast('לא ניתן לסנכרן שער כרגע', 'error'); }
+    };
+
     return (
         <div className="space-y-3">
-            <div className="p-4 rounded-2xl text-right text-[12px] font-medium text-[#007AFF]"
-                style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.12)' }} dir="rtl">
-                מיפוי ספקים לכל מוצר — קובע מאין מגיע המוצר ומה זמן האספקה ללקוח.
+            {/* Header bar — hint + shared USD→ILS rate with sync */}
+            <div className="flex items-center justify-between gap-3 flex-wrap p-4 rounded-2xl" dir="rtl"
+                style={{ background: 'linear-gradient(120deg,rgba(0,122,255,0.06),rgba(52,199,89,0.05))', border: '1px solid rgba(0,122,255,0.12)' }}>
+                <p className="text-right text-[12px] font-medium text-[#007AFF] flex-1 min-w-[220px]">
+                    מיפוי ספקים ותמחור לכל מוצר — עלות (₪/$), מחיר מכירה ורווחיות. הנתונים מסתנכרנים אוטומטית למלאי, לאנליטיקס ולכל החישובים.
+                </p>
+                <div className="flex items-center gap-2 shrink-0 bg-white/70 rounded-xl px-3 py-1.5 border border-black/[0.06]">
+                    <button onClick={doSyncFx} disabled={fx?.syncing}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                        style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+                        <RefreshCw size={12} className={fx?.syncing ? 'animate-spin' : ''} />{fx?.syncing ? 'מסנכרן…' : 'סנכרן'}
+                    </button>
+                    <div className="flex items-center gap-1" dir="ltr">
+                        <span className="text-[11px] font-bold text-[#86868B]">1$ = ₪</span>
+                        <input key={fxRate} type="number" step="0.01" min="0" defaultValue={fxRate}
+                            onBlur={e => { const v = parseFloat(e.target.value); if (v > 0) setFxRate(v); }}
+                            className="w-16 px-2 py-1 rounded-lg border border-black/10 text-[12px] font-black text-center text-[#1D1D1F] outline-none focus:border-[#007AFF]/40" />
+                    </div>
+                </div>
             </div>
+
             {products.length === 0 ? (
                 <div className="py-16 text-center rounded-[2rem]" style={card}>
                     <Package size={36} className="mx-auto text-gray-200 mb-3" />
                     <p className="text-[#86868B] font-bold">טוען מוצרים...</p>
                 </div>
             ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                     {products.map(p => {
                         const ftId    = getVal(p, 'fulfillmentType') || 'supplier';
-                        const ft      = FULFILLMENT_TYPES.find(t => t.id === ftId) || FULFILLMENT_TYPES[0];
                         const isDirty = !!edits[p.id];
+                        const cur     = getVal(p, 'costCurrency') || 'ILS';
+                        const finLive = computeMargins({
+                            price: Number(getVal(p, 'price')) || 0,
+                            supplierCost: Number(getVal(p, 'supplierCost')) || 0,
+                            supplierCostUSD: Number(getVal(p, 'supplierCostUSD')) || 0,
+                            costCurrency: cur,
+                        }, fxRate);
                         return (
                             <motion.div key={p.id} layout
                                 className="rounded-[1.5rem] p-4 transition-all"
-                                style={{ ...card, borderColor: isDirty ? 'rgba(0,122,255,0.3)' : undefined }}>
-                                <div className="flex items-center gap-4 flex-wrap" dir="rtl">
+                                style={{ ...card, borderColor: isDirty ? 'rgba(0,122,255,0.35)' : undefined, boxShadow: isDirty ? '0 8px 30px rgba(0,122,255,0.10)' : card.boxShadow }}>
+                                <div className="flex items-center gap-3 flex-wrap" dir="rtl">
+                                    {/* Identity */}
                                     <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                                        {p.image && <img src={p.image} alt={p.title} onError={e => { e.target.style.display = 'none'; }} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-100" />}
+                                        {p.image
+                                            ? <img src={p.image} alt={p.title} onError={e => { e.target.style.display = 'none'; }} className="w-11 h-11 rounded-xl object-cover shrink-0 border border-gray-100" />
+                                            : <div className="w-11 h-11 rounded-xl bg-[#F5F5F7] flex items-center justify-center shrink-0"><Box size={16} className="text-[#C7C7CC]" /></div>}
                                         <div className="text-right min-w-0">
-                                            <p className="text-sm font-black text-[#1D1D1F] truncate">{p.title}</p>
+                                            <p className="text-[13px] font-black text-[#1D1D1F] truncate">{p.title}</p>
                                             <p className="text-[10px] text-[#86868B]">{p.category}</p>
                                         </div>
                                     </div>
+
+                                    {/* Fulfillment type */}
                                     <div className="flex items-center gap-1 shrink-0">
                                         {FULFILLMENT_TYPES.map(t => (
                                             <button key={t.id} onClick={() => setField(p.id, 'fulfillmentType', t.id)}
-                                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer ${ftId === t.id ? 'text-white' : 'text-[#86868B] hover:bg-[#007AFF]/[0.06]'}`}
+                                                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer ${ftId === t.id ? 'text-white' : 'text-[#86868B] hover:bg-[#007AFF]/[0.06]'}`}
                                                 style={ftId === t.id ? { background: t.color } : { background: 'rgba(0,0,0,0.03)' }}>
                                                 {t.label}
                                             </button>
                                         ))}
                                     </div>
+
                                     {ftId === 'supplier' && (
                                         <select value={getVal(p, 'supplierId') || ''} onChange={e => {
                                             const s = suppliers.find(s => s.id === e.target.value);
@@ -2170,16 +2239,59 @@ function ProductMappingTab({ suppliers, showToast }) {
                                             ))}
                                         </select>
                                     )}
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <input type="number" value={getVal(p, 'leadTimeDays') || ''} onChange={e => setField(p.id, 'leadTimeDays', parseInt(e.target.value) || 0)}
-                                            placeholder="ימים" className="w-16 px-2 py-2 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[11px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
-                                        <span className="text-[10px] text-[#86868B] shrink-0">ימים</span>
+
+                                    {/* Lead time */}
+                                    <div className="flex flex-col items-center shrink-0">
+                                        <label className="text-[8px] font-black text-[#AEAEB2] tracking-wider mb-0.5">אספקה</label>
+                                        <div className="flex items-center gap-1">
+                                            <input type="number" value={getVal(p, 'leadTimeDays') || ''} onChange={e => setField(p.id, 'leadTimeDays', parseInt(e.target.value) || 0)}
+                                                placeholder="0" className="w-14 px-2 py-1.5 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[11px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
+                                            <span className="text-[9px] text-[#86868B]">ימים</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <input type="number" value={getVal(p, 'supplierCost') || ''} onChange={e => setField(p.id, 'supplierCost', parseFloat(e.target.value) || 0)}
-                                            placeholder="עלות ₪" className="w-20 px-2 py-2 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[11px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
-                                        <span className="text-[10px] text-[#86868B] shrink-0">₪</span>
+
+                                    {/* Cost — currency toggle + input */}
+                                    <div className="flex flex-col items-center shrink-0">
+                                        <label className="text-[8px] font-black text-[#AEAEB2] tracking-wider mb-0.5">עלות מהספק</label>
+                                        <div className="flex items-stretch gap-1">
+                                            <div className="flex rounded-lg overflow-hidden border border-black/10" dir="ltr">
+                                                {['ILS', 'USD'].map(c => (
+                                                    <button key={c} type="button" onClick={() => setField(p.id, 'costCurrency', c)}
+                                                        className="px-1.5 text-[11px] font-black transition-colors"
+                                                        style={{ background: cur === c ? '#007AFF' : '#fff', color: cur === c ? '#fff' : '#86868B' }}>
+                                                        {c === 'ILS' ? '₪' : '$'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {cur === 'ILS' ? (
+                                                <input type="number" value={getVal(p, 'supplierCost') || ''} onChange={e => setField(p.id, 'supplierCost', parseFloat(e.target.value) || 0)}
+                                                    placeholder="0" className="w-16 px-2 py-1.5 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[11px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
+                                            ) : (
+                                                <input type="number" value={getVal(p, 'supplierCostUSD') || ''} onChange={e => setField(p.id, 'supplierCostUSD', parseFloat(e.target.value) || 0)}
+                                                    placeholder="0" className="w-16 px-2 py-1.5 bg-[#F5F5F7] border border-gray-100 rounded-xl text-[11px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {/* Sell price */}
+                                    <div className="flex flex-col items-center shrink-0">
+                                        <label className="text-[8px] font-black text-[#AEAEB2] tracking-wider mb-0.5">מחיר מכירה</label>
+                                        <div className="flex items-center gap-1">
+                                            <input type="number" value={getVal(p, 'price') || ''} onChange={e => setField(p.id, 'price', parseFloat(e.target.value) || 0)}
+                                                placeholder="0" className="w-16 px-2 py-1.5 bg-white border border-gray-100 rounded-xl text-[11px] font-black text-center text-[#007AFF] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20" />
+                                            <span className="text-[9px] text-[#86868B]">₪</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Margin chip */}
+                                    <div className="flex flex-col items-center shrink-0 px-2 py-1 rounded-xl" style={{ background: hexA(marginColor(finLive.marginPct), 0.10) }}>
+                                        <span className="text-[8px] font-black text-[#AEAEB2] tracking-wider">רווחיות</span>
+                                        <span className="text-[13px] font-black tabular-nums" style={{ color: marginColor(finLive.marginPct) }}>
+                                            {finLive.marginPct != null ? fmtPct(finLive.marginPct) : '—'}
+                                        </span>
+                                        {finLive.hasData && <span className="text-[8.5px] font-bold text-[#86868B]">{fmtILS(finLive.profit)}</span>}
+                                    </div>
+
                                     {isDirty && (
                                         <motion.button initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                                             whileTap={{ scale: 0.97 }} onClick={() => saveProduct(p.id)} disabled={saving === p.id}
@@ -2208,6 +2320,7 @@ export default function AdminFulfillment() {
     const [selectedOrder,  setSelectedOrder]  = useState(null);
     const [forwardOrder,   setForwardOrder]   = useState(null); // customer order pending forward
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
     // Quotes pipeline = SINGLE source of truth for fulfillment (bridge for H4).
     const { quotes, updateQuoteStatus } = useAdminData();
     const pipelineQuotes = quotes.filter(isPipelineQuote);
@@ -2221,7 +2334,8 @@ export default function AdminFulfillment() {
             setSupplierOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         }, err => { console.error(err); setSupplierOrders([]); showToast('שגיאה בטעינת הזמנות ספקים', 'error'); });
         const u3 = onSnapshot(query(collection(db, 'orders'), orderBy('dateTs', 'desc')), snap => {
-            setCustomerOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            // exclude soft-deleted + synthetic quote-sale records (they carry no product/qty)
+            setCustomerOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(o => !o.deleted && o.source !== 'quote'));
         }, err => { console.error(err); setCustomerOrders([]); showToast('שגיאה בטעינת הזמנות', 'error'); });
         return () => { u1(); u2(); u3(); };
     }, []);
@@ -2233,6 +2347,22 @@ export default function AdminFulfillment() {
     // When a customer order is clicked in dashboard → open forward modal pre-filled
     const handleForwardOrder = (customerOrder) => {
         setForwardOrder(customerOrder);
+    };
+
+    // ── Supplier order management — editable + deletable from EVERY area/stage ──
+    const deleteSupplierOrder = async (id) => {
+        if (!await confirm({ title: 'למחוק הזמנת ספק?', message: 'ההזמנה תימחק לצמיתות מכל האזורים.', danger: true })) return;
+        try {
+            await deleteDoc(doc(db, 'supplier_orders', id));
+            setSelectedOrder(s => (s && s.id === id) ? null : s);
+            showToast('הזמנת הספק נמחקה', 'success');
+        } catch { showToast('שגיאה במחיקת ההזמנה', 'error'); }
+    };
+    const setSupplierOrderStatus = async (id, status) => {
+        try {
+            await updateDoc(doc(db, 'supplier_orders', id), { status, [`${status}At`]: serverTimestamp() });
+            showToast('הסטטוס עודכן', 'success');
+        } catch { showToast('שגיאה בעדכון הסטטוס', 'error'); }
     };
 
     return (
@@ -2288,6 +2418,8 @@ export default function AdminFulfillment() {
                             onForwardOrder={handleForwardOrder}
                             pipelineQuotes={pipelineQuotes}
                             onGoToPipeline={() => setActiveTab('orders')}
+                            onDeleteOrder={deleteSupplierOrder}
+                            onSetStatus={setSupplierOrderStatus}
                         />
                     )}
                     {activeTab === 'orders' && (
@@ -2318,6 +2450,8 @@ export default function AdminFulfillment() {
                         customerOrders={customerOrders}
                         suppliers={suppliers}
                         onClose={() => setSelectedOrder(null)}
+                        onDelete={() => deleteSupplierOrder(selectedOrder.id)}
+                        onSetStatus={setSupplierOrderStatus}
                         showToast={showToast}
                     />
                 )}

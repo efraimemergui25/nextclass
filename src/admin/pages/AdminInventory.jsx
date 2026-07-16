@@ -1066,17 +1066,23 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
                                 </div>
                             </div>
 
-                            {/* FX rate row — only relevant for USD cost */}
+                            {/* FX rate row — manual edit + optional auto-sync (USD cost) */}
                             {costCurrency === 'USD' && (
-                                <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 bg-white/70 border border-black/[0.06]">
-                                    <button type="button" onClick={() => onSyncFx && onSyncFx()} disabled={fx.syncing}
-                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"
-                                        style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
-                                        <RefreshCw size={12} className={fx.syncing ? 'animate-spin' : ''} />{fx.syncing ? 'מסנכרן…' : 'סנכרן שער'}
-                                    </button>
-                                    <div className="text-right text-[12px] font-bold text-[#6E6E73]">
-                                        1$ = ₪{fxRate.toFixed(2)} · ≈ {fmtILS(fin.cost)}
+                                <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 bg-white/70 border border-black/[0.06] flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <button type="button" onClick={() => onSyncFx && onSyncFx().catch(() => {})} disabled={fx.syncing}
+                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+                                            <RefreshCw size={12} className={fx.syncing ? 'animate-spin' : ''} />{fx.syncing ? 'מסנכרן…' : 'סנכרן'}
+                                        </button>
+                                        <div className="flex items-center gap-1" dir="ltr">
+                                            <span className="text-[11px] font-bold text-[#86868B]">1$ = ₪</span>
+                                            <input key={fxRate} type="number" step="0.01" min="0" defaultValue={fxRate}
+                                                onBlur={e => { const v = parseFloat(e.target.value); if (v > 0 && onSetFx) onSetFx(v); }}
+                                                className="w-16 px-2 py-1 rounded-lg border border-black/10 text-[12px] font-black text-center text-[#1D1D1F] outline-none focus:border-[#007AFF]/40" />
+                                        </div>
                                     </div>
+                                    <span className="text-[12px] font-bold text-[#6E6E73]">≈ {fmtILS(fin.cost)}</span>
                                 </div>
                             )}
 
