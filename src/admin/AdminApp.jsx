@@ -19,7 +19,9 @@ import AdminCopilot from './components/AdminCopilot';
 
 // ─── Lazy pages — each is its own JS chunk ────────────────────────────────────
 const AdminDashboard      = lazy(() => import('./pages/AdminDashboard'));
-const AdminOrders         = lazy(() => import('./pages/AdminOrders'));
+const AdminOrderHub       = lazy(() => import('./pages/AdminOrderHub'));
+// AdminOrders (legacy "הצעות מחיר") consolidated into AdminOrderHub — /admin/orders
+// now renders the unified cockpit so every inbound link lands on one surface.
 const AdminProducts       = lazy(() => import('./pages/AdminProducts'));
 const AdminInventory      = lazy(() => import('./pages/AdminInventory'));
 const AdminCustomers      = lazy(() => import('./pages/AdminCustomers'));
@@ -138,7 +140,7 @@ function AdminShell() {
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center"
-                style={{ background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 35%, #F2EEFF 65%, #F5F0FF 100%)' }}>
+                style={{ background: 'linear-gradient(160deg, #F0F3FA 0%, #EDF3FF 35%, #EAF2FC 65%, #EEF5FF 100%)' }}>
                 <motion.div
                     animate={{ scale: [1, 1.06, 1], opacity: [0.7, 1, 0.7] }}
                     transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
@@ -218,7 +220,8 @@ function AdminShell() {
                                             <Routes location={location}>
                                                 <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                                                 <Route path="/admin/dashboard"      element={<AdminDashboard />} />
-                                                <Route path="/admin/orders"         element={<AdminOrders />} />
+                                                <Route path="/admin/order-hub"      element={<AdminOrderHub />} />
+                                                <Route path="/admin/orders"         element={<AdminOrderHub />} />
                                                 <Route path="/admin/products"       element={<AdminProducts />} />
                                                 <Route path="/admin/inventory"      element={<AdminInventory />} />
                                                 <Route path="/admin/customers"      element={<AdminCustomers />} />
@@ -272,7 +275,7 @@ class AdminErrorBoundary extends Component {
             <div style={{
                 minHeight: '100vh', display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                background: 'linear-gradient(160deg, #F0F2FA 0%, #EEEEFF 60%, #F5F0FF 100%)',
+                background: 'linear-gradient(160deg, #F0F3FA 0%, #EDF3FF 60%, #EEF5FF 100%)',
                 padding: '2rem', textAlign: 'center', direction: 'rtl', fontFamily: 'Heebo, sans-serif',
             }}>
                 <div style={{ width: 64, height: 64, borderRadius: 20, background: '#1D1D1F', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 12px 40px rgba(0,0,0,0.2)' }}>

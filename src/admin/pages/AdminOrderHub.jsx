@@ -15,12 +15,14 @@
    • Every outbound email drafts into the approval queue (never auto-sends)
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, FileText } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import OwnerMonthlyReport from '../components/OwnerMonthlyReport';
 import TemplatesManager from '../components/TemplatesManager';
+import RulesManager, { RuleAlerts, useRules } from '../components/RulesManager';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
@@ -55,6 +57,15 @@ export default function AdminOrderHub() {
     const [search, setSearch] = useState('');
     const [selectedId, setSelectedId] = useState(null);
     const [invoiceOrder, setInvoiceOrder] = useState(null);
+    // Deep-links from Dashboard / TopBar / OCR (?quoteId, ?search) — legacy
+    // /admin/orders links now land here on the unified cockpit.
+    const [searchParams] = useSearchParams();
+    useEffect(() => {
+        const qid = searchParams.get('quoteId');
+        const s = searchParams.get('search');
+        if (qid) setSelectedId(qid);
+        if (s) setSearch(s);
+    }, [searchParams]);
     const [busy, setBusy] = useState(false);
     const [dropship, setDropship] = useState(null); // order being forwarded
     const [suppliers, setSuppliers] = useState([]);
@@ -67,6 +78,8 @@ export default function AdminOrderHub() {
     const [cmdk, setCmdk] = useState(false); // command palette
     const [templatesOpen, setTemplatesOpen] = useState(false); // templates library
     const [inst360, setInst360] = useState(null); // institution 360 modal (institution/name string)
+    const [rulesOpen, setRulesOpen] = useState(false); // automation rules manager
+    const { rules } = useRules(); // active automation rules
 
     /* Cmd+K / Ctrl+K → command palette */
     useEffect(() => {
@@ -446,11 +459,11 @@ export default function AdminOrderHub() {
                         style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
                         📝 תבניות
                     </button>
-                    <a href="/admin/orders" title="פייפליין מפורט (צ'אט לקוח, תבניות מייל, גרסאות)"
-                        style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', fontFamily: HE, fontWeight: 700, fontSize: 12.5, background: '#fff', color: '#86868B', textDecoration: 'none' }}>
-                        תצוגה מפורטת ↗
-                    </a>
-                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
+                    <button onClick={() => setRulesOpen(true)} title="חוקי אוטומציה — התראות מותאמות"
+                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
+                        ⚙️ חוקים
+                    </button>
+                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['split', '⬓ מפוצל'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
                         <button key={v} onClick={() => setView(v)}
                             style={{ padding: '8px 16px', borderRadius: 11, border: '1.5px solid ' + (view === v ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: view === v ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: view === v ? '#fff' : '#6E6E73' }}>
                             {lbl}
@@ -488,6 +501,13 @@ export default function AdminOrderHub() {
                     </div>
                 )}
             </div>
+
+            {/* live automation-rule alerts (client-side, no auto-send) */}
+            {rules?.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                    <RuleAlerts rules={rules} orders={orders} onOpenOrder={setSelectedId} />
+                </div>
+            )}
 
             {/* situation-handling strip (SAP) — surfaces what needs attention now */}
             {(stats.review > 0 || stats.atRisk > 0 || (kpis.dueReminders?.length > 0)) && (
@@ -543,6 +563,27 @@ export default function AdminOrderHub() {
 
             {/* body */}
             {view === 'work' && <WorkView orders={filtered} onOpen={setSelectedId} onAction={runAction} busy={busy} />}
+            {view === 'split' && (
+                <div className="nc-splitview" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px,340px) 1fr', gap: 16, alignItems: 'start' }}>
+                    <div style={{ position: 'sticky', top: 8, maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', ...glass, borderRadius: 16, padding: 6 }}>
+                        {filtered.map(o => (
+                            <button key={o.id} onClick={() => setSelectedId(o.id)}
+                                style={{ display: 'block', width: '100%', textAlign: 'right', padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: HE, background: selectedId === o.id ? 'rgba(0,122,255,0.08)' : 'transparent' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                                    <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</span>
+                                    <span style={{ fontSize: 11.5, fontWeight: 800, color: '#007AFF' }}>₪{orderTotal(o).toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}><OrderStageChip order={o} size="sm" /><RiskBadge order={o} /></div>
+                            </button>
+                        ))}
+                        {!filtered.length && <p style={{ padding: 20, textAlign: 'center', color: '#AEAEB2', fontSize: 12 }}>אין הזמנות</p>}
+                    </div>
+                    <div>
+                        {selected ? <InlineRecord order={selected} activity={activity} busy={busy} onAction={runAction} onJump={jumpToStage} onForward={() => setDropship(selected)} onFull={() => setView('list')} />
+                            : <div style={{ ...glass, borderRadius: 18, padding: 60, textAlign: 'center', color: '#AEAEB2', fontSize: 13, fontWeight: 700, fontFamily: HE }}>בחר/י הזמנה מהרשימה</div>}
+                    </div>
+                </div>
+            )}
             {view === 'kanban' && <KanbanBoard orders={filtered} onOpen={setSelectedId} onAdvance={jumpToStage} />}
             {view === 'list' && <ListView orders={filtered} onOpen={setSelectedId} onAction={runAction} onDelete={handleDelete} busy={busy} sel={sel} onToggleSel={toggleSel} />}
             {view === 'insights' && (
@@ -574,7 +615,7 @@ export default function AdminOrderHub() {
 
             {/* record-360 drawer */}
             <AnimatePresence>
-                {selected && (
+                {selected && view !== 'split' && (
                     <RecordDrawer order={selected} activity={activity} busy={busy}
                         onClose={() => setSelectedId(null)}
                         onAction={runAction} onJump={jumpToStage} onSetMode={setMode} onSave={saveFields}
@@ -628,6 +669,23 @@ export default function AdminOrderHub() {
                             <button onClick={() => setTemplatesOpen(false)} style={{ width: 34, height: 34, borderRadius: 99, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', fontSize: 17, color: '#6E6E73' }}>✕</button>
                         </div>
                         <div style={{ padding: 20 }}><TemplatesManager /></div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* automation rules manager (full-screen overlay) */}
+            <AnimatePresence>
+                {rulesOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 3000, background: '#F5F6F9', overflowY: 'auto' }} dir="rtl">
+                        <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(255,255,255,0.95)', borderBottom: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(20px)' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1D1D1F', fontFamily: HE }}>⚙️ חוקי אוטומציה</h2>
+                                <p style={{ margin: '2px 0 0', fontSize: 11.5, fontWeight: 600, color: '#86868B', fontFamily: HE }}>הגדר חוקים → התראות מותאמות במרכז ההזמנות (ללא שליחה אוטומטית)</p>
+                            </div>
+                            <button onClick={() => setRulesOpen(false)} style={{ width: 34, height: 34, borderRadius: 99, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', fontSize: 17, color: '#6E6E73' }}>✕</button>
+                        </div>
+                        <div style={{ padding: 20 }}><RulesManager /></div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1472,6 +1530,75 @@ function WorkView({ orders, onOpen, onAction, busy }) {
                     </div>
                 );
             })}
+        </div>
+    );
+}
+
+/* ─── Institution 360 — every order/quote for one institution, at a glance ────── */
+function Institution360({ name, orders, onClose, onOpen }) {
+    const nm = (name || '').trim();
+    const list = orders.filter(o => (o.institution || '').trim() === nm || (o.contactName || '').trim() === nm)
+        .sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+    const total = list.reduce((s, o) => s + orderTotal(o), 0);
+    const unpaid = list.filter(o => o.paymentStatus && o.paymentStatus !== 'paid').reduce((s, o) => s + orderTotal(o), 0);
+    return createPortal(
+        <div onClick={e => e.target === e.currentTarget && onClose()} dir="rtl" style={{ position: 'fixed', inset: 0, zIndex: 3500, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
+                style={{ width: 'min(600px,95vw)', maxHeight: '88vh', overflowY: 'auto', background: '#fff', borderRadius: 22, padding: 22, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>🏫 {nm || 'מוסד'}</h2>
+                        <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 600, color: '#86868B' }}>{list.length} הזמנות · שווי כולל ₪{total.toLocaleString()}{unpaid > 0 ? ` · חוב פתוח ₪${unpaid.toLocaleString()}` : ''}</p>
+                    </div>
+                    <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 99, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', fontSize: 16, color: '#6E6E73' }}>✕</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {list.map(o => (
+                        <button key={o.id} onClick={() => onOpen(o.id)} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center', padding: '11px 13px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)', background: '#fff', cursor: 'pointer', fontFamily: HE, textAlign: 'right' }}>
+                            <div style={{ minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 12.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderItemsSummary(o)}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: 10.5, color: '#AEAEB2' }}>{o.date || ''} {o.orderNumber ? `· #${o.orderNumber}` : ''}</p>
+                            </div>
+                            <OrderStageChip order={o} size="sm" />
+                            <span style={{ fontSize: 12.5, fontWeight: 900, color: '#007AFF' }}>₪{orderTotal(o).toLocaleString()}</span>
+                        </button>
+                    ))}
+                    {!list.length && <p style={{ padding: 20, textAlign: 'center', color: '#AEAEB2', fontSize: 12.5 }}>אין הזמנות</p>}
+                </div>
+            </motion.div>
+        </div>,
+        document.body
+    );
+}
+
+/* ─── Inline record panel (Service-Console split view) ───────────────────────── */
+function InlineRecord({ order, activity, busy, onAction, onJump, onForward, onFull }) {
+    const axes = deriveAxes(order);
+    return (
+        <div style={{ ...glass, borderRadius: 20, padding: 20, fontFamily: HE }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1D1D1F' }}>{orderTitle(order)}</h2>
+                    <p style={{ margin: '3px 0 0', fontSize: 12, fontWeight: 600, color: '#86868B' }}>{order.institution || ''} {order.orderNumber ? `· #${order.orderNumber}` : ''}</p>
+                </div>
+                <button onClick={onFull} style={{ padding: '6px 12px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', color: '#6E6E73', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 11.5 }}>פתח מלא ↗</button>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+                <Highlights fields={[
+                    { label: 'סה״כ', value: `₪${orderTotal(order).toLocaleString()}`, color: '#007AFF' },
+                    { label: 'לקוח', value: axes.customer === 'done' ? 'סופק' : axes.customer === 'acked' ? 'אושר' : 'התקבל' },
+                    { label: 'ספק', value: { none: '—', sent: 'הועבר', confirmed: 'אישר', delivered: 'סיפק', self: 'עצמי' }[axes.supplier] },
+                    { label: 'ימים בשלב', value: daysInStage(order) },
+                ]} />
+            </div>
+            <PathStepper order={order} busy={busy} onAction={onAction} onAdvance={(to) => onJump(order.id, to)} />
+            {!(order.supplierName || order.supplierOrderId) && !isSideState(deriveStage(order)) && (
+                <button onClick={onForward} style={{ marginTop: 12, padding: '10px 18px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#FF9500,#FFB340)', color: '#fff', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>🚚 העבר לספק</button>
+            )}
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>ציר זמן</p>
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}><ActivityTimeline items={activity} /></div>
+            </div>
         </div>
     );
 }
