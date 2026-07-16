@@ -16,6 +16,41 @@ import { doc, updateDoc, setDoc, arrayUnion, collection, query, orderBy, onSnaps
 import AdminKanbanBoard from '../components/AdminKanbanBoard';
 import DashDrillView from '../components/DashDrillView';
 
+// ─── 21-day intake-age SLA — green(≤7) → yellow(≤14) → orange(≤21) → red(>21) ──
+function intakeAge(ts) {
+    if (!ts) return null;
+    const days = Math.max(0, Math.floor((Date.now() - ts) / 86400000));
+    const color = days <= 7 ? '#34C759' : days <= 14 ? '#FFCC00' : days <= 21 ? '#FF9500' : '#FF3B30';
+    const label = days === 0 ? 'היום' : days === 1 ? 'אתמול' : `לפני ${days} ימים`;
+    return { days, color, label, pct: Math.min(100, Math.round((Math.min(days, 21) / 21) * 100)), over: days > 21 };
+}
+function intakeDateStr(ts) {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+// Compact intake date + 21-day age badge — used across order/quote rows
+function IntakeAgeBadge({ ts, size = 'sm' }) {
+    const a = intakeAge(ts);
+    if (!a) return null;
+    const big = size === 'lg';
+    return (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: big ? 9 : 7 }} title={`נקלט: ${intakeDateStr(ts)} · ${a.days} מתוך 21 ימים`}>
+            <div style={{ position: 'relative', width: big ? 34 : 28, height: big ? 34 : 28, flexShrink: 0 }}>
+                <svg width={big ? 34 : 28} height={big ? 34 : 28} viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="4" />
+                    <circle cx="18" cy="18" r="15" fill="none" stroke={a.color} strokeWidth="4" strokeLinecap="round"
+                        strokeDasharray={`${(a.pct / 100) * 94.2} 94.2`} />
+                </svg>
+                <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: big ? 11 : 9.5, fontWeight: 900, color: a.color }}>{a.days}</span>
+            </div>
+            <div style={{ lineHeight: 1.15 }}>
+                <p style={{ margin: 0, fontSize: big ? 13 : 12, fontWeight: 800, color: '#1D1D1F', direction: 'rtl' }}>{intakeDateStr(ts)}</p>
+                <p style={{ margin: 0, fontSize: big ? 11 : 10, fontWeight: 700, color: a.color }}>{a.over ? `⚠️ ${a.days} / 21 ימים` : `${a.days} / 21 ימים`}</p>
+            </div>
+        </div>
+    );
+}
+
 // ─── Manual quote/contact form primitives (create + edit) ────────────────────
 const nqInput = { padding: '9px 11px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.09)', background: '#F5F5F7', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', fontFamily: 'Heebo,sans-serif', outline: 'none' };
 function NqField({ label, value, onChange }) {
@@ -3059,14 +3094,14 @@ function QuotesPipeline() {
                 </AnimatePresence>
 
                 {filtered.length > 0 && (
-                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-2 text-right" dir="rtl">
+                  <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-3 text-right bg-gradient-to-l from-black/[0.02] to-transparent" dir="rtl">
                         {['', 'מספר / תאריך', 'פרטי קשר', 'שווי הצעה', 'סטטוס', ''].map((h, i) => (
-                            <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                            <p key={i} className="text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase">{h}</p>
                         ))}
                     </div>
-                )}
 
-                <AnimatePresence>
+                    <AnimatePresence initial={false}>
                     {filtered.map((quote, i) => (
                         <motion.div
                             key={quote.id}
@@ -3086,14 +3121,13 @@ function QuotesPipeline() {
                                     setSelected(quote); setNewStatus(''); setSaved(false); setNoteText('');
                                 }
                             }}
-                            className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group" dir="rtl"
+                            className="relative grid grid-cols-[auto_1fr_2fr_1fr_auto_auto] gap-4 px-6 py-4 cursor-pointer items-center border-t border-black/[0.05] hover:bg-[#007AFF]/[0.035] group" dir="rtl"
                             style={{
-                                borderColor: bulkMode && selectedIds.has(quote.id) ? 'rgba(0,122,255,0.4)' : (quote.unreadAdmin ? 'rgba(52,199,89,0.35)' : undefined),
-                                transition: 'box-shadow 0.3s, background 0.3s',
-                                boxShadow: flashId === quote.id ? `0 0 0 3px ${QUOTE_STATUS_COLORS[quote.status] || '#007AFF'}60, 0 12px 40px rgba(0,122,255,0.12)` : undefined,
-                                background: bulkMode && selectedIds.has(quote.id) ? 'rgba(0,122,255,0.05)' : (flashId === quote.id ? `${QUOTE_STATUS_COLORS[quote.status] || '#007AFF'}08` : (quote.unreadAdmin ? 'rgba(52,199,89,0.03)' : undefined)),
+                                transition: 'background 0.2s',
+                                background: bulkMode && selectedIds.has(quote.id) ? 'rgba(0,122,255,0.06)' : (flashId === quote.id ? `${QUOTE_STATUS_COLORS[quote.status] || '#007AFF'}10` : (quote.unreadAdmin ? 'rgba(52,199,89,0.04)' : undefined)),
                             }}
                         >
+                            {quote.unreadAdmin && <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full" style={{ background: '#34C759' }} />}
                             {bulkMode && (
                                 <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${selectedIds.has(quote.id) ? '#007AFF' : 'rgba(0,0,0,0.18)'}`, background: selectedIds.has(quote.id) ? '#007AFF' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                                     {selectedIds.has(quote.id) && <span style={{ color: '#fff', fontSize: 12, fontWeight: 900 }}>✓</span>}
@@ -3111,52 +3145,21 @@ function QuotesPipeline() {
                                 )}
                             </div>
                             <div className="text-right">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <p className="text-[#007AFF] font-black text-xs group-hover:text-[#5AC8FA] transition-colors">{quote.id}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                    <p className="text-[#007AFF] font-black text-[13px] group-hover:text-[#5AC8FA] transition-colors">{quote.id}</p>
                                     <CopyBtn text={quote.id} />
-                                </div>
-                                    {(() => {
-                                        const d = quote.dateTs ? Math.floor((Date.now() - quote.dateTs) / 86400000) : null;
-                                        const staleMap = { 'חדש': 1, 'ביצירת קשר': 3, 'בדיקת מלאי': 5, 'הוצע מחיר': 7, 'ממתין לאישור': 5 };
-                                        const staleThreshold = staleMap[quote.status];
-                                        const stageAge = quote.lastStatusChange ? Math.floor((Date.now() - quote.lastStatusChange) / 86400000) : d;
-                                        const isStale = staleThreshold && stageAge > staleThreshold;
-                                        return d !== null && d > 0 ? (
-                                            <span title={isStale ? `⚠️ לא התקדם ${stageAge} ימים` : `גיל: ${d} ימים`}
-                                                style={{ fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 5, background: isStale ? 'rgba(255,59,48,0.12)' : d > 7 ? 'rgba(255,59,48,0.10)' : 'rgba(255,149,0,0.09)', color: isStale ? '#FF3B30' : d > 7 ? '#FF3B30' : '#FF9500' }}>
-                                                {isStale ? `⚠️ ${stageAge}י׳` : `${d}י׳`}
-                                            </span>
-                                        ) : null;
-                                    })()}
                                     {quote.reminderAt && quote.reminderAt > Date.now() && (
-                                        <span title={`תזכורת: ${new Date(quote.reminderAt).toLocaleDateString('he-IL')}`} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 5, background: 'rgba(255,149,0,0.12)', color: '#FF9500', fontWeight: 800 }}>⏰</span>
+                                        <span title={`תזכורת: ${new Date(quote.reminderAt).toLocaleDateString('he-IL')}`} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 5, background: 'rgba(255,149,0,0.12)', color: '#FF9500', fontWeight: 800 }}>⏰</span>
                                     )}
                                 </div>
-                                <p className="text-[#AEAEB2] text-[10px] mt-0.5">{quote.date}</p>
-                                {/* Mini pipeline progress bar */}
-                                {(() => {
-                                    const ci = QUOTE_STATUS_FLOW.indexOf(quote.status);
-                                    const pct = Math.round(((ci + 1) / QUOTE_STATUS_FLOW.length) * 100);
-                                    const col = QUOTE_STATUS_COLORS[quote.status] || '#007AFF';
-                                    return (
-                                        <div style={{ marginTop: 5, height: 3, borderRadius: 2, background: 'rgba(0,0,0,0.07)', overflow: 'hidden', width: '100%' }}>
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${pct}%` }}
-                                                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                                                style={{ height: '100%', borderRadius: 2, background: `linear-gradient(90deg, ${col}, ${col}CC)` }}
-                                            />
-                                        </div>
-                                    );
-                                })()}
+                                <IntakeAgeBadge ts={quote.dateTs} />
                             </div>
                             <div className="text-right min-w-0">
-                                <p className="text-[#1D1D1F] font-bold text-sm truncate hover:text-[#007AFF] hover:underline cursor-pointer transition-colors"
-                                    onClick={e => { e.stopPropagation(); navigate(`/admin/users?email=${encodeURIComponent(quote.email || quote.contactName || '')}`); }}>{quote.contactName}</p>
-                                <p className="text-[#AEAEB2] text-[10px] truncate">{quote.institution} · {quote.contactRole}</p>
+                                <p className="text-[#1D1D1F] font-bold text-[14px] truncate hover:text-[#007AFF] hover:underline cursor-pointer transition-colors"
+                                    onClick={e => { e.stopPropagation(); navigate(`/admin/users?email=${encodeURIComponent(quote.email || quote.contactName || '')}`); }}>{quote.contactName || '—'}</p>
+                                <p className="text-[#8E8E93] text-[11.5px] truncate mt-0.5">{[quote.institution, quote.contactRole].filter(Boolean).join(' · ') || '—'}</p>
                             </div>
-                            <p className="text-[#1D1D1F] font-black text-sm">
+                            <p className="text-[#1D1D1F] font-black text-[15px] tabular-nums">
                                 {quote.subtotal ? `₪${quote.subtotal.toLocaleString()}` : '—'}
                             </p>
                             <QuickDropdown item={quote} statuses={QUOTE_STATUSES} colors={QUOTE_STATUS_COLORS} onUpdate={handleQuickStatus} />
@@ -3201,7 +3204,9 @@ function QuotesPipeline() {
                             </div>
                         </motion.div>
                     ))}
-                </AnimatePresence>
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {filtered.length === 0 && (
                     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="py-16 flex flex-col items-center gap-4" dir="rtl">
@@ -4342,40 +4347,44 @@ function OrdersList() {
 
             <div className="space-y-3 mt-4">
                 {filtered.length > 0 && (
-                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-2 text-right">
-                        {['', 'מס׳ / תאריך', 'לקוח / מוצר', 'סה״כ', 'סטטוס', '', ''].map((h, i) => (
-                            <p key={i} className="text-[10px] font-black tracking-[0.18em] text-[#AEAEB2]">{h}</p>
+                  <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                    <div className="hidden lg:grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-3 text-right bg-gradient-to-l from-black/[0.02] to-transparent">
+                        {['', 'מס׳ · נקלט', 'לקוח / מוצר', 'סה״כ', 'סטטוס', '', ''].map((h, i) => (
+                            <p key={i} className="text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase">{h}</p>
                         ))}
                     </div>
-                )}
 
-                <AnimatePresence>
+                    <AnimatePresence initial={false}>
                     {filtered.map((order, i) => (
                         <motion.div
                             key={order.id}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
-                            transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
+                            layout
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ delay: i * 0.012, duration: 0.2 }}
                             onClick={() => { setSelected(order); setNewStatus(''); setSaved(false); }}
-                            className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/20 hover:shadow-[0_12px_40px_rgba(0,122,255,0.08)] group"
+                            className="grid grid-cols-[auto_1fr_2fr_1fr_auto_auto_auto] gap-4 px-6 py-4 cursor-pointer items-center border-t border-black/[0.05] hover:bg-[#007AFF]/[0.035] transition-colors group"
                         >
                             <Avatar name={order.customer} />
                             <div className="text-right">
-                                <p className="text-[#007AFF] font-black text-xs group-hover:text-[#5AC8FA] transition-colors">{order.id}</p>
-                                <p className="text-[#AEAEB2] text-[10px] mt-0.5">{order.date}</p>
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                    <p className="text-[#007AFF] font-black text-[13px] group-hover:text-[#5AC8FA] transition-colors">{order.id}</p>
+                                    <CopyBtn text={order.id} />
+                                </div>
+                                <IntakeAgeBadge ts={order.dateTs} />
                             </div>
                             <div className="text-right min-w-0">
-                                <p className="text-[#007AFF] font-bold text-sm truncate hover:underline"
+                                <p className="text-[#1D1D1F] font-bold text-[14px] truncate hover:text-[#007AFF] hover:underline cursor-pointer transition-colors"
                                     onClick={e => { e.stopPropagation(); navigate(`/admin/customers?search=${encodeURIComponent(order.customer)}`); }}>
                                     {order.customer}
                                 </p>
-                                <p className="text-[#AEAEB2] text-[10px] truncate hover:text-[#007AFF] transition-colors cursor-pointer"
+                                <p className="text-[#8E8E93] text-[11.5px] truncate hover:text-[#007AFF] transition-colors cursor-pointer mt-0.5"
                                     onClick={e => { e.stopPropagation(); navigate(`/admin/inventory?open=${encodeURIComponent(order.product)}`); }}>
                                     {order.product} · {order.qty} יח׳
                                 </p>
                             </div>
-                            <p className="text-[#1D1D1F] font-black text-sm">₪{(order.total || 0).toLocaleString()}</p>
+                            <p className="text-[#1D1D1F] font-black text-[15px] tabular-nums">₪{(order.total || 0).toLocaleString()}</p>
                             <QuickDropdown item={order} statuses={ORDER_STATUSES} colors={ORDER_STATUS_COLORS} onUpdate={handleQuickStatus} />
                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
                                 {order.status !== 'אושר' && order.status !== 'נמסר' && order.status !== 'בוטל' && (
@@ -4404,7 +4413,9 @@ function OrdersList() {
                             <motion.span whileHover={{ x: -3 }} className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold shrink-0 transition-colors">←</motion.span>
                         </motion.div>
                     ))}
-                </AnimatePresence>
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {filtered.length === 0 && (
                     <div className="py-20 flex flex-col items-center gap-3 text-[#AEAEB2]">

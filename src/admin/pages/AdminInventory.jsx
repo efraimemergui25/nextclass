@@ -8,13 +8,21 @@ import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
-import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip } from '../components/AdminComponents';
-import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING } from '../theme/tokens';
+import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, AdminKPICard, AdminEmpty, AdminTabs, InfoTooltip, AdminInput } from '../components/AdminComponents';
+import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING, GLASS, toneColor } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
 
 // Unified brand accent (azure) — DOMAIN_ACCENTS.inventory resolves to #007AFF
 const ORANGE = DOMAIN_ACCENTS.inventory;
+
+// Liquid-glass card surface (token-driven). Only the glass background + blur are
+// applied inline so Tailwind border/hover states on each card stay intact.
+const GLASS_SURFACE = {
+    background: GLASS.base.background,
+    backdropFilter: GLASS.base.backdropFilter,
+    WebkitBackdropFilter: GLASS.base.WebkitBackdropFilter,
+};
 
 // ─── Smart Reorder Modal ──────────────────────────────────────────────────────
 function SmartReorderModal({ open, product, onClose, suppliers }) {
@@ -62,9 +70,9 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
                 {/* Stats */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
                     {[
-                        { label: 'מלאי נוכחי', value: product.stock || 0, color: (product.stock || 0) === 0 ? '#FF3B30' : '#FF9500' },
-                        { label: 'סף ההתרעה', value: product.threshold || 5, color: '#007AFF' },
-                        { label: 'כמות מוצעת', value: recQty, color: '#34C759' },
+                        { label: 'מלאי נוכחי', value: product.stock || 0, color: (product.stock || 0) === 0 ? toneColor('danger') : toneColor('warning') },
+                        { label: 'סף ההתרעה', value: product.threshold || 5, color: toneColor('info') },
+                        { label: 'כמות מוצעת', value: recQty, color: toneColor('success') },
                     ].map(s => (
                         <div key={s.label} style={{ borderRadius: 12, padding: '10px 12px', background: `${s.color}09`, border: `1px solid ${s.color}20`, textAlign: 'right' }}>
                             <p style={{ fontSize: 20, fontWeight: 900, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
@@ -285,10 +293,10 @@ export default function AdminInventory() {
         return 'ok';
     };
     const STATUS_STYLE = {
-        out:      { color: '#FF3B30', label: 'אזל' },
-        low:      { color: '#FF9500', label: 'נמוך' },
-        ok:       { color: '#34C759', label: 'תקין' },
-        supplier: { color: '#007AFF', label: 'אצל הספק' },
+        out:      { color: toneColor('danger'),  label: 'אזל' },
+        low:      { color: toneColor('warning'), label: 'נמוך' },
+        ok:       { color: toneColor('success'), label: 'תקין' },
+        supplier: { color: toneColor('info'),    label: 'אצל הספק' },
     };
     const lowCount  = inventory.filter(p => statusKey(p) === 'low').length;
     const outCount  = inventory.filter(p => statusKey(p) === 'out').length;
@@ -381,9 +389,9 @@ export default function AdminInventory() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
                     { label: 'סה״כ מוצרים', value: inventory.length, color: ORANGE, Icon: Boxes, sub: `${filtered.length} בתצוגה`, tooltip: 'כל המוצרים בקטלוג המלאי.', scope: 'all' },
-                    { label: 'מלאי תקין', value: okCount, color: '#34C759', Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.', scope: 'ok' },
-                    { label: 'מלאי נמוך', value: lowCount, color: '#FF9500', Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.', scope: 'low' },
-                    { label: 'אזל מהמלאי', value: outCount, color: '#FF3B30', Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.', scope: 'out' },
+                    { label: 'מלאי תקין', value: okCount, color: toneColor('success'), Icon: CheckCircle2, sub: 'מעל סף ההתרעה', tooltip: 'מוצרים שמלאיהם מעל סף ההתרעה.', scope: 'ok' },
+                    { label: 'מלאי נמוך', value: lowCount, color: toneColor('warning'), Icon: AlertTriangle, sub: 'כדאי לחדש', tooltip: 'מוצרים שהמלאי הגיע לסף ההתרעה — כדאי לחדש.', scope: 'low' },
+                    { label: 'אזל מהמלאי', value: outCount, color: toneColor('danger'), Icon: XCircle, sub: 'לא ניתן להזמין', tooltip: 'מוצרים עם 0 יחידות — לא ניתן להזמין.', scope: 'out' },
                 ].map(({ label, value, color, Icon, sub, tooltip, scope }, i) => (
                     <AdminKPICard key={label} title={label} value={value} subtitle={sub} tooltip={tooltip}
                         icon={<Icon size={20} color={color} />} accent={color} delay={i * 0.05}
@@ -445,7 +453,8 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="relative bg-white rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
+                                        style={GLASS_SURFACE}
+                                        className="relative rounded-[22px] overflow-hidden border border-black/05 hover:border-[#007AFF]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.10)] transition-all duration-300 cursor-pointer group"
                                     >
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] bg-[#F5F5F7] overflow-hidden">
@@ -486,7 +495,7 @@ export default function AdminInventory() {
                                                     }
                                                 }}
                                                 className="absolute bottom-2.5 left-2.5 w-7 h-7 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                                                style={{ background: 'rgba(255,59,48,0.82)', backdropFilter: 'blur(8px)' }}
+                                                style={{ background: hexA(toneColor('danger'), 0.82), backdropFilter: 'blur(8px)' }}
                                             >
                                                 <Trash2 size={12} />
                                             </button>
@@ -502,7 +511,7 @@ export default function AdminInventory() {
                                             {(() => {
                                                 const days = daysToStockout(product);
                                                 if (days === null) return null;
-                                                const chipColor = days <= 7 ? '#FF3B30' : days <= 30 ? '#FF9500' : '#34C759';
+                                                const chipColor = days <= 7 ? toneColor('danger') : days <= 30 ? toneColor('warning') : toneColor('success');
                                                 return (
                                                     <div className="flex items-center gap-1 mt-1.5">
                                                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
@@ -554,7 +563,7 @@ export default function AdminInventory() {
                                                             onClick={e => handleQuickStock(e, product, -1)}
                                                             className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[16px] leading-none transition-all"
                                                             style={{ background: 'rgba(0,0,0,0.04)', color: '#86868B' }}
-                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,59,48,0.12)'; e.currentTarget.style.color = '#FF3B30'; }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = hexA(toneColor('danger'), 0.12); e.currentTarget.style.color = toneColor('danger'); }}
                                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = '#86868B'; }}
                                                         >−</button>
                                                         <span className="text-[22px] font-black w-9 text-center leading-none" style={{ color }}>
@@ -564,7 +573,7 @@ export default function AdminInventory() {
                                                             onClick={e => handleQuickStock(e, product, +1)}
                                                             className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-[16px] leading-none transition-all"
                                                             style={{ background: 'rgba(0,0,0,0.04)', color: '#86868B' }}
-                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,199,89,0.12)'; e.currentTarget.style.color = '#34C759'; }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = hexA(toneColor('success'), 0.12); e.currentTarget.style.color = toneColor('success'); }}
                                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = '#86868B'; }}
                                                         >+</button>
                                                     </div>
@@ -626,7 +635,8 @@ export default function AdminInventory() {
                                         exit={{ opacity: 0, scale: 0.98 }}
                                         transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
+                                        style={GLASS_SURFACE}
+                                        className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all cursor-pointer group"
                                     >
                                         {/* Thumb */}
                                         <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
@@ -701,7 +711,7 @@ export default function AdminInventory() {
             {tab === 'reorder' && (
                 <div className="space-y-2">
                     {belowThreshold.length === 0 ? (
-                        <AdminEmpty icon={<CheckCircle2 size={30} style={{ color: '#34C759' }} />}
+                        <AdminEmpty icon={<CheckCircle2 size={30} style={{ color: toneColor('success') }} />}
                             title="כל המוצרים מעל סף ההתרעה"
                             subtitle="אין פריטים שדורשים חידוש מלאי כרגע" />
                     ) : belowThreshold.map((product, i) => {
@@ -713,7 +723,8 @@ export default function AdminInventory() {
                                 initial={{ opacity: 0, x: 8 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.02, type: 'spring', stiffness: 320, damping: 28 }}
-                                className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] bg-white border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all"
+                                style={GLASS_SURFACE}
+                                className="flex items-center gap-4 px-5 py-3.5 rounded-[18px] border border-black/05 hover:border-[#007AFF]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all"
                             >
                                 <div className="w-11 h-11 rounded-[13px] overflow-hidden bg-[#F5F5F7] shrink-0">
                                     {product.image
@@ -790,9 +801,9 @@ export default function AdminInventory() {
 
                 const scopeMap = {
                     all: { label: 'כל המלאי', color: ORANGE, Icon: Boxes, filter: () => true },
-                    ok:  { label: 'מלאי תקין', color: '#34C759', Icon: CheckCircle2, filter: p => ['ok', 'supplier'].includes(statusKey(p)) },
-                    low: { label: 'מלאי נמוך', color: '#FF9500', Icon: AlertTriangle, filter: p => statusKey(p) === 'low' },
-                    out: { label: 'אזל מהמלאי', color: '#FF3B30', Icon: XCircle, filter: p => statusKey(p) === 'out' },
+                    ok:  { label: 'מלאי תקין', color: toneColor('success'), Icon: CheckCircle2, filter: p => ['ok', 'supplier'].includes(statusKey(p)) },
+                    low: { label: 'מלאי נמוך', color: toneColor('warning'), Icon: AlertTriangle, filter: p => statusKey(p) === 'low' },
+                    out: { label: 'אזל מהמלאי', color: toneColor('danger'), Icon: XCircle, filter: p => statusKey(p) === 'out' },
                 };
                 const prodLeading = (p) => (
                     <span className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
@@ -815,9 +826,9 @@ export default function AdminInventory() {
                         <div className="space-y-5">
                             <DrillStat items={[
                                 { label: 'סה״כ', value: inventory.length, color: ORANGE },
-                                { label: 'תקין', value: okCount, color: '#34C759' },
-                                { label: 'נמוך', value: lowCount, color: '#FF9500' },
-                                { label: 'אזל', value: outCount, color: '#FF3B30' },
+                                { label: 'תקין', value: okCount, color: toneColor('success') },
+                                { label: 'נמוך', value: lowCount, color: toneColor('warning') },
+                                { label: 'אזל', value: outCount, color: toneColor('danger') },
                             ]} />
                             {list.length === 0 ? <DrillEmpty icon={Package} text="אין מוצרים בקטגוריה זו" /> : (
                                 <div className="space-y-2">
@@ -857,8 +868,8 @@ export default function AdminInventory() {
                                     { label: 'סף', value: p.threshold ?? 5, color: '#8E8E93' },
                                 ]} />
                                 {dts != null && (
-                                    <div className="flex items-center gap-2 p-3 rounded-[14px]" style={{ background: hexA(dts <= 14 ? '#FF9500' : '#34C759', 0.08) }}>
-                                        <TrendingDown size={15} style={{ color: dts <= 14 ? '#FF9500' : '#34C759' }} />
+                                    <div className="flex items-center gap-2 p-3 rounded-[14px]" style={{ background: hexA(dts <= 14 ? toneColor('warning') : toneColor('success'), 0.08) }}>
+                                        <TrendingDown size={15} style={{ color: dts <= 14 ? toneColor('warning') : toneColor('success') }} />
                                         <span className="text-[12px] font-bold text-[#1D1D1F]">צפי אזילה בעוד ~{dts} ימים</span>
                                     </div>
                                 )}
@@ -897,7 +908,7 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
     const covered = supplierStocked && supplierInStock;
     const mStatus = stock === 0 ? (covered ? 'supplier' : 'out')
         : (stock <= threshold && !lowStockMuted && !covered ? 'low' : 'ok');
-    const stockColor = { out: '#FF3B30', low: '#FF9500', ok: '#34C759', supplier: '#007AFF' }[mStatus];
+    const stockColor = { out: toneColor('danger'), low: toneColor('warning'), ok: toneColor('success'), supplier: toneColor('info') }[mStatus];
     const stockLabel = { out: 'אזל', low: 'מלאי נמוך', ok: 'תקין', supplier: 'אצל הספק' }[mStatus];
     const canSave    = !createMode || title.trim().length > 0;
 
@@ -913,8 +924,8 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 16 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                className="relative w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}
+                className="relative w-full max-w-lg overflow-hidden"
+                style={{ ...GLASS.sheet, borderRadius: RADIUS.sheet }}
                 dir="rtl"
             >
                 {/* Header */}
@@ -1040,20 +1051,6 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
     );
 }
 
-function AdminInput({ label, value, onChange, type = "text" }) {
-    return (
-        <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1">{label}</label>
-            <input
-                type={type}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                className="w-full bg-[#F5F5F7] border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all"
-            />
-        </div>
-    );
-}
-
 // Uniform RTL settings row — label block on the right, toggle pinned left, so
 // a stack of these lines up perfectly regardless of subtitle length.
 function ToggleRow({ title, subtitle, value, onChange, accent = '#34C759' }) {
@@ -1069,16 +1066,20 @@ function ToggleRow({ title, subtitle, value, onChange, accent = '#34C759' }) {
 }
 
 function AdminToggle({ value, onChange, accent = '#34C759' }) {
+    // dir="ltr" + absolute knob → position is direction-independent, so the knob
+    // never detaches from the track inside an RTL parent.
     return (
         <button
+            type="button"
+            dir="ltr"
             onClick={() => onChange(!value)}
             style={{ background: value ? accent : '#D1D1D6' }}
-            className="w-12 h-6 rounded-full p-1 transition-colors duration-300 flex items-center shrink-0"
+            className="relative w-12 h-6 rounded-full transition-colors duration-300 shrink-0"
         >
-            <motion.div
-                animate={{ x: value ? 24 : 0 }}
+            <motion.span
+                animate={{ x: value ? 22 : 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="w-4 h-4 bg-white rounded-full shadow-sm"
+                className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm"
             />
         </button>
     );

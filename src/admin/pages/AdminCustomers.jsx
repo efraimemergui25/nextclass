@@ -7,8 +7,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
-import { PALETTE, GLASS, RADIUS, hexA } from '../theme/tokens';
+import { StatusBadge, AdminSearchBar, AdminButton, AdminModal, AdminInput, AdminTabs, AdminDateFilter, filterByDate, AdminKPICard, AdminEmpty, AdminSkeleton } from '../components/AdminComponents';
+import { PALETTE, GLASS, RADIUS, hexA, toneColor, toneBg, toneFg } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
 
 // ─── Customers accent — unified brand azure (de-rainbowed) ────────────────────
@@ -20,9 +20,8 @@ const glass = { ...GLASS.base };
 const CONTACT_STATUSES = ['חדש', 'בטיפול', 'נסגר'];
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
+// De-rainbowed — every avatar uses the single brand azure→indigo gradient.
 function Avatar({ name, size = 9 }) {
-    const colors = ['#007AFF', '#5AC8FA', '#34C759', '#FF9500', '#FF3B30', '#0A84FF'];
-    const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
     return (
         <div className={`w-${size} h-${size} rounded-full flex items-center justify-center text-sm font-black text-white shrink-0`}
             style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)', width: size * 4, height: size * 4 }}>
@@ -88,7 +87,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
 const custDateStr = (o) => o?.date || (o?.dateTs ? new Date(o.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 export default function AdminCustomers() {
-    const { contacts, orders, quotes, updateContactStatus, upsertContact, deleteContact, restoreContact, hardDeleteContact, deletedItems } = useAdminData();
+    const { contacts, orders, quotes, updateContactStatus, upsertContact, deleteContact, restoreContact, hardDeleteContact, deletedItems, loading } = useAdminData();
     const confirm = useAdminConfirm();
     const { showToast } = useAdminToast();
     const navigate = useNavigate();
@@ -286,58 +285,80 @@ export default function AdminCustomers() {
 
             {/* Contacts Tab */}
             {tab === 'contacts' && (
-                <div className="space-y-3 mt-4">
-                    {filteredContacts.length > 0 && (
-                        <div className="hidden lg:grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-2 text-right">
-                            {['סטטוס', 'שם / מייל', 'נושא', 'תאריך', ''].map((h, i) => (
-                                <p key={i} className="text-[10px] font-black tracking-tight text-[#AEAEB2]">{h}</p>
-                            ))}
-                        </div>
-                    )}
-                    <AnimatePresence>
-                        {filteredContacts.map((c, i) => (
-                            <motion.div
-                                key={c.id}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.98 }}
-                                transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
-                                onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
-                                tabIndex={0} role="button"
-                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); setReply(''); setReplyDone(false); } }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 group"
-                            >
-                                <StatusBadge status={c.status} pulse={c.status === 'חדש'} />
-                                <div className="flex items-center gap-3 justify-end">
-                                    <div className="text-right min-w-0">
-                                        <p className="text-[#1D1D1F] font-bold text-sm group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>
-                                        <p className="text-[#AEAEB2] text-xs truncate mt-0.5">{c.email}</p>
-                                    </div>
-                                    <Avatar name={c.name} size={10} />
-                                </div>
-                                <p className="text-[#6E6E73] text-sm line-clamp-1 text-right">{c.subject}</p>
-                                <p className="text-[#AEAEB2] text-xs whitespace-nowrap">{c.date || '—'}</p>
-                                <div className="flex items-center gap-1.5">
-                                    <button title="עריכה" onClick={(e) => { e.stopPropagation(); openEditContact(c); }}
-                                        className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 rounded-lg flex items-center justify-center"
-                                        style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: 'none', cursor: 'pointer' }}>
-                                        <Pencil size={13} />
-                                    </button>
-                                    <button title="מחק" onClick={(e) => deleteContactRow(c, e)}
-                                        className="opacity-0 group-hover:opacity-100 transition-all w-7 h-7 rounded-lg flex items-center justify-center"
-                                        style={{ background: 'rgba(255,59,48,0.09)', color: '#FF3B30', border: 'none', cursor: 'pointer' }}>
-                                        <Trash2 size={13} />
-                                    </button>
-                                    <motion.span whileHover={{ x: -3 }} className="text-[#AEAEB2] group-hover:text-[#007AFF] text-xs font-bold transition-colors" style={{ fontFamily: 'system-ui', lineHeight: 1 }}>›</motion.span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                    {filteredContacts.length === 0 && (
+                <div className="mt-4">
+                    {loading ? <AdminSkeleton rows={6} /> : filteredContacts.length === 0 ? (
                         <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
                             <AdminEmpty icon="empty"
                                 title={contacts.length === 0 ? 'אין פניות עדיין' : 'אין פניות תואמות'}
                                 subtitle={contacts.length === 0 ? 'פניות חדשות מטופס יצירת הקשר יופיעו כאן אוטומטית' : 'נסה לשנות את החיפוש או את סינון התאריך'} />
+                        </div>
+                    ) : (
+                        <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                            {/* Column header */}
+                            <div className="hidden lg:grid grid-cols-[minmax(220px,1.9fr)_120px_minmax(0,1.5fr)_150px] gap-5 px-6 py-3 bg-gradient-to-l from-black/[0.02] to-transparent">
+                                {['לקוח', 'סטטוס', 'נושא הפנייה', 'תאריך'].map((h, i) => (
+                                    <p key={i} className="text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase">{h}</p>
+                                ))}
+                            </div>
+                            <AnimatePresence initial={false}>
+                                {filteredContacts.map((c, i) => (
+                                    <motion.div
+                                        key={c.id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ delay: i * 0.012, duration: 0.2 }}
+                                        onClick={() => { setSelected(c); setReply(''); setReplyDone(false); }}
+                                        tabIndex={0} role="button"
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(c); setReply(''); setReplyDone(false); } }}
+                                        className="relative grid grid-cols-[minmax(220px,1.9fr)_120px_minmax(0,1.5fr)_150px] gap-5 px-6 py-3.5 items-center cursor-pointer border-t border-black/[0.05] transition-colors hover:bg-[#007AFF]/[0.035] focus:outline-none focus-visible:bg-[#007AFF]/[0.05] group"
+                                    >
+                                        {/* hover accent rail (right edge in RTL) */}
+                                        <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-[#007AFF] to-[#5AC8FA] opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                        {/* Identity */}
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="relative shrink-0">
+                                                <Avatar name={c.name} size={11} />
+                                                {c.status === 'חדש' && <span className="absolute -top-0.5 -left-0.5 w-3 h-3 rounded-full bg-[#FF3B30] border-2 border-white" />}
+                                            </div>
+                                            <div className="text-right min-w-0">
+                                                <p className="text-[#1D1D1F] font-bold text-[14px] truncate leading-tight group-hover:text-[#007AFF] transition-colors">{c.name || '—'}</p>
+                                                <p dir="ltr" className="text-[#8E8E93] text-[12px] truncate text-right mt-0.5">{c.email || '—'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Status */}
+                                        <div className="min-w-0"><StatusBadge status={c.status} pulse={c.status === 'חדש'} /></div>
+
+                                        {/* Subject */}
+                                        <div className="min-w-0 text-right hidden lg:block">
+                                            {c.subject
+                                                ? <p className="text-[#3A3A3C] text-[13px] line-clamp-1">{c.subject}</p>
+                                                : <span className="text-[#C7C7CC] text-[12px]">— ללא נושא —</span>}
+                                        </div>
+
+                                        {/* Date + hover actions */}
+                                        <div className="flex items-center justify-end gap-2">
+                                            <span className="text-[#AEAEB2] text-[12px] whitespace-nowrap tabular-nums group-hover:opacity-0 transition-opacity duration-150">{custDateStr(c)}</span>
+                                            <div className="absolute left-5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-150">
+                                                <button title="עריכה" onClick={(e) => { e.stopPropagation(); openEditContact(c); }}
+                                                    className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-colors"
+                                                    style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+                                                    <Pencil size={14} />
+                                                </button>
+                                                <button title="מחק" onClick={(e) => deleteContactRow(c, e)}
+                                                    className="w-8 h-8 rounded-[10px] flex items-center justify-center transition-colors"
+                                                    style={{ background: toneBg('danger'), color: toneColor('danger') }}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                                <ChevronLeft size={16} className="text-[#C7C7CC]" strokeWidth={2.5} />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     )}
                 </div>
@@ -345,47 +366,64 @@ export default function AdminCustomers() {
 
             {/* Customers Tab */}
             {tab === 'customers' && (
-                <div className="space-y-3 mt-4">
-                    {filteredCustomers.length > 0 && (
-                        <div className="hidden lg:grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-2 text-right" dir="rtl">
-                            {['', 'לקוח', 'מייל / טלפון', 'עיר', 'הזמנות', 'סה״כ'].map((h, i) => (
-                                <p key={i} className="text-[10px] font-black tracking-tight text-[#AEAEB2]">{h}</p>
-                            ))}
-                        </div>
-                    )}
-                    <AnimatePresence>
-                        {filteredCustomers.map((c, i) => (
-                            <motion.div
-                                key={c.phone || c.email || c.name || i}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.98 }}
-                                transition={{ delay: i * 0.015, type: 'spring', stiffness: 320, damping: 28 }}
-                                onClick={() => openDrill({ type: 'customer', name: c.name })}
-                                tabIndex={0} role="button"
-                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'customer', name: c.name }); } }}
-                                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-6 py-4 rounded-[20px] cursor-pointer transition-all items-center bg-white/60 hover:bg-white border border-black/04 hover:border-[#007AFF]/45 hover:shadow-[0_12px_40px_rgba(0,122,255,0.14)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 group" dir="rtl"
-                            >
-                                <Avatar name={c.name} size={11} />
-                                <p className="text-[#1D1D1F] font-bold text-sm text-right truncate group-hover:text-[#0A7AAB] transition-colors">{c.name}</p>
-                                <div className="text-right">
-                                    <p className="text-[#6E6E73] text-xs truncate">{c.email || '—'}</p>
-                                    <p className="text-[#AEAEB2] text-[10px] mt-0.5">{c.phone || '—'}</p>
-                                </div>
-                                <p className="text-[#6E6E73] text-sm font-medium">{c.city || '—'}</p>
-                                <span className="text-xs font-black px-3 py-1.5 rounded-full"
-                                    style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
-                                    {c.orders.length}
-                                </span>
-                                <p className="text-[#1D1D1F] font-black text-sm">₪{c.total.toLocaleString()}</p>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                    {filteredCustomers.length === 0 && (
+                <div className="mt-4">
+                    {loading ? <AdminSkeleton rows={6} /> : filteredCustomers.length === 0 ? (
                         <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
                             <AdminEmpty icon="empty"
                                 title={customers.length === 0 ? 'אין לקוחות עדיין' : 'אין לקוחות תואמים'}
                                 subtitle={customers.length === 0 ? 'לקוחות ייווצרו אוטומטית מהזמנות שנקלטות במערכת' : 'נסה לשנות את מונחי החיפוש'} />
+                        </div>
+                    ) : (
+                        <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" dir="rtl" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                            {/* Column header */}
+                            <div className="hidden lg:grid grid-cols-[minmax(220px,1.8fr)_minmax(0,1.4fr)_110px_90px_120px] gap-5 px-6 py-3 bg-gradient-to-l from-black/[0.02] to-transparent">
+                                {['לקוח', 'מייל / טלפון', 'עיר', 'הזמנות', 'סה״כ'].map((h, i) => (
+                                    <p key={i} className={`text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase ${i >= 3 ? 'text-left' : ''}`}>{h}</p>
+                                ))}
+                            </div>
+                            <AnimatePresence initial={false}>
+                                {filteredCustomers.map((c, i) => (
+                                    <motion.div
+                                        key={c.phone || c.email || c.name || i}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ delay: i * 0.012, duration: 0.2 }}
+                                        onClick={() => openDrill({ type: 'customer', name: c.name })}
+                                        tabIndex={0} role="button"
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'customer', name: c.name }); } }}
+                                        className="relative grid grid-cols-[minmax(220px,1.8fr)_minmax(0,1.4fr)_110px_90px_120px] gap-5 px-6 py-3.5 items-center cursor-pointer border-t border-black/[0.05] transition-colors hover:bg-[#007AFF]/[0.035] focus:outline-none focus-visible:bg-[#007AFF]/[0.05] group"
+                                    >
+                                        <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-[#007AFF] to-[#5AC8FA] opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                        {/* Identity */}
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <Avatar name={c.name} size={11} />
+                                            <p className="text-[#1D1D1F] font-bold text-[14px] truncate group-hover:text-[#007AFF] transition-colors">{c.name}</p>
+                                        </div>
+
+                                        {/* Email / phone */}
+                                        <div className="text-right min-w-0">
+                                            <p dir="ltr" className="text-[#6E6E73] text-[12.5px] truncate text-right">{c.email || '—'}</p>
+                                            <p dir="ltr" className="text-[#AEAEB2] text-[11px] mt-0.5 truncate text-right">{c.phone || '—'}</p>
+                                        </div>
+
+                                        {/* City */}
+                                        <p className="text-[#6E6E73] text-[13px] font-medium truncate">{c.city || '—'}</p>
+
+                                        {/* Orders count */}
+                                        <div>
+                                            <span className="inline-flex items-center gap-1 text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                                                <Package size={11} />{c.orders.length}
+                                            </span>
+                                        </div>
+
+                                        {/* Total */}
+                                        <p className="text-[#1D1D1F] font-black text-[14px] text-left tabular-nums">₪{c.total.toLocaleString()}</p>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     )}
                 </div>
@@ -492,7 +530,7 @@ export default function AdminCustomers() {
                             <div className="flex gap-2">
                                 <motion.button whileTap={{ scale: 0.95 }}
                                     onClick={async () => { if (await confirm({ message: 'להעביר פנייה זו לסל המחזור?', danger: true })) { deleteContact(selected.id); setSelected(null); } }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 12, border: `1px solid ${hexA(toneColor('danger'), 0.18)}`, background: toneBg('danger'), color: toneColor('danger'), cursor: 'pointer', fontSize: 12, fontWeight: 800 }}>
                                     <Trash2 size={13} />מחק
                                 </motion.button>
                                 <motion.button whileTap={{ scale: 0.95 }}
@@ -849,7 +887,7 @@ export default function AdminCustomers() {
                             <AdminEmpty icon="empty" title="סל המחזור ריק" subtitle="פניות שנמחקו יופיעו כאן וניתן יהיה לשחזר אותן" />
                         </div>
                     ) : (deletedItems?.contacts || []).map(c => (
-                        <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        <div key={c.id} style={{ ...GLASS.base, borderRadius: RADIUS.card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px' }}>
                             <div style={{ flex: 1, textAlign: 'right' }}>
                                 <div style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F' }}>{c.name || '—'}</div>
                                 <div style={{ fontSize: 11, color: '#AEAEB2', marginTop: 2 }}>{c.email} · {c.subject}</div>
@@ -857,11 +895,11 @@ export default function AdminCustomers() {
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <button onClick={async () => { await restoreContact(c.id); }}
-                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(52,199,89,0.1)', color: '#34C759', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: toneBg('success'), color: toneColor('success'), fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                                     שחזר
                                 </button>
                                 <button onClick={async () => { if (await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) await hardDeleteContact(c.id); }}
-                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: toneBg('danger'), color: toneColor('danger'), fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                                     מחק לצמיתות
                                 </button>
                             </div>
