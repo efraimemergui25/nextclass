@@ -14,6 +14,7 @@ export default function InvoiceModal({ order, onClose, business }) {
     const biz = { ...BUSINESS, ...(liveBiz || {}), ...(business || {}) };
     const nextNumber = `${new Date().getFullYear()}-${String((Number(biz.invoiceSeq) || 1000) + 1).padStart(5, '0')}`;
     const issuedRef = useRef(false);
+    const iframeRef = useRef(null);
     const [docType, setDocType] = useState('tax');
     const [invoiceNumber, setInvoiceNumber] = useState(nextNumber || suggestInvoiceNumber(order));
     const [invoiceDate, setInvoiceDate] = useState(new Date().toLocaleDateString('he-IL'));
@@ -25,6 +26,39 @@ export default function InvoiceModal({ order, onClose, business }) {
         [order, docType, invoiceNumber, invoiceDate, vatRate, allocationNumber]);
     const totals = useMemo(() => computeInvoiceTotals(order || {}, vatRate), [order, vatRate]);
     const needsAllocation = docType === 'tax' && totals.net > (biz.allocationThreshold || Infinity) && !allocationNumber;
+
+    // Render the (already-perfect, Hebrew-correct) invoice iframe to a REAL PDF
+    // blob, client-side — no external service, no extra serverless function.
+    const genPdfBlob = async () => {
+        const [{ default: html2canvas }, jspdfMod] = await Promise.all([import('html2canvas'), import('jspdf')]);
+        const JsPDF = jspdfMod.jsPDF || jspdfMod.default;
+        const el = iframeRef.current?.contentDocument?.body;
+        if (!el) throw new Error('no-invoice');
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', windowWidth: el.scrollWidth || 820 });
+        const pdf = new JsPDF({ unit: 'pt', format: 'a4' });
+        const pw = pdf.internal.pageSize.getWidth();
+        const ph = pdf.internal.pageSize.getHeight();
+        const imgW = pw;
+        const imgH = canvas.height * (pw / canvas.width);
+        const img = canvas.toDataURL('image/jpeg', 0.95);
+        if (imgH <= ph) {
+            pdf.addImage(img, 'JPEG', 0, 0, imgW, imgH);
+        } else {
+            let position = 0, remaining = imgH;
+            while (remaining > 0) {
+                pdf.addImage(img, 'JPEG', 0, position, imgW, imgH);
+                remaining -= ph;
+                if (remaining > 0) { pdf.addPage(); position -= ph; }
+            }
+        }
+        return pdf.output('blob');
+    };
+    const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+    });
 
     // Persist the invoice to the register once (assigns the running number).
     const ensureIssued = async () => {
@@ -40,13 +74,19 @@ export default function InvoiceModal({ order, onClose, business }) {
         w.document.write(html); w.document.close();
         w.focus(); setTimeout(() => w.print(), 350);
     };
+    const [busyPdf, setBusyPdf] = useState(false);
     const doDownload = async () => {
-        await ensureIssued();
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `invoice-${invoiceNumber}.html`; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setBusyPdf(true);
+        try {
+            await ensureIssued();
+            let blob, name;
+            try { blob = await genPdfBlob(); name = `invoice-${invoiceNumber}.pdf`; }
+            catch { blob = new Blob([html], { type: 'text/html;charset=utf-8' }); name = `invoice-${invoiceNumber}.html`; }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = name; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } finally { setBusyPdf(false); }
     };
 
     // Email the invoice to the customer as an attached (print-ready) file.
@@ -60,10 +100,13 @@ export default function InvoiceModal({ order, onClose, business }) {
             await ensureIssued();
             const first = (order.contactName || '').split(' ')[0] || 'לקוח יקר';
             const covering = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"/></head><body style="margin:0;background:#F5F5F7;font-family:'Helvetica Neue',Arial,sans-serif;direction:rtl;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;"><tr><td align="center"><table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.07);"><tr><td style="height:4px;background:linear-gradient(90deg,#007AFF,#5AC8FA);"></td></tr><tr><td style="padding:30px 34px;"><div style="font-size:18px;font-weight:900;color:#1D1D1F;margin-bottom:12px;">NextClass</div><p style="font-size:15px;color:#1D1D1F;line-height:1.7;margin:0 0 16px;">שלום ${first},<br/>מצורפת חשבונית מס מס׳ <strong>${invoiceNumber}</strong> עבור הזמנתך. תודה שבחרת ב-NextClass!</p><div style="background:#F0F7FF;border-radius:14px;padding:14px 16px;font-size:13px;color:#3D3D3D;">📎 החשבונית מצורפת — ניתן לפתוח, לשמור ולהדפיס.</div><div style="font-size:10.5px;color:#B8BCC4;margin-top:16px;border-top:1px solid #EBEBEB;padding-top:12px;">${biz.legalName} · ח.פ ${biz.taxId} · ${biz.address}</div></td></tr></table></td></tr></table></body></html>`;
-            const content = btoa(unescape(encodeURIComponent(html))); // invoice → base64 (Hebrew-safe)
+            // Attach a REAL PDF when possible; fall back to print-ready HTML.
+            let filename, content;
+            try { content = await blobToBase64(await genPdfBlob()); filename = `invoice-${invoiceNumber}.pdf`; }
+            catch { content = btoa(unescape(encodeURIComponent(html))); filename = `invoice-${invoiceNumber}.html`; }
             const res = await fetch('/api/dispatch-email', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: custEmail, subject: `חשבונית מס ${invoiceNumber} — NextClass`, html: covering, attachments: [{ filename: `invoice-${invoiceNumber}.html`, content }] }),
+                body: JSON.stringify({ to: custEmail, subject: `חשבונית מס ${invoiceNumber} — NextClass`, html: covering, attachments: [{ filename, content }] }),
             });
             const d = await res.json().catch(() => ({}));
             if (d.skipped) setSentMsg('חבר RESEND_API_KEY כדי לשלוח');
@@ -114,7 +157,7 @@ export default function InvoiceModal({ order, onClose, business }) {
                         </button>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button onClick={doPrint} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px', borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 6px 18px rgba(0,122,255,0.30)' }}><Printer size={14} /> הדפס / PDF</button>
-                            <button onClick={doDownload} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.10)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}><Download size={14} /></button>
+                            <button onClick={doDownload} disabled={busyPdf} title="הורד PDF" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.10)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 12.5, fontWeight: 800, cursor: busyPdf ? 'wait' : 'pointer', fontFamily: 'Heebo,sans-serif' }}><Download size={14} />{busyPdf ? '' : ' PDF'}</button>
                         </div>
                     </div>
                 </div>
@@ -122,7 +165,7 @@ export default function InvoiceModal({ order, onClose, business }) {
                 {/* Live preview */}
                 <div style={{ position: 'relative', background: '#EEF1F6' }}>
                     <button onClick={onClose} style={{ position: 'absolute', top: 12, insetInlineStart: 12, zIndex: 2, width: 34, height: 34, borderRadius: 11, border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={17} /></button>
-                    <iframe title="invoice" srcDoc={html} style={{ width: '100%', height: '100%', border: 'none' }} />
+                    <iframe ref={iframeRef} title="invoice" srcDoc={html} style={{ width: '100%', height: '100%', border: 'none' }} />
                 </div>
             </motion.div>
         </div>
