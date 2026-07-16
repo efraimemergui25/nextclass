@@ -91,13 +91,20 @@ function PipelineStatusPill({ status }) {
     );
 }
 
+// Logical flow, grouped: overview → who (suppliers) → deals (RFQ→PO) → catalog config
 const TABS = [
-    { id: 'dashboard', label: 'דשבורד',        Icon: TrendingUp },
-    { id: 'orders',    label: 'הזמנות ספקים',  Icon: Package },
-    { id: 'quotes',    label: 'הצעות ספקים',    Icon: FileText },
-    { id: 'ocr',       label: 'סריקת מסמכים AI', Icon: ScanLine },
-    { id: 'suppliers', label: 'ספקים',          Icon: Building2 },
-    { id: 'mapping',   label: 'מיפוי מוצרים',   Icon: Link2 },
+    { id: 'dashboard', label: 'סקירה',          Icon: TrendingUp, group: 'overview', desc: 'תמונת מצב של האספקה — הזמנות פתוחות, ממתינות להעברה ומסירות' },
+    { id: 'suppliers', label: 'ספקים',          Icon: Building2,  group: 'network',  desc: 'ספר הספקים — פרטים, תנאים, זמני אספקה ודירוג' },
+    { id: 'quotes',    label: 'הצעות ספקים',    Icon: FileText,   group: 'deals',    desc: 'בקשות הצעות מחיר (RFQ) והשוואת מחירים בין ספקים' },
+    { id: 'orders',    label: 'הזמנות ספקים',   Icon: Package,    group: 'deals',    desc: 'הזמנות רכש לספקים (Drop-Ship) — מעקב מהעברה ועד מסירה' },
+    { id: 'mapping',   label: 'מיפוי ותמחור',   Icon: Link2,      group: 'catalog',  desc: 'שיוך ספק, עלות ומחיר לכל מוצר — מסתנכרן לכל המערכת' },
+    { id: 'ocr',       label: 'סריקת AI',        Icon: ScanLine,   group: 'catalog',  desc: 'קליטת מסמכים והזמנות בעזרת AI' },
+];
+const TAB_GROUPS = [
+    { id: 'overview', label: '' },
+    { id: 'network',  label: 'ספקים' },
+    { id: 'deals',    label: 'עסקאות' },
+    { id: 'catalog',  label: 'קטלוג ותמחור' },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -2436,27 +2443,47 @@ export default function AdminFulfillment() {
                 }
             />
 
-            {/* Tab Bar */}
-            <div className="flex items-center gap-1.5 p-1.5 rounded-2xl w-fit" style={{ ...GLASS.frosted, borderRadius: RADIUS.panel }}>
-                {TABS.map(tab => {
-                    const active = activeTab === tab.id;
-                    return (
-                        <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)} whileTap={TAP}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-colors cursor-pointer"
-                            style={active
-                                ? { color: BROWN, background: hexA(BROWN, 0.12), border: `1px solid ${hexA(BROWN, 0.24)}`, boxShadow: `0 2px 10px ${hexA(BROWN, 0.2)}` }
-                                : { color: '#86868B', border: '1px solid transparent' }}>
-                            <tab.Icon size={14} />
-                            {tab.label}
-                            {tab.id === 'orders' && (pendingCount + pipelineActive) > 0 && (
-                                <span className="min-w-4 h-4 px-1 rounded-full bg-[#FF9500] text-white text-[9px] font-black flex items-center justify-center">
-                                    {pendingCount + pipelineActive}
-                                </span>
-                            )}
-                        </motion.button>
-                    );
-                })}
+            {/* Tab Bar — grouped, premium segmented navigation */}
+            <div style={{ ...GLASS.frosted, borderRadius: RADIUS.panel }} className="p-2">
+                <div className="flex items-stretch gap-1 flex-wrap">
+                    {TAB_GROUPS.map((g, gi) => {
+                        const groupTabs = TABS.filter(t => t.group === g.id);
+                        if (!groupTabs.length) return null;
+                        return (
+                            <div key={g.id} className="flex items-center gap-1">
+                                {gi > 0 && <div className="w-px self-stretch my-1.5 bg-black/[0.08] mx-1.5" />}
+                                {groupTabs.map(tab => {
+                                    const active = activeTab === tab.id;
+                                    const badge = tab.id === 'orders' ? (pendingCount + pipelineActive) : 0;
+                                    return (
+                                        <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)} whileTap={TAP}
+                                            className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-black transition-all cursor-pointer whitespace-nowrap"
+                                            style={active
+                                                ? { color: '#fff', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 5px 16px rgba(0,122,255,0.32)' }
+                                                : { color: '#86868B', background: 'transparent' }}
+                                            onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(0,0,0,0.035)'; }}
+                                            onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
+                                            <tab.Icon size={15} strokeWidth={2.4} />
+                                            {tab.label}
+                                            {badge > 0 && (
+                                                <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-black flex items-center justify-center"
+                                                    style={{ background: active ? 'rgba(255,255,255,0.28)' : '#FF9500', color: '#fff' }}>{badge}</span>
+                                            )}
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
+            {/* Active tab hint */}
+            {(() => { const t = TABS.find(t => t.id === activeTab); return t ? (
+                <div className="flex items-center gap-2 -mt-2 px-1 text-right">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#007AFF' }} />
+                    <p className="text-[12.5px] text-[#6E6E73] font-medium">{t.desc}</p>
+                </div>
+            ) : null; })()}
 
             {/* Tab Content */}
             <AnimatePresence mode="wait">
