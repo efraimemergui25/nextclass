@@ -163,7 +163,8 @@ export function AdminDataProvider({ children }) {
                     snap.docChanges().forEach(change => {
                         if (change.type === 'modified') {
                             const p = change.doc.data();
-                            if (p.stock <= p.threshold && p.stock > 0) {
+                            const muted = p.lowStockMuted || (p.supplierStocked && p.supplierInStock);
+                            if (p.stock <= p.threshold && p.stock > 0 && !muted) {
                                 const settings = JSON.parse(localStorage.getItem('nextclass_settings') || '{}');
                                 if (settings.notifLowStock !== false) {
                                     showToast(`מלאי נמוך: ${p.title}`, 'warning');
@@ -746,7 +747,8 @@ export function AdminDataProvider({ children }) {
             ? (closedQuotes.length / totalPipelineQuotes * 100).toFixed(1)
             : '0.0';
 
-        const lowStock = inventory.filter(p => p.stock <= p.threshold);
+        // Low-stock excludes products with the alert muted or fully covered at the supplier
+        const lowStock = inventory.filter(p => p.stock <= p.threshold && !p.lowStockMuted && !(p.supplierStocked && p.supplierInStock));
 
         return {
             totalOrders:      orders.filter(o => o.source !== 'quote').length,

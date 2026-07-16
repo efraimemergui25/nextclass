@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -235,6 +235,11 @@ export default function AdminInventory() {
             image: fields.image || '',
             stock: Number(fields.stock) || 0,
             threshold: Number(fields.threshold) || 5,
+            supplierStocked: fields.supplierStocked || false,
+            supplierInStock: fields.supplierInStock || false,
+            showSupplierQty: fields.showSupplierQty || false,
+            supplierStock: Number(fields.supplierStock) || 0,
+            lowStockMuted: fields.lowStockMuted || false,
             isActive: true,
         });
         setCreating(false);
@@ -266,21 +271,36 @@ export default function AdminInventory() {
     };
 
     const available = p => Math.max(0, (p.stock || 0) - (p.reserved || 0));
-    const lowCount  = inventory.filter(p => available(p) > 0 && available(p) <= p.threshold).length;
-    const outCount  = inventory.filter(p => available(p) === 0).length;
-    const okCount   = inventory.filter(p => available(p) > p.threshold).length;
+    // A product held at the supplier AND in stock there is always serviceable,
+    // so it never counts as low/out. lowStockMuted silences only the "low" flag.
+    const supplierCovered = p => !!(p.supplierStocked && p.supplierInStock);
+    const statusKey = (p) => {
+        const a = available(p);
+        if (a === 0) return supplierCovered(p) ? 'supplier' : 'out';
+        if (a <= (p.threshold ?? 5) && !p.lowStockMuted && !supplierCovered(p)) return 'low';
+        return 'ok';
+    };
+    const STATUS_STYLE = {
+        out:      { color: '#FF3B30', label: 'אזל' },
+        low:      { color: '#FF9500', label: 'נמוך' },
+        ok:       { color: '#34C759', label: 'תקין' },
+        supplier: { color: '#007AFF', label: 'אצל הספק' },
+    };
+    const lowCount  = inventory.filter(p => statusKey(p) === 'low').length;
+    const outCount  = inventory.filter(p => statusKey(p) === 'out').length;
+    const okCount   = inventory.filter(p => ['ok', 'supplier'].includes(statusKey(p))).length;
 
-    // Below-threshold items (low + out) — drives the "order from supplier" sector
+    // Below-threshold items still needing a real reorder (excludes muted + supplier-covered)
     const belowThreshold = useMemo(
-        () => inventory.filter(p => available(p) <= p.threshold).sort((a, b) => available(a) - available(b)),
+        () => inventory.filter(p => ['low', 'out'].includes(statusKey(p))).sort((a, b) => available(a) - available(b)),
         [inventory]
     );
 
     const filtered = useMemo(() => {
         let list = [...inventory];
-        if (filter === 'נמוך') list = list.filter(p => { const a = available(p); return a > 0 && a <= p.threshold; });
-        if (filter === 'אזל') list = list.filter(p => available(p) === 0);
-        if (filter === 'במלאי') list = list.filter(p => available(p) > p.threshold);
+        if (filter === 'נמוך') list = list.filter(p => statusKey(p) === 'low');
+        if (filter === 'אזל') list = list.filter(p => statusKey(p) === 'out');
+        if (filter === 'במלאי') list = list.filter(p => ['ok', 'supplier'].includes(statusKey(p)));
         if (search) list = list.filter(p =>
             p.title?.toLowerCase().includes(search.toLowerCase()) ||
             (p.category || '').includes(search)
@@ -289,10 +309,8 @@ export default function AdminInventory() {
     }, [inventory, search, filter]);
 
     const stockMeta = (p) => {
-        const avail = available(p);
-        const color = avail === 0 ? '#FF3B30' : avail <= p.threshold ? '#FF9500' : '#34C759';
-        const label = avail === 0 ? 'אזל' : avail <= p.threshold ? 'נמוך' : 'תקין';
-        return { avail, color, label };
+        const key = statusKey(p);
+        return { avail: available(p), key, ...STATUS_STYLE[key] };
     };
 
     return (
@@ -468,6 +486,31 @@ export default function AdminInventory() {
                                                 );
                                             })()}
 
+                                            {/* Supplier fulfilment chips */}
+                                            {(product.supplierStocked || product.showSupplierQty) && (
+                                                <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                                    {product.supplierStocked && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5"
+                                                            style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF', border: '1px solid rgba(0,122,255,0.22)' }}
+                                                            title={product.supplierInStock ? 'מוחזק אצל הספק — במלאי' : 'מוחזק אצל הספק'}>
+                                                            <Truck size={8} />{product.supplierInStock ? 'אצל הספק ✓' : 'אצל הספק'}
+                                                        </span>
+                                                    )}
+                                                    {product.showSupplierQty && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                                                            style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>
+                                                            ספק: {product.supplierStock ?? 0}
+                                                        </span>
+                                                    )}
+                                                    {product.lowStockMuted && (
+                                                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                                                            style={{ background: 'rgba(0,0,0,0.05)', color: '#AEAEB2' }} title="התרעת מלאי נמוך כבויה">
+                                                            🔕
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* Stepper row */}
                                             <div className="flex items-center justify-between mt-3" onClick={e => e.stopPropagation()}>
                                                 {bulkMode ? (
@@ -560,9 +603,12 @@ export default function AdminInventory() {
                                         {/* Name + category */}
                                         <div className="flex-1 min-w-0 text-right">
                                             <p className="font-bold text-[#1D1D1F] text-[13px] truncate group-hover:text-[#007AFF] transition-colors">{product.title}</p>
-                                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                            <div className="flex items-center justify-end gap-1.5 mt-0.5 flex-wrap">
                                                 {product.isFeatured && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-[#007AFF]/10 text-[#007AFF]">נבחרת</span>}
                                                 {product.category && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: hexA(ORANGE, 0.1), color: ORANGE }}>{product.category}</span>}
+                                                {product.supplierStocked && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black inline-flex items-center gap-0.5" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }} title={product.supplierInStock ? 'מוחזק אצל הספק — במלאי' : 'מוחזק אצל הספק'}><Truck size={8} />{product.supplierInStock ? 'אצל הספק ✓' : 'אצל הספק'}</span>}
+                                                {product.showSupplierQty && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>ספק: {product.supplierStock ?? 0}</span>}
+                                                {product.lowStockMuted && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: 'rgba(0,0,0,0.05)', color: '#AEAEB2' }} title="התרעת מלאי נמוך כבויה">🔕</span>}
                                             </div>
                                         </div>
 
@@ -706,9 +752,9 @@ export default function AdminInventory() {
 
                 const scopeMap = {
                     all: { label: 'כל המלאי', color: ORANGE, Icon: Boxes, filter: () => true },
-                    ok:  { label: 'מלאי תקין', color: '#34C759', Icon: CheckCircle2, filter: p => available(p) > p.threshold },
-                    low: { label: 'מלאי נמוך', color: '#FF9500', Icon: AlertTriangle, filter: p => available(p) > 0 && available(p) <= p.threshold },
-                    out: { label: 'אזל מהמלאי', color: '#FF3B30', Icon: XCircle, filter: p => available(p) === 0 },
+                    ok:  { label: 'מלאי תקין', color: '#34C759', Icon: CheckCircle2, filter: p => ['ok', 'supplier'].includes(statusKey(p)) },
+                    low: { label: 'מלאי נמוך', color: '#FF9500', Icon: AlertTriangle, filter: p => statusKey(p) === 'low' },
+                    out: { label: 'אזל מהמלאי', color: '#FF3B30', Icon: XCircle, filter: p => statusKey(p) === 'out' },
                 };
                 const prodLeading = (p) => (
                     <span className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
@@ -803,9 +849,18 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
     const [image, setImage]           = useState(product.image);
     const [stock, setStock]           = useState(product.stock ?? 0);
     const [threshold, setThreshold]   = useState(product.threshold ?? 5);
+    // Supplier fulfilment + per-product alert control
+    const [supplierStocked, setSupplierStocked] = useState(product.supplierStocked || false);
+    const [supplierInStock, setSupplierInStock] = useState(product.supplierInStock || false);
+    const [showSupplierQty, setShowSupplierQty] = useState(product.showSupplierQty || false);
+    const [supplierStock, setSupplierStock]     = useState(product.supplierStock ?? 0);
+    const [lowStockMuted, setLowStockMuted]     = useState(product.lowStockMuted || false);
 
-    const stockColor = stock === 0 ? '#FF3B30' : stock <= threshold ? '#FF9500' : '#34C759';
-    const stockLabel = stock === 0 ? 'אזל' : stock <= threshold ? 'מלאי נמוך' : 'תקין';
+    const covered = supplierStocked && supplierInStock;
+    const mStatus = stock === 0 ? (covered ? 'supplier' : 'out')
+        : (stock <= threshold && !lowStockMuted && !covered ? 'low' : 'ok');
+    const stockColor = { out: '#FF3B30', low: '#FF9500', ok: '#34C759', supplier: '#007AFF' }[mStatus];
+    const stockLabel = { out: 'אזל', low: 'מלאי נמוך', ok: 'תקין', supplier: 'אצל הספק' }[mStatus];
     const canSave    = !createMode || title.trim().length > 0;
 
     return (
@@ -882,6 +937,53 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                         <p className="text-[10px] text-[#AEAEB2] font-medium mt-2 text-right">כשהמלאי יורד מתחת לסף — המוצר מסומן כ"נמוך" בכל המערכת</p>
                     </div>
 
+                    {/* Supplier fulfilment + alert control */}
+                    <div className="rounded-2xl p-4 border border-black/[0.06] bg-[#F5F5F7] space-y-3.5">
+                        <span className="text-[11px] font-black tracking-widest text-[#86868B]">אספקה מהספק והתרעות</span>
+
+                        <div className="flex items-center justify-between">
+                            <AdminToggle value={supplierStocked} onChange={setSupplierStocked} />
+                            <div className="text-right">
+                                <p className="text-[13px] font-black text-[#1D1D1F]">מוחזק אצל הספק</p>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">אספקה ישירה (דרופשיפ) — לא מוחזק במלאי שלנו</p>
+                            </div>
+                        </div>
+
+                        {supplierStocked && (
+                            <div className="flex items-center justify-between">
+                                <AdminToggle value={supplierInStock} onChange={setSupplierInStock} />
+                                <div className="text-right">
+                                    <p className="text-[13px] font-black text-[#1D1D1F]">במלאי אצל הספק</p>
+                                    <p className="text-[11px] text-[#AEAEB2] font-medium">זמין להזמנה מיידית — לא ייחשב כ"אזל"</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                            <AdminToggle value={showSupplierQty} onChange={setShowSupplierQty} />
+                            <div className="text-right">
+                                <p className="text-[13px] font-black text-[#1D1D1F]">הצג כמות אצל הספק</p>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">הכמות תוצג על כרטיס המוצר</p>
+                            </div>
+                        </div>
+                        {showSupplierQty && (
+                            <div>
+                                <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">כמות אצל הספק</label>
+                                <input type="number" min="0" value={supplierStock}
+                                    onChange={e => setSupplierStock(Math.max(0, Number(e.target.value)))}
+                                    className="w-full bg-white rounded-xl px-4 py-3 text-[18px] font-black text-[#1D1D1F] text-center outline-none border-2 border-black/10" />
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-1 border-t border-black/[0.06]">
+                            <AdminToggle value={lowStockMuted} onChange={setLowStockMuted} />
+                            <div className="text-right">
+                                <p className="text-[13px] font-black text-[#1D1D1F]">כבה התרעת מלאי נמוך</p>
+                                <p className="text-[11px] text-[#AEAEB2] font-medium">המוצר לא יסומן כ"נמוך" ולא ייכלל בהתרעות</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Product details */}
                     <div className="space-y-3">
                         <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest">פרטי מוצר</p>
@@ -906,7 +1008,7 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
                     <AdminButton className="flex-1" accent={ORANGE} disabled={!canSave}
-                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold) })}>
+                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted })}>
                         {createMode ? 'צור מוצר' : 'שמור שינויים'}
                     </AdminButton>
                     <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
