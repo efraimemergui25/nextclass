@@ -17,7 +17,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { Trash2, FileText } from 'lucide-react';
+import InvoiceModal from '../components/InvoiceModal';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
@@ -27,7 +28,9 @@ import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     STAGES_DROPSHIP, STAGES_SELF, SIDE_STATES, stagesFor, deriveStage, stageMeta,
     isSideState, nextAction, deriveAxes, daysInStage, isStale, orderTotal, orderTitle, orderItemsSummary,
+    riskAssess, paymentAgingDays, paymentLabel, PAYMENT_TONES,
 } from '../lib/orderModel';
+import InvoiceButton from '../components/InvoiceButton';
 import {
     StatusChip, OrderStageChip, PathStepper, ActivityTimeline, Highlights, StaleBadge,
 } from '../components/OrderPrimitives';
@@ -41,7 +44,7 @@ export default function AdminOrderHub() {
     const {
         quotes = [], kpis = {}, advanceOrderStage, logOrderActivity, createSupplierOrder,
         linkSupplierOrder, updateQuoteFields, createQuote, deleteQuote,
-        sendThreadMessage, markAdminThreadRead, clearReminder,
+        sendThreadMessage, markAdminThreadRead, clearReminder, updatePayment,
     } = useAdminData();
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
@@ -50,6 +53,7 @@ export default function AdminOrderHub() {
     const [stageFilter, setStageFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [selectedId, setSelectedId] = useState(null);
+    const [invoiceOrder, setInvoiceOrder] = useState(null);
     const [busy, setBusy] = useState(false);
     const [dropship, setDropship] = useState(null); // order being forwarded
     const [suppliers, setSuppliers] = useState([]);
@@ -114,11 +118,27 @@ export default function AdminOrderHub() {
         return { open, awaiting, deliveredM, atRisk, review };
     }, [orders]);
 
+    /* daily briefing — "what needs you today" for a solo operator */
+    const briefing = useMemo(() => {
+        const overduePay = orders.filter(o => o.paymentStatus && o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now());
+        const stuckSupplier = orders.filter(o => deriveStage(o) === 'sent_supplier' && isStale(o));
+        const unanswered = orders.filter(o => ['needs_review', 'new'].includes(deriveStage(o)));
+        const highRisk = orders.filter(o => riskAssess(o).level === 'high');
+        return {
+            overduePay, stuckSupplier, unanswered, highRisk,
+            dueRem: kpis.dueReminders || [],
+            overdueTotal: overduePay.reduce((s, o) => s + orderTotal(o), 0),
+            clear: !overduePay.length && !stuckSupplier.length && !unanswered.length && !(kpis.dueReminders || []).length,
+        };
+    }, [orders, kpis.dueReminders]);
+
     /* filtered set */
     const filtered = useMemo(() => {
         let list = orders;
         if (stageFilter !== 'all') {
-            list = stageFilter === 'atrisk' ? list.filter(isStale) : list.filter(o => deriveStage(o) === stageFilter);
+            list = stageFilter === 'atrisk' ? list.filter(isStale)
+                : stageFilter === 'unpaid' ? list.filter(o => o.paymentStatus && o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now())
+                : list.filter(o => deriveStage(o) === stageFilter);
         }
         if (search.trim()) {
             const q = search.trim();
@@ -142,10 +162,12 @@ export default function AdminOrderHub() {
                 await logOrderActivity(order.id, { type: 'system', message: 'נבחרה אספקה עצמית — לאריזה מהמלאי' });
                 showToast('אספקה עצמית · עבר לאריזה', 'success');
             } else if (na.id === 'ackCustomer') {
-                // open the email preview; sending (or "skip") advances the stage
-                await openEmail('initial_contact', order, async () => { await advanceOrderStage(order.id, 'acked'); });
+                // First customer touch = a WARM order-received confirmation (we are the
+                // vendor; the price is already known) — never a price-sourcing email.
+                await openEmail('confirmed', order, async () => { await advanceOrderStage(order.id, 'acked'); });
             } else if (na.id === 'markConfirmed') {
-                await openEmail('confirmed', order, async () => { await advanceOrderStage(order.id, na.to); });
+                // Supplier confirmed → tell the customer we've secured it and it's in handling.
+                await openEmail('processing', order, async () => { await advanceOrderStage(order.id, na.to); });
             } else if (na.id === 'markTransit') {
                 await openEmail('in_transit', order, async () => { await advanceOrderStage(order.id, na.to); });
             } else if (na.id === 'markDelivered') {
@@ -403,6 +425,36 @@ export default function AdminOrderHub() {
                 </div>
             </div>
 
+            {/* ── Daily Briefing — "what needs you today" ─────────────────────── */}
+            <div style={{ borderRadius: 22, padding: 18, marginBottom: 16, position: 'relative', overflow: 'hidden',
+                background: briefing.clear ? 'linear-gradient(135deg,#EAF9EF,#F5FCF7)' : 'linear-gradient(135deg,#FFF8EC,#FFFDF8)',
+                border: `1px solid ${briefing.clear ? 'rgba(52,199,89,0.25)' : 'rgba(255,149,0,0.22)'}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: briefing.clear ? 0 : 12 }}>
+                    <span style={{ fontSize: 18 }}>{briefing.clear ? '☀️' : '📋'}</span>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#1D1D1F' }}>הבריפינג היומי שלך</p>
+                    {briefing.clear && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1A8C40', marginInlineStart: 6 }}>הכל תחת שליטה — אין משימות דחופות 🎉</span>}
+                </div>
+                {!briefing.clear && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 10 }}>
+                        {briefing.unanswered.length > 0 && (
+                            <BriefItem emoji="✉️" tone="info" n={briefing.unanswered.length} text="הזמנות/הצעות לטיפול" onClick={() => setStageFilter('needs_review')} />
+                        )}
+                        {briefing.stuckSupplier.length > 0 && (
+                            <BriefItem emoji="🚚" tone="warning" n={briefing.stuckSupplier.length} text="תקוע אצל הספק — לנדנד" onClick={() => setStageFilter('sent_supplier')} />
+                        )}
+                        {briefing.overduePay.length > 0 && (
+                            <BriefItem emoji="💰" tone="danger" n={briefing.overduePay.length} text={`תשלומים באיחור · ₪${briefing.overdueTotal.toLocaleString()}`} onClick={() => setStageFilter('unpaid')} />
+                        )}
+                        {briefing.dueRem.length > 0 && (
+                            <BriefItem emoji="⏰" tone="warning" n={briefing.dueRem.length} text="תזכורות שהגיע זמנן" onClick={() => briefing.dueRem[0]?.quoteId && setSelectedId(briefing.dueRem[0].quoteId)} />
+                        )}
+                        {briefing.highRisk.length > 0 && (
+                            <BriefItem emoji="⚠️" tone="danger" n={briefing.highRisk.length} text="הזמנות בסיכון גבוה" onClick={() => setStageFilter('atrisk')} />
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* situation-handling strip (SAP) — surfaces what needs attention now */}
             {(stats.review > 0 || stats.atRisk > 0 || (kpis.dueReminders?.length > 0)) && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -449,6 +501,7 @@ export default function AdminOrderHub() {
                     });
                 })()}
                 <FilterPill active={stageFilter === 'atrisk'} onClick={() => setStageFilter('atrisk')} label={`דחוף (${stats.atRisk})`} tone="danger" />
+                {briefing.overduePay.length > 0 && <FilterPill active={stageFilter === 'unpaid'} onClick={() => setStageFilter('unpaid')} label={`לא שולם (${briefing.overduePay.length})`} tone="danger" />}
                 <div style={{ flex: 1 }} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לקוח / מוסד / טלפון…" dir="rtl"
                     style={{ padding: '9px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', fontFamily: HE, fontSize: 13, fontWeight: 600, outline: 'none', minWidth: 220 }} />
@@ -487,12 +540,19 @@ export default function AdminOrderHub() {
                         onAction={runAction} onJump={jumpToStage} onSetMode={setMode} onSave={saveFields}
                         onEmail={(type) => openEmail(type, selected)}
                         onForward={() => setDropship(selected)} onDelete={handleDelete} custStats={custStats}
+                        onUpdatePayment={(p) => updatePayment(selected.id, p)}
                         onSendChat={async (text) => { await sendThreadMessage(selected.id, text); }}
                         onReadChat={() => markAdminThreadRead(selected.id)}
                         onSetReminder={async (ts, note) => { await updateQuoteFields(selected.id, { reminderAt: ts, reminderNote: note, reminderCleared: false }); showToast('תזכורת נקבעה ⏰', 'success'); }}
                         onClearReminder={async () => { await clearReminder(selected.id); showToast('תזכורת בוטלה', 'info'); }}
+                        onInvoice={setInvoiceOrder}
                         onAddNote={async (text) => { await logOrderActivity(selected.id, { type: 'note', message: text }); }} />
                 )}
+            </AnimatePresence>
+
+            {/* invoice generator */}
+            <AnimatePresence>
+                {invoiceOrder && <InvoiceModal order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />}
             </AnimatePresence>
 
             {/* dropship modal */}
@@ -522,6 +582,31 @@ export default function AdminOrderHub() {
 }
 
 /* ─── KPI tile ────────────────────────────────────────────────────────────────── */
+function BriefItem({ emoji, tone, n, text, onClick }) {
+    const c = toneColor(tone);
+    return (
+        <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 14, border: `1px solid ${c}33`, background: '#fff', cursor: 'pointer', fontFamily: HE, textAlign: 'right', width: '100%' }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: c + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>{emoji}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 17, fontWeight: 900, color: c }}>{n}</span>
+                <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 700, color: '#3A3A3C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</p>
+            </div>
+            <span style={{ color: c, fontSize: 15, flexShrink: 0 }}>←</span>
+        </button>
+    );
+}
+
+function RiskBadge({ order }) {
+    const r = riskAssess(order);
+    if (r.level === 'none') return null;
+    const c = toneColor(r.level === 'high' ? 'danger' : 'warning');
+    return (
+        <span title={r.reasons.map(x => x.text).join(' · ')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 99, background: c + '18', color: c, fontSize: 9.5, fontWeight: 800, fontFamily: HE, whiteSpace: 'nowrap' }}>
+            {r.level === 'high' ? '⚠️' : '•'} {r.reasons[0]?.text}
+        </span>
+    );
+}
+
 function KpiTile({ label, value, tone, onClick }) {
     const c = toneColor(tone);
     return (
@@ -599,6 +684,7 @@ function KanbanCard({ order, onOpen, onDragStart, onDragEnd }) {
                 <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(order)}</p>
                 <StaleBadge order={order} />
             </div>
+            <div style={{ marginTop: 3 }}><RiskBadge order={order} /></div>
             {order.institution && <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#86868B' }}>{order.institution}</p>}
             <p style={{ margin: '8px 0 0', fontSize: 11.5, fontWeight: 600, color: '#6E6E73' }}>{orderItemsSummary(order)}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -647,7 +733,7 @@ function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }
 
 /* ─── Record-360 drawer ──────────────────────────────────────────────────────── */
 const EMAIL_TYPES = [['initial_contact', 'אישור קבלה'], ['quote_sent', 'הצעת מחיר'], ['confirmed', 'אישור הזמנה'], ['in_transit', 'בדרך אליך'], ['delivered', 'סופק'], ['reminder', 'תזכורת']];
-function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onSendChat, onReadChat, onSetReminder, onClearReminder, custStats, onAddNote }) {
+function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, custStats, onAddNote }) {
     const [tab, setTab] = useState('timeline');
     const [note, setNote] = useState('');
     const [chat, setChat] = useState('');
@@ -681,6 +767,11 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                             <p style={{ margin: '3px 0 0', fontSize: 12, fontWeight: 600, color: '#86868B' }}>{order.institution || ''} {order.orderNumber ? `· #${order.orderNumber}` : ''}</p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <motion.button whileTap={{ scale: 0.94 }} onClick={() => onInvoice && onInvoice(order)}
+                                title="הפק חשבונית מס"
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 99, border: '1px solid rgba(0,122,255,0.20)', background: 'rgba(0,122,255,0.08)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>
+                                <FileText size={15} strokeWidth={2.2} /> חשבונית
+                            </motion.button>
                             <motion.button whileTap={{ scale: 0.94 }} disabled={busy} onClick={() => onDelete(order)}
                                 title="העבר לפח" aria-label="מחק הזמנה"
                                 style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 99, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>
@@ -833,6 +924,30 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                                             style={{ padding: '9px 14px', borderRadius: 10, border: 'none', background: rem ? '#FF9500' : 'rgba(0,0,0,0.1)', color: '#fff', cursor: rem ? 'pointer' : 'default', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>קבע</button>
                                     </div>
                                 )}
+                            </div>
+                            {/* payment tracking + invoice */}
+                            <div style={{ ...glass, borderRadius: 16, padding: 14 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                    <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>💰 תשלום</p>
+                                    {(() => { const a = paymentAgingDays(order); const paid = order.paymentStatus === 'paid';
+                                        return <span style={{ fontSize: 11, fontWeight: 800, color: toneColor(paid ? 'success' : a > 0 ? 'danger' : 'neutral') }}>{paymentLabel(order)}{!paid && a > 0 ? ` · באיחור ${a} ימים` : ''}</span>; })()}
+                                </div>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                                    {[['unpaid', 'ממתין'], ['partial', 'חלקי'], ['paid', 'שולם']].map(([s, l]) => {
+                                        const on = (order.paymentStatus || 'unpaid') === s;
+                                        return <button key={s} onClick={() => onUpdatePayment({ paymentStatus: s })}
+                                            style={{ padding: '6px 12px', borderRadius: 9, border: '1.5px solid ' + (on ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 11.5, background: on ? toneColor(PAYMENT_TONES[s]) : '#fff', color: on ? '#fff' : '#6E6E73' }}>{l}</button>;
+                                    })}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2' }}>תאריך יעד:</span>
+                                    <input type="date" value={order.paymentDueTs ? new Date(order.paymentDueTs).toISOString().slice(0, 10) : ''}
+                                        onChange={e => onUpdatePayment({ paymentDueTs: e.target.value ? new Date(e.target.value).getTime() : null })}
+                                        style={{ ...inp, flex: 1 }} />
+                                </div>
+                                <div style={{ marginTop: 10 }}>
+                                    <InvoiceButton order={order} allocationNumber={order.allocationNumber} style={{ width: '100%', justifyContent: 'center' }} />
+                                </div>
                             </div>
                             {/* customer details (editable) */}
                             <div style={{ ...glass, borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>

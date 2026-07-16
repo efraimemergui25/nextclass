@@ -45,12 +45,14 @@ export function marginColor(marginPct) {
 export const fmtILS = (n) => `₪${Math.round(Number(n) || 0).toLocaleString()}`;
 export const fmtPct = (n) => (n == null ? '—' : `${n >= 0 ? '' : ''}${n.toFixed(1)}%`);
 
-// Free, CORS-enabled USD→ILS rate. Returns a number or throws.
+// USD→ILS rate via our OWN serverless endpoint (/api/fx) — it aggregates 3
+// upstream sources server-side, so it isn't blocked by browser CORS/CSP the way
+// a direct client-side call to an external FX API is.
 export async function fetchUsdIlsRate() {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const res = await fetch('/api/fx', { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw new Error(`FX HTTP ${res.status}`);
     const data = await res.json();
-    const rate = data?.rates?.ILS;
+    const rate = data?.usdToIls ?? data?.rates?.ILS;
     if (!rate || !isFinite(rate)) throw new Error('FX rate missing');
     return Number(rate);
 }

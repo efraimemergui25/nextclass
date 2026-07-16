@@ -2172,6 +2172,22 @@ function ProductMappingTab({ suppliers, showToast }) {
     // propagates to inventory, analytics and every profit calculation.
     const [syncingQuotes, setSyncingQuotes] = useState(false);
     const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z0-9֐-׿]/gi, '');
+    // Split into normalized alphanumeric/Hebrew tokens (length >= 3), preserving
+    // hyphenated model codes by splitting on whitespace only.
+    const tokenize = (s) => (s || '').toString().split(/\s+/).map(norm).filter(t => t.length >= 3);
+    // A "model-like" token mixes letters + digits and is >= 4 chars — e.g.
+    // "va279qgj", "vz24ehf", "524pn". This excludes generic words and short
+    // numeric codes ("235", "100") that collide across unrelated products.
+    const isModelToken = (t) => t.length >= 4 && /[a-z]/i.test(t) && /[0-9]/.test(t);
+    // Collect the usable model strings for one side (product or quote line):
+    // an explicit model/sku/modelNumber field (>= 4 chars) plus any model-like
+    // token embedded in the title/name (products often carry the model there).
+    const modelCandidates = (explicit, freeText) => {
+        const out = new Set();
+        (Array.isArray(explicit) ? explicit : [explicit]).forEach(v => { const n = norm(v); if (n.length >= 4) out.add(n); });
+        tokenize(freeText).forEach(t => { if (isModelToken(t)) out.add(t); });
+        return [...out];
+    };
     const syncFromSupplierQuotes = async () => {
         setSyncingQuotes(true);
         try {
@@ -2183,18 +2199,44 @@ function ProductMappingTab({ suppliers, showToast }) {
                     let unit = Number(ql.pricePerUnit) || 0;
                     if (ql.currency === 'USD' && ql.priceInUsd && fxRate) unit = parseFloat(ql.priceInUsd) * fxRate;
                     const net = unit * (1 - (Number(ql.discount) || 0) / 100);
-                    if (net > 0) lines.push({ net, name: norm(ql.name), model: norm(ql.modelNumber), supplierId: q.supplierId, supplierName: q.supplierName });
+                    if (net > 0) lines.push({
+                        net,
+                        name: norm(ql.name),
+                        tokens: tokenize(ql.name),
+                        models: modelCandidates(ql.modelNumber, ql.name),
+                        supplierId: q.supplierId,
+                        supplierName: q.supplierName,
+                    });
                 });
             });
             if (!lines.length) { showToast('אין הצעות ספקים עם מחירים לסנכרון', 'info'); return; }
             const batch = writeBatch(db);
             let synced = 0;
             products.forEach(p => {
-                const pModel = norm(p.model || p.sku);
-                const pTitle = norm(p.title);
+                const pTitle    = norm(p.title);
+                const pTokens   = tokenize(p.title);
+                const pTokenSet = new Set(pTokens);
+                const pBrand    = norm(p.brand);
+                const pModels   = modelCandidates([p.model, p.sku], p.title);
+                // Matching is deliberately conservative — a MISS is preferred over a
+                // MIS-match, because a bad price contaminates every downstream calc.
+                //   1) MODEL branch (strong): both sides expose a model string and the
+                //      shorter one is >= 4 chars and is fully contained in the other
+                //      (handles "VA279QG-J" ↔ "va279qgj", "524pn", "vz24ehf").
+                //   2) NAME branch (fallback): ONLY when neither side has a usable
+                //      model. Then require either the quote name (>= 6 chars) be a
+                //      contiguous substring of the title AND share the product brand,
+                //      OR a token overlap of >= 60% of the shorter side's tokens with
+                //      at least 2 shared tokens (never a lone brand token).
                 const matches = lines.filter(l => {
-                    if (l.model && pModel && l.model.length >= 3 && (pModel.includes(l.model) || l.model.includes(pModel))) return true;
-                    if (l.name && l.name.length >= 5 && (pTitle.includes(l.name) || l.name.includes(pTitle))) return true;
+                    for (const pm of pModels) for (const lm of l.models) {
+                        if (Math.min(pm.length, lm.length) >= 4 && (pm.includes(lm) || lm.includes(pm))) return true;
+                    }
+                    if (pModels.length || l.models.length) return false;      // a real model exists → don't guess by name
+                    if (l.name.length >= 6 && pTitle.includes(l.name) && pBrand.length >= 2 && l.name.includes(pBrand)) return true;
+                    const shared = l.tokens.filter(t => pTokenSet.has(t)).length;
+                    const minTok = Math.min(l.tokens.length, pTokens.length);
+                    if (shared >= 2 && minTok > 0 && shared / minTok >= 0.6) return true;
                     return false;
                 });
                 if (!matches.length) return;
