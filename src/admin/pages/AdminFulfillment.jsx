@@ -2196,11 +2196,17 @@ function ProductMappingTab({ suppliers, showToast }) {
             snap.forEach(d => {
                 const q = d.data();
                 (q.products || []).forEach(ql => {
-                    let unit = Number(ql.pricePerUnit) || 0;
-                    if (ql.currency === 'USD' && ql.priceInUsd && fxRate) unit = parseFloat(ql.priceInUsd) * fxRate;
-                    const net = unit * (1 - (Number(ql.discount) || 0) / 100);
-                    if (net > 0) lines.push({
-                        net,
+                    const disc = 1 - (Number(ql.discount) || 0) / 100;
+                    const isUsd = ql.currency === 'USD' && ql.priceInUsd;
+                    const netUsd = isUsd ? parseFloat(ql.priceInUsd) * disc : 0;
+                    const netIlsRaw = (Number(ql.pricePerUnit) || 0) * disc;
+                    // netIls is ILS-normalized ONLY for cross-currency comparison;
+                    // netOrig keeps the ORIGINAL currency amount (what we actually write).
+                    const netIls = isUsd ? netUsd * fxRate : netIlsRaw;
+                    if (netIls > 0) lines.push({
+                        netIls,
+                        currency: isUsd ? 'USD' : 'ILS',
+                        netOrig: isUsd ? netUsd : netIlsRaw,
                         name: norm(ql.name),
                         tokens: tokenize(ql.name),
                         models: modelCandidates(ql.modelNumber, ql.name),
@@ -2240,11 +2246,16 @@ function ProductMappingTab({ suppliers, showToast }) {
                     return false;
                 });
                 if (!matches.length) return;
-                const best = matches.reduce((a, b) => (b.net < a.net ? b : a));
-                const cost = Math.round(best.net * 100) / 100;
-                const changed = Math.abs((Number(p.supplierCost) || 0) - cost) > 0.01 || p.costCurrency === 'USD';
+                // Pick the cheapest by ILS-normalized net, but WRITE in its original currency.
+                const best = matches.reduce((a, b) => (b.netIls < a.netIls ? b : a));
+                const orig = Math.round(best.netOrig * 100) / 100;
+                const upd = best.currency === 'USD'
+                    ? { supplierCostUSD: orig, costCurrency: 'USD' }
+                    : { supplierCost: orig, costCurrency: 'ILS' };
+                const changed = best.currency === 'USD'
+                    ? (Math.abs((Number(p.supplierCostUSD) || 0) - orig) > 0.01 || p.costCurrency !== 'USD')
+                    : (Math.abs((Number(p.supplierCost) || 0) - orig) > 0.01 || p.costCurrency === 'USD');
                 if (!changed) return;
-                const upd = { supplierCost: cost, costCurrency: 'ILS' };
                 if (best.supplierName && !p.supplierName) upd.supplierName = best.supplierName;
                 if (best.supplierId && !p.supplierId) upd.supplierId = best.supplierId;
                 batch.update(doc(db, 'products', p.id), upd);
@@ -2284,21 +2295,26 @@ function ProductMappingTab({ suppliers, showToast }) {
                 (existing?.products || []).forEach(pr => { byKey[pr.id || norm(pr.modelNumber) || norm(pr.name)] = pr; });
 
                 bySupplier[sid].forEach(p => {
-                    let cost = Number(getVal(p, 'supplierCost')) || 0;
-                    if ((getVal(p, 'costCurrency') || p.costCurrency) === 'USD') cost = (Number(getVal(p, 'supplierCostUSD')) || 0) * fxRate;
                     const key = p.id;
                     const prev = byKey[key] || {};
+                    // Preserve the ORIGINAL currency: a USD-costed product becomes a
+                    // USD quote line (priceInUsd) with the ILS equivalent for display.
+                    const isUsd = (getVal(p, 'costCurrency') || p.costCurrency) === 'USD';
+                    const usd = Number(getVal(p, 'supplierCostUSD')) || 0;
+                    const ils = Number(getVal(p, 'supplierCost')) || 0;
+                    const priceFields = isUsd
+                        ? { currency: 'USD', priceInUsd: usd > 0 ? Math.round(usd * 100) / 100 : (prev.priceInUsd || 0), pricePerUnit: usd > 0 ? Math.round(usd * fxRate * 100) / 100 : (prev.pricePerUnit || 0) }
+                        : { currency: 'ILS', priceInUsd: '', pricePerUnit: ils > 0 ? Math.round(ils * 100) / 100 : (prev.pricePerUnit || 0) };
                     const line = {
                         id: p.id,
                         name: p.title || prev.name || '',
                         modelNumber: p.model || p.sku || prev.modelNumber || '',
                         category: p.category || prev.category || '',
                         image: p.image || prev.image || '',
-                        pricePerUnit: cost > 0 ? Math.round(cost * 100) / 100 : (prev.pricePerUnit || 0),
                         quantity: prev.quantity || 1,
                         discount: prev.discount || 0,
-                        currency: 'ILS',
                         source: 'mapping',
+                        ...priceFields,
                     };
                     if (byKey[key]) updated++; else added++;
                     byKey[key] = { ...prev, ...line };

@@ -257,6 +257,8 @@ export default function AdminInventory() {
             supplierCost: Number(fields.supplierCost) || 0,
             supplierCostUSD: Number(fields.supplierCostUSD) || 0,
             costCurrency: fields.costCurrency || 'ILS',
+            description: fields.description || '',
+            specs: Array.isArray(fields.specs) ? fields.specs : [],
             isActive: true,
         });
         setCreating(false);
@@ -936,7 +938,12 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
     const [supplierCost, setSupplierCost]       = useState(product.supplierCost ?? '');
     const [supplierCostUSD, setSupplierCostUSD] = useState(product.supplierCostUSD ?? '');
     const [costCurrency, setCostCurrency]       = useState(product.costCurrency || 'ILS');
+    const [description, setDescription]         = useState(product.description || '');
+    const [specs, setSpecs]                     = useState(Array.isArray(product.specs) ? product.specs : []);
     const [modalTab, setModalTab]               = useState('general');
+    const setSpec = (i, k, v) => setSpecs(s => s.map((row, j) => j === i ? { ...row, [k]: v } : row));
+    const addSpec = () => setSpecs(s => [...s, { label: '', value: '' }]);
+    const rmSpec = (i) => setSpecs(s => s.filter((_, j) => j !== i));
     const fxRate = Number(fx.usdIls) || 3.7;
     const fin = computeMargins({ price: Number(price) || 0, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency }, fxRate);
 
@@ -1133,6 +1140,29 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
                             <AdminInput label="קטגוריה" value={category} onChange={setCategory} />
                             <AdminInput label="מחיר (₪)" type="number" value={price} onChange={v => setPrice(Number(v))} />
                         </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1">תיאור</label>
+                            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} dir="rtl"
+                                className="w-full bg-[#F5F5F7] border-none rounded-2xl px-4 py-3 text-sm font-medium text-[#1D1D1F] outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all resize-none" placeholder="תיאור המוצר..." />
+                        </div>
+                    </div>
+
+                    {/* Specs editor */}
+                    <div className="rounded-2xl border border-black/[0.06] bg-[#F5F5F7] p-4 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <button type="button" onClick={addSpec} className="text-[11px] font-black px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>+ הוסף מפרט</button>
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B]">מפרט טכני</span>
+                        </div>
+                        {specs.length === 0 && <p className="text-[11px] text-[#AEAEB2] text-right">אין מפרט — הוסף שורות או ייבא עם AI</p>}
+                        {specs.map((row, i) => (
+                            <div key={i} className="grid grid-cols-[1fr_1.4fr_28px] gap-2 items-center">
+                                <input value={row.label || ''} onChange={e => setSpec(i, 'label', e.target.value)} placeholder="מאפיין" dir="rtl"
+                                    className="bg-white rounded-lg px-2.5 py-2 text-[12px] font-bold text-[#1D1D1F] outline-none border border-black/10" />
+                                <input value={row.value || ''} onChange={e => setSpec(i, 'value', e.target.value)} placeholder="ערך" dir="rtl"
+                                    className="bg-white rounded-lg px-2.5 py-2 text-[12px] font-medium text-[#3A3A3C] outline-none border border-black/10" />
+                                <button type="button" onClick={() => rmSpec(i)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,59,48,0.09)', color: '#FF3B30' }}>×</button>
+                            </div>
+                        ))}
                     </div>
 
                     <AdminInput label="כתובת תמונה" value={image} onChange={setImage} />
@@ -1149,7 +1179,7 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
                     <AdminButton className="flex-1" accent={ORANGE} disabled={!canSave}
-                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency })}>
+                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency, description, specs: specs.filter(s => s.label || s.value) })}>
                         {createMode ? 'צור מוצר' : 'שמור שינויים'}
                     </AdminButton>
                     <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>

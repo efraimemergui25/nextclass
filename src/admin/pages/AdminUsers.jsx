@@ -550,34 +550,36 @@ function UserRow({ user, index, onClick, onDelete, rfmSegment }) {
             onClick={onClick}
             tabIndex={0} role="button"
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
-            style={{ cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
-            className="group hover:bg-[#007AFF]/[0.05] focus:outline-none focus:bg-[#007AFF]/[0.07] transition-colors"
+            style={{ cursor: 'pointer' }}
+            className="group border-t border-black/[0.05] hover:bg-[#007AFF]/[0.035] focus:outline-none focus-visible:bg-[#007AFF]/[0.05] transition-colors"
         >
-            <td style={{ padding: '12px 16px' }}>
+            <td className="relative" style={{ padding: '14px 16px' }}>
+                {/* hover accent rail (right edge in RTL) */}
+                <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-[#007AFF] to-[#5AC8FA] opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <UserAvatar user={user} size={38} />
-                    <div>
-                        <p style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F', margin: '0 0 2px' }}>
+                    <UserAvatar user={user} size={40} />
+                    <div style={{ minWidth: 0 }}>
+                        <p className="group-hover:text-[#007AFF] transition-colors" style={{ fontSize: 14.5, fontWeight: 800, color: '#1D1D1F', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {user.displayName || '(ללא שם)'}
                         </p>
-                        <p style={{ fontSize: 11, color: '#8E8E93', fontWeight: 500, margin: 0 }}>
-                            {user.email}
+                        <p dir="ltr" style={{ fontSize: 12, color: '#8E8E93', fontWeight: 500, margin: 0, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user.email || '—'}
                         </p>
                     </div>
                 </div>
             </td>
-            <td style={{ padding: '12px 16px' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F', margin: '0 0 2px' }}>
+            <td style={{ padding: '14px 16px' }}>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#1D1D1F', margin: '0 0 2px' }}>
                     {user.institution || <span style={{ color: '#C7C7CC' }}>—</span>}
                 </p>
-                <p style={{ fontSize: 11, color: '#8E8E93', margin: 0 }}>
+                <p style={{ fontSize: 11.5, color: '#8E8E93', margin: 0 }}>
                     {ROLE_HE[user.role] || user.role || ''}
                 </p>
             </td>
-            <td style={{ padding: '12px 16px' }}>
+            <td style={{ padding: '14px 16px' }}>
                 <ProviderBadge provider={user.provider} />
             </td>
-            <td style={{ padding: '12px 16px' }}>
+            <td style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: tier.bg, color: tier.color, width: 'fit-content' }}>
                         {tier.label}
@@ -585,10 +587,10 @@ function UserRow({ user, index, onClick, onDelete, rfmSegment }) {
                     <RFMBadge segment={rfmSegment} />
                 </div>
             </td>
-            <td style={{ padding: '12px 16px', fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>
+            <td className="tabular-nums" style={{ padding: '14px 16px', fontSize: 12.5, color: '#6E6E73', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {fmtDate(user.createdAt)}
             </td>
-            <td style={{ padding: '12px 16px', fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>
+            <td className="tabular-nums" style={{ padding: '14px 16px', fontSize: 12.5, color: '#6E6E73', fontWeight: 500 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                     <span>{relTime(user.lastLogin)}</span>
                     <button
@@ -767,13 +769,13 @@ export default function AdminUsers() {
                     />
                 </div>
             ) : (
-                <div style={{ ...glass, borderRadius: RADIUS.card, overflow: 'hidden' }}>
+                <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }} dir="rtl">
                             <thead>
-                                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                <tr className="bg-gradient-to-l from-black/[0.02] to-transparent">
                                     {['משתמש', 'מוסד / תפקיד', 'ספק', 'דרגה', 'הצטרף', 'כניסה אחרונה'].map(h => (
-                                        <th key={h} style={{ padding: '13px 16px', textAlign: 'right', fontSize: 11, fontWeight: 800, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.02)' }}>
+                                        <th key={h} className="text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase" style={{ padding: '13px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             {h}
                                         </th>
                                     ))}

@@ -19,6 +19,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, FileText } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
+import OwnerMonthlyReport from '../components/OwnerMonthlyReport';
+import TemplatesManager from '../components/TemplatesManager';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
@@ -30,7 +32,6 @@ import {
     isSideState, nextAction, deriveAxes, daysInStage, isStale, orderTotal, orderTitle, orderItemsSummary,
     riskAssess, paymentAgingDays, paymentLabel, PAYMENT_TONES,
 } from '../lib/orderModel';
-import InvoiceButton from '../components/InvoiceButton';
 import {
     StatusChip, OrderStageChip, PathStepper, ActivityTimeline, Highlights, StaleBadge,
 } from '../components/OrderPrimitives';
@@ -63,6 +64,19 @@ export default function AdminOrderHub() {
     const [emailIntake, setEmailIntake] = useState(false); // paste-email modal
     const [emailModal, setEmailModal] = useState(null); // { type, order, afterSend, html, subject, loading, sending }
     const [sel, setSel] = useState(() => new Set()); // list bulk-selection
+    const [cmdk, setCmdk] = useState(false); // command palette
+    const [templatesOpen, setTemplatesOpen] = useState(false); // templates library
+    const [inst360, setInst360] = useState(null); // institution 360 modal (institution/name string)
+
+    /* Cmd+K / Ctrl+K → command palette */
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setCmdk(v => !v); }
+            else if (e.key === 'Escape') setCmdk(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
     const inFlight = useRef(false); // synchronous double-submit lock (state disables lag a render)
     const toggleSel = (id) => setSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
     const clearSel = () => setSel(new Set());
@@ -282,16 +296,24 @@ export default function AdminOrderHub() {
             });
             const json = await res.json();
             const d = json?.data || {};
+            // duplicate detection + known-institution recognition
+            const dg = (p) => (p || '').toString().replace(/\D/g, '');
+            const ph = dg(d.phone), em = (d.email || '').toLowerCase(), inst = (d.institution || d.contactName || '').trim();
+            const known = orders.find(o => (ph.length >= 7 && dg(o.phone) === ph) || (em && (o.email || '').toLowerCase() === em) || (inst && (o.institution || '').trim() === inst));
+            const dupVal = Number(d.totalIncVat ?? d.subtotal) || 0;
+            const recentDup = orders.find(o => (Date.now() - (o.dateTs || 0) < 14 * 86400000) && inst && (o.institution || '').trim() === inst && dupVal > 0 && Math.abs(orderTotal(o) - dupVal) < 1);
             const id = await createQuote({
                 contactName: d.contactName || '', institution: d.institution || '', phone: d.phone || '', email: d.email || '',
                 address: d.address || '', city: d.city || '', zip: d.zip || '',
                 items: d.items || [], subtotal: d.subtotal, vatAmount: d.vatAmount, totalIncVat: d.totalIncVat,
                 notes: d.notes || subject || '', orderNumber: d.orderNumber || '', deliveryDate: d.deliveryDate || '',
                 source: 'email', overallStage: 'needs_review', status: 'לבדיקה ידנית',
-                extra: { rawEmail: text?.slice(0, 12000) || '', emailSubject: subject || '' },
+                extra: { rawEmail: text?.slice(0, 12000) || '', emailSubject: subject || '', ...(known ? { knownCustomer: true } : {}) },
             });
-            await logOrderActivity(id, { type: 'email', message: 'נקלט ממייל — ממתין לבדיקה ואישור' });
-            showToast('הזמנה נקלטה ממייל — בדוק/י ואשר/י', 'success');
+            await logOrderActivity(id, { type: 'email', message: 'נקלט ממייל — ממתין לבדיקה ואישור' + (known ? ` · מוסד מוכר (${orderTitle(known)})` : '') });
+            if (recentDup) showToast(`⚠ ייתכן כפילות — הזמנה דומה מ"${orderTitle(recentDup)}" נקלטה לאחרונה. בדוק/י.`, 'warning');
+            else if (known) showToast(`הזמנה נקלטה · מוסד מוכר עם היסטוריה — בדוק/י ואשר/י`, 'success');
+            else showToast('הזמנה נקלטה ממייל — בדוק/י ואשר/י', 'success');
             setEmailIntake(false);
             setStageFilter('needs_review');
             setSelectedId(id);
@@ -356,6 +378,14 @@ export default function AdminOrderHub() {
         inFlight.current = true;
         setBusy(true);
         try {
+            // tiered approval — governance guard on thin/negative margin
+            const rev = orderTotal(order);
+            const cost0 = Number(supplierCost) || rev;
+            const marginPct = rev > 0 ? Math.round(((rev - cost0) / rev) * 100) : 100;
+            if (cost0 > 0 && marginPct < 10) {
+                const ok = await confirm({ title: '⚠ רווח נמוך', message: `הרווח בעסקה ${marginPct}% בלבד (מכירה ₪${rev.toLocaleString()} · עלות ספק ₪${cost0.toLocaleString()}). להעביר לספק בכל זאת?`, danger: true, confirmLabel: 'כן, העבר' });
+                if (!ok) { setBusy(false); inFlight.current = false; return; }
+            }
             const shipAddr = order.shipTo?.address || order.address || '';
             const cost = Number(supplierCost) || orderTotal(order);
             const poId = await createSupplierOrder({
@@ -412,11 +442,15 @@ export default function AdminOrderHub() {
                         style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
                         ⭳ CSV
                     </button>
+                    <button onClick={() => setTemplatesOpen(true)} title="ספריית תבניות מייל/וואטסאפ"
+                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
+                        📝 תבניות
+                    </button>
                     <a href="/admin/orders" title="פייפליין מפורט (צ'אט לקוח, תבניות מייל, גרסאות)"
                         style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', fontFamily: HE, fontWeight: 700, fontSize: 12.5, background: '#fff', color: '#86868B', textDecoration: 'none' }}>
                         תצוגה מפורטת ↗
                     </a>
-                    {[['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
+                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
                         <button key={v} onClick={() => setView(v)}
                             style={{ padding: '8px 16px', borderRadius: 11, border: '1.5px solid ' + (view === v ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: view === v ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: view === v ? '#fff' : '#6E6E73' }}>
                             {lbl}
@@ -508,9 +542,15 @@ export default function AdminOrderHub() {
             </div>
 
             {/* body */}
+            {view === 'work' && <WorkView orders={filtered} onOpen={setSelectedId} onAction={runAction} busy={busy} />}
             {view === 'kanban' && <KanbanBoard orders={filtered} onOpen={setSelectedId} onAdvance={jumpToStage} />}
             {view === 'list' && <ListView orders={filtered} onOpen={setSelectedId} onAction={runAction} onDelete={handleDelete} busy={busy} sel={sel} onToggleSel={toggleSel} />}
-            {view === 'insights' && <InsightsView orders={orders} supplierOrders={supplierOrders} />}
+            {view === 'insights' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <OwnerMonthlyReport orders={orders} supplierOrders={supplierOrders} />
+                    <InsightsView orders={orders} supplierOrders={supplierOrders} />
+                </div>
+            )}
 
             {/* bulk-action bar (mass actions on list selection) */}
             <AnimatePresence>
@@ -541,6 +581,7 @@ export default function AdminOrderHub() {
                         onEmail={(type) => openEmail(type, selected)}
                         onForward={() => setDropship(selected)} onDelete={handleDelete} custStats={custStats}
                         onUpdatePayment={(p) => updatePayment(selected.id, p)}
+                        onInst360={() => setInst360(selected.institution || selected.contactName || '')}
                         onSendChat={async (text) => { await sendThreadMessage(selected.id, text); }}
                         onReadChat={() => markAdminThreadRead(selected.id)}
                         onSetReminder={async (ts, note) => { await updateQuoteFields(selected.id, { reminderAt: ts, reminderNote: note, reminderCleared: false }); showToast('תזכורת נקבעה ⏰', 'success'); }}
@@ -566,6 +607,46 @@ export default function AdminOrderHub() {
             {/* email-intake modal */}
             <AnimatePresence>
                 {emailIntake && <EmailIntakeModal busy={busy} onClose={() => setEmailIntake(false)} onCreate={createFromEmail} />}
+            </AnimatePresence>
+
+            {/* institution 360 */}
+            <AnimatePresence>
+                {inst360 != null && (
+                    <Institution360 name={inst360} orders={orders}
+                        onClose={() => setInst360(null)}
+                        onOpen={(id) => { setInst360(null); setSelectedId(id); }} />
+                )}
+            </AnimatePresence>
+
+            {/* templates library (full-screen overlay) */}
+            <AnimatePresence>
+                {templatesOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 3000, background: '#F5F6F9', overflowY: 'auto' }} dir="rtl">
+                        <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(255,255,255,0.95)', borderBottom: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(20px)' }}>
+                            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1D1D1F', fontFamily: HE }}>📝 ספריית תבניות</h2>
+                            <button onClick={() => setTemplatesOpen(false)} style={{ width: 34, height: 34, borderRadius: 99, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', fontSize: 17, color: '#6E6E73' }}>✕</button>
+                        </div>
+                        <div style={{ padding: 20 }}><TemplatesManager /></div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Cmd+K command palette */}
+            <AnimatePresence>
+                {cmdk && (
+                    <CommandPalette orders={orders} onClose={() => setCmdk(false)}
+                        onOpenOrder={(id) => { setCmdk(false); setSelectedId(id); }}
+                        actions={[
+                            { label: '＋ הזמנה חדשה', run: () => { setCmdk(false); createBlank(); } },
+                            { label: '✉️ הזמנה ממייל', run: () => { setCmdk(false); setEmailIntake(true); } },
+                            { label: '▦ תצוגת לוח', run: () => { setCmdk(false); setView('kanban'); } },
+                            { label: '☰ תצוגת רשימה', run: () => { setCmdk(false); setView('list'); } },
+                            { label: '📊 תובנות', run: () => { setCmdk(false); setView('insights'); } },
+                            { label: '⚠ הצג דחוף', run: () => { setCmdk(false); setStageFilter('atrisk'); } },
+                            { label: '💰 הצג לא‑שולם', run: () => { setCmdk(false); setStageFilter('unpaid'); } },
+                        ]} />
+                )}
             </AnimatePresence>
 
             {/* email preview / edit / send modal */}
@@ -697,28 +778,37 @@ function KanbanCard({ order, onOpen, onDragStart, onDragEnd }) {
 
 /* ─── List view ──────────────────────────────────────────────────────────────── */
 function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }) {
+    const GRID = 'auto minmax(0,1.4fr) 1fr auto auto auto auto';
     return (
-        <div style={{ ...glass, borderRadius: 18, overflow: 'hidden' }}>
+        <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" dir="rtl" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+            {/* Column header */}
+            <div className="hidden lg:grid bg-gradient-to-l from-black/[0.02] to-transparent" style={{ gridTemplateColumns: GRID, gap: 12, alignItems: 'center', padding: '12px 16px' }}>
+                {['', 'הזמנה', 'שלב', 'סכום', 'ימים', 'פעולה', ''].map((h, i) => (
+                    <p key={i} className="text-[10px] font-black tracking-[0.14em] text-[#AEAEB2] uppercase" style={{ margin: 0 }}>{h}</p>
+                ))}
+            </div>
             {orders.map((o, i) => {
                 const na = nextAction(o);
                 const checked = sel?.has(o.id);
                 return (
                     <div key={o.id} onClick={() => onOpen(o.id)}
-                        className="ohub-row"
-                        style={{ display: 'grid', gridTemplateColumns: 'auto 1.4fr 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '13px 16px', cursor: 'pointer', borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none', background: checked ? 'rgba(0,122,255,0.05)' : 'transparent' }}>
+                        className="group relative border-t border-black/[0.05] transition-colors hover:bg-[#007AFF]/[0.035]"
+                        style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, alignItems: 'center', padding: '14px 16px', cursor: 'pointer', background: checked ? 'rgba(0,122,255,0.05)' : undefined }}>
+                        {/* hover accent rail (right edge in RTL) */}
+                        <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-[#007AFF] to-[#5AC8FA] opacity-0 group-hover:opacity-100 transition-opacity" />
                         <input type="checkbox" checked={!!checked} onClick={e => e.stopPropagation()} onChange={() => onToggleSel && onToggleSel(o.id)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
                         <div style={{ minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
-                            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.institution || ''} · {orderItemsSummary(o)}</p>
+                            <p className="group-hover:text-[#007AFF] transition-colors" style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11.5, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.institution || ''} · {orderItemsSummary(o)}</p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><OrderStageChip order={o} size="sm" /><StaleBadge order={o} /></div>
-                        <span style={{ fontSize: 13.5, fontWeight: 900, color: '#007AFF', whiteSpace: 'nowrap' }}>₪{orderTotal(o).toLocaleString()}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', whiteSpace: 'nowrap' }}>{daysInStage(o)} י׳</span>
+                        <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 900, color: '#007AFF', whiteSpace: 'nowrap' }}>₪{orderTotal(o).toLocaleString()}</span>
+                        <span className="tabular-nums" style={{ fontSize: 11.5, fontWeight: 700, color: '#AEAEB2', whiteSpace: 'nowrap' }}>{daysInStage(o)} י׳</span>
                         {na
                             ? <button disabled={busy} onClick={e => { e.stopPropagation(); onAction(na, o); }}
                                 style={{ padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,122,255,0.1)', color: '#007AFF', fontFamily: HE, fontWeight: 800, fontSize: 11.5, whiteSpace: 'nowrap' }}>{na.label}</button>
                             : <span style={{ width: 60 }} />}
-                        <button className="ohub-del" disabled={busy} title="העבר לפח" aria-label="מחק הזמנה"
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity" disabled={busy} title="העבר לפח" aria-label="מחק הזמנה"
                             onClick={e => { e.stopPropagation(); onDelete(o); }}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 9, border: 'none', cursor: 'pointer', background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}>
                             <Trash2 size={15} strokeWidth={2.2} />
@@ -726,14 +816,13 @@ function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }
                     </div>
                 );
             })}
-            <style>{`.ohub-row .ohub-del{opacity:0;transition:opacity .15s ease}.ohub-row:hover .ohub-del{opacity:1}`}</style>
         </div>
     );
 }
 
 /* ─── Record-360 drawer ──────────────────────────────────────────────────────── */
 const EMAIL_TYPES = [['initial_contact', 'אישור קבלה'], ['quote_sent', 'הצעת מחיר'], ['confirmed', 'אישור הזמנה'], ['in_transit', 'בדרך אליך'], ['delivered', 'סופק'], ['reminder', 'תזכורת']];
-function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, custStats, onAddNote }) {
+function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, onInst360, custStats, onAddNote }) {
     const [tab, setTab] = useState('timeline');
     const [note, setNote] = useState('');
     const [chat, setChat] = useState('');
@@ -887,15 +976,18 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                     )}
                     {tab === 'customer' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {/* LTV — customer lifetime value */}
+                            {/* LTV — customer lifetime value (click → institution 360) */}
                             {custStats && custStats.count > 0 && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                                    {[['הזמנות', custStats.count, '#5856D6'], ['שווי כולל', `₪${custStats.total.toLocaleString()}`, '#007AFF'], ['ממוצע', `₪${custStats.avg.toLocaleString()}`, '#34C759']].map(([l, v, col]) => (
-                                        <div key={l} style={{ ...glass, borderRadius: 14, padding: '12px 10px', textAlign: 'center' }}>
-                                            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: col }}>{v}</p>
-                                            <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: '#86868B' }}>{l}</p>
-                                        </div>
-                                    ))}
+                                <div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                        {[['הזמנות', custStats.count, '#5856D6'], ['שווי כולל', `₪${custStats.total.toLocaleString()}`, '#007AFF'], ['ממוצע', `₪${custStats.avg.toLocaleString()}`, '#34C759']].map(([l, v, col]) => (
+                                            <div key={l} style={{ ...glass, borderRadius: 14, padding: '12px 10px', textAlign: 'center' }}>
+                                                <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: col }}>{v}</p>
+                                                <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: '#86868B' }}>{l}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={onInst360} style={{ width: '100%', marginTop: 8, padding: '8px', borderRadius: 10, border: '1.5px solid rgba(0,122,255,0.2)', background: 'rgba(0,122,255,0.05)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>📊 כל ההזמנות של המוסד</button>
                                 </div>
                             )}
                             {/* send email to customer (preview → edit → send) */}
@@ -908,6 +1000,16 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                                     ))}
                                 </div>
                                 {!order.email && <p style={{ margin: '8px 0 0', fontSize: 10.5, color: '#FF9500', fontWeight: 700 }}>⚠ אין כתובת מייל — הוסף/י בפרטי הלקוח למטה</p>}
+                                {order.phone && (() => {
+                                    const intl = order.phone.toString().replace(/\D/g, '').replace(/^0/, '972');
+                                    const msg = encodeURIComponent(`שלום ${orderTitle(order)},\nבנוגע להזמנה${order.orderNumber ? ` ${order.orderNumber}` : ''}: ${orderItemsSummary(order)} · סה"כ ₪${orderTotal(order).toLocaleString()}.\nבברכה, נקסט קלאס`);
+                                    return (
+                                        <a href={`https://wa.me/${intl}?text=${msg}`} target="_blank" rel="noreferrer"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, padding: '7px 14px', borderRadius: 10, background: '#25D366', color: '#fff', textDecoration: 'none', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>
+                                            💬 וואטסאפ ללקוח
+                                        </a>
+                                    );
+                                })()}
                             </div>
                             {/* reminder */}
                             <div style={{ ...glass, borderRadius: 16, padding: 14 }}>
@@ -946,7 +1048,10 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                                         style={{ ...inp, flex: 1 }} />
                                 </div>
                                 <div style={{ marginTop: 10 }}>
-                                    <InvoiceButton order={order} allocationNumber={order.allocationNumber} style={{ width: '100%', justifyContent: 'center' }} />
+                                    <button onClick={() => onInvoice && onInvoice(order)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: 11, border: '1.5px solid rgba(0,122,255,0.25)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>
+                                        🧾 הפק חשבונית מס
+                                    </button>
                                 </div>
                             </div>
                             {/* customer details (editable) */}
@@ -1047,6 +1152,22 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
                 <div style={{ padding: 12, borderRadius: 12, background: 'rgba(0,122,255,0.05)', marginBottom: 12 }}>
                     <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, color: '#3A3A3C' }}>📍 אספקה ללקוח: {addr}</p>
                 </div>
+
+                {/* missing-info guard — don't forward Amal an incomplete order */}
+                {(() => {
+                    const miss = [];
+                    if (!(order.shipTo?.address || order.address)) miss.push('כתובת אספקה');
+                    if (!order.contactName && !order.institution) miss.push('שם לקוח/מוסד');
+                    if (!order.phone && !order.email) miss.push('טלפון/מייל ליצירת קשר');
+                    if (!(order.items || []).length) miss.push('פריטים');
+                    if (!miss.length) return null;
+                    return (
+                        <div style={{ padding: '10px 12px', borderRadius: 12, background: 'rgba(255,149,0,0.09)', border: '1px solid rgba(255,149,0,0.3)', marginBottom: 12 }}>
+                            <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, color: '#B86A00' }}>⚠ חסר לפני העברה לספק: {miss.join(' · ')}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: 10.5, fontWeight: 600, color: '#8A6D3B' }}>השלם/י בטאב "לקוח" כדי לא לשלוח לעמל הזמנה חלקית.</p>
+                        </div>
+                    );
+                })()}
 
                 <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="הערות לספק (אספקה, דחיפות…)" dir="rtl"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontFamily: HE, fontSize: 12.5, outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
@@ -1279,5 +1400,78 @@ function EmailPreviewModal({ order, html, subject, loading, sending, onClose, on
             </motion.div>
         </div>,
         document.body
+    );
+}
+
+/* ─── Command palette (Cmd+K) — search orders + quick actions ─────────────────── */
+function CommandPalette({ orders, actions, onOpenOrder, onClose }) {
+    const [q, setQ] = useState('');
+    const ql = q.trim();
+    const acts = ql ? actions.filter(a => a.label.includes(ql)) : actions;
+    const hits = ql ? orders.filter(o => [orderTitle(o), o.institution, o.orderNumber, o.phone, o.email].some(v => (v || '').toString().includes(ql))).slice(0, 8) : [];
+    return createPortal(
+        <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, zIndex: 999998, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' }} dir="rtl">
+            <motion.div initial={{ opacity: 0, y: -12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+                style={{ width: 'min(560px, 94vw)', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 30px 80px rgba(0,0,0,0.35)', fontFamily: HE }}>
+                <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="חיפוש הזמנה / מוסד / פקודה…" dir="rtl"
+                    style={{ width: '100%', padding: '16px 18px', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.07)', fontSize: 15, fontWeight: 600, fontFamily: HE, outline: 'none', boxSizing: 'border-box', color: '#1D1D1F' }} />
+                <div style={{ maxHeight: '52vh', overflowY: 'auto', padding: 8 }}>
+                    {acts.length > 0 && <p style={{ margin: '6px 10px', fontSize: 10, fontWeight: 800, color: '#AEAEB2' }}>פעולות</p>}
+                    {acts.map((a, i) => (
+                        <button key={i} onClick={a.run} style={{ width: '100%', textAlign: 'right', padding: '10px 12px', border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 13.5, color: '#1D1D1F' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,122,255,0.06)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>{a.label}</button>
+                    ))}
+                    {hits.length > 0 && <p style={{ margin: '10px 10px 4px', fontSize: 10, fontWeight: 800, color: '#AEAEB2' }}>הזמנות</p>}
+                    {hits.map(o => (
+                        <button key={o.id} onClick={() => onOpenOrder(o.id)} style={{ width: '100%', textAlign: 'right', padding: '10px 12px', border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', fontFamily: HE, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,122,255,0.06)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1D1D1F' }}>{orderTitle(o)}</span>
+                            <span style={{ fontSize: 11.5, fontWeight: 700, color: '#007AFF' }}>₪{orderTotal(o).toLocaleString()}</span>
+                        </button>
+                    ))}
+                    {ql && !acts.length && !hits.length && <p style={{ padding: 20, textAlign: 'center', color: '#AEAEB2', fontSize: 12.5 }}>אין תוצאות</p>}
+                </div>
+                <div style={{ padding: '8px 14px', borderTop: '1px solid rgba(0,0,0,0.06)', fontSize: 10.5, color: '#AEAEB2', fontWeight: 600 }}>⌘K / Ctrl+K לפתיחה · Esc לסגירה</div>
+            </motion.div>
+        </div>,
+        document.body
+    );
+}
+
+/* ─── "My Work" — the next-action center (do the next thing, ranked by urgency) ── */
+function WorkView({ orders, onOpen, onAction, busy }) {
+    const open = orders.filter(o => { const s = deriveStage(o); return !CANCELLED.has(s) && s !== 'completed'; });
+    const rank = (o) => { const l = riskAssess(o).level; return l === 'high' ? 2 : l === 'med' ? 1 : 0; };
+    const ranked = [...open].sort((a, b) => (rank(b) - rank(a)) || (daysInStage(b) - daysInStage(a)));
+    if (!ranked.length) return (
+        <div style={{ ...glass, borderRadius: 20, padding: 48, textAlign: 'center', fontFamily: HE }}>
+            <p style={{ fontSize: 30, margin: 0 }}>☀️</p>
+            <p style={{ fontSize: 15, fontWeight: 800, color: '#1D1D1F', margin: '8px 0 0' }}>אין משימות פתוחות — הכל מטופל!</p>
+        </div>
+    );
+    return (
+        <div style={{ ...glass, borderRadius: 18, overflow: 'hidden', fontFamily: HE }}>
+            {ranked.map((o, i) => {
+                const na = nextAction(o); const meta = stageMeta(deriveStage(o));
+                return (
+                    <div key={o.id} onClick={() => onOpen(o.id)}
+                        style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr auto auto', gap: 12, alignItems: 'center', padding: '13px 16px', cursor: 'pointer', borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
+                                <RiskBadge order={o} />
+                            </div>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.institution || ''} · {orderItemsSummary(o)}</p>
+                        </div>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: toneColor(meta.tone) }}>{meta.label} · {daysInStage(o)} י׳</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: '#007AFF', whiteSpace: 'nowrap' }}>₪{orderTotal(o).toLocaleString()}</span>
+                        {na ? (
+                            <button disabled={busy} onClick={e => { e.stopPropagation(); onAction(na, o); }}
+                                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontFamily: HE, fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>{na.label} ←</button>
+                        ) : <span style={{ width: 60 }} />}
+                    </div>
+                );
+            })}
+        </div>
     );
 }

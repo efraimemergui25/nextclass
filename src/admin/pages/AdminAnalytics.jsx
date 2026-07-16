@@ -261,9 +261,15 @@ export default function AdminAnalytics() {
     // Top products by sold count
     const topByCount = useMemo(() => {
         const map = {};
-        orders.forEach(o => {
-            (o.items || []).forEach(item => {
-                const pid = String(item.id ?? '');
+        const CLOSED = ['נסגר', 'סופק'];
+        // Sold units come from e-commerce orders AND closed pipeline quotes (B2B).
+        const sources = [
+            ...orders.map(o => o.items || []),
+            ...quotes.filter(q => CLOSED.includes(q.status)).map(q => q.items || []),
+        ];
+        sources.forEach(items => {
+            items.forEach(item => {
+                const pid = String(item.id ?? item.catalogNumber ?? '');
                 if (!pid) return;
                 if (!map[pid]) {
                     const inv = inventory.find(p => String(p.id) === pid);
@@ -277,11 +283,11 @@ export default function AdminAnalytics() {
                     };
                 }
                 map[pid].count += item.qty || 1;
-                map[pid].revenue += (item.price || 0) * (item.qty || 1);
+                map[pid].revenue += (Number(item.salePrice ?? item.price) || 0) * (item.qty || 1);
             });
         });
         return Object.values(map).sort((a, b) => b.count - a.count).slice(0, 8);
-    }, [orders, inventory]);
+    }, [orders, quotes, inventory]);
 
     const maxCount = Math.max(...topByCount.map(p => p.count), 1);
 

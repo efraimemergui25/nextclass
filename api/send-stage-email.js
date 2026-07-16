@@ -404,6 +404,38 @@ function ratingRow(label, emoji, quoteId) {
     </tr>`;
 }
 
+// Inline invoice summary (חשבונית מס) — legal identity + line items + VAT + total.
+function invoiceSummaryBlock(quote) {
+    const VAT = 18;
+    const items = quote.items || [];
+    const net = items.reduce((s, it) => s + priceNum(it.salePrice ?? it.price) * (it.qty ?? it.quantity ?? 1), 0);
+    if (net <= 0) return '';
+    const vat = Math.round(net * VAT) / 100;
+    const gross = Math.round((net + vat) * 100) / 100;
+    const invNo = `${new Date().getFullYear()}-${(String(quote.id || '').replace(/\D/g, '').slice(-5) || '00001')}`;
+    const rows = items.map(it => {
+        const qty = it.qty ?? it.quantity ?? 1;
+        const price = priceNum(it.salePrice ?? it.price);
+        return `<tr><td style="padding:5px 0;font-size:12.5px;color:#3D3D3D;">${it.title || 'פריט'} ×${qty}</td><td style="padding:5px 0;text-align:left;font-size:12.5px;font-weight:700;color:#1D1D1F;white-space:nowrap;">₪${(price * qty).toLocaleString()}</td></tr>`;
+    }).join('');
+    return `
+      <div style="border:1.5px solid #E3E8F0;border-radius:18px;overflow:hidden;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="background:linear-gradient(135deg,#007AFF,#5AC8FA);padding:13px 20px;"><span style="font-size:15px;font-weight:900;color:#fff;">🧾 חשבונית מס</span></td>
+          <td style="background:linear-gradient(135deg,#007AFF,#5AC8FA);padding:13px 20px;text-align:left;"><span style="font-size:12px;color:#fff;">מס׳ ${invNo}</span></td>
+        </tr></table>
+        <div style="padding:14px 20px;background:#fff;">
+          <table width="100%" cellpadding="0" cellspacing="0">${rows}
+            <tr><td colspan="2" style="border-top:1px solid #EEF1F6;padding-top:6px;"></td></tr>
+            <tr><td style="font-size:12px;color:#6E6E73;">לפני מע״מ</td><td style="text-align:left;font-size:12px;color:#6E6E73;">₪${net.toLocaleString()}</td></tr>
+            <tr><td style="font-size:12px;color:#6E6E73;">מע״מ ${VAT}%</td><td style="text-align:left;font-size:12px;color:#6E6E73;">₪${vat.toLocaleString()}</td></tr>
+            <tr><td style="font-size:15px;font-weight:900;color:#007AFF;padding-top:4px;">סה״כ לתשלום</td><td style="text-align:left;font-size:15px;font-weight:900;color:#007AFF;padding-top:4px;">₪${gross.toLocaleString()}</td></tr>
+          </table>
+          <div style="font-size:10.5px;color:#AEAEB2;margin-top:10px;border-top:1px solid #EEF1F6;padding-top:8px;">${BIZ_LEGAL_NAME} · ח.פ ${BIZ_TAX_ID} · ${BIZ_ADDRESS}</div>
+        </div>
+      </div>`;
+}
+
 function buildDeliveredEmail(quote) {
     const firstName = (quote.contactName || '').split(' ')[0] || 'לקוח יקר';
     const waLink = `https://wa.me/972${BIZ_PHONE.replace(/\D/g,'').replace(/^0/,'')}?text=${encodeURIComponent(`שלום NextClass! לגבי הזמנה ${quote.id}`)}`;
@@ -430,11 +462,8 @@ function buildDeliveredEmail(quote) {
         </table>
       </div>
 
-      <!-- Invoice note -->
-      <div style="border-right:4px solid #007AFF;background:#F0F7FF;border-radius:0 12px 12px 0;padding:16px 18px;margin-bottom:24px;">
-        <div style="font-size:14px;font-weight:800;color:#007AFF;margin-bottom:4px;">🧾 חשבונית מס</div>
-        <div style="font-size:13px;color:#3D3D3D;line-height:1.65;">חשבונית המס להזמנה ${quote.id} מצורפת/זמינה עבורך. לכל שאלה בנושא — נשמח לעזור.</div>
-      </div>
+      <!-- Invoice summary -->
+      ${invoiceSummaryBlock(quote)}
 
       ${ctaButton('💬 דברו איתנו', waLink, 'linear-gradient(135deg,#25D366,#128C7E)', 'rgba(37,211,102,0.35)')}
       <p style="text-align:center;font-size:13px;color:#AEAEB2;margin-top:14px;">נשמח לראות אתכם בפרויקט הבא! 💙</p>
