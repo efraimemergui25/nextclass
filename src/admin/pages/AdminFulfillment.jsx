@@ -5,7 +5,7 @@ import { db } from '../../firebase';
 import {
     collection, query, orderBy, onSnapshot,
     doc, updateDoc, addDoc, deleteDoc, serverTimestamp,
-    arrayUnion
+    arrayUnion, getDocs, writeBatch
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -2159,14 +2159,68 @@ function ProductMappingTab({ suppliers, showToast }) {
         catch { showToast('לא ניתן לסנכרן שער כרגע', 'error'); }
     };
 
+    // ── Sync supplier-quote prices → product cost (single source of truth) ────
+    // Matches supplier_quotes line items to catalog products by model/name and
+    // pulls the BEST (lowest) net price into product.supplierCost, which then
+    // propagates to inventory, analytics and every profit calculation.
+    const [syncingQuotes, setSyncingQuotes] = useState(false);
+    const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z0-9֐-׿]/gi, '');
+    const syncFromSupplierQuotes = async () => {
+        setSyncingQuotes(true);
+        try {
+            const snap = await getDocs(collection(db, 'supplier_quotes'));
+            const lines = [];
+            snap.forEach(d => {
+                const q = d.data();
+                (q.products || []).forEach(ql => {
+                    let unit = Number(ql.pricePerUnit) || 0;
+                    if (ql.currency === 'USD' && ql.priceInUsd && fxRate) unit = parseFloat(ql.priceInUsd) * fxRate;
+                    const net = unit * (1 - (Number(ql.discount) || 0) / 100);
+                    if (net > 0) lines.push({ net, name: norm(ql.name), model: norm(ql.modelNumber), supplierId: q.supplierId, supplierName: q.supplierName });
+                });
+            });
+            if (!lines.length) { showToast('אין הצעות ספקים עם מחירים לסנכרון', 'info'); return; }
+            const batch = writeBatch(db);
+            let synced = 0;
+            products.forEach(p => {
+                const pModel = norm(p.model || p.sku);
+                const pTitle = norm(p.title);
+                const matches = lines.filter(l => {
+                    if (l.model && pModel && l.model.length >= 3 && (pModel.includes(l.model) || l.model.includes(pModel))) return true;
+                    if (l.name && l.name.length >= 5 && (pTitle.includes(l.name) || l.name.includes(pTitle))) return true;
+                    return false;
+                });
+                if (!matches.length) return;
+                const best = matches.reduce((a, b) => (b.net < a.net ? b : a));
+                const cost = Math.round(best.net * 100) / 100;
+                const changed = Math.abs((Number(p.supplierCost) || 0) - cost) > 0.01 || p.costCurrency === 'USD';
+                if (!changed) return;
+                const upd = { supplierCost: cost, costCurrency: 'ILS' };
+                if (best.supplierName && !p.supplierName) upd.supplierName = best.supplierName;
+                if (best.supplierId && !p.supplierId) upd.supplierId = best.supplierId;
+                batch.update(doc(db, 'products', p.id), upd);
+                synced++;
+            });
+            if (synced) { await batch.commit(); showToast(`${synced} מוצרים סונכרנו מהצעות הספקים ✓`, 'success'); }
+            else showToast('הכל כבר מסונכרן עם הצעות הספקים', 'info');
+        } catch (e) { console.error('[syncFromSupplierQuotes]', e); showToast('שגיאה בסנכרון מהצעות ספקים', 'error'); }
+        finally { setSyncingQuotes(false); }
+    };
+
     return (
         <div className="space-y-3">
             {/* Header bar — hint + shared USD→ILS rate with sync */}
             <div className="flex items-center justify-between gap-3 flex-wrap p-4 rounded-2xl" dir="rtl"
                 style={{ background: 'linear-gradient(120deg,rgba(0,122,255,0.06),rgba(52,199,89,0.05))', border: '1px solid rgba(0,122,255,0.12)' }}>
-                <p className="text-right text-[12px] font-medium text-[#007AFF] flex-1 min-w-[220px]">
+                <p className="text-right text-[12px] font-medium text-[#007AFF] flex-1 min-w-[200px]">
                     מיפוי ספקים ותמחור לכל מוצר — עלות (₪/$), מחיר מכירה ורווחיות. הנתונים מסתנכרנים אוטומטית למלאי, לאנליטיקס ולכל החישובים.
                 </p>
+                <button onClick={syncFromSupplierQuotes} disabled={syncingQuotes}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black text-white shrink-0 transition-all disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)', boxShadow: '0 6px 18px rgba(88,86,214,0.30)' }}
+                    title="משוך מחירי עלות מהצעות הספקים אל כרטיסי המוצר — ומשם לכל המערכת">
+                    <Link2 size={14} className={syncingQuotes ? 'animate-spin' : ''} />{syncingQuotes ? 'מסנכרן…' : 'סנכרן מהצעות ספקים'}
+                </button>
                 <div className="flex items-center gap-2 shrink-0 bg-white/70 rounded-xl px-3 py-1.5 border border-black/[0.06]">
                     <button onClick={doSyncFx} disabled={fx?.syncing}
                         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"

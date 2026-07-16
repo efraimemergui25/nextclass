@@ -1,10 +1,10 @@
 /* eslint-disable */
 
-import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp, Sparkles, Link2, Upload } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -167,6 +167,7 @@ export default function AdminInventory() {
     const [viewMode, setViewMode] = useState('grid');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [creating, setCreating]               = useState(false);
+    const [aiImport, setAiImport]               = useState(false);
     const [reorderProduct, setReorderProduct]   = useState(null);
     const [tab, setTab] = useState('all');
 
@@ -373,6 +374,15 @@ export default function AdminInventory() {
                         ) : (
                             <>
                                 <AdminButton variant="outline" onClick={enterBulkMode}>עריכה מהירה</AdminButton>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                    onClick={() => setAiImport(true)}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-[14px] text-white font-black text-[13px]"
+                                    style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)', fontFamily: 'Heebo, sans-serif', boxShadow: '0 6px 18px rgba(88,86,214,0.30)' }}
+                                >
+                                    <Sparkles size={15} strokeWidth={2.6} />
+                                    ייבוא AI
+                                </motion.button>
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
@@ -774,6 +784,18 @@ export default function AdminInventory() {
                 document.body
             )}
 
+            {/* AI Product Import — image/URL → extract → verify → add */}
+            {createPortal(
+                <AnimatePresence>
+                    {aiImport && (
+                        <AiImportModal onClose={() => setAiImport(false)}
+                            onAdd={async (p) => { await addProduct(p); setAiImport(false); showToast('המוצר נוסף לקטלוג ✓', 'success'); }}
+                            showToast={showToast} />
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
             {/* New Product Modal — same ProductModal reused in create mode */}
             {createPortal(
                 <AnimatePresence>
@@ -1139,6 +1161,133 @@ function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, o
 
 // Uniform RTL settings row — label block on the right, toggle pinned left, so
 // a stack of these lines up perfectly regardless of subtitle length.
+// ── AI Product Import — paste a product page / image URL (or upload) → AI
+// extracts catalog-ready fields → verify/edit → add to the catalog. ──────────
+function AiImportModal({ onClose, onAdd, showToast }) {
+    const CATS = ['מסכי מחשב', 'מוצרים משלימים'];
+    const [url, setUrl] = useState('');
+    const [extracting, setExtracting] = useState(false);
+    const [adding, setAdding] = useState(false);
+    const [data, setData] = useState(null);
+    const fileRef = useRef(null);
+
+    const runExtract = async (body) => {
+        setExtracting(true); setData(null);
+        try {
+            const res = await fetch('/api/extract-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const json = await res.json();
+            if (!json.success) { showToast(json.warnings?.[0] || json.error || 'החילוץ נכשל — נסה קישור אחר', 'error'); return; }
+            const d = json.data;
+            setData({
+                title: d.title || '', brand: d.brand || '', model: d.model || '',
+                category: CATS.includes(d.category) ? d.category : CATS[0], sku: d.sku || '',
+                price: d.price ?? '', image: d.imageUrl || '', description: d.description || '',
+                specs: d.specs || [], confidence: d.confidence, warnings: json.warnings || [],
+            });
+        } catch (e) { console.error(e); showToast('שגיאה בחילוץ', 'error'); }
+        finally { setExtracting(false); }
+    };
+    const extractFromUrl = () => {
+        const u = url.trim(); if (!u) return;
+        const isImg = /\.(jpe?g|png|webp|gif|bmp|avif)(\?|$)/i.test(u);
+        runExtract(isImg ? { imageUrl: u } : { pageUrl: u });
+    };
+    const extractFromFile = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => runExtract({ imageBase64: String(reader.result).split(',')[1], mimeType: file.type || 'image/jpeg' });
+        reader.readAsDataURL(file);
+    };
+    const setF = (k, v) => setData(d => ({ ...d, [k]: v }));
+    const submit = async () => {
+        if (!data?.title?.trim()) { showToast('יש להזין שם מוצר', 'error'); return; }
+        setAdding(true);
+        try {
+            await onAdd({
+                title: data.title.trim(), brand: data.brand || '', model: data.model || '', category: data.category,
+                sku: data.sku || '', price: Number(data.price) || 0, image: data.image || '',
+                description: data.description || '', specs: Array.isArray(data.specs) ? data.specs : [],
+                stock: 0, isActive: true,
+            });
+        } finally { setAdding(false); }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/25 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                className="relative w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden" dir="rtl"
+                style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', border: '1px solid rgba(255,255,255,0.72)' }}>
+                <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-black/[0.06]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)' }}><Sparkles size={18} className="text-white" /></div>
+                        <div><p className="text-[17px] font-black text-[#1D1D1F] leading-tight">ייבוא מוצר עם AI</p><p className="text-[11px] text-[#AEAEB2] font-medium">הדבק קישור לעמוד מוצר או לתמונה — וה-AI ימלא הכל</p></div>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#86868B] hover:bg-[#E5E5EA]"><X size={14} /></button>
+                </div>
+
+                <div className="px-7 py-5 space-y-4 max-h-[68vh] overflow-y-auto">
+                    <div className="flex gap-2">
+                        <div className="flex-1 flex items-center gap-2 bg-[#F5F5F7] rounded-xl px-3 border border-black/10 focus-within:border-[#5856D6]/40 transition-colors">
+                            <Link2 size={14} className="text-[#AEAEB2] shrink-0" />
+                            <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') extractFromUrl(); }} dir="ltr"
+                                placeholder="https://…  קישור למוצר או לתמונה" className="flex-1 bg-transparent py-2.5 text-[13px] outline-none text-right" />
+                        </div>
+                        <AdminButton accent="#5856D6" onClick={extractFromUrl} disabled={extracting || !url.trim()}>{extracting ? 'מחלץ…' : 'חלץ'}</AdminButton>
+                    </div>
+                    <div className="flex items-center gap-2"><div className="flex-1 h-px bg-black/[0.06]" /><span className="text-[10px] text-[#AEAEB2] font-bold">או</span><div className="flex-1 h-px bg-black/[0.06]" /></div>
+                    <button onClick={() => fileRef.current?.click()} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-black/10 text-[#86868B] text-[12px] font-bold hover:border-[#5856D6]/40 hover:text-[#5856D6] transition-colors">
+                        <Upload size={15} /> העלה תמונת מוצר
+                    </button>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => extractFromFile(e.target.files?.[0])} />
+
+                    {extracting && (
+                        <div className="py-8 text-center">
+                            <div className="w-8 h-8 mx-auto rounded-full animate-spin" style={{ border: '3px solid rgba(88,86,214,0.18)', borderTopColor: '#5856D6' }} />
+                            <p className="text-[12px] text-[#86868B] font-bold mt-3">ה-AI קורא את המוצר…</p>
+                        </div>
+                    )}
+
+                    {data && !extracting && (
+                        <div className="space-y-3">
+                            <div className="flex gap-3 items-start">
+                                {data.image && <img src={data.image} alt="" onError={e => { e.target.style.display = 'none'; }} className="w-20 h-20 rounded-xl object-cover border border-black/[0.06] shrink-0" />}
+                                <div className="flex-1"><AdminInput label="שם מוצר" value={data.title} onChange={v => setF('title', v)} /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <AdminInput label="מותג" value={data.brand} onChange={v => setF('brand', v)} />
+                                <AdminInput label="דגם" value={data.model} onChange={v => setF('model', v)} />
+                                <div>
+                                    <label className="text-[11px] font-black text-[#86868B] tracking-widest px-1 block mb-1.5">קטגוריה</label>
+                                    <select value={data.category} onChange={e => setF('category', e.target.value)} className="w-full bg-[#F5F5F7] rounded-2xl px-4 py-3.5 text-sm font-bold text-[#1D1D1F] outline-none border-none">
+                                        {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <AdminInput label="מחיר מכירה (₪)" type="number" value={data.price} onChange={v => setF('price', v)} />
+                            </div>
+                            <AdminInput label="כתובת תמונה" value={data.image} onChange={v => setF('image', v)} />
+                            {data.specs?.length > 0 && (
+                                <div className="rounded-xl bg-[#F5F5F7] p-3">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] mb-1.5">מפרט שחולץ ({data.specs.length})</p>
+                                    <div className="flex flex-wrap gap-1.5">{data.specs.slice(0, 8).map((s, i) => <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-white text-[#6E6E73] font-bold">{s.label}: {s.value}</span>)}</div>
+                                </div>
+                            )}
+                            {data.confidence != null && (
+                                <p className="text-[10px] text-[#AEAEB2] text-right">ביטחון חילוץ: {data.confidence}%{data.warnings?.[0] ? ` · ${data.warnings[0]}` : ''}</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
+                    <AdminButton className="flex-1" accent="#5856D6" disabled={!data?.title?.trim() || adding} onClick={submit}>{adding ? 'מוסיף…' : 'הוסף לקטלוג'}</AdminButton>
+                    <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
 function ToggleRow({ title, subtitle, value, onChange, accent = '#34C759' }) {
     return (
         <div className="flex items-center justify-between gap-4 px-4 py-3">
