@@ -253,7 +253,7 @@ const ACTIVITY_ICONS = {
     product:   { color: '#007AFF', Icon: Box },
     order:     { color: '#34C759', Icon: ShoppingCart },
     inventory: { color: '#FF9500', Icon: BarChart2 },
-    coupon:    { color: '#5856D6', Icon: Tag },
+    coupon:    { color: '#5AC8FA', Icon: Tag },
     info:      { color: '#AEAEB2', Icon: Activity },
 };
 
@@ -415,7 +415,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
 );
 
 export default function AdminDashboard() {
-    const { kpis, orders, quotes, analytics, inventory, activityLog, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
+    const { kpis, orders, quotes, analytics, inventory, activityLog, loading, repairProductImages, reseedDatabase, clearReminder } = useAdminData();
     const { showToast } = useAdminToast();
     const { getSetting, updateGlobalSettings } = useSettings();
     const navigate = useNavigate();
@@ -432,7 +432,7 @@ export default function AdminDashboard() {
     const drillTo    = (path) => { closeDrill(); navigate(path); };  // footer navigation
 
     // Loading proxy: analytics is null until the first Firestore snapshot resolves
-    const dataLoading = analytics == null;
+    const dataLoading = loading || analytics == null;
 
     // Slice analytics by selected period
     const periodData = useMemo(() => {
@@ -487,16 +487,25 @@ export default function AdminDashboard() {
         return { current, target, isManual: false };
     }, [analytics, kpis, getSetting]);
 
-    const recentOrders = useMemo(() =>
-        [...orders].sort((a, b) => b.dateTs - a.dateTs).slice(0, 7),
-        [orders]
-    );
+    // Recent orders = e-commerce orders + the quotes pipeline (where manual/OCR/
+    // B2B orders actually live) — unified so the dashboard reflects real activity.
+    const recentOrders = useMemo(() => {
+        const ecom = orders.filter(o => o.source !== 'quote');
+        const pipe = (quotes || []).map(q => ({
+            ...q,
+            customer: q.contactName || q.institution || q.customer || 'לקוח',
+            product: (q.items && q.items[0]) ? (q.items[0].title || q.items[0].name || `${q.items.length} פריטים`) : (q.product || '—'),
+            total: q.total || q.subtotal || 0,
+            _isQuote: true,
+        }));
+        return [...ecom, ...pipe].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0)).slice(0, 7);
+    }, [orders, quotes]);
 
     const topProducts = useMemo(() => {
         const map = {};
         orders.forEach(o => {
             (o.items || []).forEach(item => {
-                const pid = String(item.id ?? '');
+                const pid = String(item.id ?? item.catalogNumber ?? '');
                 if (!pid) return;
                 if (!map[pid]) {
                     const inv = inventory.find(p => String(p.id) === pid);
@@ -523,7 +532,7 @@ export default function AdminDashboard() {
     const productSalesMap = useMemo(() => {
         const map = {};
         orders.forEach(o => (o.items || []).forEach(item => {
-            const pid = String(item.id ?? '');
+            const pid = String(item.id ?? item.catalogNumber ?? '');
             if (!pid) return;
             if (!map[pid]) map[pid] = { revenue: 0, count: 0 };
             map[pid].revenue += (Number(item.price) || 0) * (Number(item.qty) || 1);
@@ -761,7 +770,7 @@ export default function AdminDashboard() {
                             {/* Recent Orders */}
                             <Card
                                 title="הזמנות אחרונות"
-                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                 className="lg:col-span-2"
                                 action={
                                     <Link to="/admin/orders" className="text-[#007AFF] text-xs font-bold hover:underline flex items-center gap-0.5">
@@ -784,10 +793,10 @@ export default function AdminDashboard() {
                                                 initial={{ opacity: 0, x: 10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.03 }}
-                                                onClick={() => openDrill({ type: 'order', id: order.id })}
+                                                onClick={() => order._isQuote ? navigate(`/admin/orders?quoteId=${order.id}`) : openDrill({ type: 'order', id: order.id })}
                                                 tabIndex={0}
                                                 role="button"
-                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'order', id: order.id }); } }}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); order._isQuote ? navigate(`/admin/orders?quoteId=${order.id}`) : openDrill({ type: 'order', id: order.id }); } }}
                                                 className="flex items-center gap-3 py-2.5 border-b border-black/04 last:border-0 cursor-pointer hover:bg-[#007AFF]/04 rounded-xl px-2 -mx-2 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
                                             >
                                                 <StatusBadge status={order.status} />
@@ -814,7 +823,7 @@ export default function AdminDashboard() {
                             {/* Right column — Monthly Goal Ring + Activity Feed */}
                             <div className="space-y-5">
                                 {/* Monthly Goal Ring */}
-                                <Card title="יעד הכנסות חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                <Card title="יעד הכנסות חודשי" subtitle="הכנסות החודש vs. יעד" accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                     titleTooltip={{ text: 'יעד חודשי ניתן לקביעה בהגדרות. אם לא הוגדר — מחושב אוטומטית ×1.5 מחודש קודם.', source: 'Firestore · cms_settings · monthly_revenue_target', link: '/admin/settings', linkLabel: 'הגדר יעד' }}>
                                     {dataLoading ? (
                                         <DashLoading height="h-40" label="טוען יעד…" />
@@ -850,7 +859,7 @@ export default function AdminDashboard() {
                                 {/* Activity Feed */}
                                 <Card
                                     title="יומן פעילות"
-                                    accent="linear-gradient(90deg,#5E5CE6,#007AFF)"
+                                    accent="linear-gradient(90deg,#5AC8FA,#007AFF)"
                                     action={
                                         <span className="text-[10px] font-black text-[#AEAEB2] tracking-widest">
                                             {activityLog.length} רשומות
@@ -893,7 +902,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Quick Actions */}
-                        <Card title="פעולות מהירות" subtitle="ניהול האתר בלחיצה אחת" accent="linear-gradient(90deg,#5E5CE6,#007AFF)">
+                        <Card title="פעולות מהירות" subtitle="ניהול האתר בלחיצה אחת" accent="linear-gradient(90deg,#5AC8FA,#007AFF)">
                             <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                                 {[
                                     {
@@ -1004,7 +1013,7 @@ export default function AdminDashboard() {
                             <Card
                                 title="תנועה לאתר"
                                 subtitle={period === '1' ? 'היום' : `${period} ימים אחרונים`}
-                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                 className="lg:col-span-2"
                                 titleTooltip={{ text: 'מפת חום של כניסות ייחודיות לאתר לפי יום. כל תא = יום אחד. עוצמת הצבע = כמות הכניסות.', source: 'Firestore · analytics · visits[]', link: '/admin/analytics', linkLabel: 'דוח תנועה' }}
                                 action={
@@ -1034,7 +1043,7 @@ export default function AdminDashboard() {
 
                             {/* Top Products — 1/3 width */}
                             <Card title="מוצרים מובילים" subtitle="לפי הכנסות כוללות"
-                                accent="linear-gradient(90deg,#5E5CE6,#007AFF)"
+                                accent="linear-gradient(90deg,#5AC8FA,#007AFF)"
                                 titleTooltip={{ text: 'המוצרים שייצרו את ההכנסה הגבוהה ביותר. מחושב ממסד ההזמנות.', source: 'Firestore · orders · productId + total', link: '/admin/inventory', linkLabel: 'ניהול מוצרים' }}>
                                 {dataLoading ? (
                                     <DashLoading label="טוען מוצרים…" />
@@ -1115,7 +1124,7 @@ export default function AdminDashboard() {
                             <Card
                                 title="מכירות יומיות"
                                 subtitle="כמות עסקאות לפי יום"
-                                accent="linear-gradient(90deg,#007AFF,#5E5CE6)"
+                                accent="linear-gradient(90deg,#007AFF,#5AC8FA)"
                                 titleTooltip={{ text: 'כמות העסקאות שנסגרו בכל יום. כל עמודה = יום אחד. מקור: נתוני analytics מ-Firestore.', source: 'Firestore · analytics · sales[]', link: '/admin/orders', linkLabel: 'ניהול הזמנות' }}
                                 action={<span className="text-xs font-black text-[#007AFF]">{periodSales} עסקאות</span>}
                             >
@@ -1240,7 +1249,7 @@ export default function AdminDashboard() {
                             <DrillStat items={[
                                 { label: 'שווי צינור', value: `₪${Math.round(pipelineForecast.totalPipeline).toLocaleString()}`, color: '#007AFF' },
                                 { label: 'צפי משוקלל', value: `₪${Math.round(pipelineForecast.weighted).toLocaleString()}`, color: '#34C759' },
-                                { label: 'עסקאות', value: pipelineForecast.count, color: '#5856D6' },
+                                { label: 'עסקאות', value: pipelineForecast.count, color: '#5AC8FA' },
                             ]} />
                             {pipelineForecast.byStage.length === 0 ? (
                                 <DrillEmpty icon={Target} text="אין עסקאות פתוחות בצינור" />
@@ -1332,7 +1341,7 @@ export default function AdminDashboard() {
                     const q = quotes.find(x => String(x.id) === String(shown.id));
                     title = q ? (q.contactName || q.institution || 'הצעה') : 'הצעה';
                     subtitle = q ? `${q.status || ''} · ₪${Math.round(quoteVal(q)).toLocaleString()}` : String(shown.id);
-                    accent = '#5856D6'; icon = <Layers size={17} color="#5856D6" />;
+                    accent = '#5AC8FA'; icon = <Layers size={17} color="#5AC8FA" />;
                     footer = { label: 'פתח בניהול הצעות', onClick: () => drillTo(`/admin/orders?quoteId=${shown.id}`) };
                     body = q ? (
                         <div className="space-y-5">
@@ -1341,7 +1350,7 @@ export default function AdminDashboard() {
                                 <p className="text-[20px] font-black tracking-tight text-[#1D1D1F]">₪{Math.round(quoteVal(q)).toLocaleString()}</p>
                             </div>
                             <DrillStat items={[
-                                { label: 'מוסד', value: q.institution || '—', color: '#5856D6' },
+                                { label: 'מוסד', value: q.institution || '—', color: '#5AC8FA' },
                                 { label: 'פריטים', value: (q.items || []).length, color: '#007AFF' },
                                 { label: 'תאריך', value: q.dateTs ? new Date(q.dateTs).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '—' },
                             ]} />
@@ -1374,7 +1383,7 @@ export default function AdminDashboard() {
                             <DrillStat items={[
                                 { label: 'עסקאות', value: list.length, color: '#007AFF' },
                                 { label: 'שווי כולל', value: `₪${Math.round(stageTotal).toLocaleString()}`, color: '#34C759' },
-                                { label: 'הסתברות', value: `${Math.round((STAGE_WEIGHTS[shown.stage] || 0.1) * 100)}%`, color: '#5856D6' },
+                                { label: 'הסתברות', value: `${Math.round((STAGE_WEIGHTS[shown.stage] || 0.1) * 100)}%`, color: '#5AC8FA' },
                             ]} />
                             {list.length === 0 ? (
                                 <DrillEmpty icon={Layers} text="אין עסקאות בשלב זה" />
@@ -1382,9 +1391,9 @@ export default function AdminDashboard() {
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">עסקאות בשלב — לחץ לפרטים</p>
                                     {list.map((q, i) => (
-                                        <DrillRow key={q.id} delay={i * 0.03} tone="#5856D6"
+                                        <DrillRow key={q.id} delay={i * 0.03} tone="#5AC8FA"
                                             onClick={() => pushDrill({ type: 'quote', id: q.id })}
-                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5856D6', 0.1) }}><Users size={13} color="#5856D6" /></span>}
+                                            leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#5AC8FA', 0.1) }}><Users size={13} color="#5AC8FA" /></span>}
                                             title={q.contactName || q.institution || q.id}
                                             subtitle={q.institution || orderDateStr(q.dateTs)}
                                             trailing={<span className="text-[12px] font-black text-[#007AFF] shrink-0">₪{Math.round(quoteVal(q)).toLocaleString()}</span>}

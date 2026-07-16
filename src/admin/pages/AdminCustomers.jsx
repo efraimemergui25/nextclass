@@ -92,7 +92,7 @@ export default function AdminCustomers() {
     const { showToast } = useAdminToast();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const [tab, setTab] = useState('contacts');
+    const [tab, setTab] = useState('customers');
     const [search, setSearch] = useState('');
     const [dateFilter, setDateFilter] = useState('all');
     const [selected, setSelected] = useState(null);
@@ -232,8 +232,8 @@ export default function AdminCustomers() {
 
     const trashCount = (deletedItems?.contacts?.length || 0);
     const tabs = [
-        { id: 'contacts', label: 'פניות', count: contacts.filter(c => c.status === 'חדש').length },
         { id: 'customers', label: 'לקוחות', count: customers.length },
+        { id: 'contacts', label: 'פניות', count: contacts.length },
         { id: 'trash', label: 'סל מחזור', count: trashCount },
     ];
 

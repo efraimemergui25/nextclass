@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Box, X, Check, Trash2, LayoutGrid, List, Package, Boxes, ChevronLeft, TrendingDown, Plus, Truck, RefreshCw, DollarSign, TrendingUp } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -12,6 +12,7 @@ import { AdminSectionHeader, AdminSearchBar, AdminFilterPills, AdminButton, Admi
 import { hexA, DOMAIN_ACCENTS, RADIUS, SHADOW, SPRING, GLASS, toneColor } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
 import initialProducts from '../../data/products';
+import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
 
 // Unified brand accent (azure) — DOMAIN_ACCENTS.inventory resolves to #007AFF
 const ORANGE = DOMAIN_ACCENTS.inventory;
@@ -155,7 +156,7 @@ const DrillEmpty = ({ icon: Icon, text }) => (
 );
 
 export default function AdminInventory() {
-    const { inventory, orders, updateStock, updateProductDetails, deleteProduct, addProduct } = useAdminData();
+    const { inventory, orders, updateStock, updateProductDetails, deleteProduct, addProduct, fx, syncFxRate, setFxRate } = useAdminData();
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
     const [searchParams] = useSearchParams();
@@ -252,6 +253,9 @@ export default function AdminInventory() {
             showSupplierQty: fields.showSupplierQty || false,
             supplierStock: Number(fields.supplierStock) || 0,
             lowStockMuted: fields.lowStockMuted || false,
+            supplierCost: Number(fields.supplierCost) || 0,
+            supplierCostUSD: Number(fields.supplierCostUSD) || 0,
+            costCurrency: fields.costCurrency || 'ILS',
             isActive: true,
         });
         setCreating(false);
@@ -763,6 +767,7 @@ export default function AdminInventory() {
                             product={selectedProduct}
                             onClose={() => setSelectedProduct(null)}
                             onSave={handleSaveProduct}
+                            fx={fx} onSyncFx={syncFxRate} onSetFx={setFxRate}
                         />
                     )}
                 </AnimatePresence>,
@@ -779,6 +784,7 @@ export default function AdminInventory() {
                             createMode
                             onClose={() => setCreating(false)}
                             onSave={handleCreateProduct}
+                            fx={fx} onSyncFx={syncFxRate} onSetFx={setFxRate}
                         />
                     )}
                 </AnimatePresence>,
@@ -890,7 +896,7 @@ export default function AdminInventory() {
     );
 }
 
-function ProductModal({ product, onClose, onSave, createMode = false }) {
+function ProductModal({ product, onClose, onSave, createMode = false, fx = {}, onSyncFx, onSetFx }) {
     const [title, setTitle]           = useState(product.title);
     const [price, setPrice]           = useState(product.price);
     const [category, setCategory]     = useState(product.category);
@@ -904,6 +910,13 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
     const [showSupplierQty, setShowSupplierQty] = useState(product.showSupplierQty || false);
     const [supplierStock, setSupplierStock]     = useState(product.supplierStock ?? 0);
     const [lowStockMuted, setLowStockMuted]     = useState(product.lowStockMuted || false);
+    // Financial — cost (ILS/USD) + live margin (sell price = `price` above)
+    const [supplierCost, setSupplierCost]       = useState(product.supplierCost ?? '');
+    const [supplierCostUSD, setSupplierCostUSD] = useState(product.supplierCostUSD ?? '');
+    const [costCurrency, setCostCurrency]       = useState(product.costCurrency || 'ILS');
+    const [modalTab, setModalTab]               = useState('general');
+    const fxRate = Number(fx.usdIls) || 3.7;
+    const fin = computeMargins({ price: Number(price) || 0, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency }, fxRate);
 
     const covered = supplierStocked && supplierInStock;
     const mStatus = stock === 0 ? (covered ? 'supplier' : 'out')
@@ -1017,6 +1030,73 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                         </div>
                     </div>
 
+                    {/* ── Financial tab — cost / sell / margin (single source of truth) ── */}
+                    <div className="rounded-2xl border border-black/[0.06] overflow-hidden" style={{ background: 'linear-gradient(160deg,rgba(52,199,89,0.05),rgba(0,122,255,0.04))' }}>
+                        <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
+                            <span className="text-[11px] font-black tracking-widest text-[#86868B] flex items-center gap-1.5"><TrendingUp size={13} className="text-[#34C759]" />פיננסי — עלות, מחיר ורווחיות</span>
+                        </div>
+                        <div className="px-4 pb-4 pt-1 space-y-3">
+                            {/* cost currency + inputs */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">עלות מהספק</label>
+                                    <div className="flex items-stretch gap-1.5">
+                                        <div className="flex rounded-xl overflow-hidden border border-black/10 shrink-0" dir="ltr">
+                                            {['ILS', 'USD'].map(cur => (
+                                                <button key={cur} type="button" onClick={() => setCostCurrency(cur)}
+                                                    className="px-2.5 text-[13px] font-black transition-colors"
+                                                    style={{ background: costCurrency === cur ? '#007AFF' : '#fff', color: costCurrency === cur ? '#fff' : '#86868B' }}>
+                                                    {cur === 'ILS' ? '₪' : '$'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {costCurrency === 'ILS' ? (
+                                            <input type="number" min="0" value={supplierCost} onChange={e => setSupplierCost(e.target.value)} placeholder="0"
+                                                className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#1D1D1F] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        ) : (
+                                            <input type="number" min="0" value={supplierCostUSD} onChange={e => setSupplierCostUSD(e.target.value)} placeholder="0"
+                                                className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#1D1D1F] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1.5">מחיר מכירה ללקוח (₪)</label>
+                                    <input type="number" min="0" value={price} onChange={e => setPrice(Number(e.target.value))} placeholder="0"
+                                        className="w-full bg-white rounded-xl px-3 py-2.5 text-[15px] font-black text-[#007AFF] text-center outline-none border border-black/10 focus:border-[#007AFF]/40 transition-all" />
+                                </div>
+                            </div>
+
+                            {/* FX rate row — only relevant for USD cost */}
+                            {costCurrency === 'USD' && (
+                                <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 bg-white/70 border border-black/[0.06]">
+                                    <button type="button" onClick={() => onSyncFx && onSyncFx()} disabled={fx.syncing}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-colors"
+                                        style={{ background: 'rgba(0,122,255,0.10)', color: '#007AFF' }}>
+                                        <RefreshCw size={12} className={fx.syncing ? 'animate-spin' : ''} />{fx.syncing ? 'מסנכרן…' : 'סנכרן שער'}
+                                    </button>
+                                    <div className="text-right text-[12px] font-bold text-[#6E6E73]">
+                                        1$ = ₪{fxRate.toFixed(2)} · ≈ {fmtILS(fin.cost)}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Live profitability metrics */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: 'רווח ליחידה', value: fin.hasData ? fmtILS(fin.profit) : '—', color: fin.hasData ? (fin.profit >= 0 ? '#34C759' : '#FF3B30') : '#AEAEB2' },
+                                    { label: 'אחוז רווחיות', value: fin.marginPct != null ? fmtPct(fin.marginPct) : '—', color: marginColor(fin.marginPct), headline: true },
+                                    { label: 'תמחור (Markup)', value: fin.markupPct != null ? fmtPct(fin.markupPct) : '—', color: '#6E6E73' },
+                                ].map((m, i) => (
+                                    <div key={i} className="rounded-xl p-2.5 text-center bg-white/80" style={{ border: m.headline ? `1.5px solid ${m.color}55` : '1px solid rgba(0,0,0,0.05)' }}>
+                                        <p className="font-black leading-none tabular-nums" style={{ fontSize: m.headline ? 18 : 15, color: m.color }}>{m.value}</p>
+                                        <p className="text-[9.5px] font-bold text-[#AEAEB2] mt-1.5">{m.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-[#AEAEB2] font-medium text-right">"אחוז רווחיות" = הרווח מתוך מחיר המכירה. הנתונים מסתנכרנים אוטומטית לכל מסכי הרכש, המלאי והאנליטיקס.</p>
+                        </div>
+                    </div>
+
                     {/* Product details */}
                     <div className="space-y-3">
                         <p className="text-[10px] font-black text-[#AEAEB2] tracking-widest">פרטי מוצר</p>
@@ -1041,7 +1121,7 @@ function ProductModal({ product, onClose, onSave, createMode = false }) {
                 {/* Footer */}
                 <div className="px-7 py-5 border-t border-black/[0.06] flex gap-3">
                     <AdminButton className="flex-1" accent={ORANGE} disabled={!canSave}
-                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted })}>
+                        onClick={() => onSave({ title, price, category, isFeatured, image, stock: Number(stock), threshold: Number(threshold), supplierStocked, supplierInStock, showSupplierQty, supplierStock: Number(supplierStock) || 0, lowStockMuted, supplierCost: Number(supplierCost) || 0, supplierCostUSD: Number(supplierCostUSD) || 0, costCurrency })}>
                         {createMode ? 'צור מוצר' : 'שמור שינויים'}
                     </AdminButton>
                     <AdminButton variant="ghost" onClick={onClose}>ביטול</AdminButton>

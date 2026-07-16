@@ -14,11 +14,13 @@
    • "Forward to supplier" dropship modal → linked PO + gate-queued supplier email
    • Every outbound email drafts into the approval queue (never auto-sends)
    ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -29,6 +31,7 @@ import {
 import {
     StatusChip, OrderStageChip, PathStepper, ActivityTimeline, Highlights, StaleBadge,
 } from '../components/OrderPrimitives';
+import { toneColor } from '../theme/tokens';
 
 const HE = 'Heebo, sans-serif';
 const glass = { background: 'rgba(255,255,255,0.9)', border: '1.5px solid rgba(255,255,255,0.95)', boxShadow: '0 8px 40px rgba(0,0,0,0.07), inset 0 1.5px 0 rgba(255,255,255,1)' };
@@ -38,6 +41,7 @@ export default function AdminOrderHub() {
     const {
         quotes = [], kpis = {}, advanceOrderStage, logOrderActivity, createSupplierOrder,
         linkSupplierOrder, updateQuoteFields, createQuote, deleteQuote,
+        sendThreadMessage, markAdminThreadRead, clearReminder,
     } = useAdminData();
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
@@ -50,8 +54,14 @@ export default function AdminOrderHub() {
     const [dropship, setDropship] = useState(null); // order being forwarded
     const [suppliers, setSuppliers] = useState([]);
     const [supplierOrders, setSupplierOrders] = useState([]);
+    const [prices, setPrices] = useState([]);        // supplier price book
     const [activity, setActivity] = useState([]);
     const [emailIntake, setEmailIntake] = useState(false); // paste-email modal
+    const [emailModal, setEmailModal] = useState(null); // { type, order, afterSend, html, subject, loading, sending }
+    const [sel, setSel] = useState(() => new Set()); // list bulk-selection
+    const inFlight = useRef(false); // synchronous double-submit lock (state disables lag a render)
+    const toggleSel = (id) => setSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    const clearSel = () => setSel(new Set());
 
     /* live suppliers + supplier-orders (dropship picker + scorecard) */
     useEffect(() => {
@@ -59,12 +69,27 @@ export default function AdminOrderHub() {
             s => setSuppliers(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
         const u2 = onSnapshot(collection(db, 'supplier_orders'),
             s => setSupplierOrders(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
-        return () => { u1(); u2(); };
+        const u3 = onSnapshot(collection(db, 'supplier_prices'),
+            s => setPrices(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+        return () => { u1(); u2(); u3(); };
     }, []);
 
     /* canonical order list — the quotes pipeline, minus soft-deleted */
     const orders = useMemo(() => (quotes || []).filter(o => !o.deleted), [quotes]);
     const selected = useMemo(() => orders.find(o => o.id === selectedId) || null, [orders, selectedId]);
+
+    // Customer lifetime value for the open record (matches other orders by phone/email/name)
+    const custStats = useMemo(() => {
+        if (!selected) return null;
+        const digits = (p) => (p || '').toString().replace(/\D/g, '');
+        const ph = digits(selected.phone), em = (selected.email || '').toLowerCase(), nm = (selected.contactName || '').trim();
+        const mine = orders.filter(o =>
+            (ph && ph.length >= 7 && digits(o.phone) === ph) ||
+            (em && (o.email || '').toLowerCase() === em) ||
+            (nm && (o.contactName || '').trim() === nm));
+        const total = mine.reduce((s, o) => s + orderTotal(o), 0);
+        return { count: mine.length, total, avg: mine.length ? Math.round(total / mine.length) : 0 };
+    }, [selected, orders]);
 
     /* live activity timeline for the open record */
     useEffect(() => {
@@ -106,37 +131,75 @@ export default function AdminOrderHub() {
     const runAction = async (na, order) => {
         if (!na || !order) return;
         if (na.id === 'forwardSupplier') { setDropship(order); return; }
+        if (inFlight.current) return;                 // hard-lock against double-click
+        inFlight.current = true;
         setBusy(true);
         try {
-            if (na.id === 'ackCustomer') {
-                await queueStageEmail('initial_contact', order);
-                await advanceOrderStage(order.id, 'acked');
-                await logOrderActivity(order.id, { type: 'email', message: 'טיוטת אישור-קבלה ללקוח נוספה לתור האישורים' });
-                showToast('טיוטת אישור ללקוח ממתינה לאישור שליחה ✓', 'success');
+            if (na.id === 'goSelf') {
+                // chose self-fulfilment at the fork → switch mode + move to packing
+                await updateQuoteFields(order.id, { fulfillmentMode: 'self' });
+                await advanceOrderStage(order.id, 'packed');
+                await logOrderActivity(order.id, { type: 'system', message: 'נבחרה אספקה עצמית — לאריזה מהמלאי' });
+                showToast('אספקה עצמית · עבר לאריזה', 'success');
+            } else if (na.id === 'ackCustomer') {
+                // open the email preview; sending (or "skip") advances the stage
+                await openEmail('initial_contact', order, async () => { await advanceOrderStage(order.id, 'acked'); });
             } else if (na.id === 'markConfirmed') {
-                await queueStageEmail('confirmed', order).catch(() => {});
-                await advanceOrderStage(order.id, na.to);
-                showToast('הספק אישר · טיוטת עדכון ללקוח בתור', 'success');
+                await openEmail('confirmed', order, async () => { await advanceOrderStage(order.id, na.to); });
             } else if (na.id === 'markTransit') {
-                await queueStageEmail('in_transit', order).catch(() => {});
-                await advanceOrderStage(order.id, na.to);
-                showToast('בדרך · טיוטת עדכון ללקוח בתור', 'success');
+                await openEmail('in_transit', order, async () => { await advanceOrderStage(order.id, na.to); });
             } else if (na.id === 'markDelivered') {
-                await queueStageEmail('delivered', order).catch(() => {});
-                await advanceOrderStage(order.id, na.to);
-                showToast('סומן כסופק · טיוטת עדכון ללקוח בתור', 'success');
+                await openEmail('delivered', order, async () => { await advanceOrderStage(order.id, na.to); });
             } else {
                 await advanceOrderStage(order.id, na.to);
                 showToast(`עודכן: ${stageMeta(na.to).label} ✓`, 'success');
             }
         } catch (e) { showToast('שגיאה בעדכון השלב', 'error'); }
-        finally { setBusy(false); }
+        finally { setBusy(false); inFlight.current = false; }
     };
 
     const jumpToStage = async (orderId, toStage) => {
         setBusy(true);
         try { await advanceOrderStage(orderId, toStage); showToast(`עודכן: ${stageMeta(toStage).label} ✓`, 'success'); }
         catch { showToast('שגיאה', 'error'); } finally { setBusy(false); }
+    };
+
+    /* Manual new order → creates a blank draft and opens it for editing */
+    const createBlank = async () => {
+        if (inFlight.current) return; inFlight.current = true; setBusy(true);
+        try {
+            const id = await createQuote({ source: 'manual', overallStage: 'new', status: 'חדש', contactName: '', items: [] });
+            setSelectedId(id);
+            showToast('הזמנה חדשה נוצרה — מלא/י את הפרטים', 'success');
+        } catch { showToast('שגיאה ביצירת הזמנה', 'error'); }
+        finally { setBusy(false); inFlight.current = false; }
+    };
+
+    /* CSV export of the current filtered view */
+    const exportCsv = () => {
+        const head = ['לקוח', 'מוסד', 'טלפון', 'מייל', 'שלב', 'פריטים', 'סה"כ', 'תאריך'];
+        const rows = [head, ...filtered.map(o => [
+            orderTitle(o), o.institution || '', o.phone || '', o.email || '',
+            stageMeta(deriveStage(o)).label, orderItemsSummary(o), orderTotal(o), o.date || '',
+        ])];
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `orders-${filtered.length}.csv`; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    /* Save edited fields (customer / items) from the record drawer */
+    const saveFields = async (orderId, fields) => {
+        try {
+            if (fields.items) {
+                const subtotal = fields.items.reduce((s, it) => s + (Number(it.salePrice ?? it.price) || 0) * (Number(it.qty) || 1), 0);
+                await updateQuoteFields(orderId, { ...fields, subtotal });
+            } else {
+                await updateQuoteFields(orderId, fields);
+            }
+            showToast('נשמר ✓', 'success');
+        } catch { showToast('שגיאה בשמירה', 'error'); }
     };
 
     const setMode = async (orderId, mode) => {
@@ -166,9 +229,29 @@ export default function AdminOrderHub() {
         finally { setBusy(false); }
     };
 
+    /* ── bulk (mass) actions on the list selection ─────────────────────────── */
+    const bulkMarkDelivered = async () => {
+        const ids = [...sel];
+        setBusy(true);
+        for (const id of ids) { try { await advanceOrderStage(id, 'delivered'); } catch { /* skip */ } }
+        setBusy(false); clearSel();
+        showToast(`${ids.length} הזמנות סומנו כסופקו ✓`, 'success');
+    };
+    const bulkDelete = async () => {
+        const ids = [...sel];
+        const ok = await confirm({ title: 'להעביר לפח?', message: `${ids.length} הזמנות יועברו לפח (ניתן לשחזר).`, danger: true, confirmLabel: 'העבר לפח' });
+        if (!ok) return;
+        setBusy(true);
+        for (const id of ids) { try { await deleteQuote(id); } catch { /* skip */ } }
+        setBusy(false); clearSel();
+        showToast(`${ids.length} הזמנות הועברו לפח`, 'success');
+    };
+
     /* Create an order from a pasted email/text via the OCR extractor (works now,
        no mail-routing needed). Lands as a needs_review order for confirmation. */
     const createFromEmail = async ({ text, subject }) => {
+        if (inFlight.current) return;
+        inFlight.current = true;
         setBusy(true);
         try {
             const res = await fetch('/api/ocr-order', {
@@ -191,7 +274,7 @@ export default function AdminOrderHub() {
             setStageFilter('needs_review');
             setSelectedId(id);
         } catch { showToast('שגיאה בקליטת המייל', 'error'); }
-        finally { setBusy(false); }
+        finally { setBusy(false); inFlight.current = false; }
     };
 
     const queueStageEmail = async (type, order) => {
@@ -202,19 +285,75 @@ export default function AdminOrderHub() {
         if (!res.ok) throw new Error('email queue failed');
     };
 
+    /* ── In-flow email: preview → edit → send (the human review IS the gate) ── */
+    const openEmail = async (type, order, afterSend = null) => {
+        setEmailModal({ type, order, afterSend, html: '', subject: '', loading: true, sending: false });
+        try {
+            const res = await fetch('/api/send-stage-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, quote: order, preview: true }),
+            });
+            const d = await res.json();
+            setEmailModal(m => m && { ...m, html: d.html || '', subject: d.subject || '', loading: false });
+        } catch {
+            setEmailModal(m => m && { ...m, loading: false });
+            showToast('שגיאה בטעינת תצוגה מקדימה', 'error');
+        }
+    };
+    const doSendEmail = async (customNote, customSubject) => {
+        const em = emailModal; if (!em) return;
+        setEmailModal(m => m && { ...m, sending: true });
+        try {
+            // render the FINAL html (with the note/subject edits applied)
+            const pv = await fetch('/api/send-stage-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: em.type, quote: em.order, customNote, customSubject, preview: true }),
+            });
+            const fin = await pv.json();
+            const to = em.order.email;
+            if (!to) { showToast('אין כתובת מייל ללקוח — הוסף/י ושמור/י', 'error'); setEmailModal(m => m && { ...m, sending: false }); return; }
+            // dispatch (human already previewed + edited = approved)
+            const res = await fetch('/api/dispatch-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, subject: customSubject || fin.subject || em.subject, html: fin.html || em.html }),
+            });
+            const out = await res.json();
+            await logOrderActivity(em.order.id, { type: 'email', message: `מייל נשלח ללקוח: ${customSubject || fin.subject || em.subject}` });
+            showToast(out.sent ? 'המייל נשלח ללקוח ✓' : 'המייל עובד — בדוק/י תצורת שליחה', out.sent ? 'success' : 'info');
+            if (em.afterSend) await em.afterSend();
+            setEmailModal(null);
+        } catch {
+            showToast('שגיאה בשליחת המייל', 'error');
+            setEmailModal(m => m && { ...m, sending: false });
+        }
+    };
+
     /* ── forward-to-supplier (dropship) ────────────────────────────────────── */
-    const confirmDropship = async ({ order, supplier, note }) => {
+    const confirmDropship = async ({ order, supplier, note, supplierCost, itemCosts, savePrices }) => {
+        if (inFlight.current) return;              // prevent duplicate POs on double-click
+        inFlight.current = true;
         setBusy(true);
         try {
             const shipAddr = order.shipTo?.address || order.address || '';
+            const cost = Number(supplierCost) || orderTotal(order);
             const poId = await createSupplierOrder({
                 customerName: orderTitle(order), supplierName: supplier?.name || supplier?.company || '',
                 supplierId: supplier?.id || '', productTitle: orderItemsSummary(order),
                 qty: (order.items || []).reduce((s, it) => s + (Number(it.qty) || 1), 0),
-                totalCost: orderTotal(order), status: 'forwarded', eta: order.deliveryDate || '',
+                totalCost: cost, status: 'forwarded', eta: order.deliveryDate || '',
                 notes: `${note || ''}${shipAddr ? ` · אספקה: ${shipAddr}` : ''}`, customerOrderId: order.id,
             });
             if (poId) await linkSupplierOrder(order.id, poId);
+            // Save agreed per-item costs to the price book for next time (opt-in)
+            if (savePrices && supplier?.id && Array.isArray(itemCosts)) {
+                await Promise.all(itemCosts.filter(ic => Number(ic.cost) > 0).map(ic =>
+                    addDoc(collection(db, 'supplier_prices'), {
+                        supplierId: supplier.id, supplierName: supplier.name || supplier.company || '',
+                        catalogNumber: ic.catalogNumber || '', productTitle: ic.title || '',
+                        cost: Number(ic.cost) || 0, currency: 'ILS', createdAt: serverTimestamp(),
+                    }).catch(() => {})
+                ));
+            }
             // queue the supplier PO email (gate)
             if (supplier?.email) {
                 await fetch('/api/send-supplier-email', {
@@ -227,7 +366,7 @@ export default function AdminOrderHub() {
             showToast('הועבר לספק · הזמנת רכש נוצרה' + (supplier?.email ? ' · טיוטת מייל בתור אישור' : ''), 'success');
             setDropship(null);
         } catch (e) { showToast('שגיאה בהעברה לספק', 'error'); }
-        finally { setBusy(false); }
+        finally { setBusy(false); inFlight.current = false; }
     };
 
     return (
@@ -238,11 +377,23 @@ export default function AdminOrderHub() {
                     <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>מרכז ההזמנות</h1>
                     <p style={{ fontSize: 13, color: '#86868B', margin: '4px 0 0', fontWeight: 600 }}>לקוח → ספק → אספקה, במקום אחד · כל מייל עובר אישור לפני שליחה</p>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={createBlank} disabled={busy}
+                        style={{ padding: '8px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff' }}>
+                        ＋ הזמנה חדשה
+                    </motion.button>
                     <motion.button whileTap={{ scale: 0.97 }} onClick={() => setEmailIntake(true)}
                         style={{ padding: '8px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#1D1D1F', color: '#fff' }}>
-                        ＋ הזמנה ממייל
+                        ＋ ממייל
                     </motion.button>
+                    <button onClick={exportCsv} title="ייצא CSV"
+                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
+                        ⭳ CSV
+                    </button>
+                    <a href="/admin/orders" title="פייפליין מפורט (צ'אט לקוח, תבניות מייל, גרסאות)"
+                        style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', fontFamily: HE, fontWeight: 700, fontSize: 12.5, background: '#fff', color: '#86868B', textDecoration: 'none' }}>
+                        תצוגה מפורטת ↗
+                    </a>
                     {[['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
                         <button key={v} onClick={() => setView(v)}
                             style={{ padding: '8px 16px', borderRadius: 11, border: '1.5px solid ' + (view === v ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: view === v ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: view === v ? '#fff' : '#6E6E73' }}>
@@ -253,8 +404,14 @@ export default function AdminOrderHub() {
             </div>
 
             {/* situation-handling strip (SAP) — surfaces what needs attention now */}
-            {(stats.review > 0 || stats.atRisk > 0) && (
+            {(stats.review > 0 || stats.atRisk > 0 || (kpis.dueReminders?.length > 0)) && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                    {kpis.dueReminders?.length > 0 && (
+                        <button onClick={() => kpis.dueReminders[0]?.quoteId && setSelectedId(kpis.dueReminders[0].quoteId)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14, border: '1.5px solid rgba(255,149,0,0.25)', background: 'rgba(255,149,0,0.08)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: '#B86A00' }}>
+                            ⏰ {kpis.dueReminders.length} תזכורות שהגיע זמנן ←
+                        </button>
+                    )}
                     {stats.review > 0 && (
                         <button onClick={() => setStageFilter('needs_review')}
                             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14, border: '1.5px solid rgba(0,122,255,0.25)', background: 'rgba(0,122,255,0.07)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: '#005EC4' }}>
@@ -281,11 +438,16 @@ export default function AdminOrderHub() {
             {/* filter pills + search */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
                 <FilterPill active={stageFilter === 'all'} onClick={() => setStageFilter('all')} label={`הכל (${orders.length})`} />
-                {STAGES_DROPSHIP.filter(s => s.id !== 'needs_review').map(s => {
-                    const n = orders.filter(o => deriveStage(o) === s.id).length;
-                    if (!n) return null;
-                    return <FilterPill key={s.id} active={stageFilter === s.id} onClick={() => setStageFilter(s.id)} label={`${s.short} (${n})`} tone={s.tone} />;
-                })}
+                {(() => {
+                    // drop-ship stages + any self/side stage that has orders (nothing hidden)
+                    const seen = new Set();
+                    const list = [...STAGES_DROPSHIP, ...STAGES_SELF, ...SIDE_STATES].filter(s => s.id !== 'needs_review' && !seen.has(s.id) && seen.add(s.id));
+                    return list.map(s => {
+                        const n = orders.filter(o => deriveStage(o) === s.id).length;
+                        if (!n) return null;
+                        return <FilterPill key={s.id} active={stageFilter === s.id} onClick={() => setStageFilter(s.id)} label={`${s.short || s.label || s.id} (${n})`} tone={s.tone} />;
+                    });
+                })()}
                 <FilterPill active={stageFilter === 'atrisk'} onClick={() => setStageFilter('atrisk')} label={`דחוף (${stats.atRisk})`} tone="danger" />
                 <div style={{ flex: 1 }} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש לקוח / מוסד / טלפון…" dir="rtl"
@@ -294,8 +456,21 @@ export default function AdminOrderHub() {
 
             {/* body */}
             {view === 'kanban' && <KanbanBoard orders={filtered} onOpen={setSelectedId} onAdvance={jumpToStage} />}
-            {view === 'list' && <ListView orders={filtered} onOpen={setSelectedId} onAction={runAction} onDelete={handleDelete} busy={busy} />}
+            {view === 'list' && <ListView orders={filtered} onOpen={setSelectedId} onAction={runAction} onDelete={handleDelete} busy={busy} sel={sel} onToggleSel={toggleSel} />}
             {view === 'insights' && <InsightsView orders={orders} supplierOrders={supplierOrders} />}
+
+            {/* bulk-action bar (mass actions on list selection) */}
+            <AnimatePresence>
+                {view === 'list' && sel.size > 0 && (
+                    <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+                        style={{ position: 'fixed', bottom: 20, insetInlineStart: '50%', transform: 'translateX(-50%)', zIndex: 900, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 18, background: 'rgba(29,29,31,0.96)', backdropFilter: 'blur(20px)', boxShadow: '0 16px 50px rgba(0,0,0,0.3)', fontFamily: HE }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{sel.size} נבחרו</span>
+                        <button disabled={busy} onClick={bulkMarkDelivered} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(52,199,89,0.9)', color: '#fff', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>✓ סמן סופק</button>
+                        <button disabled={busy} onClick={bulkDelete} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,59,48,0.9)', color: '#fff', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>🗑 לפח</button>
+                        <button onClick={clearSel} style={{ padding: '8px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', color: '#fff', fontFamily: HE, fontWeight: 700, fontSize: 12 }}>נקה</button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {orders.length === 0 && (
                 <div style={{ ...glass, borderRadius: 20, padding: 48, textAlign: 'center', marginTop: 12 }}>
@@ -309,8 +484,13 @@ export default function AdminOrderHub() {
                 {selected && (
                     <RecordDrawer order={selected} activity={activity} busy={busy}
                         onClose={() => setSelectedId(null)}
-                        onAction={runAction} onJump={jumpToStage} onSetMode={setMode}
-                        onForward={() => setDropship(selected)} onDelete={handleDelete}
+                        onAction={runAction} onJump={jumpToStage} onSetMode={setMode} onSave={saveFields}
+                        onEmail={(type) => openEmail(type, selected)}
+                        onForward={() => setDropship(selected)} onDelete={handleDelete} custStats={custStats}
+                        onSendChat={async (text) => { await sendThreadMessage(selected.id, text); }}
+                        onReadChat={() => markAdminThreadRead(selected.id)}
+                        onSetReminder={async (ts, note) => { await updateQuoteFields(selected.id, { reminderAt: ts, reminderNote: note, reminderCleared: false }); showToast('תזכורת נקבעה ⏰', 'success'); }}
+                        onClearReminder={async () => { await clearReminder(selected.id); showToast('תזכורת בוטלה', 'info'); }}
                         onAddNote={async (text) => { await logOrderActivity(selected.id, { type: 'note', message: text }); }} />
                 )}
             </AnimatePresence>
@@ -318,7 +498,7 @@ export default function AdminOrderHub() {
             {/* dropship modal */}
             <AnimatePresence>
                 {dropship && (
-                    <DropshipModal order={dropship} suppliers={suppliers} busy={busy}
+                    <DropshipModal order={dropship} suppliers={suppliers} prices={prices} busy={busy}
                         onClose={() => setDropship(null)} onConfirm={confirmDropship} />
                 )}
             </AnimatePresence>
@@ -327,13 +507,23 @@ export default function AdminOrderHub() {
             <AnimatePresence>
                 {emailIntake && <EmailIntakeModal busy={busy} onClose={() => setEmailIntake(false)} onCreate={createFromEmail} />}
             </AnimatePresence>
+
+            {/* email preview / edit / send modal */}
+            {emailModal && (
+                <EmailPreviewModal
+                    order={emailModal.order} html={emailModal.html} subject={emailModal.subject}
+                    loading={emailModal.loading} sending={emailModal.sending}
+                    onClose={() => setEmailModal(null)}
+                    onSend={doSendEmail}
+                    onSkip={emailModal.afterSend ? async () => { const f = emailModal.afterSend; setEmailModal(null); await f(); } : null} />
+            )}
         </div>
     );
 }
 
 /* ─── KPI tile ────────────────────────────────────────────────────────────────── */
 function KpiTile({ label, value, tone, onClick }) {
-    const c = { info: '#007AFF', warning: '#FF9500', success: '#34C759', danger: '#FF3B30' }[tone] || '#007AFF';
+    const c = toneColor(tone);
     return (
         <motion.button whileTap={{ scale: 0.98 }} onClick={onClick}
             style={{ ...glass, borderRadius: 18, padding: '16px 18px', textAlign: 'right', cursor: 'pointer', fontFamily: HE }}>
@@ -344,7 +534,7 @@ function KpiTile({ label, value, tone, onClick }) {
 }
 
 function FilterPill({ active, onClick, label, tone }) {
-    const c = { warning: '#FF9500', danger: '#FF3B30', success: '#34C759', info: '#007AFF' }[tone] || '#007AFF';
+    const c = toneColor(tone);
     return (
         <button onClick={onClick}
             style={{ padding: '7px 14px', borderRadius: 99, border: '1.5px solid ' + (active ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12, background: active ? c : '#fff', color: active ? '#fff' : '#6E6E73', whiteSpace: 'nowrap' }}>
@@ -357,7 +547,17 @@ function FilterPill({ active, onClick, label, tone }) {
 function KanbanBoard({ orders, onOpen, onAdvance }) {
     const [dragId, setDragId] = useState(null);
     const [overCol, setOverCol] = useState(null);
-    const cols = STAGES_DROPSHIP.filter(s => s.id !== 'needs_review' || orders.some(o => deriveStage(o) === 'needs_review'));
+    // Base = drop-ship path; also surface any self-fulfil / side-state column that
+    // actually holds orders, so nothing ever vanishes from the board.
+    const cols = (() => {
+        const base = STAGES_DROPSHIP.filter(s => s.id !== 'needs_review' || orders.some(o => deriveStage(o) === 'needs_review'));
+        const have = new Set(base.map(s => s.id));
+        const extra = [...STAGES_SELF, ...SIDE_STATES]
+            .filter(s => !have.has(s.id) && orders.some(o => deriveStage(o) === s.id));
+        // de-dupe extras (STAGES_SELF shares objects with dropship for common stages)
+        const seen = new Set(); const uniqExtra = extra.filter(s => !seen.has(s.id) && seen.add(s.id));
+        return [...base, ...uniqExtra];
+    })();
     const drop = (stageId) => {
         setOverCol(null);
         const id = dragId; setDragId(null);
@@ -368,15 +568,17 @@ function KanbanBoard({ orders, onOpen, onAdvance }) {
             {cols.map(s => {
                 const items = orders.filter(o => deriveStage(o) === s.id);
                 const tot = items.reduce((sum, o) => sum + orderTotal(o), 0);
-                const c = { warning: '#FF9500', danger: '#FF3B30', success: '#34C759', info: '#007AFF', neutral: '#8E8E93' }[s.tone] || '#007AFF';
+                const c = toneColor(s.tone);
                 return (
                     <div key={s.id} style={{ flex: '0 0 260px', minWidth: 260 }}
                         onDragOver={e => { if (dragId) { e.preventDefault(); setOverCol(s.id); } }}
                         onDragLeave={() => setOverCol(o => o === s.id ? null : o)}
                         onDrop={() => drop(s.id)}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', marginBottom: 8, borderRadius: 12, background: c + '12' }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 900, color: c }}>{s.short}</span>
-                            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#86868B' }}>{items.length} · ₪{tot.toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 900, color: c }}>{s.short || s.label || s.id}</span>
+                            <span style={{ fontSize: 10.5, fontWeight: 800, color: items.length ? c : '#C7C7CC', background: '#fff', borderRadius: 99, padding: '2px 8px' }}>
+                                {items.length === 0 ? '0' : `${items.length}${tot > 0 ? ` · ₪${tot.toLocaleString()}` : ''}`}
+                            </span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60, borderRadius: 12, padding: 2, transition: 'background 0.15s', background: overCol === s.id ? c + '10' : 'transparent', outline: overCol === s.id ? `2px dashed ${c}66` : 'none' }}>
                             {items.map(o => <KanbanCard key={o.id} order={o} onOpen={onOpen} onDragStart={() => setDragId(o.id)} onDragEnd={() => setDragId(null)} />)}
@@ -408,15 +610,17 @@ function KanbanCard({ order, onOpen, onDragStart, onDragEnd }) {
 }
 
 /* ─── List view ──────────────────────────────────────────────────────────────── */
-function ListView({ orders, onOpen, onAction, onDelete, busy }) {
+function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }) {
     return (
         <div style={{ ...glass, borderRadius: 18, overflow: 'hidden' }}>
             {orders.map((o, i) => {
                 const na = nextAction(o);
+                const checked = sel?.has(o.id);
                 return (
                     <div key={o.id} onClick={() => onOpen(o.id)}
                         className="ohub-row"
-                        style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '13px 16px', cursor: 'pointer', borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                        style={{ display: 'grid', gridTemplateColumns: 'auto 1.4fr 1fr auto auto auto auto', gap: 12, alignItems: 'center', padding: '13px 16px', cursor: 'pointer', borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none', background: checked ? 'rgba(0,122,255,0.05)' : 'transparent' }}>
+                        <input type="checkbox" checked={!!checked} onClick={e => e.stopPropagation()} onChange={() => onToggleSel && onToggleSel(o.id)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
                         <div style={{ minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
                             <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.institution || ''} · {orderItemsSummary(o)}</p>
@@ -442,16 +646,33 @@ function ListView({ orders, onOpen, onAction, onDelete, busy }) {
 }
 
 /* ─── Record-360 drawer ──────────────────────────────────────────────────────── */
-function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onForward, onDelete, onAddNote }) {
+const EMAIL_TYPES = [['initial_contact', 'אישור קבלה'], ['quote_sent', 'הצעת מחיר'], ['confirmed', 'אישור הזמנה'], ['in_transit', 'בדרך אליך'], ['delivered', 'סופק'], ['reminder', 'תזכורת']];
+function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onSendChat, onReadChat, onSetReminder, onClearReminder, custStats, onAddNote }) {
     const [tab, setTab] = useState('timeline');
     const [note, setNote] = useState('');
+    const [chat, setChat] = useState('');
+    const [rem, setRem] = useState('');
+    useEffect(() => { if (tab === 'chat' && order.unreadAdmin) onReadChat && onReadChat(); }, [tab, order.unreadAdmin]); // eslint-disable-line
     const axes = deriveAxes(order);
+    // editable buffers for customer + items (SF-style inline record editing)
+    const [cust, setCust] = useState(null);
+    const [items, setItems] = useState(null);
+    useEffect(() => { setCust(null); setItems(null); }, [order.id]);
+    const c = cust || { contactName: order.contactName || '', institution: order.institution || '', phone: order.phone || '', email: order.email || '', address: order.shipTo?.address || order.address || '', city: order.city || '' };
+    const its = items || (order.items || []).map(it => ({ catalogNumber: it.catalogNumber || '', title: it.title || it.name || '', qty: Number(it.qty) || 1, salePrice: Number(it.salePrice ?? it.price) || 0 }));
+    const setC = (k, v) => setCust({ ...c, [k]: v });
+    const setIt = (i, k, v) => setItems(its.map((x, j) => j === i ? { ...x, [k]: v } : x));
+    const addIt = () => setItems([...its, { catalogNumber: '', title: '', qty: 1, salePrice: 0 }]);
+    const rmIt = (i) => setItems(its.filter((_, j) => j !== i));
+    const saveCust = () => onSave && onSave(order.id, { contactName: c.contactName, institution: c.institution, phone: c.phone, email: c.email, address: c.address, city: c.city });
+    const saveItems = () => onSave && onSave(order.id, { items: its });
+    const inp = { width: '100%', padding: '9px 11px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', fontFamily: HE, fontSize: 12.5, fontWeight: 600, outline: 'none', boxSizing: 'border-box' };
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.28)', zIndex: 1000, backdropFilter: 'blur(2px)' }} />
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.28)', zIndex: 4000, backdropFilter: 'blur(2px)' }} />
             <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-                dir="rtl" style={{ position: 'fixed', insetInlineStart: 0, top: 0, bottom: 0, width: 'min(560px, 96vw)', background: '#F5F6F9', zIndex: 1001, display: 'flex', flexDirection: 'column', fontFamily: HE, boxShadow: '0 0 60px rgba(0,0,0,0.25)' }}>
+                dir="rtl" style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: 'min(560px, 96vw)', background: '#F5F6F9', zIndex: 4001, display: 'flex', flexDirection: 'column', fontFamily: HE, boxShadow: '0 0 60px rgba(0,0,0,0.25)' }}>
                 {/* header */}
                 <div style={{ padding: '18px 20px', background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
@@ -494,9 +715,12 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
 
                 {/* tabs */}
                 <div style={{ display: 'flex', gap: 4, padding: '10px 16px 0', background: '#fff' }}>
-                    {[['timeline', 'ציר זמן'], ['supplier', 'ספק'], ['items', 'פריטים'], ['customer', 'לקוח']].map(([id, lbl]) => (
+                    {[['timeline', 'ציר זמן'], ['chat', 'צ׳אט לקוח'], ['supplier', 'ספק'], ['items', 'פריטים'], ['customer', 'לקוח']].map(([id, lbl]) => (
                         <button key={id} onClick={() => setTab(id)}
-                            style={{ padding: '8px 14px', border: 'none', borderBottom: '2.5px solid ' + (tab === id ? '#007AFF' : 'transparent'), background: 'transparent', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: tab === id ? '#007AFF' : '#86868B' }}>{lbl}</button>
+                            style={{ position: 'relative', padding: '8px 14px', border: 'none', borderBottom: '2.5px solid ' + (tab === id ? '#007AFF' : 'transparent'), background: 'transparent', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: tab === id ? '#007AFF' : '#86868B' }}>
+                            {lbl}
+                            {id === 'chat' && order.unreadAdmin && <span style={{ position: 'absolute', top: 4, insetInlineStart: 4, width: 7, height: 7, borderRadius: 99, background: '#FF3B30' }} />}
+                        </button>
                     ))}
                 </div>
 
@@ -512,6 +736,27 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                             </div>
                             <ActivityTimeline items={activity} />
                         </>
+                    )}
+                    {tab === 'chat' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 340px)', overflowY: 'auto' }}>
+                                {(order.thread || []).length === 0 && <p style={{ textAlign: 'center', color: '#AEAEB2', fontSize: 12, fontWeight: 700, padding: 20 }}>אין הודעות עם הלקוח עדיין</p>}
+                                {(order.thread || []).map((m, i) => {
+                                    const mine = m.from === 'admin';
+                                    return (
+                                        <div key={m.id || i} style={{ alignSelf: mine ? 'flex-start' : 'flex-end', maxWidth: '82%', padding: '9px 13px', borderRadius: 14, background: mine ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: mine ? '#fff' : '#1D1D1F', border: mine ? 'none' : '1px solid rgba(0,0,0,0.08)', fontSize: 12.5, fontWeight: 600, lineHeight: 1.5 }}>
+                                            {m.text}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input value={chat} onChange={e => setChat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && chat.trim()) { onSendChat(chat.trim()); setChat(''); } }} placeholder="כתוב/י ללקוח…" dir="rtl"
+                                    style={{ flex: 1, padding: '9px 12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', background: '#fff', fontFamily: HE, fontSize: 12.5, outline: 'none' }} />
+                                <button disabled={!chat.trim()} onClick={() => { onSendChat(chat.trim()); setChat(''); }}
+                                    style={{ padding: '9px 16px', borderRadius: 11, border: 'none', background: chat.trim() ? '#007AFF' : 'rgba(0,0,0,0.1)', color: '#fff', cursor: chat.trim() ? 'pointer' : 'default', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>שלח</button>
+                            </div>
+                        </div>
                     )}
                     {tab === 'supplier' && (
                         <div style={{ ...glass, borderRadius: 16, padding: 18 }}>
@@ -530,24 +775,77 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                         </div>
                     )}
                     {tab === 'items' && (
-                        <div style={{ ...glass, borderRadius: 16, padding: 8 }}>
-                            {(order.items || []).map((it, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderTop: i ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                                    <div><p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: '#1D1D1F' }}>{it.title || it.name || 'פריט'}</p>{it.catalogNumber && <p style={{ margin: '2px 0 0', fontSize: 10.5, color: '#AEAEB2' }}>מק״ט {it.catalogNumber}</p>}</div>
-                                    <div style={{ textAlign: 'left' }}><span style={{ fontSize: 12, fontWeight: 800, color: '#007AFF' }}>×{it.qty || 1}</span><span style={{ fontSize: 11, color: '#6E6E73', marginInlineStart: 8 }}>₪{(Number(it.salePrice ?? it.price) || 0).toLocaleString()}</span></div>
+                        <div style={{ ...glass, borderRadius: 16, padding: 12 }}>
+                            {its.map((it, i) => (
+                                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 74px 52px 84px 28px', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                                    <input value={it.title} onChange={e => setIt(i, 'title', e.target.value)} placeholder="שם פריט" dir="rtl" style={{ ...inp, padding: '7px 9px' }} />
+                                    <input value={it.catalogNumber} onChange={e => setIt(i, 'catalogNumber', e.target.value)} placeholder='מק"ט' dir="rtl" style={{ ...inp, padding: '7px 8px', fontSize: 11 }} />
+                                    <input type="number" value={it.qty} onChange={e => setIt(i, 'qty', Number(e.target.value))} style={{ ...inp, padding: '7px 6px', textAlign: 'center' }} />
+                                    <input type="number" value={it.salePrice} onChange={e => setIt(i, 'salePrice', Number(e.target.value))} placeholder="₪" style={{ ...inp, padding: '7px 8px', textAlign: 'center', color: '#007AFF' }} />
+                                    <button onClick={() => rmIt(i)} style={{ width: 26, height: 26, borderRadius: 7, border: 'none', background: 'rgba(255,59,48,0.1)', color: '#FF3B30', cursor: 'pointer', fontWeight: 900 }}>×</button>
                                 </div>
                             ))}
-                            {!(order.items || []).length && <p style={{ padding: 20, textAlign: 'center', color: '#AEAEB2', fontSize: 12 }}>אין פריטים</p>}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                                <button onClick={addIt} style={{ padding: '6px 12px', borderRadius: 9, border: 'none', background: 'rgba(0,122,255,0.1)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 11.5 }}>+ הוסף פריט</button>
+                                <span style={{ fontSize: 13, fontWeight: 900, color: '#1D1D1F' }}>₪{its.reduce((s, x) => s + (Number(x.salePrice) || 0) * (Number(x.qty) || 1), 0).toLocaleString()}</span>
+                            </div>
+                            {items != null && (
+                                <button onClick={saveItems} style={{ width: '100%', marginTop: 10, padding: '10px', borderRadius: 11, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>💾 שמור פריטים</button>
+                            )}
                         </div>
                     )}
                     {tab === 'customer' && (
-                        <div style={{ ...glass, borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {[['לקוח', orderTitle(order)], ['מוסד', order.institution], ['טלפון', order.phone], ['מייל', order.email], ['כתובת אספקה', order.shipTo?.address || order.address], ['עיר', order.city]].map(([l, v]) => (
-                                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                                    <span style={{ fontSize: 11.5, fontWeight: 800, color: '#AEAEB2' }}>{l}</span>
-                                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#1D1D1F', textAlign: 'left' }}>{v || '—'}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {/* LTV — customer lifetime value */}
+                            {custStats && custStats.count > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                    {[['הזמנות', custStats.count, '#5856D6'], ['שווי כולל', `₪${custStats.total.toLocaleString()}`, '#007AFF'], ['ממוצע', `₪${custStats.avg.toLocaleString()}`, '#34C759']].map(([l, v, col]) => (
+                                        <div key={l} style={{ ...glass, borderRadius: 14, padding: '12px 10px', textAlign: 'center' }}>
+                                            <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: col }}>{v}</p>
+                                            <p style={{ margin: '3px 0 0', fontSize: 10, fontWeight: 700, color: '#86868B' }}>{l}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+                            {/* send email to customer (preview → edit → send) */}
+                            <div style={{ ...glass, borderRadius: 16, padding: 14 }}>
+                                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>✉️ שלח מייל ללקוח</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    {EMAIL_TYPES.map(([t, lbl]) => (
+                                        <button key={t} onClick={() => onEmail && onEmail(t)}
+                                            style={{ padding: '6px 11px', borderRadius: 9, border: '1.5px solid rgba(0,122,255,0.2)', background: 'rgba(0,122,255,0.06)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 11.5 }}>{lbl}</button>
+                                    ))}
+                                </div>
+                                {!order.email && <p style={{ margin: '8px 0 0', fontSize: 10.5, color: '#FF9500', fontWeight: 700 }}>⚠ אין כתובת מייל — הוסף/י בפרטי הלקוח למטה</p>}
+                            </div>
+                            {/* reminder */}
+                            <div style={{ ...glass, borderRadius: 16, padding: 14 }}>
+                                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>⏰ תזכורת</p>
+                                {order.reminderAt && !order.reminderCleared ? (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#B86A00' }}>{new Date(order.reminderAt).toLocaleDateString('he-IL')} {order.reminderNote ? `· ${order.reminderNote}` : ''}</span>
+                                        <button onClick={onClearReminder} style={{ padding: '5px 10px', borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.05)', color: '#86868B', cursor: 'pointer', fontFamily: HE, fontWeight: 700, fontSize: 11 }}>בטל</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input type="date" value={rem} onChange={e => setRem(e.target.value)} style={{ ...inp, flex: 1 }} />
+                                        <button disabled={!rem} onClick={() => { onSetReminder(new Date(rem).getTime(), ''); setRem(''); }}
+                                            style={{ padding: '9px 14px', borderRadius: 10, border: 'none', background: rem ? '#FF9500' : 'rgba(0,0,0,0.1)', color: '#fff', cursor: rem ? 'pointer' : 'default', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>קבע</button>
+                                    </div>
+                                )}
+                            </div>
+                            {/* customer details (editable) */}
+                            <div style={{ ...glass, borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                {[['contactName', 'שם לקוח'], ['institution', 'מוסד'], ['phone', 'טלפון'], ['email', 'מייל'], ['address', 'כתובת אספקה'], ['city', 'עיר']].map(([k, l]) => (
+                                    <div key={k}>
+                                        <label style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2' }}>{l}</label>
+                                        <input value={c[k]} onChange={e => setC(k, e.target.value)} dir="rtl" style={{ ...inp, marginTop: 3 }} />
+                                    </div>
+                                ))}
+                                {cust != null && (
+                                    <button onClick={saveCust} style={{ marginTop: 6, padding: '10px', borderRadius: 11, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>💾 שמור פרטי לקוח</button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -557,19 +855,37 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
 }
 
 /* ─── Dropship modal ─────────────────────────────────────────────────────────── */
-function DropshipModal({ order, suppliers, busy, onClose, onConfirm }) {
+function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm }) {
     const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
     const [freeName, setFreeName] = useState('');
     const [note, setNote] = useState('');
+    const [savePrices, setSavePrices] = useState(false);
+    const [itemCosts, setItemCosts] = useState(() => (order.items || []).map(it => ({ catalogNumber: it.catalogNumber || '', title: it.title || it.name || 'פריט', qty: Number(it.qty) || 1, cost: 0 })));
     const chosen = suppliers.find(s => s.id === supplierId);
     const supplier = chosen || (freeName ? { name: freeName } : null);
     const addr = order.shipTo?.address || order.address || '—';
+
+    // Auto-fill agreed costs from the price book when the supplier changes.
+    useEffect(() => {
+        const sp = pricesForSupplier(prices, supplierId);
+        setItemCosts((order.items || []).map(it => ({
+            catalogNumber: it.catalogNumber || '', title: it.title || it.name || 'פריט', qty: Number(it.qty) || 1,
+            cost: bestCostFor(it, sp) || 0,
+        })));
+    }, [supplierId]); // eslint-disable-line
+
+    const setCost = (i, v) => setItemCosts(cs => cs.map((c, j) => j === i ? { ...c, cost: Number(v) || 0 } : c));
+    const supplierCost = itemCosts.reduce((s, c) => s + (Number(c.cost) || 0) * (Number(c.qty) || 1), 0);
+    const rev = orderTotal(order);
+    const { profit, pct } = marginOf(rev, supplierCost);
+    const hasBookHit = supplierId && supplierCostForOrder(order, pricesForSupplier(prices, supplierId)).matched > 0;
+
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1100, backdropFilter: 'blur(3px)' }} />
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 5000, backdropFilter: 'blur(3px)' }} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(500px, 94vw)', background: '#fff', borderRadius: 24, zIndex: 1101, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
+                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(520px, 95vw)', maxHeight: '92vh', overflowY: 'auto', background: '#fff', borderRadius: 24, zIndex: 5001, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                     <span style={{ fontSize: 22 }}>🚚</span>
                     <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>העברה לספק (Dropship)</h2>
@@ -587,16 +903,48 @@ function DropshipModal({ order, suppliers, busy, onClose, onConfirm }) {
                         style={{ width: '100%', padding: '11px 12px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontFamily: HE, fontSize: 13, fontWeight: 600, marginBottom: 12, boxSizing: 'border-box' }} />
                 )}
 
+                {/* per-item supplier cost (price book) */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>עלות לספק (פריט)</span>
+                        {hasBookHit && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#34C759' }}>✓ מולא ממחירון מוסכם</span>}
+                    </div>
+                    {itemCosts.map((c, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 46px 84px', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#86868B', textAlign: 'center' }}>×{c.qty}</span>
+                            <input type="number" value={c.cost || ''} onChange={e => setCost(i, e.target.value)} placeholder="עלות ₪"
+                                style={{ padding: '7px 8px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontFamily: HE, fontSize: 12, fontWeight: 700, textAlign: 'center', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                        </div>
+                    ))}
+                </div>
+
+                {/* margin summary */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    {[['מכירה', rev, '#007AFF'], ['עלות ספק', supplierCost, '#FF9500'], [`רווח (${pct}%)`, profit, profit >= 0 ? '#34C759' : '#FF3B30']].map(([l, v, c]) => (
+                        <div key={l} style={{ padding: '8px 10px', borderRadius: 10, background: c + '10', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: c }}>₪{Number(v).toLocaleString()}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 9.5, fontWeight: 700, color: '#86868B' }}>{l}</p>
+                        </div>
+                    ))}
+                </div>
+
                 <div style={{ padding: 12, borderRadius: 12, background: 'rgba(0,122,255,0.05)', marginBottom: 12 }}>
-                    <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, color: '#3A3A3C' }}>📦 {orderItemsSummary(order)} · ₪{orderTotal(order).toLocaleString()}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 11.5, fontWeight: 700, color: '#3A3A3C' }}>📍 אספקה ללקוח: {addr}</p>
+                    <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, color: '#3A3A3C' }}>📍 אספקה ללקוח: {addr}</p>
                 </div>
 
                 <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="הערות לספק (אספקה, דחיפות…)" dir="rtl"
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontFamily: HE, fontSize: 12.5, outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.1)', background: '#F5F5F7', fontFamily: HE, fontSize: 12.5, outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
+
+                {supplierId && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#6E6E73' }}>
+                        <input type="checkbox" checked={savePrices} onChange={e => setSavePrices(e.target.checked)} style={{ width: 16, height: 16 }} />
+                        שמור מחירים למחירון הספק (מילוי אוטומטי בפעם הבאה)
+                    </label>
+                )}
 
                 <div style={{ display: 'flex', gap: 10 }}>
-                    <button disabled={busy || (!supplier)} onClick={() => onConfirm({ order, supplier, note })}
+                    <button disabled={busy || (!supplier)} onClick={() => onConfirm({ order, supplier, note, supplierCost, itemCosts, savePrices })}
                         style={{ flex: 1, padding: '13px', borderRadius: 13, border: 'none', cursor: supplier && !busy ? 'pointer' : 'not-allowed', background: supplier && !busy ? 'linear-gradient(135deg,#FF9500,#FFB340)' : '#D1D1D6', color: '#fff', fontFamily: HE, fontWeight: 800, fontSize: 14 }}>
                         {busy ? 'מעביר...' : '🚚 העבר לספק וצור PO'}
                     </button>
@@ -614,9 +962,9 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
     return (
         <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1100, backdropFilter: 'blur(3px)' }} />
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 5000, backdropFilter: 'blur(3px)' }} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px, 95vw)', background: '#fff', borderRadius: 24, zIndex: 1101, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
+                dir="rtl" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 'min(560px, 95vw)', background: '#fff', borderRadius: 24, zIndex: 5001, padding: 24, fontFamily: HE, boxShadow: '0 30px 80px rgba(0,0,0,0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                     <span style={{ fontSize: 22 }}>✉️</span>
                     <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>הזמנה ממייל</h2>
@@ -642,21 +990,31 @@ function EmailIntakeModal({ busy, onClose, onCreate }) {
 function InsightsView({ orders, supplierOrders }) {
     const m = useMemo(() => {
         const active = orders.filter(o => !CANCELLED.has(deriveStage(o)));
-        // funnel — count per canonical stage
-        const funnel = STAGES_DROPSHIP.filter(s => s.id !== 'needs_review').map(s => ({
-            id: s.id, label: s.short, tone: s.tone,
-            n: orders.filter(o => deriveStage(o) === s.id).length,
-        }));
+        // funnel — count per canonical stage; include any self-path stage that has orders
+        const seenF = new Set();
+        const funnel = [...STAGES_DROPSHIP, ...STAGES_SELF]
+            .filter(s => s.id !== 'needs_review' && !seenF.has(s.id) && seenF.add(s.id))
+            .map(s => ({ id: s.id, label: s.short, tone: s.tone, n: orders.filter(o => deriveStage(o) === s.id).length }))
+            .filter(f => f.n > 0 || ['new', 'acked', 'sent_supplier', 'delivered'].includes(f.id));
         const maxN = Math.max(1, ...funnel.map(f => f.n));
+        // Parse an Israeli d.m.y / d/m/y date string → ms (or NaN).
+        const parseHeDate = (s) => {
+            const mm = String(s || '').match(/(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+            if (!mm) return NaN;
+            let [, d, mo, y] = mm; y = y.length === 2 ? '20' + y : y;
+            const t = new Date(Number(y), Number(mo) - 1, Number(d)).getTime();
+            return isNaN(t) ? NaN : t;
+        };
         // cycle time + on-time (delivered/completed orders)
         const done = orders.filter(o => ['delivered', 'completed'].includes(deriveStage(o)));
         const cycleDays = [];
         let onTime = 0, dated = 0;
         for (const o of done) {
-            const start = o.dateTs, end = o.stageEnteredTs || o.dateTs;
-            if (start && end && end >= start) cycleDays.push((end - start) / 86400000);
-            const dd = Date.parse((o.deliveryDate || '').replace(/\./g, '/'));
-            if (!isNaN(dd)) { dated++; if ((o.stageEnteredTs || 0) <= dd + 86400000) onTime++; }
+            // only count cycle when the stage clock exists and differs from creation
+            const start = o.dateTs, end = o.stageEnteredTs;
+            if (start && end && end > start) cycleDays.push((end - start) / 86400000);
+            const dd = parseHeDate(o.deliveryDate);
+            if (!isNaN(dd)) { dated++; if ((o.stageEnteredTs || o.dateTs || 0) <= dd + 86400000) onTime++; }
         }
         const avgCycle = cycleDays.length ? (cycleDays.reduce((a, b) => a + b, 0) / cycleDays.length) : 0;
         const onTimePct = dated ? Math.round((onTime / dated) * 100) : null;
@@ -690,7 +1048,7 @@ function InsightsView({ orders, supplierOrders }) {
                 <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 900, color: '#1D1D1F' }}>📉 משפך שלבים</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {m.funnel.map(f => {
-                        const c = { warning: '#FF9500', danger: '#FF3B30', success: '#34C759', info: '#007AFF', neutral: '#8E8E93' }[f.tone] || '#007AFF';
+                        const c = toneColor(f.tone);
                         return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <span style={{ width: 84, fontSize: 11.5, fontWeight: 800, color: '#6E6E73', textAlign: 'left' }}>{f.label}</span>
@@ -737,5 +1095,74 @@ function MiniKpi({ label, value, color, sub }) {
             <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>{label}</p>
             <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 600, color: '#AEAEB2' }}>{sub}</p>
         </div>
+    );
+}
+
+/* ─── Email preview / edit / send modal (in-flow; human review = the gate) ────── */
+function EmailPreviewModal({ order, html, subject, loading, sending, onClose, onSend, onSkip }) {
+    const [editSubject, setEditSubject] = useState('');
+    const [customNote, setCustomNote] = useState('');
+    const [noteOpen, setNoteOpen] = useState(false);
+    useEffect(() => { if (subject) setEditSubject(subject); }, [subject]);
+    const hasNote = customNote.trim().length > 0;
+    const subjectChanged = editSubject !== subject;
+    return createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(3px)' }} onClick={e => e.target === e.currentTarget && onClose()} dir="rtl">
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                style={{ width: '100%', maxWidth: 660, background: '#fff', borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '92vh', boxShadow: '0 32px 80px rgba(0,0,0,0.3)', fontFamily: HE }}>
+                {/* header */}
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(135deg,#F0F7FF,#FAFCFF)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>✉️ תצוגה מקדימה של המייל</span>
+                            {(hasNote || subjectChanged) && <span style={{ fontSize: 10, fontWeight: 800, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '2px 8px', borderRadius: 99 }}>מותאם אישית</span>}
+                        </div>
+                        <button onClick={onClose} style={{ border: 'none', background: 'rgba(0,0,0,0.07)', borderRadius: 99, width: 28, height: 28, fontSize: 13, cursor: 'pointer', fontWeight: 900 }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#86868B', whiteSpace: 'nowrap' }}>נושא:</span>
+                        <input value={editSubject} onChange={e => setEditSubject(e.target.value)}
+                            style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#007AFF', background: 'transparent', border: 'none', outline: 'none', fontFamily: HE, direction: 'rtl' }} />
+                    </div>
+                    {order?.email && <p style={{ fontSize: 10, color: '#AEAEB2', margin: '2px 0 0', fontWeight: 600 }}>אל: {order.email}</p>}
+                </div>
+                {/* preview */}
+                <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                    {loading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 340, flexDirection: 'column', gap: 14, background: '#F5F5F7' }}>
+                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #007AFF', borderTopColor: 'transparent' }} />
+                            <p style={{ fontSize: 12, color: '#86868B', fontWeight: 600, margin: 0 }}>טוען תצוגה מקדימה...</p>
+                        </div>
+                    ) : (
+                        <iframe srcDoc={html} style={{ width: '100%', height: 420, border: 'none', display: 'block', background: '#F5F5F7' }} sandbox="allow-same-origin" title="Email preview" />
+                    )}
+                </div>
+                {/* personal note */}
+                <div style={{ borderTop: '1px solid rgba(0,0,0,0.07)', background: noteOpen ? '#FFFBF0' : '#FAFAFA' }}>
+                    <button onClick={() => setNoteOpen(v => !v)} style={{ width: '100%', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: HE, textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: hasNote ? '#FF9500' : '#86868B' }}>✏️ הוסף הערה אישית ללקוח</span>
+                        {hasNote && <span style={{ fontSize: 10, fontWeight: 800, color: '#FF9500', background: 'rgba(255,149,0,0.12)', padding: '1px 7px', borderRadius: 99 }}>נוסף</span>}
+                        <span style={{ marginInlineStart: 'auto', fontSize: 11, color: '#AEAEB2', transform: noteOpen ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
+                    </button>
+                    {noteOpen && (
+                        <div style={{ padding: '0 18px 14px' }}>
+                            <textarea value={customNote} onChange={e => setCustomNote(e.target.value)} placeholder="כתבו כאן הערה שתופיע במייל בתיבה מודגשת, לפני החתימה..."
+                                style={{ width: '100%', minHeight: 76, border: '1.5px solid rgba(255,149,0,0.3)', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontFamily: HE, direction: 'rtl', background: '#fff', color: '#1D1D1F', outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+                        </div>
+                    )}
+                </div>
+                {/* actions */}
+                <div style={{ padding: '12px 18px', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', background: '#fff', flexWrap: 'wrap' }}>
+                    <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.12)', background: '#fff', fontSize: 13, fontWeight: 800, color: '#1D1D1F', cursor: 'pointer', fontFamily: HE }}>ביטול</button>
+                    {onSkip && <button onClick={onSkip} disabled={sending} style={{ padding: '9px 16px', borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.12)', background: '#fff', fontSize: 12.5, fontWeight: 800, color: '#86868B', cursor: 'pointer', fontFamily: HE }}>עדכן שלב בלי מייל</button>}
+                    <motion.button whileTap={{ scale: 0.97 }} disabled={loading || sending}
+                        onClick={() => onSend(hasNote ? customNote : null, subjectChanged ? editSubject : null)}
+                        style={{ padding: '9px 24px', borderRadius: 12, border: 'none', background: loading || sending ? '#AEAEB2' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', fontSize: 13, fontWeight: 800, color: '#fff', cursor: loading || sending ? 'not-allowed' : 'pointer', fontFamily: HE, boxShadow: loading || sending ? 'none' : '0 4px 14px rgba(0,122,255,0.35)' }}>
+                        {sending ? 'שולח...' : hasNote ? '✉️ שלח עם הערה' : '✉️ שלח מייל'}
+                    </motion.button>
+                </div>
+            </motion.div>
+        </div>,
+        document.body
     );
 }

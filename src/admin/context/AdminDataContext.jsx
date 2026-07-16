@@ -6,6 +6,7 @@ import initialProducts from '../../data/products';
 import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
 import { buildAmalPO, amalPoHtml } from '../../data/amalPO';
 import { stageMeta, STAGE_TO_LEGACY, INVENTORY_STAGES } from '../lib/orderModel';
+import { fetchUsdIlsRate, DEFAULT_USD_ILS } from '../lib/productFinance';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -81,6 +82,7 @@ export function AdminDataProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [ordersSeenAt, setOrdersSeenAt] = useState(() => Number(localStorage.getItem('nc-orders-seen-at') || 0));
     const [deletedItems, setDeletedItems] = useState({ orders: [], quotes: [], contacts: [] });
+    const [fx, setFx] = useState({ usdIls: DEFAULT_USD_ILS, updatedAt: null, syncing: false });
 
     const isInitialized = useRef({ orders: false, quotes: false, contacts: false, inventory: false });
 
@@ -211,6 +213,12 @@ export function AdminDataProvider({ children }) {
             setActivityLog(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
         });
 
+        // Shared USD→ILS exchange rate (config/fx) — one rate synced across the portal
+        const unsubFx = onSnapshot(doc(db, 'config', 'fx'), (snap) => {
+            const d = snap.data();
+            if (d?.usdIls) setFx(prev => ({ ...prev, usdIls: Number(d.usdIls), updatedAt: d.updatedAt || null }));
+        }, () => {});
+
         // Real page view tracking from Firestore (last 90 days)
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 90);
@@ -231,9 +239,28 @@ export function AdminDataProvider({ children }) {
         }, () => {});
 
         return () => {
-            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews();
+            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews(); unsubFx();
         };
     }, []);
+
+    // ── Currency: manual set + live sync from a free FX endpoint ──────────────
+    const setFxRate = async (rate) => {
+        const val = Number(rate);
+        if (!val || val <= 0) return;
+        await setDoc(doc(db, 'config', 'fx'), { usdIls: val, updatedAt: Date.now() }, { merge: true });
+        addActivity(`שער הדולר עודכן ידנית ל-₪${val.toFixed(2)}`, 'info');
+    };
+    const syncFxRate = async () => {
+        setFx(prev => ({ ...prev, syncing: true }));
+        try {
+            const rate = await fetchUsdIlsRate();
+            await setDoc(doc(db, 'config', 'fx'), { usdIls: Number(rate), updatedAt: Date.now(), source: 'auto' }, { merge: true });
+            addActivity(`שער הדולר סונכרן: 1$ = ₪${Number(rate).toFixed(3)}`, 'info');
+            return rate;
+        } finally {
+            setFx(prev => ({ ...prev, syncing: false }));
+        }
+    };
 
     // ─── Actions (Writing to Firebase) ──────────────────────────────────────
     const addActivity = async (message, type = 'info') => {
@@ -801,8 +828,9 @@ export function AdminDataProvider({ children }) {
         deleteQuote, restoreQuote, hardDeleteQuote,
         deleteContact, restoreContact, hardDeleteContact,
         deletedItems,
+        fx, setFxRate, syncFxRate,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading]);
+    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading, fx]);
 
     return (
         <AdminDataContext.Provider value={ctxValue}>
