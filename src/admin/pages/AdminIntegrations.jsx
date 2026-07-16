@@ -34,6 +34,63 @@ function DrillStat({ items }) {
     );
 }
 
+// ── Live connection status — pings /api/integrations-status (booleans only) ──
+function LiveConnectionStatus() {
+    const [st, setSt] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const load = () => {
+        setLoading(true);
+        fetch('/api/integrations-status').then(r => r.json()).then(d => { setSt(d); setLoading(false); })
+            .catch(() => { setSt(null); setLoading(false); });
+    };
+    useEffect(() => { load(); }, []);
+    const order = ['resend', 'gemini', 'groq', 'anthropic', 'hubspot', 'firebaseAdmin'];
+    const services = st?.services || {};
+    return (
+        <div style={GLASS} className="p-5" dir="rtl">
+            <div className="flex items-center justify-between mb-4">
+                <button onClick={load} disabled={loading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black transition-colors"
+                    style={{ background: hexA('#007AFF', 0.10), color: '#007AFF' }}>
+                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> רענן
+                </button>
+                <div>
+                    <p className="text-[15px] font-black text-[#1D1D1F] text-right" style={{ margin: 0 }}>סטטוס חיבורים חי</p>
+                    <p className="text-[11.5px] text-[#86868B] font-medium text-right" style={{ margin: '2px 0 0' }}>מה מחובר בפועל בשרת (בלי לחשוף מפתחות)</p>
+                </div>
+            </div>
+            {loading && !st ? (
+                <p className="text-[12px] text-[#AEAEB2] text-center py-4">בודק חיבורים…</p>
+            ) : !st ? (
+                <p className="text-[12px] text-[#FF3B30] text-center py-4">לא ניתן לבדוק כרגע — נסה לרענן</p>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {order.filter(k => services[k]).map(k => {
+                        const s = services[k];
+                        const on = s.connected;
+                        return (
+                            <div key={k} className="flex items-center gap-3 p-3 rounded-[14px]"
+                                style={{ background: on ? hexA('#34C759', 0.06) : hexA('#FF3B30', 0.05), border: `1px solid ${on ? hexA('#34C759', 0.22) : hexA('#FF3B30', 0.18)}` }}>
+                                {on ? <CheckCircle size={18} color="#34C759" /> : <XCircle size={18} color="#FF3B30" />}
+                                <div className="flex-1 min-w-0 text-right">
+                                    <p className="text-[13px] font-black text-[#1D1D1F]" style={{ margin: 0 }}>{s.label}</p>
+                                    <p className="text-[11px] font-bold" style={{ margin: '1px 0 0', color: on ? '#1E8E3E' : '#FF3B30' }}>{on ? 'מחובר ✓' : 'לא מחובר — הוסף מפתח ב-Vercel'}{k === 'resend' && on && s.from ? ` · שולח מ: ${s.from}` : ''}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            {st && !st.emailReady && (
+                <p className="text-[11px] font-bold mt-3 px-1" style={{ color: '#B25E00' }}>⚠️ שליחת מיילים כבויה — הוסף <code>RESEND_API_KEY</code> ב-Vercel כדי שהמיילים יצאו בפועל.</p>
+            )}
+            {st && !st.aiReady && (
+                <p className="text-[11px] font-bold mt-1.5 px-1" style={{ color: '#B25E00' }}>⚠️ AI כבוי — הוסף <code>GEMINI_API_KEY</code> כדי להפעיל סריקה וייבוא מוצר.</p>
+            )}
+        </div>
+    );
+}
+
 function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF', delay = 0 }) {
     const clickable = !!onClick;
     return (
@@ -121,7 +178,7 @@ const ANALYTICS_LINKS = [
 
 // ── Services status config ────────────────────────────────────────────────────
 const SERVICES = [
-    { key: 'groq',    label: 'AI Concierge',    Icon: Bot,            color: '#5856D6', desc: 'עוזר חכם + המלצות',    href: 'https://console.groq.com',        statusCheck: () => true },
+    { key: 'groq',    label: 'AI Concierge',    Icon: Bot,            color: '#5AC8FA', desc: 'עוזר חכם + המלצות',    href: 'https://console.groq.com',        statusCheck: () => true },
     { key: 'resend',  label: 'Resend Email',     Icon: Mail,           color: '#007AFF', desc: 'מיילי אישור',          href: 'https://resend.com/emails',       statusCheck: () => true },
     { key: 'hubspot', label: 'HubSpot CRM',      Icon: Users,          color: '#FF7A59', desc: 'ניהול לידים',          href: 'https://app-eu1.hubspot.com',     statusCheck: null },
     { key: 'ga',      label: 'Google Analytics', Icon: BarChart2,      color: '#34C759', desc: 'מעקב תנועה',           href: 'https://analytics.google.com',    statusCheck: () => !!(import.meta.env.VITE_GA_ID?.startsWith('G-')) },
@@ -138,7 +195,7 @@ function useCRMStats() {
     const [ts, setTs] = useState(0);
     useEffect(() => {
         setLoading(true);
-        fetch('/api/hubspot-stats')
+        fetch('/api/integrations-status?action=hubspot-stats')
             .then(r => r.json())
             .then(d => { setData(d); setLoading(false); })
             .catch(() => setLoading(false));
@@ -532,6 +589,9 @@ export default function AdminIntegrations() {
                 <StatTile label="כלי אנליטיקס"      value={ANALYTICS_LINKS.length}            color="#007AFF"    Icon={BarChart2}   delay={0.12} onClick={() => openDrill({ type: 'analytics-list' })} />
                 <StatTile label="לידים ב-CRM"       value={crmData?.configured ? (crmData?.contacts?.total || 0) : '—'} color="#FF7A59" Icon={Users} delay={0.18} onClick={() => openDrill({ type: 'crm' })} />
             </div>
+
+            {/* ── Live connection status (real key presence, from the server) ── */}
+            <LiveConnectionStatus />
 
             {/* ── Services grid ─────────────────────────────────────────────── */}
             <div style={GLASS} className="p-5">

@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Printer, Download, FileText } from 'lucide-react';
+import { X, Printer, Download, FileText, Send } from 'lucide-react';
 import { buildInvoiceHtml, computeInvoiceTotals, suggestInvoiceNumber } from '../lib/invoice';
 import { BUSINESS } from '../lib/businessProfile';
 import { useAdminData } from '../context/AdminDataContext';
@@ -49,6 +49,30 @@ export default function InvoiceModal({ order, onClose, business }) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
+    // Email the invoice to the customer as an attached (print-ready) file.
+    const [sending, setSending] = useState(false);
+    const [sentMsg, setSentMsg] = useState('');
+    const custEmail = order?.email || '';
+    const sendToCustomer = async () => {
+        if (!custEmail) { setSentMsg('אין מייל ללקוח'); return; }
+        setSending(true); setSentMsg('');
+        try {
+            await ensureIssued();
+            const first = (order.contactName || '').split(' ')[0] || 'לקוח יקר';
+            const covering = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"/></head><body style="margin:0;background:#F5F5F7;font-family:'Helvetica Neue',Arial,sans-serif;direction:rtl;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;"><tr><td align="center"><table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.07);"><tr><td style="height:4px;background:linear-gradient(90deg,#007AFF,#5AC8FA);"></td></tr><tr><td style="padding:30px 34px;"><div style="font-size:18px;font-weight:900;color:#1D1D1F;margin-bottom:12px;">NextClass</div><p style="font-size:15px;color:#1D1D1F;line-height:1.7;margin:0 0 16px;">שלום ${first},<br/>מצורפת חשבונית מס מס׳ <strong>${invoiceNumber}</strong> עבור הזמנתך. תודה שבחרת ב-NextClass!</p><div style="background:#F0F7FF;border-radius:14px;padding:14px 16px;font-size:13px;color:#3D3D3D;">📎 החשבונית מצורפת — ניתן לפתוח, לשמור ולהדפיס.</div><div style="font-size:10.5px;color:#B8BCC4;margin-top:16px;border-top:1px solid #EBEBEB;padding-top:12px;">${biz.legalName} · ח.פ ${biz.taxId} · ${biz.address}</div></td></tr></table></td></tr></table></body></html>`;
+            const content = btoa(unescape(encodeURIComponent(html))); // invoice → base64 (Hebrew-safe)
+            const res = await fetch('/api/dispatch-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to: custEmail, subject: `חשבונית מס ${invoiceNumber} — NextClass`, html: covering, attachments: [{ filename: `invoice-${invoiceNumber}.html`, content }] }),
+            });
+            const d = await res.json().catch(() => ({}));
+            if (d.skipped) setSentMsg('חבר RESEND_API_KEY כדי לשלוח');
+            else if (d.error) setSentMsg('שליחה נכשלה');
+            else setSentMsg('✓ נשלח ללקוח');
+        } catch { setSentMsg('שגיאת שליחה'); }
+        finally { setSending(false); setTimeout(() => setSentMsg(''), 4000); }
+    };
+
     const field = { width: '100%', padding: '8px 10px', borderRadius: 10, border: '1.5px solid rgba(0,0,0,0.10)', background: '#F5F5F7', fontSize: 13, fontWeight: 700, color: '#1D1D1F', fontFamily: 'Heebo,sans-serif', outline: 'none' };
     const lbl = { display: 'block', fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.06em', marginBottom: 4 };
 
@@ -84,8 +108,14 @@ export default function InvoiceModal({ order, onClose, business }) {
                     )}
 
                     <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <button onClick={doPrint} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px', borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 6px 18px rgba(0,122,255,0.30)' }}><Printer size={15} /> הדפס / שמור PDF</button>
-                        <button onClick={doDownload} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.10)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}><Download size={14} /> הורד HTML</button>
+                        <button onClick={sendToCustomer} disabled={sending || !custEmail} title={custEmail ? `שלח ל-${custEmail}` : 'אין מייל ללקוח'}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px', borderRadius: 13, border: 'none', background: custEmail ? 'linear-gradient(135deg,#34C759,#2DB84B)' : '#E5E5EA', color: custEmail ? '#fff' : '#AEAEB2', fontSize: 13.5, fontWeight: 800, cursor: custEmail ? 'pointer' : 'not-allowed', fontFamily: 'Heebo,sans-serif', boxShadow: custEmail ? '0 6px 18px rgba(52,199,89,0.28)' : 'none' }}>
+                            <Send size={15} /> {sending ? 'שולח…' : sentMsg || 'שלח ללקוח במייל'}
+                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={doPrint} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px', borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif', boxShadow: '0 6px 18px rgba(0,122,255,0.30)' }}><Printer size={14} /> הדפס / PDF</button>
+                            <button onClick={doDownload} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 14px', borderRadius: 13, border: '1.5px solid rgba(0,0,0,0.10)', background: 'rgba(0,0,0,0.03)', color: '#6E6E73', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'Heebo,sans-serif' }}><Download size={14} /></button>
+                        </div>
                     </div>
                 </div>
 

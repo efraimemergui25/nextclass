@@ -121,7 +121,17 @@ export default function AdminOrderHub() {
             (em && (o.email || '').toLowerCase() === em) ||
             (nm && (o.contactName || '').trim() === nm));
         const total = mine.reduce((s, o) => s + orderTotal(o), 0);
-        return { count: mine.length, total, avg: mine.length ? Math.round(total / mine.length) : 0 };
+        // product-interest frequency — which products this customer asks for most, aggregated across all their orders
+        const freqMap = {};
+        mine.forEach(o => (o.items || []).forEach(it => {
+            const k = (it.title || it.name || it.catalogNumber || '').toString().trim();
+            if (k) freqMap[k] = (freqMap[k] || 0) + (Number(it.qty) || 1);
+        }));
+        const productFreq = Object.entries(freqMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        // days since this customer's first order
+        const firstTs = mine.reduce((min, o) => Math.min(min, o.dateTs || Date.now()), Date.now());
+        const daysSinceFirst = Math.max(0, Math.floor((Date.now() - firstTs) / 86400000));
+        return { count: mine.length, total, avg: mine.length ? Math.round(total / mine.length) : 0, productFreq, daysSinceFirst };
     }, [selected, orders]);
 
     /* live activity timeline for the open record */
@@ -555,6 +565,9 @@ export default function AdminOrderHub() {
                 <KpiTile label="סופק החודש" value={stats.deliveredM} tone="success" onClick={() => setStageFilter('delivered')} />
                 <KpiTile label="דורש טיפול (SLA)" value={stats.atRisk} tone="danger" onClick={() => setStageFilter('atrisk')} />
             </div>
+
+            {/* global activity feed — cross-order status/history changes (collapsible) */}
+            <GlobalActivityFeed orders={orders} onOpen={setSelectedId} />
 
             {/* filter pills + search */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
@@ -1016,7 +1029,7 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
 
                 {/* tabs */}
                 <div style={{ display: 'flex', gap: 4, padding: '10px 16px 0', background: '#fff' }}>
-                    {[['timeline', 'ציר זמן'], ['chat', 'צ׳אט לקוח'], ['supplier', 'ספק'], ['items', 'פריטים'], ['customer', 'לקוח']].map(([id, lbl]) => (
+                    {[['timeline', 'ציר זמן'], ['chat', 'צ׳אט לקוח'], ['supplier', 'ספק'], ['items', 'פריטים'], ['versions', 'גרסאות'], ['customer', 'לקוח']].map(([id, lbl]) => (
                         <button key={id} onClick={() => setTab(id)}
                             style={{ position: 'relative', padding: '8px 14px', border: 'none', borderBottom: '2.5px solid ' + (tab === id ? '#007AFF' : 'transparent'), background: 'transparent', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: tab === id ? '#007AFF' : '#86868B' }}>
                             {lbl}
@@ -1112,6 +1125,9 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                             )}
                         </div>
                     )}
+                    {tab === 'versions' && (
+                        <VersionsPanel order={order} onSave={onSave} />
+                    )}
                     {tab === 'customer' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {/* LTV — customer lifetime value (click → institution 360) */}
@@ -1126,6 +1142,37 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                                         ))}
                                     </div>
                                     <button onClick={onInst360} style={{ width: '100%', marginTop: 8, padding: '8px', borderRadius: 10, border: '1.5px solid rgba(0,122,255,0.2)', background: 'rgba(0,122,255,0.05)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>📊 כל ההזמנות של המוסד</button>
+                                    {/* days since first order + product-interest frequency (read-only analytics) */}
+                                    <div style={{ ...glass, borderRadius: 14, padding: 14, marginTop: 8 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: custStats.productFreq?.length ? 12 : 0 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 800, color: '#AEAEB2' }}>לקוח כבר</span>
+                                            <span style={{ fontSize: 12.5, fontWeight: 900, color: '#FF9500' }}>{custStats.daysSinceFirst} ימים</span>
+                                        </div>
+                                        {custStats.productFreq?.length > 0 && (
+                                            <>
+                                                <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.06em' }}>עניין במוצרים (הכי מבוקש)</p>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                    {custStats.productFreq.map(([name, qty], idx) => {
+                                                        const maxQty = custStats.productFreq[0][1] || 1;
+                                                        const pct = Math.round((qty / maxQty) * 100);
+                                                        const barColor = ['#007AFF', '#5AC8FA', '#FF9500', '#34C759', '#5856D6'][idx] || '#007AFF';
+                                                        return (
+                                                            <div key={name}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '78%' }}>{name}</span>
+                                                                    <span style={{ fontSize: 10, fontWeight: 800, color: barColor }}>×{qty}</span>
+                                                                </div>
+                                                                <div style={{ height: 4, borderRadius: 99, background: 'rgba(0,0,0,0.05)' }}>
+                                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: idx * 0.05, duration: 0.5, ease: 'easeOut' }}
+                                                                        style={{ height: '100%', borderRadius: 99, background: barColor }} />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                             {/* send email to customer (preview → edit → send) */}
@@ -1209,6 +1256,162 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                 </div>
             </motion.div>
         </>
+    );
+}
+
+/* ─── Quote Versions panel — price-history diff between saved snapshots ───────── */
+function VersionsPanel({ order, onSave }) {
+    const versions = Array.isArray(order.versions) ? order.versions : [];
+    const [openIdx, setOpenIdx] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const itemsOf = (v) => v.items || [];
+    const subOf = (v) => Number(v.subtotal) || itemsOf(v).reduce((s, it) => s + (Number(it.salePrice ?? it.price) || 0) * (Number(it.qty) || 1), 0);
+    const tsLabel = (ts) => ts ? new Date(ts).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+    // the live order appended as the last (current) snapshot for diffing
+    const current = { ts: Date.now(), items: order.items || [], subtotal: orderTotal(order), _current: true };
+    const all = [...versions, current];
+    const keyOf = (it) => (it.catalogNumber || it.title || it.name || '').toString().trim();
+    const diffBetween = (prev, cur) => {
+        const changes = [];
+        const pMap = {}; itemsOf(prev).forEach(it => { const k = keyOf(it); if (k) pMap[k] = it; });
+        const cMap = {}; itemsOf(cur).forEach(it => { const k = keyOf(it); if (k) cMap[k] = it; });
+        Object.keys(cMap).forEach(k => {
+            const ci = cMap[k], pi = pMap[k];
+            if (!pi) { changes.push({ type: 'added', item: ci }); return; }
+            const cq = Number(ci.qty) || 1, pq = Number(pi.qty) || 1;
+            const cp = Number(ci.salePrice ?? ci.price) || 0, pp = Number(pi.salePrice ?? pi.price) || 0;
+            if (cq !== pq || cp !== pp) changes.push({ type: 'changed', item: ci, prev: pi });
+        });
+        Object.keys(pMap).forEach(k => { if (!cMap[k]) changes.push({ type: 'removed', item: pMap[k] }); });
+        return changes;
+    };
+    const saveNow = async () => {
+        if (saving) return;
+        setSaving(true);
+        const snap = { ts: Date.now(), items: (order.items || []).map(it => ({ ...it })), subtotal: orderTotal(order) };
+        try { await onSave(order.id, { versions: [...versions, snap] }); } finally { setSaving(false); }
+    };
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} dir="rtl">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.06em' }}>{versions.length} גרסאות שמורות</p>
+                <button disabled={saving} onClick={saveNow}
+                    style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid rgba(0,122,255,0.2)', background: saving ? 'rgba(0,0,0,0.05)' : 'rgba(0,122,255,0.06)', color: '#007AFF', cursor: saving ? 'default' : 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>
+                    {saving ? 'שומר…' : '＋ שמור גרסה עכשיו'}
+                </button>
+            </div>
+            {versions.length === 0 ? (
+                <div style={{ ...glass, borderRadius: 16, padding: 22, textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 800, color: '#1D1D1F' }}>אין גרסאות שמורות עדיין</p>
+                    <p style={{ margin: 0, fontSize: 11.5, color: '#86868B', fontWeight: 600 }}>שמור/י גרסה כדי לעקוב אחר שינויי מחיר ופריטים לאורך זמן.</p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {all.map((v, i) => {
+                        const isCurrent = i === all.length - 1;
+                        const prevV = i > 0 ? all[i - 1] : null;
+                        const changes = prevV ? diffBetween(prevV, v) : [];
+                        const deltaPrice = prevV ? subOf(v) - subOf(prevV) : 0;
+                        return (
+                            <div key={i} style={{ ...glass, borderRadius: 14, overflow: 'hidden', border: isCurrent ? '1.5px solid rgba(0,122,255,0.3)' : '1px solid rgba(0,0,0,0.07)', background: isCurrent ? 'rgba(0,122,255,0.04)' : 'rgba(255,255,255,0.9)' }}>
+                                <div onClick={() => changes.length && setOpenIdx(openIdx === i ? null : i)}
+                                    style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: changes.length ? 'pointer' : 'default' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        {deltaPrice !== 0 && (
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: deltaPrice > 0 ? '#34C759' : '#FF3B30', background: deltaPrice > 0 ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)', padding: '2px 8px', borderRadius: 99 }}>
+                                                {deltaPrice > 0 ? '+' : ''}₪{deltaPrice.toLocaleString()}
+                                            </span>
+                                        )}
+                                        {changes.length > 0 && (
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '2px 8px', borderRadius: 99 }}>{changes.length} שינויים {openIdx === i ? '▲' : '▼'}</span>
+                                        )}
+                                    </div>
+                                    <div style={{ textAlign: 'left' }}>
+                                        <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: isCurrent ? '#007AFF' : '#1D1D1F' }}>{isCurrent ? 'גרסה נוכחית' : `גרסה ${i + 1}`}</p>
+                                        <p style={{ margin: '2px 0 0', fontSize: 10, color: '#AEAEB2' }}>{isCurrent ? 'נוכחי' : tsLabel(v.ts)} · ₪{subOf(v).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <AnimatePresence>
+                                    {openIdx === i && changes.length > 0 && (
+                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                            style={{ overflow: 'hidden', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                            <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                {changes.map((d, di) => (
+                                                    <div key={di} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 10, background: d.type === 'added' ? 'rgba(52,199,89,0.07)' : d.type === 'removed' ? 'rgba(255,59,48,0.07)' : 'rgba(255,149,0,0.07)' }}>
+                                                        <span style={{ fontSize: 13 }}>{d.type === 'added' ? '✚' : d.type === 'removed' ? '✕' : '↻'}</span>
+                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                                                            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.item.title || d.item.name || d.item.catalogNumber || 'פריט'}</p>
+                                                            {d.type === 'changed' && (
+                                                                <p style={{ margin: '2px 0 0', fontSize: 10, color: '#86868B' }}>
+                                                                    כמות: {Number(d.prev.qty) || 1}→{Number(d.item.qty) || 1} · מחיר: ₪{(Number(d.prev.salePrice ?? d.prev.price) || 0).toLocaleString()}→₪{(Number(d.item.salePrice ?? d.item.price) || 0).toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─── Global activity feed — cross-order status/history changes (collapsible) ─── */
+function GlobalActivityFeed({ orders, onOpen }) {
+    const [open, setOpen] = useState(false);
+    const events = useMemo(() => {
+        const items = [];
+        (orders || []).forEach(o => {
+            (o.history || []).forEach(h => {
+                if (h && h.ts) items.push({ ts: h.ts, id: o.id, contact: orderTitle(o), text: h.status || h.action || h.message || 'עודכן' });
+            });
+        });
+        return items.sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20);
+    }, [orders]);
+    const fmtTime = (ts) => {
+        const d = Math.floor((Date.now() - ts) / 60000);
+        if (d < 1) return 'עכשיו';
+        if (d < 60) return `לפני ${d} דק׳`;
+        if (d < 1440) return `לפני ${Math.floor(d / 60)} ש׳`;
+        return `לפני ${Math.floor(d / 1440)} י׳`;
+    };
+    if (!events.length) return null;
+    return (
+        <div style={{ ...glass, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
+            <button onClick={() => setOpen(v => !v)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 16px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: HE }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 800, color: '#1D1D1F' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: '#34C759' }} /> פעילות אחרונה
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#AEAEB2' }}>({events.length})</span>
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#86868B' }}>{open ? '▲ הסתר' : '▼ הצג'}</span>
+            </button>
+            <AnimatePresence>
+                {open && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        style={{ overflow: 'hidden', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                        <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                            {events.map((ev, i) => (
+                                <button key={i} onClick={() => onOpen(ev.id)}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', border: 'none', borderBottom: i < events.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none', background: 'transparent', cursor: 'pointer', textAlign: 'right', fontFamily: HE }} dir="rtl">
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.contact} → {ev.text}</p>
+                                        <p style={{ margin: '1px 0 0', fontSize: 10, color: '#86868B' }}>{ev.id}</p>
+                                    </div>
+                                    <span style={{ fontSize: 9.5, color: '#AEAEB2', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>{fmtTime(ev.ts)}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 

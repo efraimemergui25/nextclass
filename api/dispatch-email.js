@@ -17,11 +17,12 @@ const FROM_NAME  = 'NextClass';
 const FROM_ADDR  = process.env.RESEND_FROM || 'onboarding@resend.dev';
 const FROM       = `${FROM_NAME} <${FROM_ADDR}>`;
 
-async function sendEmail(to, subject, html, replyTo) {
+async function sendEmail(to, subject, html, replyTo, attachments) {
     const key = process.env.RESEND_API_KEY;
     if (!key) { console.warn('[Resend] RESEND_API_KEY not set'); return { skipped: true }; }
     const body = { from: FROM, to: [to], subject, html };
     if (replyTo) body.reply_to = replyTo;
+    if (Array.isArray(attachments) && attachments.length) body.attachments = attachments;
     const res = await fetch(RESEND_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -41,12 +42,12 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { pendingId, to, subject, html, replyTo } = req.body ?? {};
+    const { pendingId, to, subject, html, replyTo, attachments } = req.body ?? {};
     if (!to)   return res.status(400).json({ error: 'Missing recipient (to)' });
     if (!html) return res.status(400).json({ error: 'Missing email body (html)' });
 
     try {
-        const data = await sendEmail(to, subject || '', html, replyTo);
+        const data = await sendEmail(to, subject || '', html, replyTo, attachments);
         if (data?.skipped) {
             return res.status(200).json({ sent: false, skipped: true, pendingId: pendingId || null });
         }
