@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
@@ -98,6 +98,10 @@ function SmartReorderModal({ open, product, onClose, suppliers }) {
 }
 
 const FILTERS = ['הכל', 'במלאי', 'נמוך', 'אזל'];
+// Preferred category ordering for the grouped inventory view
+const CATEGORY_ORDER = ['מסכי מחשב', 'מוצרים משלימים'];
+const NO_CAT = 'ללא קטגוריה';
+const catRank = (c) => { const i = CATEGORY_ORDER.indexOf(c || ''); return i === -1 ? 900 : i; };
 
 const IMG_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f9fafb'/%3E%3Cstop offset='100%25' stop-color='%23e5e7eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='400' cy='280' r='40' stroke='%231D1D1F' stroke-width='3' fill='none'/%3E%3Ccircle cx='415' cy='280' r='40' stroke='%23007AFF' stroke-width='3' fill='%23007AFF' fill-opacity='0.1'/%3E%3Ctext x='400' y='360' font-family='sans-serif' font-size='24' font-weight='bold' letter-spacing='4' fill='%239ca3af' text-anchor='middle'%3ENEXTCLASS%3C/text%3E%3C/svg%3E";
 
@@ -305,8 +309,22 @@ export default function AdminInventory() {
             p.title?.toLowerCase().includes(search.toLowerCase()) ||
             (p.category || '').includes(search)
         );
-        return list.sort((a, b) => a.stock - b.stock);
+        // Group by category (preferred order), then by stock within a category
+        return list.sort((a, b) => {
+            const ra = catRank(a.category), rb = catRank(b.category);
+            if (ra !== rb) return ra - rb;
+            const ca = a.category || NO_CAT, cb = b.category || NO_CAT;
+            if (ca !== cb) return ca.localeCompare(cb, 'he');
+            return a.stock - b.stock;
+        });
     }, [inventory, search, filter]);
+
+    // Count per category (for the group header chips)
+    const catCounts = useMemo(() => {
+        const m = {};
+        filtered.forEach(p => { const c = p.category || NO_CAT; m[c] = (m[c] || 0) + 1; });
+        return m;
+    }, [filtered]);
 
     const stockMeta = (p) => {
         const key = statusKey(p);
@@ -409,9 +427,18 @@ export default function AdminInventory() {
                             {filtered.map((product, i) => {
                                 const { avail, color, label } = stockMeta(product);
                                 const stockVal = bulkMode ? (draftStock[product.id] ?? product.stock) : avail;
+                                const cat = product.category || NO_CAT;
+                                const showHeader = i === 0 || (filtered[i - 1].category || NO_CAT) !== cat;
                                 return (
+                                    <Fragment key={product.id}>
+                                    {showHeader && (
+                                        <div className="col-span-full flex items-center gap-2.5 mt-1 first:mt-0" dir="rtl">
+                                            <h3 className="text-[14px] font-black text-[#1D1D1F]">{cat}</h3>
+                                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: hexA(ORANGE, 0.10), color: ORANGE }}>{catCounts[cat]}</span>
+                                            <div className="flex-1 h-px bg-black/[0.07]" />
+                                        </div>
+                                    )}
                                     <motion.div
-                                        key={product.id}
                                         layout
                                         initial={{ opacity: 0, y: 16 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -562,6 +589,7 @@ export default function AdminInventory() {
                                             </div>
                                         </div>
                                     </motion.div>
+                                    </Fragment>
                                 );
                             })}
                         </AnimatePresence>
@@ -580,9 +608,18 @@ export default function AdminInventory() {
                         <AnimatePresence>
                             {filtered.map((product, i) => {
                                 const { avail, color, label } = stockMeta(product);
+                                const cat = product.category || NO_CAT;
+                                const showHeader = i === 0 || (filtered[i - 1].category || NO_CAT) !== cat;
                                 return (
+                                    <Fragment key={product.id}>
+                                    {showHeader && (
+                                        <div className="flex items-center gap-2.5 px-1 pt-2 pb-0.5 first:pt-0" dir="rtl">
+                                            <h3 className="text-[13px] font-black text-[#1D1D1F]">{cat}</h3>
+                                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: hexA(ORANGE, 0.10), color: ORANGE }}>{catCounts[cat]}</span>
+                                            <div className="flex-1 h-px bg-black/[0.07]" />
+                                        </div>
+                                    )}
                                     <motion.div
-                                        key={product.id}
                                         layout
                                         initial={{ opacity: 0, x: 8 }}
                                         animate={{ opacity: 1, x: 0 }}
@@ -651,6 +688,7 @@ export default function AdminInventory() {
                                             className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full flex items-center justify-center text-[#AEAEB2] hover:bg-[#FF3B30]/10 hover:text-[#FF3B30] transition-all shrink-0"
                                         ><Trash2 size={13} /></button>
                                     </motion.div>
+                                    </Fragment>
                                 );
                             })}
                         </AnimatePresence>
