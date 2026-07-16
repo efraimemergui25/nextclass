@@ -18,11 +18,12 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, FileText } from 'lucide-react';
+import { Trash2, FileText, Plus, Mail, Download, Settings, LayoutGrid, List, Columns3, BarChart3, ListChecks, ShoppingCart } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import OwnerMonthlyReport from '../components/OwnerMonthlyReport';
 import TemplatesManager from '../components/TemplatesManager';
 import RulesManager, { RuleAlerts, useRules } from '../components/RulesManager';
+import OrderReviewSplit from '../components/OrderReviewSplit';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
@@ -43,14 +44,35 @@ const HE = 'Heebo, sans-serif';
 const glass = { background: 'rgba(255,255,255,0.9)', border: '1.5px solid rgba(255,255,255,0.95)', boxShadow: '0 8px 40px rgba(0,0,0,0.07), inset 0 1.5px 0 rgba(255,255,255,1)' };
 const CANCELLED = new Set(SIDE_STATES.map(s => s.id));
 
+/* Premium situation-handling alert — white glass card, colored icon chip, title +
+   subtitle, chevron. Replaces the old flat tinted pills. */
+function AlertRow({ icon, tone = 'info', title, sub, onClick }) {
+    const c = tone === 'danger' ? '#FF3B30' : tone === 'warn' ? '#FF9500' : '#007AFF';
+    return (
+        <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.99 }} onClick={onClick}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', cursor: 'pointer', fontFamily: HE, textAlign: 'right', boxShadow: '0 4px 20px rgba(20,40,80,0.06)' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: `${c}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 19 }}>{icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11.5, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</p>
+            </div>
+            <span style={{ color: c, fontWeight: 900, fontSize: 16, flexShrink: 0 }}>←</span>
+        </motion.button>
+    );
+}
+
 export default function AdminOrderHub() {
     const {
         quotes = [], kpis = {}, advanceOrderStage, logOrderActivity, createSupplierOrder,
         linkSupplierOrder, updateQuoteFields, createQuote, deleteQuote,
         sendThreadMessage, markAdminThreadRead, clearReminder, updatePayment,
         deletedItems = {}, restoreQuote, hardDeleteQuote, inventory = [],
+        orders: ecomAll = [], updateOrderStatus, deleteOrder,
     } = useAdminData();
     const trashedOrders = deletedItems.quotes || [];
+    // Live storefront (e-commerce) orders — separate collection/model from the B2B
+    // quotes pipeline. Excludes synthetic quote-sale records (source==='quote').
+    const ecomOrders = useMemo(() => (ecomAll || []).filter(o => o.source !== 'quote'), [ecomAll]);
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
 
@@ -58,6 +80,7 @@ export default function AdminOrderHub() {
     const [stageFilter, setStageFilter] = useState('all');
     const [search, setSearch] = useState('');
     const [selectedId, setSelectedId] = useState(null);
+    const [reviewId, setReviewId] = useState(null);   // order open in the full-screen document⟷data review
     const [invoiceOrder, setInvoiceOrder] = useState(null);
     // Deep-links from Dashboard / TopBar / OCR (?quoteId, ?search) — legacy
     // /admin/orders links now land here on the unified cockpit.
@@ -110,6 +133,7 @@ export default function AdminOrderHub() {
     /* canonical order list — the quotes pipeline, minus soft-deleted */
     const orders = useMemo(() => (quotes || []).filter(o => !o.deleted), [quotes]);
     const selected = useMemo(() => orders.find(o => o.id === selectedId) || null, [orders, selectedId]);
+    const reviewOrder = useMemo(() => orders.find(o => o.id === reviewId) || null, [orders, reviewId]);
 
     // Customer lifetime value for the open record (matches other orders by phone/email/name)
     const custStats = useMemo(() => {
@@ -168,13 +192,14 @@ export default function AdminOrderHub() {
         const byInst = {};
         openO.forEach(o => { const k = (o.institution || '').trim(); if (k) (byInst[k] = byInst[k] || []).push(o); });
         const dups = Object.entries(byInst).filter(([, a]) => a.length >= 2).map(([inst, a]) => ({ inst, n: a.length }));
+        const newEcom = ecomOrders.filter(o => (o.status || 'חדש') === 'חדש');
         return {
-            overduePay, stuckSupplier, unanswered, highRisk, dups,
+            overduePay, stuckSupplier, unanswered, highRisk, dups, newEcom,
             dueRem: kpis.dueReminders || [],
             overdueTotal: overduePay.reduce((s, o) => s + orderTotal(o), 0),
-            clear: !overduePay.length && !stuckSupplier.length && !unanswered.length && !dups.length && !(kpis.dueReminders || []).length,
+            clear: !overduePay.length && !stuckSupplier.length && !unanswered.length && !dups.length && !newEcom.length && !(kpis.dueReminders || []).length,
         };
-    }, [orders, kpis.dueReminders]);
+    }, [orders, ecomOrders, kpis.dueReminders]);
 
     /* filtered set */
     const filtered = useMemo(() => {
@@ -271,6 +296,15 @@ export default function AdminOrderHub() {
             }
             showToast('נשמר ✓', 'success');
         } catch { showToast('שגיאה בשמירה', 'error'); }
+    };
+
+    /* Approve a needs_review draft: promote it into the live pipeline */
+    const approveReview = async (order) => {
+        try {
+            await updateQuoteFields(order.id, { overallStage: 'new', status: 'חדש', unreadAdmin: false, reviewedTs: Date.now() });
+            await logOrderActivity(order.id, { type: 'status', message: 'ההזמנה נבדקה ואושרה מתוך המסמך — נכנסה לפייפליין' });
+            showToast('ההזמנה אושרה ונכנסה לפייפליין ✓', 'success');
+        } catch { showToast('שגיאה באישור ההזמנה', 'error'); }
     };
 
     const setMode = async (orderId, mode) => {
@@ -464,33 +498,53 @@ export default function AdminOrderHub() {
                     <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1D1D1F', margin: 0, letterSpacing: '-0.02em' }}>מרכז ההזמנות</h1>
                     <p style={{ fontSize: 13, color: '#86868B', margin: '4px 0 0', fontWeight: 600 }}>לקוח → ספק → אספקה, במקום אחד · כל מייל עובר אישור לפני שליחה</p>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={createBlank} disabled={busy}
-                        style={{ padding: '8px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff' }}>
-                        ＋ הזמנה חדשה
-                    </motion.button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    {/* view switcher — one unified segmented control (iOS/Fiori-style) */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 12, background: '#EAECF1' }}>
+                        {[
+                            { v: 'work', label: 'הצעד הבא', Icon: ListChecks },
+                            { v: 'kanban', label: 'לוח', Icon: LayoutGrid },
+                            { v: 'list', label: 'רשימה', Icon: List },
+                            { v: 'split', label: 'מפוצל', Icon: Columns3 },
+                            { v: 'insights', label: 'תובנות', Icon: BarChart3 },
+                            { v: 'store', label: 'אתר', Icon: ShoppingCart, count: ecomOrders.length },
+                            { v: 'trash', label: 'סל', Icon: Trash2, count: trashedOrders.length },
+                        ].map(({ v, label, Icon, count }) => {
+                            const on = view === v;
+                            return (
+                                <button key={v} onClick={() => setView(v)} title={label}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, whiteSpace: 'nowrap', background: on ? '#fff' : 'transparent', color: on ? '#007AFF' : '#6E6E73', boxShadow: on ? '0 1px 4px rgba(20,40,80,0.16)' : 'none', transition: 'background .15s, color .15s' }}>
+                                    <Icon size={15} strokeWidth={2.3} />
+                                    {label}
+                                    {count > 0 && <span style={{ fontSize: 10, fontWeight: 900, padding: '1px 6px', borderRadius: 99, background: on ? 'rgba(0,122,255,0.12)' : 'rgba(0,0,0,0.08)', color: on ? '#007AFF' : '#8A94A6' }}>{count}</span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* secondary tools — grouped icon cluster */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 12, background: '#EAECF1' }}>
+                        {[
+                            { title: 'ייצא CSV', Icon: Download, onClick: exportCsv },
+                            { title: 'ספריית תבניות מייל/וואטסאפ', Icon: FileText, onClick: () => setTemplatesOpen(true) },
+                            { title: 'חוקי אוטומציה — התראות מותאמות', Icon: Settings, onClick: () => setRulesOpen(true) },
+                        ].map(({ title, Icon, onClick }) => (
+                            <motion.button key={title} whileTap={{ scale: 0.92 }} onClick={onClick} title={title} aria-label={title}
+                                style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: '#6E6E73' }}>
+                                <Icon size={16} strokeWidth={2.2} />
+                            </motion.button>
+                        ))}
+                    </div>
+
+                    {/* primary CTAs */}
                     <motion.button whileTap={{ scale: 0.97 }} onClick={() => setEmailIntake(true)}
-                        style={{ padding: '8px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#1D1D1F', color: '#fff' }}>
-                        ＋ ממייל
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.12)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#1D1D1F' }}>
+                        <Mail size={15} strokeWidth={2.3} /> ממייל
                     </motion.button>
-                    <button onClick={exportCsv} title="ייצא CSV"
-                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
-                        ⭳ CSV
-                    </button>
-                    <button onClick={() => setTemplatesOpen(true)} title="ספריית תבניות מייל/וואטסאפ"
-                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
-                        📝 תבניות
-                    </button>
-                    <button onClick={() => setRulesOpen(true)} title="חוקי אוטומציה — התראות מותאמות"
-                        style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
-                        ⚙️ חוקים
-                    </button>
-                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['split', '⬓ מפוצל'], ['insights', '📊 תובנות'], ['trash', `🗑 סל${trashedOrders.length ? ` (${trashedOrders.length})` : ''}`]].map(([v, lbl]) => (
-                        <button key={v} onClick={() => setView(v)}
-                            style={{ padding: '8px 16px', borderRadius: 11, border: '1.5px solid ' + (view === v ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: view === v ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: view === v ? '#fff' : '#6E6E73' }}>
-                            {lbl}
-                        </button>
-                    ))}
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={createBlank} disabled={busy}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 17px', borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', boxShadow: '0 6px 16px rgba(0,122,255,0.28)' }}>
+                        <Plus size={16} strokeWidth={2.6} /> הזמנה חדשה
+                    </motion.button>
                 </div>
             </div>
 
@@ -517,6 +571,9 @@ export default function AdminOrderHub() {
                         {briefing.dups.length > 0 && (
                             <BriefItem emoji="🗂️" tone="warning" n={briefing.dups.length} text="מוסדות עם כמה הזמנות פתוחות — שקול איחוד" onClick={() => { setView('list'); setSearch(briefing.dups[0]?.inst || ''); }} />
                         )}
+                        {briefing.newEcom.length > 0 && (
+                            <BriefItem emoji="🛒" tone="danger" n={briefing.newEcom.length} text="הזמנות חדשות מהחנות המקוונת — לטיפול" onClick={() => setView('store')} />
+                        )}
                         {briefing.dueRem.length > 0 && (
                             <BriefItem emoji="⏰" tone="warning" n={briefing.dueRem.length} text="תזכורות שהגיע זמנן" onClick={() => briefing.dueRem[0]?.quoteId && setSelectedId(briefing.dueRem[0].quoteId)} />
                         )}
@@ -536,24 +593,18 @@ export default function AdminOrderHub() {
 
             {/* situation-handling strip (SAP) — surfaces what needs attention now */}
             {(stats.review > 0 || stats.atRisk > 0 || (kpis.dueReminders?.length > 0)) && (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 10, marginBottom: 14 }}>
                     {kpis.dueReminders?.length > 0 && (
-                        <button onClick={() => kpis.dueReminders[0]?.quoteId && setSelectedId(kpis.dueReminders[0].quoteId)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14, border: '1.5px solid rgba(255,149,0,0.25)', background: 'rgba(255,149,0,0.08)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: '#B86A00' }}>
-                            ⏰ {kpis.dueReminders.length} תזכורות שהגיע זמנן ←
-                        </button>
+                        <AlertRow icon="⏰" tone="warn" title={`${kpis.dueReminders.length} תזכורות שהגיע זמנן`} sub="לחץ למעבר לטיפול"
+                            onClick={() => kpis.dueReminders[0]?.quoteId && setSelectedId(kpis.dueReminders[0].quoteId)} />
                     )}
                     {stats.review > 0 && (
-                        <button onClick={() => setStageFilter('needs_review')}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14, border: '1.5px solid rgba(0,122,255,0.25)', background: 'rgba(0,122,255,0.07)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: '#005EC4' }}>
-                            ✉️ {stats.review} הזמנות ממתינות לבדיקה (נקלטו ממייל/סריקה) ←
-                        </button>
+                        <AlertRow icon="✉️" tone="info" title={`${stats.review} הזמנות חדשות ממתינות לבדיקה`} sub="נקלטו ממייל / סריקה — ודא ואשר"
+                            onClick={() => setStageFilter('needs_review')} />
                     )}
                     {stats.atRisk > 0 && (
-                        <button onClick={() => setStageFilter('atrisk')}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 14, border: '1.5px solid rgba(255,59,48,0.25)', background: 'rgba(255,59,48,0.07)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5, color: '#C0392B' }}>
-                            ⏱ {stats.atRisk} הזמנות חורגות מ-SLA — דורשות טיפול ←
-                        </button>
+                        <AlertRow icon="⏱" tone="danger" title={`${stats.atRisk} הזמנות חורגות מ-SLA`} sub="דורשות טיפול דחוף"
+                            onClick={() => setStageFilter('atrisk')} />
                     )}
                 </div>
             )}
@@ -620,6 +671,12 @@ export default function AdminOrderHub() {
                     <InsightsView orders={orders} supplierOrders={supplierOrders} />
                 </div>
             )}
+            {view === 'store' && (
+                <EcomOrdersView orders={ecomOrders} busy={busy}
+                    onStatus={async (o, s) => { await updateOrderStatus(o.id, s); showToast(`הזמנת אתר → ${s}`, 'success'); }}
+                    onInvoice={setInvoiceOrder}
+                    onDelete={async (o) => { if (await confirm({ message: `להעביר הזמנת אתר של ${o.customer || o.contactName || ''} לפח?`, danger: true })) { await deleteOrder(o.id); showToast('הועבר לפח', 'success'); } }} />
+            )}
             {view === 'trash' && (
                 <TrashView items={trashedOrders} busy={busy}
                     onRestore={async (o) => { await restoreQuote(o.id); showToast('ההזמנה שוחזרה', 'success'); }}
@@ -652,6 +709,7 @@ export default function AdminOrderHub() {
                     <RecordDrawer order={selected} activity={activity} busy={busy} catalog={inventory}
                         onClose={() => setSelectedId(null)}
                         onAction={runAction} onJump={jumpToStage} onSetMode={setMode} onSave={saveFields}
+                        onReview={() => setReviewId(selected.id)}
                         onEmail={(type) => openEmail(type, selected)}
                         onForward={() => setDropship(selected)} onDelete={handleDelete} custStats={custStats}
                         onUpdatePayment={(p) => updatePayment(selected.id, p)}
@@ -662,6 +720,14 @@ export default function AdminOrderHub() {
                         onClearReminder={async () => { await clearReminder(selected.id); showToast('תזכורת בוטלה', 'info'); }}
                         onInvoice={setInvoiceOrder}
                         onAddNote={async (text) => { await logOrderActivity(selected.id, { type: 'note', message: text }); }} />
+                )}
+            </AnimatePresence>
+
+            {/* full-screen document ⟷ data review (incoming-order intake) */}
+            <AnimatePresence>
+                {reviewOrder && (
+                    <OrderReviewSplit order={reviewOrder} onClose={() => setReviewId(null)}
+                        onSave={saveFields} onApprove={approveReview} />
                 )}
             </AnimatePresence>
 
@@ -950,9 +1016,61 @@ function TrashView({ items, busy, onRestore, onPurge }) {
     );
 }
 
+// Storefront (e-commerce) orders — the live `orders` collection, managed with its
+// own simple status flow (kept separate from the B2B quotes stage machinery).
+const ECOM_STATUSES = ['חדש', 'ממתין', 'אושר', 'נשלח', 'נמסר', 'בוטל'];
+const ECOM_STATUS_TONE = { 'חדש': '#FF3B30', 'ממתין': '#FF9500', 'אושר': '#007AFF', 'נשלח': '#5AC8FA', 'נמסר': '#34C759', 'בוטל': '#8E8E93' };
+function EcomOrdersView({ orders, busy, onStatus, onInvoice, onDelete }) {
+    if (!orders.length) {
+        return (
+            <div style={{ ...glass, borderRadius: 20, padding: 48, textAlign: 'center' }} dir="rtl">
+                <div style={{ fontSize: 34, marginBottom: 8 }}>🛒</div>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>אין הזמנות אתר עדיין</p>
+                <p style={{ fontSize: 12.5, color: '#86868B', margin: '6px 0 0' }}>הזמנות שמתקבלות מהחנות המקוונת יופיעו כאן.</p>
+            </div>
+        );
+    }
+    const sorted = [...orders].sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
+    return (
+        <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" dir="rtl" style={{ backdropFilter: 'blur(20px)' }}>
+            <div style={{ padding: '12px 18px', background: 'linear-gradient(to left, rgba(0,122,255,0.04), transparent)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0, fontSize: 12.5, fontWeight: 800, color: '#1D1D1F' }}>🛒 הזמנות מהחנות המקוונת · {orders.length}</p>
+            </div>
+            {sorted.map(o => {
+                const a = intakeAge(o);
+                return (
+                    <div key={o.id} className="group relative border-t border-black/[0.05] transition-colors hover:bg-[#007AFF]/[0.035]"
+                        style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) 150px auto auto auto', gap: 12, alignItems: 'center', padding: '13px 18px' }}>
+                        <span className="absolute right-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-[#007AFF] to-[#5AC8FA] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer || o.contactName || 'לקוח'}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderItemsSummary(o)}{o.city ? ` · ${o.city}` : ''}</p>
+                        </div>
+                        <select value={o.status || 'חדש'} disabled={busy} onChange={e => onStatus(o, e.target.value)}
+                            style={{ padding: '6px 10px', borderRadius: 9, border: `1.5px solid ${ECOM_STATUS_TONE[o.status] || '#ccc'}55`, background: `${ECOM_STATUS_TONE[o.status] || '#8E8E93'}12`, color: ECOM_STATUS_TONE[o.status] || '#1D1D1F', fontFamily: HE, fontWeight: 800, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                            {ECOM_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 900, color: '#007AFF', whiteSpace: 'nowrap' }}>₪{orderTotal(o).toLocaleString()}</span>
+                        {a
+                            ? <span className="tabular-nums" title={`נקלט לפני ${a.days} ימים`} style={{ fontSize: 11, fontWeight: 800, color: a.color, whiteSpace: 'nowrap' }}>{o.date || `${a.days} י׳`}</span>
+                            : <span style={{ fontSize: 11, color: '#AEAEB2' }}>{o.date || ''}</span>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button onClick={() => onInvoice(o)} title="חשבונית"
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 9, border: '1px solid rgba(0,122,255,0.2)', background: 'rgba(0,122,255,0.08)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 11.5 }}><FileText size={13} /></button>
+                            <button className="opacity-0 group-hover:opacity-100 transition-opacity" disabled={busy} title="העבר לפח" onClick={() => onDelete(o)}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, border: 'none', cursor: 'pointer', background: 'rgba(255,59,48,0.08)', color: '#FF3B30' }}><Trash2 size={14} /></button>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 /* ─── Record-360 drawer ──────────────────────────────────────────────────────── */
 const EMAIL_TYPES = [['initial_contact', 'אישור קבלה'], ['quote_sent', 'הצעת מחיר'], ['confirmed', 'אישור הזמנה'], ['in_transit', 'בדרך אליך'], ['delivered', 'סופק'], ['reminder', 'תזכורת']];
-function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, onInst360, custStats, onAddNote, catalog = [] }) {
+function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onReview, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, onInst360, custStats, onAddNote, catalog = [] }) {
+    const canReview = order.source === 'email' || !!order.documentId || deriveStage(order) === 'needs_review';
     const [pick, setPick] = useState('');
     const pickResults = pick.trim().length >= 2
         ? catalog.filter(p => (p.title || '').toLowerCase().includes(pick.toLowerCase()) || (p.sku || '').toLowerCase().includes(pick.toLowerCase()) || (p.model || '').toLowerCase().includes(pick.toLowerCase())).slice(0, 6)
@@ -984,25 +1102,31 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                 dir="rtl" style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: 'min(560px, 96vw)', background: '#F5F6F9', zIndex: 4001, display: 'flex', flexDirection: 'column', fontFamily: HE, boxShadow: '0 0 60px rgba(0,0,0,0.25)' }}>
                 {/* header */}
                 <div style={{ padding: '18px 20px', background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F' }}>{orderTitle(order)}</h2>
-                            <p style={{ margin: '3px 0 0', fontSize: 12, fontWeight: 600, color: '#86868B' }}>{order.institution || ''} {order.orderNumber ? `· #${order.orderNumber}` : ''}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                            <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(order)}</h2>
+                            <p style={{ margin: '3px 0 0', fontSize: 12, fontWeight: 600, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.institution || ''} {order.orderNumber ? `· #${order.orderNumber}` : ''}</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <motion.button whileTap={{ scale: 0.94 }} onClick={() => onInvoice && onInvoice(order)}
-                                title="הפק חשבונית מס"
-                                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 99, border: '1px solid rgba(0,122,255,0.20)', background: 'rgba(0,122,255,0.08)', color: '#007AFF', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>
-                                <FileText size={15} strokeWidth={2.2} /> חשבונית
+                        {/* compact icon cluster — no labels, never wraps */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            <motion.button whileTap={{ scale: 0.92 }} onClick={() => onInvoice && onInvoice(order)} title="הפק חשבונית מס" aria-label="חשבונית"
+                                style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,122,255,0.18)', background: 'rgba(0,122,255,0.07)', color: '#007AFF', cursor: 'pointer' }}>
+                                <FileText size={16} strokeWidth={2.2} />
                             </motion.button>
-                            <motion.button whileTap={{ scale: 0.94 }} disabled={busy} onClick={() => onDelete(order)}
-                                title="העבר לפח" aria-label="מחק הזמנה"
-                                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 99, border: '1px solid rgba(255,59,48,0.18)', background: 'rgba(255,59,48,0.08)', color: '#FF3B30', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12.5 }}>
-                                <Trash2 size={15} strokeWidth={2.2} /> מחק
+                            <motion.button whileTap={{ scale: 0.92 }} disabled={busy} onClick={() => onDelete(order)} title="העבר לפח" aria-label="מחק הזמנה"
+                                style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,59,48,0.16)', background: 'rgba(255,59,48,0.07)', color: '#FF3B30', cursor: 'pointer' }}>
+                                <Trash2 size={16} strokeWidth={2.2} />
                             </motion.button>
-                            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 99, border: 'none', background: 'rgba(0,0,0,0.05)', cursor: 'pointer', fontSize: 17, color: '#6E6E73' }}>✕</button>
+                            <button onClick={onClose} title="סגור" aria-label="סגור" style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.05)', cursor: 'pointer', fontSize: 16, color: '#6E6E73', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                         </div>
                     </div>
+                    {/* primary review CTA — full width, prominent, only for incoming/reviewable orders */}
+                    {canReview && (
+                        <motion.button whileTap={{ scale: 0.98 }} onClick={() => onReview && onReview()}
+                            style={{ width: '100%', marginTop: 14, height: 44, borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', cursor: 'pointer', fontFamily: HE, fontWeight: 900, fontSize: 14, boxShadow: '0 8px 22px rgba(0,122,255,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                            🔍 בדיקת מסמך המקור מול הנתונים
+                        </motion.button>
+                    )}
                     <div style={{ marginTop: 14 }}>
                         <Highlights fields={[
                             { label: 'סה״כ', value: `₪${orderTotal(order).toLocaleString()}`, color: '#007AFF' },
