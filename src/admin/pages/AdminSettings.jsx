@@ -50,7 +50,16 @@ const SETTINGS_TABS = [
 
 export default function AdminSettings() {
     const { changePin, logout } = useAdminAuth();
-    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder } = useAdminData();
+    const { repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, business, saveBusiness } = useAdminData();
+    // Legal identity (config/business) — feeds invoices + email footers
+    const [legal, setLegal] = useState({});
+    const [legalSaved, setLegalSaved] = useState(false);
+    useEffect(() => { setLegal(l => ({ legalName: business.legalName || '', taxId: business.taxId || '', address: business.address || '', entityLabel: business.entityLabel || '', vatRate: business.vatRate ?? 18, invoiceSeq: business.invoiceSeq ?? 1000, ...l })); }, [business]);
+    const setLg = (k, v) => setLegal(p => ({ ...p, [k]: v }));
+    const saveLegal = async () => {
+        await saveBusiness({ legalName: legal.legalName, taxId: legal.taxId, address: legal.address, entityLabel: legal.entityLabel, vatRate: Number(legal.vatRate) || 18, invoiceSeq: Number(legal.invoiceSeq) || 1000 });
+        setLegalSaved(true); setTimeout(() => setLegalSaved(false), 1500);
+    };
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
     const { getSetting, updateGlobalSettings } = useSettings();
@@ -107,6 +116,7 @@ export default function AdminSettings() {
         setBizInstagram(getSetting('biz_instagram',''));
         setBizFacebook(getSetting('biz_facebook',  ''));
         setBizYoutube(getSetting('biz_youtube',    ''));
+        setRevenueTarget(getSetting('monthly_revenue_target', 0)); // re-sync so saving never overwrites a real target with 0
     }, [getSetting]);
 
     const saveBiz = async () => {
@@ -207,6 +217,23 @@ export default function AdminSettings() {
                             {bizSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור קישורים'}
                         </AdminButton>
                         <p className="text-[#AEAEB2] text-xs">מוצג בפוטר ובדף "הסיפור שלנו"</p>
+                    </SettingCard>
+
+                    <SettingCard title="זהות משפטית וחשבוניות" Icon={Building2} accent={BRAND}>
+                        <AdminInput label="שם משפטי (כפי שרשום ברשות המסים)" value={legal.legalName || ''} onChange={v => setLg('legalName', v)} placeholder="נקסט קלאס בע״מ" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="ע.מ / ח.פ" value={legal.taxId || ''} onChange={v => setLg('taxId', v)} dir="ltr" placeholder="510942360" />
+                            <AdminInput label="מעמד" value={legal.entityLabel || ''} onChange={v => setLg('entityLabel', v)} placeholder="חברה בע״מ" />
+                        </div>
+                        <AdminInput label="כתובת (לחשבונית)" value={legal.address || ''} onChange={v => setLg('address', v)} placeholder="אזור התעשייה 100, רמלה" />
+                        <div className="grid grid-cols-2 gap-3">
+                            <AdminInput label="מע״מ %" type="number" value={legal.vatRate ?? 18} onChange={v => setLg('vatRate', v)} dir="ltr" />
+                            <AdminInput label="מונה חשבוניות (הבא = +1)" type="number" value={legal.invoiceSeq ?? 1000} onChange={v => setLg('invoiceSeq', v)} dir="ltr" />
+                        </div>
+                        <AdminButton onClick={saveLegal}>
+                            {legalSaved ? <span className="flex items-center gap-1 justify-center"><Check size={14} /> נשמר!</span> : 'שמור זהות משפטית'}
+                        </AdminButton>
+                        <p className="text-[#AEAEB2] text-xs">מוזן אוטומטית לכל חשבונית מס ולפוטר של כל המיילים · מונה חשבוניות רץ נשמר אוטומטית עם כל הנפקה</p>
                     </SettingCard>
                 </div>
             )}

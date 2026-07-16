@@ -5,7 +5,7 @@ import { db } from '../../firebase';
 import {
     collection, query, orderBy, onSnapshot,
     doc, updateDoc, addDoc, deleteDoc, serverTimestamp,
-    arrayUnion, getDocs, writeBatch
+    arrayUnion, getDocs, getDoc, setDoc, writeBatch
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -23,7 +23,7 @@ import {
     Timer, MapPin, Hash, FileText, User, ShoppingCart,
     Copy, Check, Tag, ExternalLink, Star, MessageSquare,
     DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download,
-    ScanLine, RefreshCw
+    ScanLine, RefreshCw, Sparkles
 } from 'lucide-react';
 import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
 import AdminOCR from './AdminOCR';
@@ -2256,6 +2256,70 @@ function ProductMappingTab({ suppliers, showToast }) {
         finally { setSyncingQuotes(false); }
     };
 
+    // ── REVERSE sync: mapping card → supplier quotes (additive, never deletes) ──
+    // For every product mapped to a supplier, ensure it appears in that supplier's
+    // auto-maintained quote (doc id `auto_<supplierId>`) with its catalog data +
+    // cost, merged by product key. Manually-created quotes are never touched.
+    const [pushingQuotes, setPushingQuotes] = useState(false);
+    const syncToSupplierQuotes = async () => {
+        setPushingQuotes(true);
+        try {
+            const bySupplier = {};
+            products.forEach(p => {
+                const sid = getVal(p, 'supplierId') || p.supplierId;
+                const ft = getVal(p, 'fulfillmentType') || p.fulfillmentType || 'supplier';
+                if (!sid || ft !== 'supplier') return;
+                (bySupplier[sid] = bySupplier[sid] || []).push(p);
+            });
+            const supplierIds = Object.keys(bySupplier);
+            if (!supplierIds.length) { showToast('אין מוצרים משויכים לספק במיפוי', 'info'); return; }
+
+            let added = 0, updated = 0;
+            for (const sid of supplierIds) {
+                const sup = suppliers.find(s => s.id === sid);
+                const ref = doc(db, 'supplier_quotes', `auto_${sid}`);
+                const snap = await getDoc(ref);
+                const existing = snap.exists() ? snap.data() : null;
+                const byKey = {};
+                (existing?.products || []).forEach(pr => { byKey[pr.id || norm(pr.modelNumber) || norm(pr.name)] = pr; });
+
+                bySupplier[sid].forEach(p => {
+                    let cost = Number(getVal(p, 'supplierCost')) || 0;
+                    if ((getVal(p, 'costCurrency') || p.costCurrency) === 'USD') cost = (Number(getVal(p, 'supplierCostUSD')) || 0) * fxRate;
+                    const key = p.id;
+                    const prev = byKey[key] || {};
+                    const line = {
+                        id: p.id,
+                        name: p.title || prev.name || '',
+                        modelNumber: p.model || p.sku || prev.modelNumber || '',
+                        category: p.category || prev.category || '',
+                        image: p.image || prev.image || '',
+                        pricePerUnit: cost > 0 ? Math.round(cost * 100) / 100 : (prev.pricePerUnit || 0),
+                        quantity: prev.quantity || 1,
+                        discount: prev.discount || 0,
+                        currency: 'ILS',
+                        source: 'mapping',
+                    };
+                    if (byKey[key]) updated++; else added++;
+                    byKey[key] = { ...prev, ...line };
+                });
+
+                await setDoc(ref, {
+                    supplierId: sid,
+                    supplierName: sup?.name || existing?.supplierName || '',
+                    products: Object.values(byKey),
+                    quoteNumber: existing?.quoteNumber || `AUTO-${String(sid).slice(-4)}`,
+                    source: 'mapping-auto',
+                    status: existing?.status || 'draft',
+                    updatedAt: serverTimestamp(),
+                    ...(existing ? {} : { createdAt: serverTimestamp() }),
+                }, { merge: true });
+            }
+            showToast(`עודכנו הצעות ספקים מהמיפוי: ${added} נוספו · ${updated} עודכנו ✓`, 'success');
+        } catch (e) { console.error('[syncToSupplierQuotes]', e); showToast('שגיאה בעדכון הצעות הספקים', 'error'); }
+        finally { setPushingQuotes(false); }
+    };
+
     return (
         <div className="space-y-3">
             {/* Header bar — hint + shared USD→ILS rate with sync */}
@@ -2269,6 +2333,12 @@ function ProductMappingTab({ suppliers, showToast }) {
                     style={{ background: 'linear-gradient(135deg,#5856D6,#7B7AE0)', boxShadow: '0 6px 18px rgba(88,86,214,0.30)' }}
                     title="משוך מחירי עלות מהצעות הספקים אל כרטיסי המוצר — ומשם לכל המערכת">
                     <Link2 size={14} className={syncingQuotes ? 'animate-spin' : ''} />{syncingQuotes ? 'מסנכרן…' : 'סנכרן מהצעות ספקים'}
+                </button>
+                <button onClick={syncToSupplierQuotes} disabled={pushingQuotes}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black shrink-0 transition-all disabled:opacity-60"
+                    style={{ background: 'rgba(88,86,214,0.10)', color: '#5856D6', border: '1.5px solid rgba(88,86,214,0.25)' }}
+                    title="דחוף את שיוכי המיפוי (ספק, עלות ופרטי מוצר) אל הצעות הספקים — הוספה בלבד, לא מוחק קיים">
+                    <Sparkles size={14} className={pushingQuotes ? 'animate-spin' : ''} />{pushingQuotes ? 'מעדכן…' : 'עדכן הצעות ספקים מהמיפוי'}
                 </button>
                 <div className="flex items-center gap-2 shrink-0 bg-white/70 rounded-xl px-3 py-1.5 border border-black/[0.06]">
                     <button onClick={doSyncFx} disabled={fx?.syncing}

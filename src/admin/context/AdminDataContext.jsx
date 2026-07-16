@@ -7,6 +7,7 @@ import CMS_CLEAN_OVERRIDES from '../../data/cmsCleanOverrides';
 import { buildAmalPO, amalPoHtml } from '../../data/amalPO';
 import { stageMeta, STAGE_TO_LEGACY, INVENTORY_STAGES } from '../lib/orderModel';
 import { fetchUsdIlsRate, DEFAULT_USD_ILS } from '../lib/productFinance';
+import { BUSINESS } from '../lib/businessProfile';
 import { useAdminToast } from './AdminToastContext';
 
 const AdminDataContext = createContext(null);
@@ -83,6 +84,7 @@ export function AdminDataProvider({ children }) {
     const [ordersSeenAt, setOrdersSeenAt] = useState(() => Number(localStorage.getItem('nc-orders-seen-at') || 0));
     const [deletedItems, setDeletedItems] = useState({ orders: [], quotes: [], contacts: [] });
     const [fx, setFx] = useState({ usdIls: DEFAULT_USD_ILS, updatedAt: null, syncing: false });
+    const [business, setBusiness] = useState(BUSINESS);
 
     const isInitialized = useRef({ orders: false, quotes: false, contacts: false, inventory: false });
 
@@ -219,6 +221,12 @@ export function AdminDataProvider({ children }) {
             if (d?.usdIls) setFx(prev => ({ ...prev, usdIls: Number(d.usdIls), updatedAt: d.updatedAt || null }));
         }, () => {});
 
+        // Legal business profile (config/business) — feeds invoices & email footers
+        const unsubBiz = onSnapshot(doc(db, 'config', 'business'), (snap) => {
+            const d = snap.data();
+            if (d) setBusiness(prev => ({ ...BUSINESS, ...prev, ...d }));
+        }, () => {});
+
         // Real page view tracking from Firestore (last 90 days)
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 90);
@@ -239,7 +247,7 @@ export function AdminDataProvider({ children }) {
         }, () => {});
 
         return () => {
-            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews(); unsubFx();
+            unsubOrders(); unsubQuotes(); unsubContacts(); unsubInventory(); unsubCoupons(); unsubActivity(); unsubPageViews(); unsubFx(); unsubBiz();
         };
     }, []);
 
@@ -265,6 +273,32 @@ export function AdminDataProvider({ children }) {
         } finally {
             setFx(prev => ({ ...prev, syncing: false }));
         }
+    };
+
+    // ── Business profile (legal identity) + invoice register ──────────────────
+    const saveBusiness = async (fields) => {
+        await setDoc(doc(db, 'config', 'business'), { ...fields, updatedAt: Date.now() }, { merge: true });
+        addActivity('פרטי העסק עודכנו', 'info');
+    };
+    // Issue an invoice: assign the next running number, persist the record. Returns
+    // { number, seq }. Single-admin use → a read-modify-write counter is sufficient.
+    const issueInvoice = async (order = {}, meta = {}) => {
+        const year = new Date().getFullYear();
+        const seq = (Number(business.invoiceSeq) || 1000) + 1;
+        const number = meta.invoiceNumber || `${year}-${String(seq).padStart(5, '0')}`;
+        await setDoc(doc(db, 'config', 'business'), { invoiceSeq: seq }, { merge: true });
+        const id = `INV-${number}`;
+        await setDoc(doc(db, 'invoices', id), {
+            id, number, seq, orderId: order.id || null,
+            customer: order.contactName || order.institution || '',
+            docType: meta.docType || 'tax',
+            vatRate: meta.vatRate ?? business.vatRate,
+            allocationNumber: meta.allocationNumber || '',
+            total: Number(meta.total) || null,
+            issuedAt: serverTimestamp(), issuedTs: Date.now(),
+        }, { merge: true });
+        addActivity(`הונפקה חשבונית ${number}${order.id ? ` (הזמנה ${order.id})` : ''}`, 'order');
+        return { number, seq };
     };
 
     // ─── Actions (Writing to Firebase) ──────────────────────────────────────
@@ -526,8 +560,40 @@ export function AdminDataProvider({ children }) {
         addActivity(`הצעת מחיר ${quoteId} עודכנה ל"${newStatus}"`, 'order');
     };
 
+    // Field-labels tracked in the audit log (who-changed-what-from-what)
+    const AUDIT_LABELS = { contactName: 'שם לקוח', institution: 'מוסד', phone: 'טלפון', email: 'מייל', address: 'כתובת', city: 'עיר', deliveryDate: 'תאריך אספקה', supplierName: 'ספק', notes: 'הערות', paymentStatus: 'סטטוס תשלום', orderNumber: 'מס׳ הזמנה', fulfillmentMode: 'שיטת אספקה' };
     const updateQuoteFields = async (quoteId, fields) => {
-        await setDoc(doc(db, 'quotes', quoteId), fields, { merge: true });
+        const prev = quotes.find(q => q.id === quoteId) || {};
+        await setDoc(doc(db, 'quotes', String(quoteId)), fields, { merge: true });
+        // audit trail — append meaningful diffs to the order timeline
+        try {
+            const changes = [];
+            for (const [k, v] of Object.entries(fields)) {
+                if (AUDIT_LABELS[k] && String(prev[k] ?? '') !== String(v ?? '')) {
+                    changes.push(`${AUDIT_LABELS[k]}: "${prev[k] || '—'}" ← "${v || '—'}"`);
+                }
+            }
+            if (fields.items && JSON.stringify(prev.items || []) !== JSON.stringify(fields.items)) changes.push('פריטים עודכנו');
+            if (changes.length) {
+                await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), { type: 'system', message: '✏️ שינוי: ' + changes.join(' · '), at: serverTimestamp(), ts: Date.now() });
+            }
+        } catch { /* noop */ }
+    };
+
+    // Payment tracking — status/amount/due date + timeline log
+    const updatePayment = async (quoteId, { paymentStatus, amountPaid, paymentDueTs, paymentTermsDays } = {}) => {
+        const patch = {};
+        if (paymentStatus !== undefined) patch.paymentStatus = paymentStatus;
+        if (amountPaid !== undefined) patch.amountPaid = Number(amountPaid) || 0;
+        if (paymentDueTs !== undefined) patch.paymentDueTs = paymentDueTs;
+        if (paymentTermsDays !== undefined) patch.paymentTermsDays = paymentTermsDays;
+        await setDoc(doc(db, 'quotes', String(quoteId)), patch, { merge: true });
+        try {
+            await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), {
+                type: 'system', message: `תשלום עודכן: ${{ paid: 'שולם', partial: 'שולם חלקית', unpaid: 'ממתין לתשלום' }[paymentStatus] || paymentStatus || ''}`,
+                at: serverTimestamp(), ts: Date.now(),
+            });
+        } catch { /* noop */ }
     };
 
     const addQuoteNote = async (quoteId, note) => {
@@ -826,7 +892,7 @@ export function AdminDataProvider({ children }) {
         updateStock, updateProductDetails,
         addProduct, deleteProduct, updateContactStatus,
         createQuote, upsertContact, createSupplierOrder,
-        logOrderActivity, advanceOrderStage, linkSupplierOrder,
+        logOrderActivity, advanceOrderStage, linkSupplierOrder, updatePayment,
         addCoupon, toggleCoupon, updateCoupon, deleteCoupon, addActivity, setOrders, setContacts,
         repairProductImages, reseedDatabase, resetMarketingContent, wipeAndReseedCatalog, purgeDemoData, createAmalFirstOrder, markOrdersSeen, clearReminder,
         deleteOrder, restoreOrder, hardDeleteOrder,
@@ -834,8 +900,9 @@ export function AdminDataProvider({ children }) {
         deleteContact, restoreContact, hardDeleteContact,
         deletedItems,
         fx, setFxRate, syncFxRate,
+        business, saveBusiness, issueInvoice,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading, fx]);
+    }), [orders, quotes, contacts, inventory, analytics, coupons, kpis, products, activityLog, deletedItems, loading, fx, business]);
 
     return (
         <AdminDataContext.Provider value={ctxValue}>

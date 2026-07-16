@@ -1,17 +1,21 @@
 /* eslint-disable */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Printer, Download, FileText } from 'lucide-react';
 import { buildInvoiceHtml, computeInvoiceTotals, suggestInvoiceNumber } from '../lib/invoice';
 import { BUSINESS } from '../lib/businessProfile';
+import { useAdminData } from '../context/AdminDataContext';
 
 // Full invoice generator — live-preview a legally-structured חשבונית מס for an
-// order, edit the issue fields, then print or download. Business identity comes
-// from businessProfile.js (embedded everywhere).
+// order, edit the issue fields, then print or download. Business identity + the
+// running invoice number come from the shared business profile (config/business).
 export default function InvoiceModal({ order, onClose, business }) {
-    const biz = { ...BUSINESS, ...(business || {}) };
+    const { business: liveBiz, issueInvoice } = useAdminData();
+    const biz = { ...BUSINESS, ...(liveBiz || {}), ...(business || {}) };
+    const nextNumber = `${new Date().getFullYear()}-${String((Number(biz.invoiceSeq) || 1000) + 1).padStart(5, '0')}`;
+    const issuedRef = useRef(false);
     const [docType, setDocType] = useState('tax');
-    const [invoiceNumber, setInvoiceNumber] = useState(suggestInvoiceNumber(order));
+    const [invoiceNumber, setInvoiceNumber] = useState(nextNumber || suggestInvoiceNumber(order));
     const [invoiceDate, setInvoiceDate] = useState(new Date().toLocaleDateString('he-IL'));
     const [vatRate, setVatRate] = useState(biz.vatRate);
     const [allocationNumber, setAllocationNumber] = useState('');
@@ -22,13 +26,22 @@ export default function InvoiceModal({ order, onClose, business }) {
     const totals = useMemo(() => computeInvoiceTotals(order || {}, vatRate), [order, vatRate]);
     const needsAllocation = docType === 'tax' && totals.net > (biz.allocationThreshold || Infinity) && !allocationNumber;
 
-    const doPrint = () => {
+    // Persist the invoice to the register once (assigns the running number).
+    const ensureIssued = async () => {
+        if (issuedRef.current || docType !== 'tax') return;
+        issuedRef.current = true;
+        try { await issueInvoice?.(order, { invoiceNumber, docType, vatRate, allocationNumber, total: totals.gross }); }
+        catch (e) { /* non-blocking — printing still works */ }
+    };
+    const doPrint = async () => {
+        await ensureIssued();
         const w = window.open('', '_blank');
         if (!w) return;
         w.document.write(html); w.document.close();
         w.focus(); setTimeout(() => w.print(), 350);
     };
-    const doDownload = () => {
+    const doDownload = async () => {
+        await ensureIssued();
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
