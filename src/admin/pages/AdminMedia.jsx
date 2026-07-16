@@ -124,24 +124,48 @@ function MediaCard({ item, onDelete, onCopy, copied, onOpen }) {
                             className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2"
                         >
                             <motion.button
+                                whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.88 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 onClick={(e) => { e.stopPropagation(); onCopy(item.url); }}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black transition-all"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
+                                style={{
+                                    background: copied === item.url ? `linear-gradient(135deg, ${toneColor('success')}, ${toneColor('success')}db)` : 'rgba(255,255,255,0.22)',
+                                    backdropFilter: 'blur(12px) saturate(1.4)', WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+                                    border: '1px solid rgba(255,255,255,0.4)',
+                                    boxShadow: '0 6px 18px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.5)',
+                                }}
                             >
                                 {copied === item.url ? <Check size={12} /> : <Copy size={12} />}
                                 {copied === item.url ? 'הועתק' : 'העתק URL'}
                             </motion.button>
                             <motion.button
+                                whileHover={{ scale: 1.08 }}
                                 whileTap={{ scale: 0.88 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 onClick={(e) => { e.stopPropagation(); window.open(item.url, '_blank'); }}
                                 className="p-2 rounded-xl text-white"
+                                style={{
+                                    background: 'rgba(255,255,255,0.18)',
+                                    backdropFilter: 'blur(12px) saturate(1.4)', WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+                                    border: '1px solid rgba(255,255,255,0.34)',
+                                    boxShadow: '0 6px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.42)',
+                                }}
                             >
                                 <ExternalLink size={12} />
                             </motion.button>
                             <motion.button
+                                whileHover={{ scale: 1.08, backgroundColor: hexA(toneColor('danger'), 0.9) }}
                                 whileTap={{ scale: 0.88 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                 onClick={(e) => { e.stopPropagation(); onDelete(item); }}
                                 className="p-2 rounded-xl text-white"
+                                style={{
+                                    background: 'rgba(255,255,255,0.18)',
+                                    backdropFilter: 'blur(12px) saturate(1.4)', WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+                                    border: '1px solid rgba(255,255,255,0.34)',
+                                    boxShadow: '0 6px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.42)',
+                                }}
                             >
                                 <Trash2 size={12} />
                             </motion.button>
@@ -218,7 +242,11 @@ function DropZone({ onFiles, uploading }) {
                         animate={{ y: isDragActive ? -6 : 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                         className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: hexA(BRAND, 0.1) }}
+                        style={{
+                            background: `linear-gradient(140deg, ${hexA(BRAND, 0.22)}, ${hexA(BRAND, 0.08)})`,
+                            border: `1px solid ${hexA(BRAND, 0.2)}`,
+                            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 16px ${hexA(BRAND, 0.18)}`,
+                        }}
                     >
                         <Upload size={24} color={BRAND} />
                     </motion.div>
@@ -657,7 +685,8 @@ export default function AdminMedia() {
                             <span className="text-[#86868B] truncate max-w-[200px]">{name}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-[#F2F2F7] overflow-hidden">
-                            <motion.div animate={{ width: `${pct}%` }} className="h-full rounded-full bg-[#007AFF]" />
+                            <motion.div animate={{ width: `${pct}%` }} className="h-full rounded-full"
+                                style={{ background: BRAND_GRAD, boxShadow: `0 0 8px ${hexA(BRAND, 0.4)}` }} />
                         </div>
                     </motion.div>
                 ))}
@@ -682,16 +711,23 @@ export default function AdminMedia() {
                 </div>
 
                 {/* View toggle */}
-                <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,0.05)' }}>
+                <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(118,118,128,0.1)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: 'inset 0 1px 2px rgba(20,40,80,0.06)' }}>
                     {[
                         { id: 'grid', Icon: Grid },
                         { id: 'list', Icon: List },
                     ].map(v => (
-                        <button key={v.id} onClick={() => setViewMode(v.id)}
+                        <motion.button key={v.id} onClick={() => setViewMode(v.id)}
+                            whileTap={TAP}
+                            transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                             className="p-1.5 rounded-lg transition-all"
-                            style={{ background: viewMode === v.id ? 'white' : 'transparent', boxShadow: viewMode === v.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none' }}>
+                            style={{
+                                background: viewMode === v.id ? 'linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,255,255,0.75))' : 'transparent',
+                                backdropFilter: viewMode === v.id ? 'blur(12px) saturate(1.6)' : 'none',
+                                WebkitBackdropFilter: viewMode === v.id ? 'blur(12px) saturate(1.6)' : 'none',
+                                boxShadow: viewMode === v.id ? '0 4px 12px rgba(20,40,80,0.12), inset 0 1px 0 rgba(255,255,255,1)' : 'none',
+                            }}>
                             <v.Icon size={14} className={viewMode === v.id ? 'text-[#007AFF]' : 'text-[#AEAEB2]'} />
-                        </button>
+                        </motion.button>
                     ))}
                 </div>
 

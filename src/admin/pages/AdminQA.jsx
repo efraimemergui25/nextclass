@@ -25,15 +25,18 @@ function DrillStat({ items }) {
     const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
     return (
         <div className={`grid ${cols} gap-2.5`}>
-            {items.map((s, i) => (
+            {items.map((s, i) => {
+                const c = s.color || '#007AFF';
+                return (
                 <motion.div key={i}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                     className="rounded-[14px] p-3 text-center"
-                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    style={{ background: `linear-gradient(150deg, ${hexA(c, 0.11)}, ${hexA(c, 0.05)})`, border: `1px solid ${hexA(c, 0.16)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(c, 0.10)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                     <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                 </motion.div>
-            ))}
+                );
+            })}
         </div>
     );
 }
@@ -48,7 +51,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.66), rgba(255,255,255,0.42))', backdropFilter: 'blur(12px) saturate(1.4)', WebkitBackdropFilter: 'blur(12px) saturate(1.4)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(20,40,80,0.04)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -56,7 +59,11 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
                 {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
             </div>
             {trailing}
-            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+            {clickable && (
+                <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: hexA(tone, 0.1), border: `1px solid ${hexA(tone, 0.16)}` }}>
+                    <ChevronLeft size={13} strokeWidth={2.75} style={{ color: tone }} />
+                </span>
+            )}
         </motion.div>
     );
 }
@@ -321,7 +328,7 @@ export default function AdminQA() {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-70 cursor-pointer"
-                                                style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                                                style={{ background: `linear-gradient(135deg, ${hexA(AMBER, 0.16)}, ${hexA(AMBER, 0.07)})`, color: '#007AFF', border: `1px solid ${hexA(AMBER, 0.18)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }}>
                                                 {item.productId}
                                                 <ExternalLink size={9} />
                                             </a>
@@ -338,7 +345,7 @@ export default function AdminQA() {
                                     <div className="space-y-3 mb-4">
                                         {item.answers.map((ans, i) => (
                                             <div key={i} className="p-4 rounded-2xl text-right"
-                                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}>
+                                                style={{ background: 'linear-gradient(150deg, rgba(52,199,89,0.11), rgba(52,199,89,0.045))', border: '1px solid rgba(52,199,89,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 10px rgba(52,199,89,0.07)' }}>
                                                 <div className="flex items-center gap-1 justify-end mb-1">
                                                     <span className="text-[10px] font-black text-[#34C759]">
                                                         תשובת NextClass
@@ -391,9 +398,11 @@ export default function AdminQA() {
                     return (
                         <DrillRow key={item.id} delay={i * 0.03} tone={isAns ? '#34C759' : '#FF9500'}
                             onClick={() => pushDrill({ type: 'question', id: item.id })}
-                            leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                                style={{ background: isAns ? 'rgba(52,199,89,0.12)' : 'rgba(255,149,0,0.12)' }}>
-                                {isAns ? <CheckCircle size={14} className="text-[#34C759]" /> : <HelpCircle size={14} className="text-[#FF9500]" />}</div>}
+                            leading={(() => { const tc = isAns ? '#34C759' : '#FF9500'; return (
+                            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+                                style={{ background: `linear-gradient(140deg, ${hexA(tc, 0.22)}, ${hexA(tc, 0.09)})`, border: `1px solid ${hexA(tc, 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 9px ${hexA(tc, 0.16)}` }}>
+                                {isAns ? <CheckCircle size={14} className="text-[#34C759]" /> : <HelpCircle size={14} className="text-[#FF9500]" />}</div>
+                            ); })()}
                             title={item.question}
                             subtitle={`${item.author || 'אנונימי'} · ${item.productId || '—'}`}
                             trailing={<StatusPill answered={isAns} />}
@@ -463,11 +472,11 @@ export default function AdminQA() {
                                     <span className="text-[11px] text-[#86868B] font-medium flex items-center gap-1"><User size={11} />{q.author || 'אנונימי'}</span>
                                     <span className="text-[11px] text-[#AEAEB2] font-medium flex items-center gap-1"><Clock size={11} />{q.timestamp?.toDate?.().toLocaleDateString('he-IL') ?? '—'}</span>
                                     {q.productId && (
-                                        <span className="text-[11px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                                        <span className="text-[11px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: `linear-gradient(135deg, ${hexA(AMBER, 0.16)}, ${hexA(AMBER, 0.07)})`, color: '#007AFF', border: `1px solid ${hexA(AMBER, 0.18)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)' }}>
                                             <Package size={11} />{q.productId}</span>
                                     )}
                                 </div>
-                                <div className="p-4 rounded-[16px] text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                <div className="p-4 rounded-[16px] text-right" style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.7), rgba(255,255,255,0.44))', backdropFilter: 'blur(14px) saturate(1.4)', WebkitBackdropFilter: 'blur(14px) saturate(1.4)', border: '1px solid rgba(255,255,255,0.85)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.95), 0 3px 12px rgba(20,40,80,0.05)' }}>
                                     <p className="font-black text-[#1D1D1F] text-[16px] leading-snug">{q.question}</p>
                                 </div>
 
@@ -476,7 +485,7 @@ export default function AdminQA() {
                                         <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">תשובות שפורסמו</p>
                                         {q.answers.map((ans, i) => (
                                             <div key={i} className="p-4 rounded-2xl text-right"
-                                                style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.15)' }}>
+                                                style={{ background: 'linear-gradient(150deg, rgba(52,199,89,0.11), rgba(52,199,89,0.045))', border: '1px solid rgba(52,199,89,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 10px rgba(52,199,89,0.07)' }}>
                                                 <div className="flex items-center gap-1 justify-end mb-1">
                                                     <span className="text-[10px] font-black text-[#34C759]">תשובת NextClass</span>
                                                     <CheckCircle size={11} className="text-[#34C759]" />

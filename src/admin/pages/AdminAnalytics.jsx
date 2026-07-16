@@ -32,12 +32,13 @@ function DrillStat({ items }) {
         <div className={`grid ${cols} gap-2.5`}>
             {items.map((s, i) => {
                 const c = s.color || '#1D1D1F';
+                const cc = s.color || '#007AFF';
                 return (
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(150deg, ${hexA(cc, 0.13)}, ${hexA(cc, 0.05)})`, border: `1px solid ${hexA(cc, 0.18)}`, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(cc, 0.10)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -58,7 +59,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 16px rgba(20,40,80,0.05), inset 0 1px 0 rgba(255,255,255,1)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -66,7 +67,11 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
                 {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
             </div>
             {trailing}
-            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+            {clickable && (
+                <span className="shrink-0 flex items-center justify-center" style={{ width: 22, height: 22, borderRadius: 999, background: hexA(tone, 0.1) }}>
+                    <ChevronLeft size={13} strokeWidth={2.5} style={{ color: tone }} />
+                </span>
+            )}
         </motion.div>
     );
 }
@@ -80,6 +85,14 @@ const DrillEmpty = ({ icon: Icon, text }) => (
 
 // ─── Analytics accent — unified brand azure (de-rainbowed) ────────────────────
 const ACCENT = '#007AFF';
+
+// ─── Shared premium-glass tokens ──────────────────────────────────────────────
+// Gradient-ink for metric numerals — keeps the de-rainbowed neutral tone but
+// adds the soft Apple sheen the flat solid `color` lacked.
+const INK_GRAD = { background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+// Frosted-glass tile chrome — replaces flat white fills + hard dark shadows.
+const GLASS_TILE = { background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.66))', backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 8px 24px rgba(20,40,80,0.07), inset 0 1px 0 rgba(255,255,255,1)' };
+const TILE_HOVER = { y: -3, boxShadow: '0 16px 40px rgba(20,40,80,0.12), inset 0 1px 0 rgba(255,255,255,1)' };
 
 // ─── Glass card ───────────────────────────────────────────────────────────────
 function Card({ title, subtitle, accent, action, children, className = '', titleTooltip }) {
@@ -599,7 +612,7 @@ export default function AdminAnalytics() {
             {/* ── Header — emerald accent icon box + gradient ink title ── */}
             <div className="flex items-start justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3.5">
-                    <div style={{ width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: hexA(ACCENT, 0.12), border: `1px solid ${hexA(ACCENT, 0.20)}` }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `linear-gradient(140deg, ${hexA(ACCENT, 0.20)}, ${hexA(ACCENT, 0.08)})`, border: `1px solid ${hexA(ACCENT, 0.22)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 16px ${hexA(ACCENT, 0.16)}` }}>
                         <BarChart2 size={22} color={ACCENT} />
                     </div>
                     <div className="text-right">
@@ -671,7 +684,7 @@ export default function AdminAnalytics() {
                         <div style={{ ...GLASS.base, borderRadius: RADIUS.card }} className="overflow-hidden" dir="rtl">
                             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-black/[0.05]">
                                 <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: hexA('#34C759', 0.12) }}><Percent size={17} style={{ color: '#34C759' }} /></div>
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(140deg, ${hexA('#34C759', 0.22)}, ${hexA('#34C759', 0.09)})`, border: `1px solid ${hexA('#34C759', 0.20)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA('#34C759', 0.14)}` }}><Percent size={17} style={{ color: '#34C759' }} /></div>
                                     <div className="text-right">
                                         <p className="text-[15px] font-black text-[#1D1D1F]">רווחיות מוצרים</p>
                                         <p className="text-[11px] text-[#86868B] font-medium">אחוז רווחיות לכל מוצר — עלות מול מחיר מכירה</p>
@@ -778,8 +791,8 @@ export default function AdminAnalytics() {
                                 <motion.div key={i}
                                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                                     className="rounded-[16px] p-4 text-right cursor-pointer group"
-                                    style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'box-shadow 0.15s, transform 0.15s' }}
-                                    whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
+                                    style={{ ...GLASS_TILE, transition: 'box-shadow 0.15s, transform 0.15s' }}
+                                    whileHover={TILE_HOVER}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => openDrill({ type: kpi.key })}
                                 >
@@ -787,7 +800,7 @@ export default function AdminAnalytics() {
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `${kpi.color}15`, color: kpi.color }}><ChevronLeft size={12} /></div>
                                         <span className="flex items-center gap-0.5"><p className="text-[11px] text-[#AEAEB2] font-semibold">{kpi.label}</p><InfoTooltip text={kpi.tooltip.text} source={kpi.tooltip.source} link={kpi.tooltip.link} linkLabel={kpi.tooltip.linkLabel} /></span>
                                     </div>
-                                    <p className="font-black text-[20px] leading-none mb-1" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</p>
+                                    <p className="font-black text-[20px] leading-none mb-1" style={{ ...INK_GRAD, fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</p>
                                     <p className="text-[10px] text-[#AEAEB2] font-semibold">{kpi.sub}</p>
                                 </motion.div>
                             ))}
@@ -960,11 +973,11 @@ export default function AdminAnalytics() {
                                 { dk: 'cycle', label: 'רווח ממוצע', value: closedStats.avgProfit !== null ? `${closedStats.avgProfit}%` : '—', color: closedStats.avgProfit >= 20 ? '#34C759' : '#FF9500', sub: 'מהגזמאות עם נתוני עלות', tooltip: { text: 'ממוצע שיעור הרווח (%) מהצעות שנסגרו ושיש להן נתוני עלות ספק ב-ProfitCalculator.', source: 'Firestore · quotes · pricingData.profitPct', link: '/admin/orders', linkLabel: 'ראה הצעות' } },
                             ].map((k, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                    whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
+                                    whileHover={TILE_HOVER} whileTap={{ scale: 0.97 }}
                                     onClick={() => openDrill({ type: k.dk })}
-                                    className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+                                    className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ ...GLASS_TILE }}>
                                     <span className="flex items-center justify-between mb-1"><ChevronLeft size={12} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span></span>
-                                    <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
+                                    <p className="font-black text-[22px] leading-none tracking-tight" style={{ ...INK_GRAD, fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                     <p className="text-[10px] text-[#C7C7CC] font-medium mt-1.5">{k.sub}</p>
                                 </motion.div>
                             ))}
@@ -1214,12 +1227,12 @@ export default function AdminAnalytics() {
                                         { kind: 'dead', label: 'ללא מכירות', value: neverSold, color: '#86868B', tooltip: { text: 'מוצרים פעילים שלא נמכרו אף פעם — אין להם שום הזמנה בכל הזמן.', source: 'inventory (פעילים) MINUS orders · productId', link: '/admin/inventory', linkLabel: 'ניהול מלאי' } },
                                     ].map((k, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                            whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
+                                            whileHover={TILE_HOVER} whileTap={{ scale: 0.97 }}
                                             className="rounded-[18px] p-3 text-right cursor-pointer group"
-                                            style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
+                                            style={{ ...GLASS_TILE }}
                                             onClick={() => openDrill({ type: 'catalog', kind: k.kind, label: k.label, color: k.color })}>
                                             <span className="flex items-center justify-between mb-1"><ChevronLeft size={11} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{k.label}</p><InfoTooltip text={k.tooltip.text} source={k.tooltip.source} link={k.tooltip.link} linkLabel={k.tooltip.linkLabel} /></span></span>
-                                            <p className="font-black text-[22px] leading-none" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
+                                            <p className="font-black text-[22px] leading-none" style={{ ...INK_GRAD, fontVariantNumeric: 'tabular-nums' }}>{k.value}</p>
                                         </motion.div>
                                     ))}
                                 </div>
@@ -1322,11 +1335,11 @@ export default function AdminAnalytics() {
                                         { dk: 'risk', label: 'ממתינות · אבדו', value: `${active} · ${lost}`, color: '#FF9500', tooltip: { text: 'ממתינות = הצעות פתוחות עדיין. אבדו = הצעות שבוטלו או סומנו כ"אבד". שתיהן בנפרד.', source: 'Firestore · quotes · status (פתוחות vs אבד+בוטל)', link: '/admin/orders', linkLabel: 'ניהול הצעות' } },
                                     ].map((s, i) => (
                                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                                            whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.97 }}
+                                            whileHover={TILE_HOVER} whileTap={{ scale: 0.97 }}
                                             onClick={() => openDrill({ type: s.dk })}
-                                            className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+                                            className="rounded-[18px] p-4 text-right cursor-pointer group" style={{ ...GLASS_TILE }}>
                                             <span className="flex items-center justify-between mb-1"><ChevronLeft size={12} className="opacity-0 group-hover:opacity-50 transition-opacity text-[#AEAEB2]" /><span className="flex items-center gap-0.5"><p className="text-[10px] font-semibold text-[#AEAEB2] tracking-wide">{s.label}</p><InfoTooltip text={s.tooltip.text} source={s.tooltip.source} link={s.tooltip.link} linkLabel={s.tooltip.linkLabel} /></span></span>
-                                            <p className="font-black text-[22px] leading-none tracking-tight" style={{ color: '#1D1D1F', fontVariantNumeric: 'tabular-nums' }}>{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
+                                            <p className="font-black text-[22px] leading-none tracking-tight" style={{ ...INK_GRAD, fontVariantNumeric: 'tabular-nums' }}>{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
                                         </motion.div>
                                     ))}
                                 </div>

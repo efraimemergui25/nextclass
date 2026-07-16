@@ -15,8 +15,11 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { FileText, ExternalLink, X } from 'lucide-react';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { fetchFirestoreBlobUrl, renderPdfPages } from '../utils/fileStore';
+import { renderPdfPages } from '../utils/fileStore';
+import Combobox from './Combobox';
+import { cityOptions } from '../lib/israelCities';
 
 const HE = 'Heebo, sans-serif';
 const glass = { background: 'rgba(255,255,255,0.9)', border: '1.5px solid rgba(255,255,255,0.95)', boxShadow: '0 8px 40px rgba(0,0,0,0.07), inset 0 1.5px 0 rgba(255,255,255,1)' };
@@ -31,6 +34,15 @@ const SectionHead = ({ emoji, title, color, extra }) => (
     </div>
 );
 
+function ComboField({ label, value, onChange, onPick, options, placeholder, span = 1 }) {
+    return (
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: span === 2 ? 'span 2' : 'auto', minWidth: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.04em' }}>{label}</span>
+            <Combobox value={value} onChange={onChange} onPick={onPick} options={options} placeholder={placeholder || ''} inputStyle={{ padding: '9px 30px 9px 11px', fontSize: 12.5 }} />
+        </label>
+    );
+}
+
 function Field({ label, value, onChange, placeholder, type = 'text', span = 1 }) {
     return (
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: span === 2 ? 'span 2' : 'auto', minWidth: 0 }}>
@@ -43,7 +55,9 @@ function Field({ label, value, onChange, placeholder, type = 'text', span = 1 })
 
 const computeSubtotal = (items) => (items || []).reduce((s, it) => s + (Number(it.salePrice ?? it.price) || 0) * (Number(it.qty) || 1), 0);
 
-export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) {
+export default function OrderReviewSplit({ order, onClose, onSave, onApprove, catalog = [], directory = [] }) {
+    const productOptions = (catalog || []).map(p => ({ label: p.title || '', price: Number(p.price) || 0, image: p.image || '', sub: p.sku || p.model || '' })).filter(o => o.label);
+    const instOptions = (() => { const s = new Set(); return (directory || []).filter(x => { const k = (x.institution || '').trim(); if (!k || s.has(k)) return false; s.add(k); return true; }).map(x => ({ label: x.institution, sub: x.city || x.address })); })();
     // ── editable buffer, seeded from the order ──
     const [d, setD] = useState(() => ({
         orderNumber: order.orderNumber || '', deliveryDate: order.deliveryDate || '', poDate: order.poDate || order.date || '',
@@ -70,22 +84,29 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
         if (!order.documentId) { setDocState('none'); return; }
         setDocState('loading');
         (async () => {
-            let url = '';
             try {
-                url = await fetchFirestoreBlobUrl(db, 'order_documents', { id: order.documentId, type: order.documentType || 'application/pdf' });
-            } catch { if (!dead) setDocState('error'); return; }
-            if (dead) { URL.revokeObjectURL(url); return; }
-            urlRef.current = url; setBlobUrl(url);
-            if (isImage) { setDocState('image'); return; }
-            // PDF → render each page to an image (best). If that fails for any reason,
-            // fall back to an inline <iframe> of the real PDF — NEVER to the email text.
-            try {
-                const blob = await (await fetch(url)).blob();
+                // Reassemble the file bytes DIRECTLY from the Firestore chunks. We must NOT
+                // fetch() a blob: URL — the site CSP blocks blob: in connect-src/frame-src,
+                // which is what silently broke the previous approach. Passing the raw Blob
+                // straight to renderPdfPages mirrors how the OCR screen renders an uploaded
+                // File (canvas → data-URL page images, which CSP never blocks).
+                const snap = await getDocs(query(collection(db, 'order_documents', order.documentId, 'chunks'), orderBy('i')));
+                const b64 = snap.docs.map(x => x.data().b64 || '').join('');
+                if (!b64) { if (!dead) setDocState('error'); return; }
+                const bin = atob(b64);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                const mime = order.documentType || 'application/pdf';
+                const blob = new Blob([bytes], { type: mime });
+                const url = URL.createObjectURL(blob);
+                if (dead) { URL.revokeObjectURL(url); return; }
+                urlRef.current = url; setBlobUrl(url);
+                if (mime.startsWith('image/')) { setDocState('image'); return; }
                 const pages = await renderPdfPages(blob, { maxPages: 10 });
                 if (dead) return;
-                if (pages.length) { setPdfPages(pages); setDocState('pdf'); return; }
-            } catch { /* fall through to iframe */ }
-            if (!dead) setDocState('pdfraw');
+                if (pages.length) { setPdfPages(pages); setDocState('pdf'); }
+                else setDocState('pdfraw');   // last resort — an "open in new tab" link still works
+            } catch { if (!dead) setDocState('error'); }
         })();
         return () => { dead = true; if (urlRef.current) URL.revokeObjectURL(urlRef.current); };
     }, [order.documentId]); // eslint-disable-line
@@ -94,7 +115,7 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
     const [saving, setSaving] = useState(false);
 
     const mappedFields = () => ({
-        orderNumber: d.orderNumber, deliveryDate: d.deliveryDate, budgetCode: d.budgetCode, paymentTerms: d.paymentTerms,
+        orderNumber: d.orderNumber, deliveryDate: d.deliveryDate, poDate: d.poDate, budgetCode: d.budgetCode, paymentTerms: d.paymentTerms,
         contactName: d.contactName, institution: d.institution, phone: d.phone, email: d.email,
         address: d.address, city: d.city, zip: d.zip, notes: d.notes,
         items: d.items, subtotal, vatAmount: d.vatAmount, totalIncVat: d.totalIncVat,
@@ -167,10 +188,24 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
                                     </div>
                                 )}
                                 {docState === 'pdfraw' && blobUrl && (
-                                    <iframe src={blobUrl} title="doc" style={{ width: '100%', height: 'calc(100vh - 240px)', minHeight: 460, border: 'none', display: 'block', background: '#fff' }} />
+                                    <div style={{ padding: 48, textAlign: 'center', background: '#fff', minHeight: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                                        <FileText size={34} color="#C7CDD8" strokeWidth={1.8} />
+                                        <p style={{ color: '#86868B', fontSize: 12.5, fontWeight: 700, margin: 0 }}>לא ניתן להציג את ה‑PDF כאן בתוך המסך</p>
+                                        <a href={blobUrl} target="_blank" rel="noreferrer"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 11, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
+                                            <ExternalLink size={15} strokeWidth={2.4} /> פתח את המסמך בכרטיסייה חדשה
+                                        </a>
+                                    </div>
                                 )}
                                 {docState === 'none' && (
-                                    <pre dir="rtl" style={{ margin: 0, padding: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11.5, lineHeight: 1.75, color: '#3A3A3C', fontFamily: HE, background: '#fff', minHeight: 420 }}>{order.rawEmail || order.emailSubject || 'אין תצוגה מקדימה — הנתונים חולצו מגוף המייל.'}</pre>
+                                    <div style={{ background: '#fff', minHeight: 420 }}>
+                                        {order.documentStoreFailed && (
+                                            <div style={{ margin: 16, padding: '11px 13px', borderRadius: 12, background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.25)' }}>
+                                                <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, color: '#B25E00' }}>הגיע קובץ מצורף ({order.attachmentName || 'מסמך'}) אך הוא גדול מכדי להישמר — הנתונים חולצו, אך המסמך המקורי אינו זמין לתצוגה.</p>
+                                            </div>
+                                        )}
+                                        <pre dir="rtl" style={{ margin: 0, padding: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 11.5, lineHeight: 1.75, color: '#3A3A3C', fontFamily: HE }}>{order.rawEmail || order.emailSubject || 'אין תצוגה מקדימה — הנתונים חולצו מגוף המייל.'}</pre>
+                                    </div>
                                 )}
                                 {docState === 'error' && (
                                     <div style={{ padding: 48, textAlign: 'center' }}>
@@ -190,7 +225,7 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
                                 <Field label="מספר הזמנה" value={d.orderNumber} onChange={v => set('orderNumber', v)} />
                                 <Field label="סעיף תקציבי" value={d.budgetCode} onChange={v => set('budgetCode', v)} />
-                                <Field label="תנאי תשלום" value={d.paymentTerms} onChange={v => set('paymentTerms', v)} placeholder="שוטף+30" />
+                                <ComboField label="תנאי תשלום" value={d.paymentTerms} onChange={v => set('paymentTerms', v)} options={['שוטף+30', 'שוטף+60', 'שוטף+90', 'מזומן', 'העברה בנקאית', 'אשראי'].map(o => ({ label: o }))} placeholder="בחר/י או הקלד/י" />
                                 <Field label="תאריך הזמנה" value={d.poDate} onChange={v => set('poDate', v)} />
                                 <Field label="תאריך אספקה" value={d.deliveryDate} onChange={v => set('deliveryDate', v)} />
                                 <Field label="מטבע" value={'ILS'} onChange={() => {}} placeholder="ILS" />
@@ -201,11 +236,11 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
                             <SectionHead emoji="👤" title="פרטי לקוח / מוסד" color="#007AFF" />
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
                                 <Field label="שם איש קשר" value={d.contactName} onChange={v => set('contactName', v)} />
-                                <Field label="מוסד / חברה" value={d.institution} onChange={v => set('institution', v)} />
+                                <ComboField label="מוסד / חברה" value={d.institution} onChange={v => set('institution', v)} options={instOptions} placeholder="בחר/י או הקלד/י" />
                                 <Field label="טלפון" value={d.phone} onChange={v => set('phone', v)} />
                                 <Field label="מייל" value={d.email} onChange={v => set('email', v)} type="email" />
                                 <Field label="כתובת" value={d.address} onChange={v => set('address', v)} span={2} />
-                                <Field label="עיר" value={d.city} onChange={v => set('city', v)} />
+                                <ComboField label="עיר" value={d.city} onChange={v => set('city', v)} options={cityOptions} placeholder="בחר/י עיר או הקלד/י" />
                                 <Field label="מיקוד" value={d.zip} onChange={v => set('zip', v)} />
                             </div>
                         </div>
@@ -217,7 +252,9 @@ export default function OrderReviewSplit({ order, onClose, onSave, onApprove }) 
                                 {d.items.map((item, i) => (
                                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '92px 1fr 52px 58px 84px 30px', gap: 8, alignItems: 'center', padding: '10px 12px', borderRadius: 12, background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)' }}>
                                         <input value={item.catalogNumber} onChange={e => setItem(i, 'catalogNumber', e.target.value)} placeholder='מק"ט' dir="rtl" style={{ padding: '7px 8px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.09)', background: '#fff', fontSize: 11, fontWeight: 700, color: '#6E6E73', fontFamily: HE, outline: 'none', textAlign: 'center' }} />
-                                        <input value={item.title} onChange={e => setItem(i, 'title', e.target.value)} placeholder="שם מוצר" dir="rtl" style={{ padding: '7px 10px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.09)', background: '#fff', fontSize: 12, fontWeight: 600, color: '#1D1D1F', fontFamily: HE, outline: 'none' }} />
+                                        <Combobox value={item.title} options={productOptions} placeholder="בחר/י מהמלאי או הקלד/י"
+                                            onChange={v => setItem(i, 'title', v)}
+                                            onPick={o => { setItem(i, 'title', o.label); if (o.price) setItem(i, 'salePrice', o.price); if (o.sub) setItem(i, 'catalogNumber', o.sub); }} />
                                         <input type="number" value={item.qty} min="1" onChange={e => setItem(i, 'qty', Number(e.target.value))} style={{ padding: '7px 6px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.09)', background: '#fff', fontSize: 12, fontWeight: 700, color: '#1D1D1F', fontFamily: HE, outline: 'none', textAlign: 'center' }} />
                                         <input value={item.unit} onChange={e => setItem(i, 'unit', e.target.value)} placeholder="יח׳" dir="rtl" style={{ padding: '7px 6px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.09)', background: '#fff', fontSize: 11, fontWeight: 700, color: '#6E6E73', fontFamily: HE, outline: 'none', textAlign: 'center' }} />
                                         <input type="number" value={item.salePrice} onChange={e => setItem(i, 'salePrice', Number(e.target.value))} placeholder="מחיר ₪" style={{ padding: '7px 8px', borderRadius: 9, border: '1.5px solid rgba(0,0,0,0.09)', background: '#fff', fontSize: 12, fontWeight: 700, color: '#007AFF', fontFamily: HE, outline: 'none', textAlign: 'center' }} />

@@ -24,8 +24,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(145deg, ${hexA(s.color || '#007AFF', 0.12)}, ${hexA(s.color || '#007AFF', 0.04)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.18)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(s.color || '#007AFF', 0.10)}` }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -49,11 +49,12 @@ function LiveConnectionStatus() {
     return (
         <div style={GLASS} className="p-5" dir="rtl">
             <div className="flex items-center justify-between mb-4">
-                <button onClick={load} disabled={loading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black transition-colors"
-                    style={{ background: hexA('#007AFF', 0.10), color: '#007AFF' }}>
+                <motion.button onClick={load} disabled={loading}
+                    whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black"
+                    style={{ background: `linear-gradient(140deg, ${hexA('#007AFF', 0.14)}, ${hexA('#007AFF', 0.06)})`, border: `1px solid ${hexA('#007AFF', 0.22)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA('#007AFF', 0.14)}`, color: '#007AFF' }}>
                     <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> רענן
-                </button>
+                </motion.button>
                 <div>
                     <p className="text-[15px] font-black text-[#1D1D1F] text-right" style={{ margin: 0 }}>סטטוס חיבורים חי</p>
                     <p className="text-[11.5px] text-[#86868B] font-medium text-right" style={{ margin: '2px 0 0' }}>מה מחובר בפועל בשרת (בלי לחשוף מפתחות)</p>
@@ -82,16 +83,16 @@ function LiveConnectionStatus() {
                 </div>
             )}
             {st && !st.emailReady && (
-                <div className="flex items-center gap-3 mt-3 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
-                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                <div className="flex items-center gap-3 mt-3 p-3 rounded-2xl" style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,250,242,0.72))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 8px 28px rgba(255,149,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(140deg, rgba(255,149,0,0.26), rgba(255,149,0,0.10))', border: '1px solid rgba(255,149,0,0.24)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(255,149,0,0.16)' }}>
                         <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
                     </div>
                     <p className="text-[12px] font-medium text-[#5A6472] m-0">שליחת מיילים כבויה — הוסף <code className="font-bold text-[#1D1D1F]">RESEND_API_KEY</code> ב-Vercel כדי שהמיילים יצאו בפועל.</p>
                 </div>
             )}
             {st && !st.aiReady && (
-                <div className="flex items-center gap-3 mt-2 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
-                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                <div className="flex items-center gap-3 mt-2 p-3 rounded-2xl" style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,250,242,0.72))', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 8px 28px rgba(255,149,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(140deg, rgba(255,149,0,0.26), rgba(255,149,0,0.10))', border: '1px solid rgba(255,149,0,0.24)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(255,149,0,0.16)' }}>
                         <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
                     </div>
                     <p className="text-[12px] font-medium text-[#5A6472] m-0">AI כבוי — הוסף <code className="font-bold text-[#1D1D1F]">GEMINI_API_KEY</code> כדי להפעיל סריקה וייבוא מוצר.</p>
@@ -112,7 +113,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.55), rgba(0,0,0,0.02))', border: '1px solid rgba(255,255,255,0.7)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -213,6 +214,15 @@ function useCRMStats() {
     return { data, loading, refetch: () => setTs(Date.now()) };
 }
 
+// ── Live per-service connection status (real env-key checks via the API) ──────
+function useLiveStatus() {
+    const [svc, setSvc] = useState(null);
+    useEffect(() => {
+        fetch('/api/integrations-status').then(r => r.json()).then(d => setSvc(d.services || null)).catch(() => {});
+    }, []);
+    return svc;
+}
+
 // ── ServiceCard ───────────────────────────────────────────────────────────────
 function ServiceCard({ service, isActive, i, onOpen }) {
     const { Icon, label, desc, color } = service;
@@ -240,7 +250,7 @@ function ServiceCard({ service, isActive, i, onOpen }) {
         >
             <div className="relative">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                    style={{ background: `${color}18`, border: `1px solid ${color}28` }}>
+                    style={{ background: `linear-gradient(140deg, ${color}2b, ${color}12)`, border: `1px solid ${color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${color}22` }}>
                     <Icon className="w-5 h-5" style={{ color }} strokeWidth={1.8} />
                 </div>
                 <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${isActive ? 'bg-[#34C759]' : 'bg-[#C7C7CC]'}`} />
@@ -414,9 +424,9 @@ function CRMPipeline({ data, loading, refetch }) {
                     <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.07 }}
                         className="p-3 rounded-2xl text-center"
-                        style={{ background: `${stat.color}10`, border: `1px solid ${stat.color}20` }}>
+                        style={{ background: `linear-gradient(145deg, ${stat.color}14, ${stat.color}05)`, border: `1px solid ${stat.color}22`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 12px ${stat.color}12` }}>
                         <stat.Icon className="w-4 h-4 mx-auto mb-1.5" style={{ color: stat.color }} strokeWidth={2} />
-                        <p className="font-black text-[15px] text-[#1D1D1F]">{stat.value}</p>
+                        <p className="font-black text-[15px] tracking-tight" style={{ background: `linear-gradient(135deg, ${stat.color}, ${stat.color}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stat.value}</p>
                         <p className="text-[9px] text-[#AEAEB2] font-bold mt-0.5">{stat.label}</p>
                     </motion.div>
                 ))}
@@ -494,7 +504,7 @@ function GeneralInfo() {
                         className="flex items-center justify-between py-2 px-3 rounded-xl" style={GLASS_INSET}>
                         <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+                                style={{ background: `linear-gradient(140deg, ${color}26, ${color}10)`, border: `1px solid ${color}22`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px ${color}1f` }}>
                                 <Icon className="w-3.5 h-3.5" style={{ color }} strokeWidth={2} />
                             </div>
                             <span className="text-[12px] font-bold text-[#1D1D1F]">{value}</span>
@@ -558,9 +568,15 @@ function StatTile({ label, value, color, Icon, delay, onClick }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminIntegrations() {
     const { data: crmData, loading: crmLoading, refetch } = useCRMStats();
+    const live = useLiveStatus();   // real per-key connection booleans from /api/integrations-status
 
     const getServiceStatus = (service) => {
         if (service.key === 'hubspot') return !!(crmData?.configured && !crmData?.error);
+        // Prefer the REAL env-key check from the API over the old hardcoded () => true.
+        if (live) {
+            if (service.key === 'groq')   return !!live.groq?.connected;
+            if (service.key === 'resend') return !!live.resend?.connected;
+        }
         if (service.statusCheck) return service.statusCheck();
         return false;
     };
@@ -695,7 +711,7 @@ export default function AdminIntegrations() {
                             <div className="flex items-center justify-between">
                                 <StatusChip active={active} />
                                 <span className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                                    style={{ background: `${svc.color}18`, border: `1px solid ${svc.color}28` }}>
+                                    style={{ background: `linear-gradient(140deg, ${svc.color}2b, ${svc.color}12)`, border: `1px solid ${svc.color}26`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${svc.color}22` }}>
                                     <SIcon className="w-5 h-5" style={{ color: svc.color }} strokeWidth={1.8} />
                                 </span>
                             </div>

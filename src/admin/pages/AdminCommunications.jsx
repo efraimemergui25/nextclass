@@ -402,7 +402,7 @@ function LeadHero({ lead, onStatusChange }) {
                         </AnimatePresence>
                     </div>
                     {total && (
-                        <span style={{ fontSize: 15, fontWeight: 900, color: '#007AFF', fontFamily: SF }}>{total}</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, fontFamily: SF, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{total}</span>
                     )}
                     {lead.date && (
                         <span style={{ fontSize: 10, color: '#AEAEB2', fontFamily: SF }}>{lead.date}</span>
@@ -1093,7 +1093,7 @@ export default function AdminCommunications() {
                         /* ── Dashboard ── */
                     <div style={{ maxWidth: 700, margin: '0 auto' }}>
                         <div style={{ marginBottom: 24 }}>
-                            <h2 style={{ fontSize: 22, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: '0 0 4px' }}>מרכז תקשורת</h2>
+                            <h2 style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-1px', lineHeight: 1, fontFamily: SF, margin: '0 0 6px', background: 'linear-gradient(135deg,#1D1D1F 0%,#3C3C43 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>מרכז תקשורת</h2>
                             <p style={{ fontSize: 13, color: '#6E6E73', fontFamily: SF, margin: 0 }}>
                                 {newCount} לידים חדשים · {unreadCount} הודעות שלא נקראו · סה״כ {leads.length} לידים
                             </p>
@@ -1114,8 +1114,8 @@ export default function AdminCommunications() {
                         {/* #6 Stale leads banner */}
                         {staleCount > 0 && (
                             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 16, marginBottom: 20, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)', fontFamily: SF }}>
-                                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 16, marginBottom: 20, background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,251,244,0.7))', backdropFilter: 'blur(26px) saturate(1.7)', WebkitBackdropFilter: 'blur(26px) saturate(1.7)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 40px rgba(255,149,0,0.10), inset 0 1px 0 rgba(255,255,255,1)', fontFamily: SF }}>
+                                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(140deg,#FF95002b,#FF950012)', border: '1px solid #FF950026', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #FF950022', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <AlertTriangle size={20} color="#FF9500" strokeWidth={2.2} />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
@@ -1138,7 +1138,7 @@ export default function AdminCommunications() {
                                     <motion.button key={status} whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
                                         onClick={() => setFilterStatus(status)}
                                         style={{ ...CARD, padding: '14px 14px', textAlign: 'right', border: 'none', cursor: 'pointer' }}>
-                                        <p style={{ fontSize: 28, fontWeight: 900, color: '#1D1D1F', fontFamily: SF, margin: '0 0 2px', lineHeight: 1 }}>{count}</p>
+                                        <p style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.02em', fontFamily: SF, margin: '0 0 2px', lineHeight: 1, background: `linear-gradient(135deg, ${meta.color}, ${meta.color}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{count}</p>
                                         <p style={{ fontSize: 11, fontWeight: 700, color: meta.color, fontFamily: SF, margin: 0, opacity: 0.8 }}>{status}</p>
                                     </motion.button>
                                 );
@@ -1229,7 +1229,7 @@ export default function AdminCommunications() {
                                 const isActive = activeChannel === ch.id;
                                 const hasUnread = ch.id === 'chat' && selected?.unreadAdmin;
                                 return (
-                                    <button key={ch.id}
+                                    <motion.button key={ch.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} transition={SPRING.snappy}
                                         onClick={() => {
                                             setActiveChannel(ch.id);
                                             if (ch.id !== 'chat') { setActiveTpl(null); setCustomMsg(''); setCustomSubject(''); }
@@ -1238,18 +1238,19 @@ export default function AdminCommunications() {
                                         style={{
                                             position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
                                             padding: '8px 18px', borderRadius: 99, fontSize: 13, fontWeight: 800, fontFamily: SF,
-                                            cursor: 'pointer', transition: 'all 0.18s',
-                                            background: isActive ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.8)',
-                                            border: `1.5px solid ${isActive ? '#007AFF' : 'rgba(0,0,0,0.08)'}`,
-                                            color: isActive ? '#007AFF' : '#86868B',
-                                            boxShadow: 'none',
+                                            cursor: 'pointer', transition: 'background 0.18s, box-shadow 0.18s, color 0.18s',
+                                            background: isActive ? 'linear-gradient(135deg,#007AFF,#007AFFdb)' : 'rgba(255,255,255,0.9)',
+                                            backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                                            border: `1.5px solid ${isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.9)'}`,
+                                            color: isActive ? '#fff' : '#6E6E73',
+                                            boxShadow: isActive ? '0 6px 16px rgba(0,122,255,0.34), inset 0 1px 0 rgba(255,255,255,0.45)' : 'inset 0 1px 0 rgba(255,255,255,0.7)',
                                         }}>
                                         <ch.Icon size={14} strokeWidth={2} />
                                         {ch.label}
                                         {hasUnread && (
                                             <span style={{ position: 'absolute', top: -3, left: -3, width: 10, height: 10, borderRadius: 99, background: 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: '0 0 0 2px rgba(245,245,247,0.8)' }} />
                                         )}
-                                    </button>
+                                    </motion.button>
                                 );
                             })}
                         </div>
@@ -1422,11 +1423,11 @@ export default function AdminCommunications() {
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
                                 <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{pendingEmails.length}</p>
+                                    <p style={{ fontSize: 34, fontWeight: 900, margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1, background: `linear-gradient(135deg, ${CORAL}, ${CORAL}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{pendingEmails.length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>ממתינים לאישור</p>
                                 </div>
                                 <div style={{ ...CARD, borderRadius: RADIUS.smCard, padding: '16px 26px', minWidth: 120 }}>
-                                    <p style={{ fontSize: 34, fontWeight: 900, color: '#1D1D1F', margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1 }}>{emailLog.filter(e => e.status === 'sent').length}</p>
+                                    <p style={{ fontSize: 34, fontWeight: 900, margin: '0 0 2px', letterSpacing: '-1px', lineHeight: 1, background: `linear-gradient(135deg, ${toneColor('success')}, ${toneColor('success')}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{emailLog.filter(e => e.status === 'sent').length}</p>
                                     <p style={{ fontSize: 11, fontWeight: 700, color: '#86868B', margin: 0 }}>נשלחו בהצלחה</p>
                                 </div>
                             </div>

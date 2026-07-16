@@ -19,8 +19,8 @@ function DrillStat({ items }) {
                 <motion.div key={i}
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                     className="rounded-[14px] p-3 text-center"
-                    style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.11)}, ${hexA(s.color || '#007AFF', 0.03)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.18)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 3px 10px ${hexA(s.color || '#007AFF', 0.10)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${s.color || '#1D1D1F'}, ${hexA(s.color || '#1D1D1F', 0.72)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                     <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                 </motion.div>
             ))}
@@ -137,16 +137,18 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
             </div>
 
             <div className="flex gap-3 justify-start">
-                <button onClick={() => onSave(form)} disabled={loading || !form.title || !form.url}
+                <motion.button onClick={() => onSave(form)} disabled={loading || !form.title || !form.url}
+                    whileHover={{ y: -2, boxShadow: `0 8px 24px ${hexA(BRAND, 0.42)}, inset 0 1px 0 rgba(255,255,255,0.3)` }} whileTap={TAP} transition={SPRING.snappy}
                     className="flex items-center gap-2 px-5 py-2.5 text-white font-bold rounded-xl text-[13px] disabled:opacity-40 transition-all"
                     style={{ background: BRAND_GRAD, boxShadow: `0 4px 16px ${hexA(BRAND, 0.3)}, inset 0 1px 0 rgba(255,255,255,0.3)` }}>
                     {loading ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
                     שמור
-                </button>
-                <button onClick={onCancel} className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
-                    style={{ background: 'rgba(0,0,0,0.05)', color: '#6E6E73' }}>
+                </motion.button>
+                <motion.button onClick={onCancel} whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
+                    className="flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-[13px] transition-all"
+                    style={{ ...GLASS.frosted, borderRadius: 12, color: '#6E6E73' }}>
                     <X size={14} />ביטול
-                </button>
+                </motion.button>
             </div>
         </motion.div>
     );
@@ -250,10 +252,10 @@ export default function AdminMagazine() {
 
             {/* Note when Firestore is empty */}
             {!listLoading && articles.length === 0 && (
-                <div className="mb-6 flex items-center gap-4 p-4 rounded-2xl text-right bg-white"
-                    style={{ border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)' }}>
-                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(0,122,255,0.1)' }}>
-                        <Newspaper size={20} color="#007AFF" strokeWidth={2.2} />
+                <div className="mb-6 flex items-center gap-4 p-4 text-right"
+                    style={{ ...glass, borderRadius: RADIUS.card }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: BRAND_GRAD, boxShadow: `0 8px 20px ${hexA(BRAND, 0.30)}, inset 0 1px 0 rgba(255,255,255,0.45)` }}>
+                        <Newspaper size={20} color="#fff" strokeWidth={2.2} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-[13.5px] font-bold text-[#1D1D1F] mb-0.5">הכתבות הסטטיות מוצגות כרגע</p>
@@ -308,21 +310,24 @@ export default function AdminMagazine() {
                                         <p className="text-[11px] text-[#AEAEB2] mt-1">{article.date} · {article.readTime}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <a href={article.url} target="_blank" rel="noopener noreferrer"
+                                        <motion.a href={article.url} target="_blank" rel="noopener noreferrer"
+                                            whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
                                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                            style={{ background: 'rgba(0,122,255,0.07)', color: '#007AFF' }}>
+                                            style={{ background: `linear-gradient(140deg, ${hexA(BRAND, 0.18)}, ${hexA(BRAND, 0.07)})`, border: `1px solid ${hexA(BRAND, 0.16)}`, color: '#007AFF', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(BRAND, 0.13)}` }}>
                                             <ExternalLink size={14} />
-                                        </a>
-                                        <button onClick={() => { setEditId(article.id); setShowAdd(false); }}
+                                        </motion.a>
+                                        <motion.button onClick={() => { setEditId(article.id); setShowAdd(false); }}
+                                            whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
                                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                            style={{ background: 'rgba(0,122,255,0.07)', color: '#007AFF' }}>
+                                            style={{ background: `linear-gradient(140deg, ${hexA(BRAND, 0.18)}, ${hexA(BRAND, 0.07)})`, border: `1px solid ${hexA(BRAND, 0.16)}`, color: '#007AFF', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(BRAND, 0.13)}` }}>
                                             <Edit2 size={14} />
-                                        </button>
-                                        <button onClick={() => handleDelete(article.id)} disabled={deleting === article.id}
+                                        </motion.button>
+                                        <motion.button onClick={() => handleDelete(article.id)} disabled={deleting === article.id}
+                                            whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
                                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-40"
-                                            style={{ background: 'rgba(255,59,48,0.07)', color: '#FF3B30' }}>
+                                            style={{ background: 'linear-gradient(140deg, rgba(255,59,48,0.18), rgba(255,59,48,0.07))', border: '1px solid rgba(255,59,48,0.16)', color: '#FF3B30', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(255,59,48,0.13)' }}>
                                             {deleting === article.id ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                        </button>
+                                        </motion.button>
                                     </div>
                                 </div>
                             )}
@@ -463,16 +468,18 @@ export default function AdminMagazine() {
                                     </div>
                                 )}
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => startEdit(a.id)}
+                                    <motion.button onClick={() => startEdit(a.id)}
+                                        whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
                                         className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
-                                        style={{ background: hexA(BRAND, 0.1), color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}` }}>
+                                        style={{ background: `linear-gradient(140deg, ${hexA(BRAND, 0.14)}, ${hexA(BRAND, 0.05)})`, color: '#005EC4', border: `1px solid ${hexA(BRAND, 0.24)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(BRAND, 0.12)}` }}>
                                         <Edit2 size={14} /> ערוך כתבה
-                                    </button>
-                                    <button onClick={() => { handleDelete(a.id); closeDrill(); }}
+                                    </motion.button>
+                                    <motion.button onClick={() => { handleDelete(a.id); closeDrill(); }}
+                                        whileHover={{ y: -2 }} whileTap={TAP} transition={SPRING.snappy}
                                         className="flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
-                                        style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                        style={{ background: 'linear-gradient(140deg, rgba(255,59,48,0.13), rgba(255,59,48,0.05))', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px rgba(255,59,48,0.12)' }}>
                                         <Trash2 size={14} /> מחק
-                                    </button>
+                                    </motion.button>
                                 </div>
                             </div>
                         );

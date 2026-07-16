@@ -17,6 +17,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import {
     collection, onSnapshot, setDoc, addDoc, deleteDoc, doc, serverTimestamp,
 } from 'firebase/firestore';
@@ -70,9 +71,12 @@ function Field({ label, children }) {
 }
 
 const inputStyle = {
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid rgba(0,0,0,0.10)',
+    background: 'linear-gradient(150deg, rgba(255,255,255,0.92), rgba(255,255,255,0.7))',
+    backdropFilter: 'blur(16px) saturate(1.6)',
+    WebkitBackdropFilter: 'blur(16px) saturate(1.6)',
+    border: '1px solid rgba(255,255,255,0.9)',
     borderRadius: RADIUS.input,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,1), 0 1px 3px ${hexA('#142850', 0.05)}`,
     ...FONT,
 };
 
@@ -228,7 +232,13 @@ function LivePreview({ value }) {
     return (
         <div
             className="rounded-2xl p-4 flex flex-col gap-3"
-            style={{ background: 'rgba(248,249,252,0.9)', border: '1px solid rgba(0,0,0,0.06)' }}
+            style={{
+                background: 'linear-gradient(150deg, rgba(250,251,253,0.94), rgba(244,246,250,0.8))',
+                backdropFilter: 'blur(18px) saturate(1.5)',
+                WebkitBackdropFilter: 'blur(18px) saturate(1.5)',
+                border: '1px solid rgba(255,255,255,0.85)',
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,1), 0 8px 24px ${hexA('#142850', 0.06)}`,
+            }}
             dir="rtl"
         >
             <div className="flex items-center gap-2">
@@ -419,11 +429,19 @@ export default function TemplatesManager() {
                                 <h2 className="text-[19px] font-black text-[#1D1D1F]">
                                     {editing.id ? 'עריכת תבנית' : 'תבנית חדשה'}
                                 </h2>
-                                <button
+                                <motion.button
+                                    whileHover={{ scale: 1.06 }}
+                                    whileTap={{ scale: 0.92 }}
+                                    transition={SPRING.snappy}
                                     onClick={() => setEditing(null)}
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868B]"
-                                    style={{ background: 'rgba(0,0,0,0.04)' }}
-                                >✕</button>
+                                    className="w-9 h-9 rounded-full flex items-center justify-center text-[#6E6E73]"
+                                    style={{
+                                        background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))',
+                                        border: '1px solid rgba(255,255,255,0.9)',
+                                        boxShadow: `inset 0 1px 0 rgba(255,255,255,1), 0 4px 12px ${hexA('#142850', 0.08)}`,
+                                    }}
+                                    aria-label="סגור"
+                                ><X size={17} strokeWidth={2.4} /></motion.button>
                             </div>
 
                             <TemplateEditor
@@ -443,7 +461,13 @@ export default function TemplatesManager() {
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => setEditing(null)}
                                     className="flex-1 h-12 rounded-full font-bold text-[14px] text-[#1D1D1F]"
-                                    style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.06)' }}
+                                    style={{
+                                        background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.62))',
+                                        backdropFilter: 'blur(16px) saturate(1.6)',
+                                        WebkitBackdropFilter: 'blur(16px) saturate(1.6)',
+                                        border: '1px solid rgba(255,255,255,0.9)',
+                                        boxShadow: `inset 0 1px 0 rgba(255,255,255,1), 0 2px 8px ${hexA('#142850', 0.05)}`,
+                                    }}
                                 >ביטול</motion.button>
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
@@ -466,7 +490,8 @@ function TemplateCard({ t, onEdit, onDelete }) {
     const isEmail = t.channel === 'email';
     return (
         <motion.div
-            whileHover={{ y: -2 }}
+            whileHover={{ y: -3, boxShadow: `0 16px 40px ${hexA(AZURE, 0.15)}, ${SHADOW.specular}` }}
+            transition={SPRING.gentle}
             className="p-4 rounded-2xl flex flex-col gap-2"
             style={{ ...GLASS.base, borderRadius: RADIUS.card }}
         >
@@ -491,16 +516,20 @@ function TemplateCard({ t, onEdit, onDelete }) {
                 {t.body}
             </p>
             <div className="flex gap-2 mt-1">
-                <button
+                <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={SPRING.snappy}
                     onClick={onEdit}
                     className="flex-1 py-1.5 rounded-lg text-[12px] font-bold text-[#005EC4] transition-colors"
-                    style={{ background: hexA(AZURE, 0.08) }}
-                >עריכה</button>
-                <button
+                    style={{ background: hexA(AZURE, 0.08), border: `1px solid ${hexA(AZURE, 0.14)}` }}
+                >עריכה</motion.button>
+                <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={SPRING.snappy}
                     onClick={onDelete}
                     className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
                     style={{ background: toneBg('danger'), color: toneFg('danger') }}
-                >מחק</button>
+                >מחק</motion.button>
             </div>
         </motion.div>
     );

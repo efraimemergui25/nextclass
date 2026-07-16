@@ -16,6 +16,8 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 import React, { useMemo, useState } from 'react';
+import { motion as Motion } from 'framer-motion';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { orderTotal, deriveStage, orderTitle } from '../lib/orderModel';
 import { GLASS, toneColor } from '../theme/tokens';
 
@@ -56,13 +58,18 @@ const sameMonth = (ms, y, m) => {
 
 /* ─── UI atoms ──────────────────────────────────────────────────────────────── */
 function Kpi({ label, value, sub, tone, big }) {
+    const c = tone || '#1D1D1F';
     return (
         <div style={{
             ...GLASS.base, borderRadius: 20, padding: '18px 20px',
             display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0,
         }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: '#86868B' }}>{label}</span>
-            <span style={{ fontSize: big ? 30 : 24, fontWeight: 800, color: tone || '#1D1D1F', lineHeight: 1.05, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
+            <span style={{
+                fontSize: big ? 30 : 24, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.02em', wordBreak: 'break-word',
+                background: `linear-gradient(135deg, ${c}, ${c}c4)`,
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>
                 {value}
             </span>
             {sub != null && <span style={{ fontSize: 12, fontWeight: 600, color: '#AEAEB2' }}>{sub}</span>}
@@ -178,10 +185,13 @@ export default function OwnerMonthlyReport({ orders = [], supplierOrders = [] })
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
     const arrowBtn = {
-        width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(0,0,0,0.08)',
-        background: 'rgba(255,255,255,0.9)', color: '#1D1D1F', fontSize: 16, fontWeight: 700,
+        width: 34, height: 34, borderRadius: 12, border: '1px solid rgba(255,255,255,0.9)',
+        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(14px) saturate(180%)', WebkitBackdropFilter: 'blur(14px) saturate(180%)',
+        color: '#1D1D1F', fontSize: 16, fontWeight: 700,
         cursor: 'pointer', display: 'grid', placeItems: 'center', lineHeight: 1,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,1), 0 3px 10px rgba(20,40,80,0.06)',
     };
+    const btnSpring = { type: 'spring', stiffness: 400, damping: 26 };
 
     return (
         <div dir="rtl" style={{ fontFamily: HEEBO, color: '#1D1D1F', maxWidth: 980, margin: '0 auto' }}>
@@ -202,16 +212,26 @@ export default function OwnerMonthlyReport({ orders = [], supplierOrders = [] })
                     </p>
                 </div>
                 <div className="omr-noprint" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button onClick={() => step(-1)} style={arrowBtn} aria-label="חודש קודם">›</button>
+                    <Motion.button onClick={() => step(-1)} style={arrowBtn} aria-label="חודש קודם"
+                        whileHover={{ y: -1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,1), 0 8px 20px rgba(20,40,80,0.12)' }}
+                        whileTap={{ scale: 0.92 }} transition={btnSpring}>
+                        <ChevronRight size={18} strokeWidth={2.6} />
+                    </Motion.button>
                     <div style={{ minWidth: 138, textAlign: 'center', fontSize: 14, fontWeight: 700, padding: '7px 12px', borderRadius: 10, background: 'rgba(0,122,255,0.08)', color: AZURE }}>
                         {MONTHS_HE[month]} {year}
                     </div>
-                    <button onClick={() => step(1)} disabled={isCurrentMonth} style={{ ...arrowBtn, opacity: isCurrentMonth ? 0.4 : 1, cursor: isCurrentMonth ? 'default' : 'pointer' }} aria-label="חודש הבא">‹</button>
+                    <Motion.button onClick={() => step(1)} disabled={isCurrentMonth} style={{ ...arrowBtn, opacity: isCurrentMonth ? 0.4 : 1, cursor: isCurrentMonth ? 'default' : 'pointer' }} aria-label="חודש הבא"
+                        whileHover={isCurrentMonth ? undefined : { y: -1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,1), 0 8px 20px rgba(20,40,80,0.12)' }}
+                        whileTap={isCurrentMonth ? undefined : { scale: 0.92 }} transition={btnSpring}>
+                        <ChevronLeft size={18} strokeWidth={2.6} />
+                    </Motion.button>
                     {!isCurrentMonth && (
-                        <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }}
-                            style={{ ...arrowBtn, width: 'auto', padding: '0 12px', fontSize: 12.5, color: AZURE, borderColor: 'rgba(0,122,255,0.25)' }}>
+                        <Motion.button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }}
+                            style={{ ...arrowBtn, width: 'auto', padding: '0 12px', fontSize: 12.5, color: AZURE, borderColor: 'rgba(0,122,255,0.25)' }}
+                            whileHover={{ y: -1, boxShadow: 'inset 0 1px 0 rgba(255,255,255,1), 0 8px 20px rgba(0,122,255,0.18)' }}
+                            whileTap={{ scale: 0.94 }} transition={btnSpring}>
                             היום
-                        </button>
+                        </Motion.button>
                     )}
                 </div>
             </div>

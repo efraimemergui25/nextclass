@@ -178,7 +178,7 @@ function RevenueForecastWidget({ forecast, onOpen, onStage }) {
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-[22px] font-black tracking-tighter text-[#1D1D1F] leading-none">
+                        <p className="text-[22px] font-black tracking-tighter leading-none" style={{ background: 'linear-gradient(135deg,#34C759,#34C759c4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                             ₪{Math.round(forecast.weighted).toLocaleString()}
                         </p>
                         <p className="text-[9px] font-bold text-[#AEAEB2] mt-0.5">צפי משוקלל</p>
@@ -372,8 +372,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.1)}, ${hexA(s.color || '#007AFF', 0.04)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -394,7 +394,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -705,8 +705,8 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         {kpis.dueReminders.length > 4 && (
-                            <button onClick={() => navigate('/admin/orders')} className="mt-3 text-[11px] font-black text-[#FF9500] hover:underline">
-                                + עוד {kpis.dueReminders.length - 4} תזכורות →
+                            <button onClick={() => navigate('/admin/orders')} className="mt-3 text-[11px] font-black text-[#FF9500] hover:underline inline-flex items-center gap-0.5">
+                                + עוד {kpis.dueReminders.length - 4} תזכורות <ChevronLeft size={12} strokeWidth={2.5} />
                             </button>
                         )}
                     </div>
@@ -718,11 +718,11 @@ export default function AdminDashboard() {
                 {[
                     {
                         title: 'מחזור הכנסות', icon: 'revenue', color: '#34C759', delay: 0,
-                        value: `₪${kpis.totalRevenue.toLocaleString()}`,
-                        subtitle: `₪${periodRevenue.toLocaleString()} — ${period === '1' ? 'היום' : `${period} ימים`}`,
+                        value: `₪${periodRevenue.toLocaleString()}`,
+                        subtitle: `${period === '1' ? 'היום' : `${period} ימים`} · מתוך ₪${kpis.totalRevenue.toLocaleString()} סה״כ`,
                         trend: trendRevenue.value, trendUp: trendRevenue.up,
                         sparkData: periodData && periodData.revenue.length >= 2 ? periodData.revenue : (analytics?.revenue?.slice(-7) || []),
-                        tooltip: { text: 'סך כל ההכנסות מהזמנות שנסגרו. מצטבר מכלל הזמנות שהושלמו.', source: 'Firestore · orders · total', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
+                        tooltip: { text: 'הכנסות מהזמנות שנסגרו בתקופה שנבחרה (היום / 7 / 30 ימים). כותרת המשנה מציגה את סך ההכנסות המצטבר.', source: 'Firestore · orders · total', link: '/admin/orders', linkLabel: 'ראה הזמנות' },
                         onClick: () => openDrill({ type: 'revenue' }),
                     },
                     {
@@ -986,7 +986,7 @@ export default function AdminDashboard() {
                                         }}
                                     >
                                         <div className="w-9 h-9 rounded-2xl flex items-center justify-center"
-                                            style={{ background: `${action.color}18`, color: action.color }}>
+                                            style={{ background: `linear-gradient(140deg, ${action.color}2b, ${action.color}12)`, border: `1px solid ${action.color}26`, color: action.color, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${action.color}22` }}>
                                             {action.icon}
                                         </div>
                                         <div>
@@ -1079,7 +1079,7 @@ export default function AdminDashboard() {
                                                             animate={{ width: `${(p.revenue / (topProducts[0]?.revenue || 1)) * 100}%` }}
                                                             transition={{ delay: i * 0.08, duration: 0.8, ease: [0.22,1,0.36,1] }}
                                                             className="h-full rounded-full"
-                                                            style={{ background: '#007AFF' }}
+                                                            style={{ background: 'linear-gradient(90deg,#007AFF,#5AC8FA)' }}
                                                         />
                                                     </div>
                                                 </div>

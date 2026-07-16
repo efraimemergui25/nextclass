@@ -48,8 +48,13 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[16px] tracking-tight leading-none" style={{ color: c }}>{s.value}</p>
+                        style={{
+                            background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.13)}, ${hexA(s.color || '#007AFF', 0.05)})`,
+                            border: `1px solid ${hexA(s.color || '#007AFF', 0.18)}`,
+                            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 14px ${hexA(s.color || '#007AFF', 0.10)}`,
+                        }}>
+                        <p className="font-black text-[16px] tracking-tight leading-none"
+                            style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -69,7 +74,7 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
             whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.72), rgba(255,255,255,0.5))', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(20,40,80,0.05)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -77,7 +82,12 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
                 {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
             </div>
             {trailing}
-            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+            {clickable && (
+                <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ background: hexA(tone, 0.1), border: `1px solid ${hexA(tone, 0.18)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+                    <ChevronLeft size={13} strokeWidth={2.5} style={{ color: tone }} />
+                </span>
+            )}
         </motion.div>
     );
 }
@@ -1539,8 +1549,15 @@ const VideosSection = ({ showToast }) => {
         { id: 1, title: 'הדרכת מסכי CleverTouch', category: 'מסכים אינטראקטיביים', duration: '12:45', visible: true, thumbnail: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=300' },
         { id: 2, title: 'הקמת מעבדת STEM מאפס', category: 'מעבדות', duration: '24:20', visible: true, thumbnail: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=300' },
     ];
-    const [videos, setVideos] = useState(INITIAL_VIDEOS);
-    const toggleVideo = (id) => { setVideos(prev => prev.map(v => v.id === id ? { ...v, visible: !v.visible } : v)); showToast('סטטוס סרטון עודכן', 'success'); };
+    // Persist visibility via global settings (was local-only state that lied about saving).
+    const { getSetting, updateGlobalSettings } = useSettings();
+    const saved = getSetting('vod_videos');
+    const videos = (Array.isArray(saved) && saved.length) ? saved : INITIAL_VIDEOS;
+    const toggleVideo = async (id) => {
+        const next = videos.map(v => v.id === id ? { ...v, visible: !v.visible } : v);
+        try { await updateGlobalSettings({ vod_videos: next }); showToast('סטטוס סרטון נשמר', 'success'); }
+        catch { showToast('שגיאה בשמירה', 'error'); }
+    };
     return (
         <div className="p-6">
             <div className="grid grid-cols-1 gap-3">
@@ -1613,7 +1630,7 @@ const StaticArticlesSection = ({ firestoreArticles, showToast }) => {
                                 <button
                                     onClick={() => handleImport(article)}
                                     disabled={importing === article.id}
-                                    className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black text-white bg-[#34C759] hover:bg-[#2DB84D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
+                                    className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black text-white bg-gradient-to-br from-[#34C759] to-[#2DB84D] shadow-[0_5px_14px_rgba(52,199,89,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap">
                                     {importing === article.id ? '...' : 'הוסף לאדמין'}
                                 </button>
                                 <div className="flex-1 min-w-0">
@@ -1688,7 +1705,7 @@ const MagazineSection = ({ showToast }) => {
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
                 <button onClick={openNew}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-black text-white bg-gradient-to-br from-[#007AFF] to-[#0A84FF] shadow-[0_6px_16px_rgba(0,122,255,0.32),inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-105 active:scale-95 transition-all">
                     <Plus size={13} /> כתבה חדשה
                 </button>
                 <p className="text-[11px] text-[#86868B] font-bold">
@@ -1759,7 +1776,7 @@ const MagazineSection = ({ showToast }) => {
                         <div><label className="text-[10px] font-black text-[#86868B] tracking-widest block mb-1 text-right">תמונה (URL)</label><input className={inputCls} dir="ltr" value={form.image} onChange={e => setField('image', e.target.value)} placeholder="https://images.unsplash.com/..." /></div>
                         <div className="flex gap-2 pt-1">
                             <button onClick={closeEdit} className="flex-1 py-2 rounded-xl text-[12px] font-black text-[#86868B] bg-[#F5F5F7] hover:bg-[#E5E5EA] transition-colors">ביטול</button>
-                            <button onClick={handleSave} className="flex-1 py-2 rounded-xl text-[12px] font-black text-white bg-[#007AFF] hover:bg-[#0066CC] transition-colors">שמור כתבה</button>
+                            <button onClick={handleSave} className="flex-1 py-2 rounded-xl text-[12px] font-black text-white bg-gradient-to-br from-[#007AFF] to-[#0A84FF] shadow-[0_6px_16px_rgba(0,122,255,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-105 active:scale-95 transition-all">שמור כתבה</button>
                         </div>
                     </motion.div>
                 )}
@@ -2010,8 +2027,8 @@ function UsersSection() {
                     { label: 'מוסדיים',        value: totalMembers - totalPremium, color: '#007AFF' },
                     { label: 'פרימיום',        value: totalPremium, color: '#FF9F0A' },
                 ].map(({ label, value, color }) => (
-                    <div key={label} className="rounded-2xl p-3 text-center" style={{ background: `${color}10`, border: `1px solid ${color}20` }}>
-                        <div style={{ fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+                    <div key={label} className="rounded-2xl p-3 text-center" style={{ background: `linear-gradient(150deg, ${color}18, ${color}08)`, border: `1px solid ${color}24`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 14px ${color}12` }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1, background: `linear-gradient(135deg, ${color}, ${color}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{value}</div>
                         <div style={{ fontSize: 11, color: '#86868B', marginTop: 4, fontWeight: 500 }}>{label}</div>
                     </div>
                 ))}

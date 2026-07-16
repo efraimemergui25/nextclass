@@ -84,9 +84,20 @@ class AdminPageErrorBoundary extends Component {
 
     componentDidCatch(error, info) {
         console.error('[AdminPage]', error, info);
+        // A stale-deployment chunk-load failure (old index → purged chunk) heals with a
+        // fresh page load. Auto-reload once (guarded against loops).
+        const msg = String(error?.message || error || '');
+        if (/ChunkLoadError|Loading chunk|dynamically imported module|module script failed|Failed to fetch dynamically|error loading dynamically/i.test(msg)) {
+            if (!sessionStorage.getItem('nc_chunk_reloaded')) {
+                sessionStorage.setItem('nc_chunk_reloaded', '1');
+                window.location.reload();
+            }
+        }
     }
 
-    reset = () => this.setState({ crashed: false, error: null });
+    // Hard reload — re-fetches the fresh index + valid chunk hashes (a state reset alone
+    // would just re-attempt the same failed import).
+    reset = () => window.location.reload();
 
     render() {
         if (!this.state.crashed) return this.props.children;

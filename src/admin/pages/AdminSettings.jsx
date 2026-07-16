@@ -20,18 +20,18 @@ function SettingCard({ title, Icon, accent = BRAND, children, delay = 0 }) {
         <motion.div
             initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay, ...SPRING.soft }}
-            whileHover={{ boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
-            className="overflow-hidden relative transition-shadow"
+            whileHover={{ y: -3, boxShadow: `${SHADOW.lg}, ${SHADOW.specular}` }}
+            className="overflow-hidden relative"
             style={{ ...GLASS.base, borderRadius: RADIUS.cardLg }}
         >
             {/* Specular top edge */}
             <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none z-10"
                 style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95) 30%, rgba(255,255,255,0.95) 70%, transparent)' }} />
             <div className="px-6 py-4 flex items-center justify-between"
-                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(248,248,250,0.6)' }}>
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: hexA(accent, 0.12), border: `1px solid ${hexA(accent, 0.20)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
-                    {Icon && <Icon size={15} style={{ color: accent }} />}
+                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'linear-gradient(180deg, rgba(255,255,255,0.5), rgba(248,248,250,0.35))' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `linear-gradient(140deg, ${hexA(accent, 0.17)}, ${hexA(accent, 0.07)})`, border: `1px solid ${hexA(accent, 0.15)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(accent, 0.13)}` }}>
+                    {Icon && <Icon size={16} style={{ color: accent }} />}
                 </div>
                 <h3 className="text-[#1D1D1F] font-black text-base tracking-tight">{title}</h3>
             </div>
@@ -277,9 +277,9 @@ export default function AdminSettings() {
                                         min="0"
                                         dir="ltr"
                                         className="w-full rounded-xl pr-8 pl-4 py-2.5 text-sm font-bold text-[#1D1D1F] outline-none transition-all"
-                                        style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.10)', fontFamily: 'Heebo, sans-serif' }}
+                                        style={{ background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)', border: '1px solid rgba(0,0,0,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)', fontFamily: 'Heebo, sans-serif' }}
                                         onFocus={e => { e.target.style.border = '1px solid rgba(0,122,255,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,122,255,0.09)'; }}
-                                        onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.10)'; e.target.style.boxShadow = 'none'; }}
+                                        onBlur={e => { e.target.style.border = '1px solid rgba(0,0,0,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.7)'; }}
                                     />
                                 </div>
                                 <AdminButton onClick={() => {
@@ -360,9 +360,9 @@ export default function AdminSettings() {
                     {/* ── יומן אבטחה — live Firestore event log (folded-in AdminSecurity) ── */}
                     <div className="pt-2">
                         <div className="flex items-center gap-2 mb-4 px-1">
-                            <div className="w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0"
-                                style={{ background: hexA(BRAND, 0.12), border: `1px solid ${hexA(BRAND, 0.20)}` }}>
-                                <ShieldCheck size={14} style={{ color: BRAND }} />
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ background: `linear-gradient(140deg, ${hexA(BRAND, 0.17)}, ${hexA(BRAND, 0.07)})`, border: `1px solid ${hexA(BRAND, 0.15)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(BRAND, 0.13)}` }}>
+                                <ShieldCheck size={16} style={{ color: BRAND }} />
                             </div>
                             <div className="text-right">
                                 <h3 className="text-[#1D1D1F] font-black text-base tracking-tight leading-none">יומן אבטחה</h3>

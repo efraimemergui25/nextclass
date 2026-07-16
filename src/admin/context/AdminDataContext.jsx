@@ -334,7 +334,28 @@ export function AdminDataProvider({ children }) {
     };
 
     const updateOrderStatus = async (orderId, newStatus) => {
-        await setDoc(doc(db, 'orders', orderId.toString()), { status: newStatus }, { merge: true });
+        const order = orders.find(o => String(o.id) === String(orderId));
+        const batch = writeBatch(db);
+        batch.set(doc(db, 'orders', orderId.toString()), { status: newStatus }, { merge: true });
+        // Settle inventory when a STOREFRONT order is delivered — previously storefront
+        // orders never touched stock/sold (bestsellers + stock were wrong for all e-commerce
+        // sales). Dropship orders ship from the supplier, so they only increment `sold`
+        // (for analytics/bestsellers) and never decrement own `stock`.
+        if (order?.items?.length && newStatus === 'נמסר' && !order.inventorySettled) {
+            const isDropship = (order.fulfillmentMode || 'dropship') === 'dropship';
+            order.items.forEach(item => {
+                const pid = String(item.catalogNumber || item.id || item.sku || '').trim(); if (!pid) return;
+                const qty = Number(item.qty) || 1;
+                const upd = { sold: increment(qty) };
+                if (!isDropship) upd.stock = increment(-qty);
+                if (order.stockReserved) upd.reserved = increment(-qty);
+                batch.update(doc(db, 'products', pid), upd);
+            });
+            batch.set(doc(db, 'orders', orderId.toString()), { inventorySettled: 'delivered' }, { merge: true });
+            addActivity(`מלאי עודכן — הזמנת אתר נמסרה (${orderId})`, 'inventory');
+        }
+        try { await batch.commit(); }
+        catch (err) { console.error('[updateOrderStatus] batch failed, falling back to status-only:', err); await setDoc(doc(db, 'orders', orderId.toString()), { status: newStatus }, { merge: true }); }
         addActivity(`הזמנה ${orderId} עודכנה ל"${newStatus}"`, 'order');
     };
 
@@ -527,13 +548,18 @@ export function AdminDataProvider({ children }) {
         // 2. Inventory + sales sync
         // Resolve a product doc id — OCR/PO items carry `catalogNumber`, checkout items carry `id`.
         const pidOf = (item) => String(item.catalogNumber || item.id || '').trim();
+        // Dropship orders ship from the supplier — the owner never holds the unit, so settling
+        // must NOT decrement own `stock` (that booked phantom negative stock). We still increment
+        // `sold` for bestsellers/analytics and release any reservation.
+        const isDropship = (quote?.fulfillmentMode || 'dropship') === 'dropship';
         if (quote?.items?.length) {
             if (newStatus === 'נסגר' && !quote.inventorySettled) {
                 // Deal closed → decrement stock, increment sold; release reservation only if it was reserved.
                 quote.items.forEach(item => {
                     const pid = pidOf(item); if (!pid) return;
                     const qty = Number(item.qty) || 1;
-                    const upd = { stock: increment(-qty), sold: increment(qty) };
+                    const upd = { sold: increment(qty) };
+                    if (!isDropship) upd.stock = increment(-qty);
                     if (quote.stockReserved) upd.reserved = increment(-qty);
                     batch.update(doc(db, 'products', pid), upd);
                 });
@@ -547,7 +573,8 @@ export function AdminDataProvider({ children }) {
                     quote.items.forEach(item => {
                         const pid = pidOf(item); if (!pid) return;
                         const qty = Number(item.qty) || 1;
-                        const upd = { stock: increment(-qty), sold: increment(qty) };
+                        const upd = { sold: increment(qty) };
+                        if (!isDropship) upd.stock = increment(-qty);
                         if (quote.stockReserved) upd.reserved = increment(-qty);
                         batch.update(doc(db, 'products', pid), upd);
                     });
@@ -878,6 +905,15 @@ export function AdminDataProvider({ children }) {
         // Low-stock excludes products with the alert muted or fully covered at the supplier
         const lowStock = inventory.filter(p => p.stock <= p.threshold && !p.lowStockMuted && !(p.supplierStocked && p.supplierInStock));
 
+        // Profitability — supplier cost is persisted on the order when forwarded to the supplier.
+        // Margin % is computed only over closed deals whose cost is known (so it isn't diluted
+        // by orders we never costed).
+        const costedQuotes  = closedQuotes.filter(q => Number(q.supplierCost) > 0);
+        const totalCost     = costedQuotes.reduce((s, q) => s + (Number(q.supplierCost) || 0), 0);
+        const costedRevenue = costedQuotes.reduce((s, q) => s + quoteTotal(q), 0);
+        const grossMargin   = costedRevenue - totalCost;
+        const marginPct     = costedRevenue > 0 ? Math.round((grossMargin / costedRevenue) * 100) : 0;
+
         return {
             totalOrders:      orders.filter(o => o.source !== 'quote').length,
             totalRevenue,
@@ -889,6 +925,8 @@ export function AdminDataProvider({ children }) {
             contactsNew:      contacts.filter(c => c.status === 'חדש').length,
             conversionRate,
             avgOrderValue:    totalDeals > 0 ? Math.round(totalRevenue / totalDeals) : 0,
+            // Profitability (over deals with a known supplier cost)
+            totalCost, grossMargin, marginPct, costedDeals: costedQuotes.length,
             // Quote alerts
             newQuotes:    quotes.filter(q => q.status === 'חדש' && (q.dateTs || 0) > ordersSeenAt).length,
             unreadQuotes: quotes.filter(q => q.unreadAdmin === true && (Math.max(q.dateTs || 0, q.lastInboundTs || 0)) > ordersSeenAt).length,

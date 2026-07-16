@@ -67,14 +67,23 @@ export default function DashDrillView({
                                     whileTap={{ scale: 0.9 }}
                                     whileHover={{ x: 2 }}
                                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 cursor-pointer"
-                                    style={{ background: hexA(accent, 0.1), color: accent }}
+                                    style={{
+                                        background: `linear-gradient(140deg, ${hexA(accent, 0.18)}, ${hexA(accent, 0.07)})`,
+                                        color: accent,
+                                        border: `1px solid ${hexA(accent, 0.20)}`,
+                                        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px ${hexA(accent, 0.14)}`,
+                                    }}
                                     aria-label="חזרה שלב אחורה"
                                 >
                                     <ChevronRight size={17} strokeWidth={2.5} />
                                 </motion.button>
                             )}
                             <div className="w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0"
-                                style={{ background: hexA(accent, 0.12), border: `1px solid ${hexA(accent, 0.22)}` }}>
+                                style={{
+                                    background: `linear-gradient(140deg, ${hexA(accent, 0.20)}, ${hexA(accent, 0.08)})`,
+                                    border: `1px solid ${hexA(accent, 0.24)}`,
+                                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px ${hexA(accent, 0.16)}`,
+                                }}>
                                 {icon}
                             </div>
                             <div className="flex-1 min-w-0 text-right">

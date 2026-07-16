@@ -25,6 +25,7 @@ import {
     DollarSign, ChevronRight, ChevronLeft, Activity, Printer, Download,
     ScanLine, RefreshCw, Sparkles
 } from 'lucide-react';
+import Combobox from '../components/Combobox';
 import { computeMargins, marginColor, fmtILS, fmtPct } from '../lib/productFinance';
 import AdminOCR from './AdminOCR';
 import AdminSuppliers from './AdminSuppliers';
@@ -289,15 +290,25 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
             };
             await updateDoc(doc(db, 'supplier_orders', order.id), updateData);
 
-            // #7 Status cascade: if advancing to 'shipped', update customer order too
-            if (nextStatusId === 'shipped' && order.customerOrderId) {
+            // #7 Status cascade — EVERY supplier-PO status now flows back to the linked customer
+            // order so the Order Hub always mirrors the supplier reality. Hub POs link to a
+            // `quotes` doc (canonical pipeline); legacy fulfillment POs link to an `orders` doc —
+            // detect which so the update isn't swallowed (the old code hard-coded `orders` +
+            // only 'shipped', so supplier confirmations never reached Hub orders).
+            const SUP_TO_STAGE = { forwarded: 'sent_supplier', confirmed: 'supplier_confirmed', in_transit: 'in_transit', arrived: 'in_transit', shipped: 'in_transit' };
+            const mappedStage = SUP_TO_STAGE[nextStatusId];
+            if (mappedStage && order.customerOrderId) {
                 try {
-                    await updateDoc(doc(db, 'orders', order.customerOrderId), {
-                        status: 'נשלח',
-                        shippedAt: serverTimestamp(),
-                        trackingNumber: order.trackingNumber || '',
-                    });
-                    showToast('סטטוס עודכן ל: נשלח — הלקוח עודכן אוטומטית', 'success');
+                    const cid = String(order.customerOrderId);
+                    const tracking = ['in_transit', 'arrived', 'shipped'].includes(nextStatusId) ? { trackingNumber: order.trackingNumber || '' } : {};
+                    const qSnap = await getDoc(doc(db, 'quotes', cid));
+                    if (qSnap.exists()) {
+                        await updateDoc(doc(db, 'quotes', cid), { overallStage: mappedStage, stageEnteredTs: Date.now(), ...tracking });
+                    } else {
+                        const legacy = { in_transit: 'נשלח', arrived: 'נשלח', shipped: 'נשלח' }[nextStatusId];
+                        if (legacy) await updateDoc(doc(db, 'orders', cid), { status: legacy, shippedAt: serverTimestamp(), ...tracking });
+                    }
+                    showToast(`סטטוס עודכן ל: ${nextStatusObj?.label} — הזמנת הלקוח סונכרנה`, 'success');
                 } catch {
                     showToast(`סטטוס עודכן ל: ${nextStatusObj?.label}`, 'success');
                 }
@@ -497,7 +508,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">פרטי לקוח</p>
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,122,255,0.10)' }}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#007AFF2b,#007AFF12)', border: '1px solid #007AFF26', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #007AFF22' }}>
                                 <User size={13} style={{ color: '#007AFF' }} />
                             </div>
                         </div>
@@ -537,7 +548,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">פרטי הזמנה</p>
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,149,0,0.10)' }}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#FF95002b,#FF950012)', border: '1px solid #FF950026', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #FF950022' }}>
                                 <ShoppingCart size={13} style={{ color: '#FF9500' }} />
                             </div>
                         </div>
@@ -558,7 +569,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                         <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                             <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                                 <p className="text-[12px] font-black text-[#1D1D1F]">{supplier.name}</p>
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(90,200,250,0.10)' }}>
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#5AC8FA2b,#5AC8FA12)', border: '1px solid #5AC8FA26', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #5AC8FA22' }}>
                                     <Building2 size={13} style={{ color: '#5AC8FA' }} />
                                 </div>
                             </div>
@@ -590,7 +601,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">מעקב ואספקה</p>
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,159,10,0.10)' }}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#FF9F0A2b,#FF9F0A12)', border: '1px solid #FF9F0A26', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #FF9F0A22' }}>
                                 <Truck size={13} style={{ color: '#FF9F0A' }} />
                             </div>
                         </div>
@@ -642,7 +653,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                         <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                             <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                                 <p className="text-[12px] font-black text-[#1D1D1F]">רווחיות</p>
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(52,199,89,0.10)' }}>
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#34C7592b,#34C75912)', border: '1px solid #34C75926', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #34C75922' }}>
                                     <TrendingUp size={13} style={{ color: '#34C759' }} />
                                 </div>
                             </div>
@@ -654,9 +665,9 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                                         { label: 'רווח גולמי', value: cost > 0 ? `₪${profit.toFixed(0)}` : '—', color: profit >= 0 ? toneColor('success') : toneColor('danger') },
                                         { label: 'מרווח', value: margin !== null && cost > 0 ? `${margin}%` : '—', color: parseFloat(margin) >= 20 ? toneColor('success') : parseFloat(margin) >= 0 ? toneColor('warning') : toneColor('danger') },
                                     ].map((m, i) => (
-                                        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', borderRadius: 12, padding: '10px 12px', textAlign: 'right', border: `1px solid ${m.color}18` }}>
+                                        <div key={i} style={{ background: 'rgba(255,255,255,0.5)', borderRadius: 12, padding: '10px 12px', textAlign: 'right', border: `1px solid ${m.color}22`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 8px ${m.color}12` }}>
                                             <p style={{ fontSize: 10, fontWeight: 700, color: '#AEAEB2', marginBottom: 3 }}>{m.label}</p>
-                                            <p style={{ fontSize: 16, fontWeight: 900, color: m.color }}>{m.value}</p>
+                                            <p style={{ fontSize: 16, fontWeight: 900, background: `linear-gradient(135deg, ${m.color}, ${m.color}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{m.value}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -683,7 +694,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>צ׳קליסט מילוי הזמנה</p>
-                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,122,255,0.10)' }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(140deg,#007AFF2b,#007AFF12)', border: '1px solid #007AFF26', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #007AFF22' }}>
                                     <CheckCircle size={13} style={{ color: '#007AFF' }} />
                                 </div>
                             </div>
@@ -727,7 +738,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                                 <ChevronDown size={13} className="text-[#AEAEB2]" style={{ transform: ratingOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>דרג את הספק</p>
-                                    <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,149,0,0.10)' }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(140deg,#FF95002b,#FF950012)', border: '1px solid #FF950026', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #FF950022' }}>
                                         <Star size={13} style={{ color: '#FF9500' }} />
                                     </div>
                                 </div>
@@ -778,7 +789,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <p style={{ fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>היסטוריית פעולות</p>
-                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(90,200,250,0.10)' }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(140deg,#5AC8FA2b,#5AC8FA12)', border: '1px solid #5AC8FA26', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #5AC8FA22' }}>
                                     <Activity size={13} style={{ color: '#5AC8FA' }} />
                                 </div>
                             </div>
@@ -822,7 +833,7 @@ function OrderDetailDrawer({ order, customerOrders, suppliers, onClose, onDelete
                     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
                         <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-end gap-2">
                             <p className="text-[12px] font-black text-[#1D1D1F]">הערות</p>
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(142,142,147,0.12)' }}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(140deg,#8E8E932b,#8E8E9312)', border: '1px solid #8E8E9326', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #8E8E9322' }}>
                                 <FileText size={13} className="text-[#86868B]" />
                             </div>
                         </div>
@@ -878,8 +889,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -1025,7 +1036,7 @@ function DashboardTab({ supplierOrders, customerOrders, suppliers, onSelectOrder
                                     className="px-6 py-3.5 flex items-center justify-between cursor-pointer transition-all group" dir="rtl">
                                     <div className="flex items-center gap-2">
                                         <StatusPill statusId={o.status} />
-                                        <span className="text-[10px] text-[#AEAEB2] group-hover:text-[#007AFF] transition-colors">פתח ›</span>
+                                        <span className="text-[10px] text-[#AEAEB2] group-hover:text-[#007AFF] transition-colors inline-flex items-center gap-0.5">פתח <ChevronLeft size={11} strokeWidth={2.5} /></span>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm font-bold text-[#1D1D1F]">{o.customerName}</p>
@@ -1495,9 +1506,9 @@ function PipelineOrdersView({ quotes, updateQuoteStatus, showToast }) {
     return (
         <div className="space-y-4">
             {/* Info banner — explains the bridge */}
-            <div className="flex items-center gap-4 p-4 rounded-2xl text-right bg-white" dir="rtl"
-                style={{ border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)' }}>
-                <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(8,145,178,0.1)' }}>
+            <div className="flex items-center gap-4 p-4 rounded-2xl text-right" dir="rtl"
+                style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.66))', backdropFilter: 'blur(26px) saturate(1.7)', WebkitBackdropFilter: 'blur(26px) saturate(1.7)', border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 40px rgba(20,40,80,0.08), inset 0 1px 0 rgba(255,255,255,1)' }}>
+                <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(140deg,#0891B22b,#0891B212)', border: '1px solid #0891B226', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 10px #0891B222' }}>
                     <Link2 size={20} color="#0891B2" strokeWidth={2.2} />
                 </div>
                 <p className="flex-1 min-w-0 text-[12px] font-medium text-[#5A6472] leading-relaxed m-0">
@@ -1510,13 +1521,14 @@ function PipelineOrdersView({ quotes, updateQuoteStatus, showToast }) {
                 {['all', ...PIPELINE_ORDER].map(sid => {
                     const meta = PIPELINE_STATUS[sid];
                     const active = filter === sid;
+                    const pc = meta ? meta.color : '#0891B2';
                     return (
-                        <button key={sid} onClick={() => setFilter(sid)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${active ? 'text-white' : 'text-[#86868B] border border-black/10 hover:border-[#0891B2]/30'}`}
-                            style={active ? { background: meta ? meta.color : '#0891B2' } : { background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                        <motion.button key={sid} onClick={() => setFilter(sid)} whileTap={TAP}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${active ? 'text-white' : 'text-[#86868B] border border-white/90 hover:border-[#0891B2]/30'}`}
+                            style={active ? { background: `linear-gradient(135deg, ${pc}, ${pc}db)`, boxShadow: `0 6px 16px ${pc}44, inset 0 1px 0 rgba(255,255,255,0.35)` } : { background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }}>
                             {meta ? meta.label : 'הכל'}
                             {counts[sid] > 0 && <span className="opacity-70">{counts[sid]}</span>}
-                        </button>
+                        </motion.button>
                     );
                 })}
             </div>
@@ -1667,13 +1679,15 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                     {['all', ...STATUSES.map(s => s.id)].map(sid => {
                         const s = STATUSES.find(x => x.id === sid);
                         const count = sid === 'all' ? supplierOrders.length : supplierOrders.filter(o => o.status === sid).length;
+                        const pc = s ? s.color : '#007AFF';
+                        const active = filterStatus === sid;
                         return (
-                            <button key={sid} onClick={() => setFilterStatus(sid)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${filterStatus === sid ? 'text-white' : 'text-[#86868B] border border-black/10 hover:border-[#007AFF]/30'}`}
-                                style={filterStatus === sid ? { background: s ? s.color : '#007AFF' } : { background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                            <motion.button key={sid} onClick={() => setFilterStatus(sid)} whileTap={TAP}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${active ? 'text-white' : 'text-[#86868B] border border-white/90 hover:border-[#007AFF]/30'}`}
+                                style={active ? { background: `linear-gradient(135deg, ${pc}, ${pc}db)`, boxShadow: `0 6px 16px ${pc}44, inset 0 1px 0 rgba(255,255,255,0.35)` } : { background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }}>
                                 {s ? s.label : 'הכל'}
                                 {count > 0 && <span className="opacity-70">{count}</span>}
-                            </button>
+                            </motion.button>
                         );
                     })}
                 </div>
@@ -1763,7 +1777,7 @@ function SupplierOrdersTab({ supplierOrders, customerOrders, suppliers, showToas
                                         {o.notes && (
                                             <p className="text-[11px] text-[#86868B] mt-1.5 rounded-xl px-3 py-1.5 text-right" style={{ background: 'rgba(0,0,0,0.03)' }}>{o.notes}</p>
                                         )}
-                                        <p className="text-[10px] text-[#007AFF]/50 mt-2 text-right">לחץ לפרטים מלאים ←</p>
+                                        <p className="text-[10px] text-[#007AFF]/50 mt-2 flex items-center gap-1 justify-end">לחץ לפרטים מלאים <ChevronLeft size={11} strokeWidth={2.5} /></p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -1854,8 +1868,8 @@ function ForwardModal({ isOpen, onClose, orders, suppliers, showToast, preselect
                 {successData ? (
                     /* #1 Success state */
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: 60, height: 60, borderRadius: 20, background: 'rgba(52,199,89,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                            <CheckCircle size={28} style={{ color: '#34C759' }} />
+                        <div style={{ width: 60, height: 60, borderRadius: 20, background: 'linear-gradient(135deg,#34C759,#34C759bb)', boxShadow: '0 10px 26px rgba(52,199,89,0.35), inset 0 1px 0 rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <CheckCircle size={28} style={{ color: '#fff' }} />
                         </div>
                         <h3 style={{ fontSize: 18, fontWeight: 900, color: '#1D1D1F', marginBottom: 6 }}>הועבר לספק בהצלחה!</h3>
                         <p style={{ fontSize: 13, color: '#86868B', marginBottom: 24 }}>עכשיו שלח עדכון מהיר לספק:</p>
@@ -2120,7 +2134,11 @@ function SuppliersTab({ suppliers, supplierOrders = [], showToast }) {
                         <AdminInput label="טלפון" value={form.phone} onChange={v => f('phone', v)} />
                         <AdminInput label="אימייל" value={form.email} onChange={v => f('email', v)} />
                         <AdminInput label="ימי אספקה ממוצעים" value={String(form.leadTimeDays)} onChange={v => f('leadTimeDays', parseInt(v) || 7)} />
-                        <div className="col-span-2"><AdminInput label="תנאי תשלום" value={form.paymentTerms} onChange={v => f('paymentTerms', v)} /></div>
+                        <div className="col-span-2">
+                            <label className="block text-[11px] font-black text-[#86868B] tracking-widest mb-1.5 px-1">תנאי תשלום</label>
+                            <Combobox value={form.paymentTerms} onChange={v => f('paymentTerms', v)} placeholder="בחר/י או הקלד/י"
+                                options={['שוטף+30', 'שוטף+60', 'שוטף+90', 'מזומן', 'העברה בנקאית', 'אשראי'].map(o => ({ label: o }))} />
+                        </div>
                         <div className="col-span-2"><AdminTextArea label="הערות" value={form.notes} onChange={v => f('notes', v)} rows={2} /></div>
                         <div className="col-span-2"><AdminToggle label="ספק פעיל" value={form.active} onChange={v => f('active', v)} /></div>
                     </div>
@@ -2202,13 +2220,23 @@ function ProductMappingTab({ suppliers, showToast }) {
         try {
             const snap = await getDocs(collection(db, 'supplier_quotes'));
             const lines = [];
+            let totalLines = 0;                       // every product line seen (priced or not)
+            const supplierNameById = {};              // new quotes store only supplierId — resolve the name
+            suppliers.forEach(s => { supplierNameById[s.id] = s.name; });
             snap.forEach(d => {
                 const q = d.data();
                 (q.products || []).forEach(ql => {
+                    totalLines++;
                     const disc = 1 - (Number(ql.discount) || 0) / 100;
                     const isUsd = ql.currency === 'USD' && ql.priceInUsd;
+                    // Cheapest filled qty-tier — fallback when the base unit price was
+                    // left empty but tier prices were entered.
+                    const tierIls = Array.isArray(ql.tiers)
+                        ? (ql.tiers.map(t => Number(t.pricePerUnit) || 0).filter(v => v > 0).sort((a, b) => a - b)[0] || 0)
+                        : 0;
                     const netUsd = isUsd ? parseFloat(ql.priceInUsd) * disc : 0;
-                    const netIlsRaw = (Number(ql.pricePerUnit) || 0) * disc;
+                    const baseIls = (Number(ql.pricePerUnit) || 0) || tierIls;
+                    const netIlsRaw = baseIls * disc;
                     // netIls is ILS-normalized ONLY for cross-currency comparison;
                     // netOrig keeps the ORIGINAL currency amount (what we actually write).
                     const netIls = isUsd ? netUsd * fxRate : netIlsRaw;
@@ -2220,11 +2248,22 @@ function ProductMappingTab({ suppliers, showToast }) {
                         tokens: tokenize(ql.name),
                         models: modelCandidates(ql.modelNumber, ql.name),
                         supplierId: q.supplierId,
-                        supplierName: q.supplierName,
+                        supplierName: q.supplierName || supplierNameById[q.supplierId] || '',
+                        // Raw fields kept so an UNMATCHED line can be created as a
+                        // brand-new catalog product (see create-pass below).
+                        rawName: (ql.name || '').toString().trim(),
+                        modelNum: (ql.modelNumber || '').toString().trim(),
+                        category: ql.category || '',
+                        image: ql.image || ql.imageUrl || '',
+                        brand: ql.brand || '',
+                        matched: false,
                     });
                 });
             });
-            if (!lines.length) { showToast('אין הצעות ספקים עם מחירים לסנכרון', 'info'); return; }
+            // Diagnostic — distinguishes "nothing saved" from "saved but unpriced" from "matched".
+            console.log('[syncFromSupplierQuotes]', { quotes: snap.size, totalLines, pricedLines: lines.length });
+            if (!totalLines) { showToast('אין שורות מוצרים בהצעות הספקים — ודא שהוספת מוצרים ולחצת “שמור שינויים” בתוך ההצעה', 'info'); return; }
+            if (!lines.length) { showToast(`נמצאו ${totalLines} שורות בהצעות אך ללא מחיר — הזן מחיר לכל מוצר ולחץ “שמור שינויים”`, 'info'); return; }
             const batch = writeBatch(db);
             let synced = 0;
             products.forEach(p => {
@@ -2254,6 +2293,10 @@ function ProductMappingTab({ suppliers, showToast }) {
                     if (shared >= 2 && minTok > 0 && shared / minTok >= 0.6) return true;
                     return false;
                 });
+                // Any line matched to a product ALREADY exists in the catalog → it
+                // must not be re-created in the create-pass, even if its cost is
+                // already up to date (changed === false below).
+                matches.forEach(l => { l.matched = true; });
                 if (!matches.length) return;
                 // Pick the cheapest by ILS-normalized net, but WRITE in its original currency.
                 const best = matches.reduce((a, b) => (b.netIls < a.netIls ? b : a));
@@ -2270,8 +2313,53 @@ function ProductMappingTab({ suppliers, showToast }) {
                 batch.update(doc(db, 'products', p.id), upd);
                 synced++;
             });
-            if (synced) { await batch.commit(); showToast(`${synced} מוצרים סונכרנו מהצעות הספקים ✓`, 'success'); }
-            else showToast('הכל כבר מסונכרן עם הצעות הספקים', 'info');
+
+            // ── CREATE-PASS: priced quote lines that matched NO existing product
+            //    (e.g. a brand-new supplier's items) become fresh catalog products,
+            //    so they surface immediately in Mapping & Pricing. Dedupe per item
+            //    (by model, else name) and keep the cheapest quote as its cost.
+            const groups = {};
+            lines.filter(l => !l.matched && (l.rawName || l.modelNum)).forEach(l => {
+                const key = (l.models[0] || l.name || l.modelNum || l.rawName).toLowerCase();
+                if (!groups[key] || l.netIls < groups[key].netIls) groups[key] = l;
+            });
+            let created = 0;
+            Object.values(groups).forEach((l, i) => {
+                const id = `PROD-${Date.now()}-${i}`;
+                const orig = Math.round(l.netOrig * 100) / 100;
+                batch.set(doc(db, 'products', id), {
+                    id,
+                    title: l.rawName || l.modelNum || 'מוצר ללא שם',
+                    brand: l.brand || '',
+                    category: l.category || '',
+                    image: l.image || '',
+                    model: l.modelNum || '',
+                    price: 0,            // sale price — admin sets it in the mapping row
+                    stock: 0,
+                    threshold: 5,
+                    sold: 0,
+                    isActive: true,
+                    fulfillmentType: 'supplier',
+                    supplierId: l.supplierId || '',
+                    supplierName: l.supplierName || '',
+                    ...(l.currency === 'USD'
+                        ? { supplierCostUSD: orig, supplierCost: 0, costCurrency: 'USD' }
+                        : { supplierCost: orig, supplierCostUSD: 0, costCurrency: 'ILS' }),
+                    source: 'quote-sync',
+                    createdAt: serverTimestamp(),
+                });
+                created++;
+            });
+
+            if (synced || created) {
+                await batch.commit();
+                const parts = [];
+                if (synced)  parts.push(`${synced} עודכנו`);
+                if (created) parts.push(`${created} מוצרים חדשים נוצרו`);
+                showToast(`סונכרן מהצעות ספקים: ${parts.join(' · ')} ✓`, 'success');
+            } else {
+                showToast('הכל כבר מסונכרן עם הצעות הספקים', 'info');
+            }
         } catch (e) { console.error('[syncFromSupplierQuotes]', e); showToast('שגיאה בסנכרון מהצעות ספקים', 'error'); }
         finally { setSyncingQuotes(false); }
     };

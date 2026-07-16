@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InboxIcon, Trash2, Check, Users, ShoppingCart, TrendingUp, ChevronLeft, Box, MapPin, Package, Plus, Pencil } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { doc, setDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { useAdminToast } from '../context/AdminToastContext';
@@ -42,8 +44,8 @@ function DrillStat({ items }) {
                     <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         className="rounded-[14px] p-3 text-center"
-                        style={{ background: hexA(s.color || '#007AFF', 0.07), border: `1px solid ${hexA(s.color || '#007AFF', 0.16)}` }}>
-                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: c }}>{s.value}</p>
+                        style={{ background: `linear-gradient(150deg, ${hexA(s.color || '#007AFF', 0.13)}, ${hexA(s.color || '#007AFF', 0.04)})`, border: `1px solid ${hexA(s.color || '#007AFF', 0.18)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.65), 0 3px 10px ${hexA(s.color || '#007AFF', 0.10)}` }}>
+                        <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ background: `linear-gradient(135deg, ${c}, ${c}c4)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                         <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
                     </motion.div>
                 );
@@ -57,14 +59,14 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
     const clickable = !!onClick;
     return (
         <motion.div
-            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay, type: 'spring', stiffness: 400, damping: 30 }}
             onClick={onClick}
             tabIndex={clickable ? 0 : undefined}
             role={clickable ? 'button' : undefined}
             onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
-            whileHover={clickable ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            whileHover={clickable ? { backgroundColor: hexA(tone, 0.07), x: -3 } : undefined}
             className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${clickable ? 'cursor-pointer focus:ring-2' : ''}`}
-            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42))', border: '1px solid rgba(255,255,255,0.82)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 8px rgba(20,40,80,0.045)' }}
         >
             {leading}
             <div className="flex-1 min-w-0 text-right">
@@ -72,7 +74,11 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
                 {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
             </div>
             {trailing}
-            {clickable && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+            {clickable && (
+                <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: hexA(tone, 0.10), border: `1px solid ${hexA(tone, 0.16)}`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
+                    <ChevronLeft size={13} strokeWidth={2.5} style={{ color: tone }} />
+                </span>
+            )}
         </motion.div>
     );
 }
@@ -217,19 +223,23 @@ export default function AdminCustomers() {
         if (selected?.id === id) setSelected(prev => ({ ...prev, status }));
     };
 
+    // Notes now persist on the contact doc in Firestore (were device-local localStorage,
+    // invisible across sessions/devices). Stored appended; shown newest-first.
     const loadNotes = (id) => {
-        try { return JSON.parse(localStorage.getItem(`nextclass_notes_${id}`) || '[]'); } catch { return []; }
+        const c = contacts.find(x => String(x.id) === String(id));
+        return Array.isArray(c?.notes) ? [...c.notes].reverse() : [];
     };
 
-    const handleReply = () => {
-        if (!reply.trim()) return;
+    const handleReply = async () => {
+        if (!reply.trim() || !selected?.id) return;
         handleStatusChange(selected.id, 'בטיפול');
         const note = {
             text: reply.trim(),
             date: new Date().toLocaleDateString('he-IL'),
             time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         };
-        localStorage.setItem(`nextclass_notes_${selected.id}`, JSON.stringify([note, ...loadNotes(selected.id)]));
+        try { await setDoc(doc(db, 'contacts', String(selected.id)), { notes: arrayUnion(note) }, { merge: true }); }
+        catch (e) { console.error('[notes] save failed:', e); }
         setReplyDone(true);
         setTimeout(() => { setReplyDone(false); setReply(''); }, 1200);
     };
@@ -418,7 +428,7 @@ export default function AdminCustomers() {
 
                                         {/* Orders count */}
                                         <div>
-                                            <span className="inline-flex items-center gap-1 text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: 'rgba(0,122,255,0.08)', color: '#007AFF' }}>
+                                            <span className="inline-flex items-center gap-1 text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: 'linear-gradient(140deg, rgba(0,122,255,0.15), rgba(0,122,255,0.06))', border: '1px solid rgba(0,122,255,0.18)', color: '#007AFF', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                                                 <Package size={11} />{c.orders.length}
                                             </span>
                                         </div>
@@ -497,13 +507,16 @@ export default function AdminCustomers() {
                             <p className="text-[#86868B] text-[10px] font-black tracking-tight">עדכן סטטוס:</p>
                             {CONTACT_STATUSES.map(s => (
                                 <motion.button key={s} type="button"
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 26 }}
                                     onClick={() => handleStatusChange(selected.id, s)}
                                     className="px-3 py-1.5 rounded-full text-xs font-black transition-all"
                                     style={{
-                                        background: selected.status === s ? '#007AFF' : 'rgba(0,0,0,0.06)',
+                                        background: selected.status === s ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(255,255,255,0.85)',
                                         color: selected.status === s ? 'white' : '#6E6E73',
-                                        boxShadow: selected.status === s ? '0 4px 12px rgba(0,122,255,0.30)' : 'none',
+                                        border: selected.status === s ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.9)',
+                                        boxShadow: selected.status === s ? '0 6px 16px rgba(0,122,255,0.34), inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.8)',
+                                        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
                                     }}>
                                     {s}
                                 </motion.button>
@@ -571,9 +584,9 @@ export default function AdminCustomers() {
                         <div className="flex flex-wrap gap-2 justify-end items-center">
                             <p className="text-[#86868B] text-[10px] font-black tracking-tight">סטטוס:</p>
                             {CONTACT_STATUSES.map(s => (
-                                <motion.button key={s} type="button" whileTap={{ scale: 0.95 }} onClick={() => setCF('status', s)}
+                                <motion.button key={s} type="button" whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={() => setCF('status', s)}
                                     className="px-3 py-1.5 rounded-full text-xs font-black transition-all"
-                                    style={{ background: contactForm.status === s ? '#007AFF' : 'rgba(0,0,0,0.06)', color: contactForm.status === s ? 'white' : '#6E6E73', boxShadow: contactForm.status === s ? '0 4px 12px rgba(0,122,255,0.30)' : 'none' }}>
+                                    style={{ background: contactForm.status === s ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(255,255,255,0.85)', color: contactForm.status === s ? 'white' : '#6E6E73', border: contactForm.status === s ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.9)', boxShadow: contactForm.status === s ? '0 6px 16px rgba(0,122,255,0.34), inset 0 1px 0 rgba(255,255,255,0.4)' : 'inset 0 1px 0 rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
                                     {s}
                                 </motion.button>
                             ))}
@@ -715,9 +728,9 @@ export default function AdminCustomers() {
                                 { label: 'הזמנה ממוצעת', value: `₪${(c.orders.length ? Math.round(c.total / c.orders.length) : 0).toLocaleString()}`, color: '#5AC8FA' },
                             ]} />
                             <div className="space-y-2">
-                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(ACCENT, 0.1) }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
-                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.1) }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
-                                {c.city && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#FF9500', 0.1) }}><MapPin size={13} color="#FF9500" /></span>} title={c.city} subtitle="עיר" />}
+                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${hexA(ACCENT, 0.24)}, ${hexA(ACCENT, 0.08)})`, border: `1px solid ${hexA(ACCENT, 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 8px ${hexA(ACCENT, 0.14)}` }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
+                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${hexA('#34C759', 0.24)}, ${hexA('#34C759', 0.08)})`, border: `1px solid ${hexA('#34C759', 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 8px ${hexA('#34C759', 0.14)}` }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
+                                {c.city && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${hexA('#FF9500', 0.24)}, ${hexA('#FF9500', 0.08)})`, border: `1px solid ${hexA('#FF9500', 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 8px ${hexA('#FF9500', 0.14)}` }}><MapPin size={13} color="#FF9500" /></span>} title={c.city} subtitle="עיר" />}
                             </div>
                             {(waLink || c.phone) && (
                                 <div className="flex gap-2">
@@ -774,8 +787,8 @@ export default function AdminCustomers() {
                                 </div>
                             )}
                             <div className="space-y-2">
-                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(ACCENT, 0.1) }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
-                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA('#34C759', 0.1) }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
+                                {c.email && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${hexA(ACCENT, 0.24)}, ${hexA(ACCENT, 0.08)})`, border: `1px solid ${hexA(ACCENT, 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 8px ${hexA(ACCENT, 0.14)}` }}><InboxIcon size={13} color={ACCENT} /></span>} title={c.email} subtitle="מייל" />}
+                                {c.phone && <DrillRow leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `linear-gradient(140deg, ${hexA('#34C759', 0.24)}, ${hexA('#34C759', 0.08)})`, border: `1px solid ${hexA('#34C759', 0.2)}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 8px ${hexA('#34C759', 0.14)}` }}><ShoppingCart size={13} color="#34C759" /></span>} title={c.phone} subtitle="טלפון" />}
                             </div>
                             {notes.length > 0 && (
                                 <div className="space-y-2">
@@ -898,14 +911,14 @@ export default function AdminCustomers() {
                                 <div style={{ fontSize: 10, color: '#D1D1D6', marginTop: 2 }}>נמחק {c.deletedAt ? new Date(c.deletedAt).toLocaleDateString('he-IL') : '—'}</div>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <button onClick={async () => { await restoreContact(c.id); }}
-                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: toneBg('success'), color: toneColor('success'), fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                                <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={async () => { await restoreContact(c.id); }}
+                                    style={{ padding: '7px 14px', borderRadius: 10, border: `1px solid ${hexA(toneColor('success'), 0.18)}`, background: toneBg('success'), color: toneColor('success'), fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                                     שחזר
-                                </button>
-                                <button onClick={async () => { if (await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) await hardDeleteContact(c.id); }}
-                                    style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: toneBg('danger'), color: toneColor('danger'), fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                                </motion.button>
+                                <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }} transition={{ type: 'spring', stiffness: 400, damping: 26 }} onClick={async () => { if (await confirm({ message: 'למחוק לצמיתות? לא ניתן לשחזר.', danger: true })) await hardDeleteContact(c.id); }}
+                                    style={{ padding: '7px 14px', borderRadius: 10, border: `1px solid ${hexA(toneColor('danger'), 0.18)}`, background: toneBg('danger'), color: toneColor('danger'), fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                                     מחק לצמיתות
-                                </button>
+                                </motion.button>
                             </div>
                         </div>
                     ))}

@@ -3,11 +3,17 @@
  * POST /api/dispatch-email
  * Body: { pendingId?, to, subject, html, replyTo? }
  *
- * This is the ONLY file in the codebase that talks to Resend. It is reachable
- * ONLY from the admin approve-AND-edit gate (AdminCommunications.handleApproveEmail).
- * Every other endpoint queues to `pending_emails` via api/_pendingEmail.js and
- * never sends. Do NOT add a Resend call anywhere else — the launch invariant is
- * that `grep -rn "sendEmail(" api/` matches only this file.
+ * This is the ONLY file in the codebase that talks to Resend. It is reachable from
+ * exactly three HUMAN-triggered surfaces — each behind an explicit click, never a
+ * timer/trigger:
+ *   1. AdminCommunications.handleApproveEmail — the approve-AND-edit queue.
+ *   2. AdminOrderHub.doSendEmail — the stage-email preview→edit→send modal.
+ *   3. InvoiceModal.sendToCustomer — emailing an issued invoice.
+ * (2) and (3) also mirror a `status:'sent'` record into `pending_emails` so every
+ * send shows in the unified email history. Every OTHER endpoint only queues to
+ * `pending_emails` via api/_pendingEmail.js and never sends. The launch invariant —
+ * NOTHING auto-sends — holds: `grep -rn "resend.com" api/` matches only this file,
+ * and no code path here runs without a human action.
  */
 
 import { isRateLimited } from './_rateLimit.js';

@@ -82,9 +82,17 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
       <div className="absolute -top-10 -left-8 w-28 h-28 rounded-full pointer-events-none"
         style={{ background: `radial-gradient(circle, ${hexA(color, 0.16)} 0%, transparent 66%)`, filter: 'blur(4px)' }} />
 
-      {/* Unread indicator */}
+      {/* Unread indicator — live pulse ring */}
       {quote.unreadAdmin && (
-        <div style={{ position: 'absolute', top: 8, left: 9, width: 7, height: 7, borderRadius: '50%', background: '#34C759', border: '1.5px solid #fff', boxShadow: '0 0 0 2px rgba(52,199,89,0.3)' }} />
+        <div style={{ position: 'absolute', top: 8, left: 9, width: 7, height: 7 }}>
+          <motion.span
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ background: '#34C759' }}
+            animate={{ scale: [1, 2.4], opacity: [0.55, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          />
+          <span className="absolute inset-0 rounded-full" style={{ background: '#34C759', border: '1.5px solid #fff', boxShadow: '0 0 0 2px rgba(52,199,89,0.3)' }} />
+        </div>
       )}
 
       {/* Header: avatar + name */}
@@ -125,7 +133,7 @@ function KanbanCard({ quote, color, onOpen, onDragStart, isDragging, onNameClick
       {/* Total amount */}
       {total > 0 && (
         <div className="mt-2.5 flex items-center justify-between relative z-10">
-          <span className="text-[11px] font-black" style={{ color }}>₪{total.toLocaleString()}</span>
+          <span className="text-[11px] font-black" style={{ background: `linear-gradient(135deg, ${color}, ${hexA(color, 0.72)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>₪{total.toLocaleString()}</span>
           <span className="text-[9px] text-[#C7C7CC] font-mono">{quote.id?.slice(-6)}</span>
         </div>
       )}
@@ -200,7 +208,7 @@ function KanbanColumn({ stage, quotes, color, onOpen, onDragStart, onDrop, onDra
           </div>
         </div>
         {total > 0 && (
-          <p className="text-[10px] font-black mt-1" style={{ color: `${color}CC` }}>
+          <p className="text-[10px] font-black mt-1" style={{ background: `linear-gradient(135deg, ${color}, ${hexA(color, 0.7)})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', width: 'fit-content' }}>
             ₪{total.toLocaleString()}
           </p>
         )}
@@ -339,7 +347,15 @@ export default function AdminKanbanBoard({ quotes, onUpdateStatus, onOpen, showT
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING.soft, delay: 0.05 }}
             className="flex items-center gap-1.5 px-3 py-1.5"
             style={{ borderRadius: RADIUS.pill, background: hexA('#FF3B30', 0.08), border: `1px solid ${hexA('#FF3B30', 0.2)}`, boxShadow: `${glow('#FF3B30', 0.1, 14)}, ${SHADOW.specular}` }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
+            <span className="relative flex w-1.5 h-1.5">
+              <motion.span
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ background: '#FF3B30' }}
+                animate={{ scale: [1, 2.1], opacity: [0.5, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+              />
+              <span className="relative w-1.5 h-1.5 rounded-full" style={{ background: '#FF3B30' }} />
+            </span>
             <span className="text-[11px] font-black text-[#FF3B30]">{criticalAll} הצעות זקוקות לתשומת לב</span>
           </motion.div>
         )}
