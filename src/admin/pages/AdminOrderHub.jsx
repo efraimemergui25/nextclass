@@ -32,7 +32,7 @@ import { useAdminConfirm } from '../context/AdminConfirmContext';
 import {
     STAGES_DROPSHIP, STAGES_SELF, SIDE_STATES, stagesFor, deriveStage, stageMeta,
     isSideState, nextAction, deriveAxes, daysInStage, isStale, orderTotal, orderTitle, orderItemsSummary,
-    riskAssess, paymentAgingDays, paymentLabel, PAYMENT_TONES,
+    riskAssess, paymentAgingDays, paymentLabel, PAYMENT_TONES, intakeAge,
 } from '../lib/orderModel';
 import {
     StatusChip, OrderStageChip, PathStepper, ActivityTimeline, Highlights, StaleBadge,
@@ -48,7 +48,9 @@ export default function AdminOrderHub() {
         quotes = [], kpis = {}, advanceOrderStage, logOrderActivity, createSupplierOrder,
         linkSupplierOrder, updateQuoteFields, createQuote, deleteQuote,
         sendThreadMessage, markAdminThreadRead, clearReminder, updatePayment,
+        deletedItems = {}, restoreQuote, hardDeleteQuote, inventory = [],
     } = useAdminData();
+    const trashedOrders = deletedItems.quotes || [];
     const { showToast } = useAdminToast();
     const confirm = useAdminConfirm();
 
@@ -147,15 +149,20 @@ export default function AdminOrderHub() {
 
     /* daily briefing — "what needs you today" for a solo operator */
     const briefing = useMemo(() => {
-        const overduePay = orders.filter(o => o.paymentStatus && o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now());
+        const overduePay = orders.filter(o => o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now());
         const stuckSupplier = orders.filter(o => deriveStage(o) === 'sent_supplier' && isStale(o));
         const unanswered = orders.filter(o => ['needs_review', 'new'].includes(deriveStage(o)));
         const highRisk = orders.filter(o => riskAssess(o).level === 'high');
+        // Duplicate detection: institutions with ≥2 open orders (consider merging).
+        const openO = orders.filter(o => !isSideState(deriveStage(o)) && !['delivered', 'completed'].includes(deriveStage(o)));
+        const byInst = {};
+        openO.forEach(o => { const k = (o.institution || '').trim(); if (k) (byInst[k] = byInst[k] || []).push(o); });
+        const dups = Object.entries(byInst).filter(([, a]) => a.length >= 2).map(([inst, a]) => ({ inst, n: a.length }));
         return {
-            overduePay, stuckSupplier, unanswered, highRisk,
+            overduePay, stuckSupplier, unanswered, highRisk, dups,
             dueRem: kpis.dueReminders || [],
             overdueTotal: overduePay.reduce((s, o) => s + orderTotal(o), 0),
-            clear: !overduePay.length && !stuckSupplier.length && !unanswered.length && !(kpis.dueReminders || []).length,
+            clear: !overduePay.length && !stuckSupplier.length && !unanswered.length && !dups.length && !(kpis.dueReminders || []).length,
         };
     }, [orders, kpis.dueReminders]);
 
@@ -163,8 +170,8 @@ export default function AdminOrderHub() {
     const filtered = useMemo(() => {
         let list = orders;
         if (stageFilter !== 'all') {
-            list = stageFilter === 'atrisk' ? list.filter(isStale)
-                : stageFilter === 'unpaid' ? list.filter(o => o.paymentStatus && o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now())
+            list = stageFilter === 'atrisk' ? list.filter(o => isStale(o) || riskAssess(o).level === 'high')
+                : stageFilter === 'unpaid' ? list.filter(o => o.paymentStatus !== 'paid' && o.paymentDueTs && o.paymentDueTs < Date.now())
                 : list.filter(o => deriveStage(o) === stageFilter);
         }
         if (search.trim()) {
@@ -208,6 +215,11 @@ export default function AdminOrderHub() {
     };
 
     const jumpToStage = async (orderId, toStage) => {
+        // inventory-affecting transitions settle stock + book revenue → confirm first
+        if (['delivered', 'completed', 'cancelled', 'lost'].includes(toStage)) {
+            const ok = await confirm({ title: `לסמן "${stageMeta(toStage).label}"?`, message: 'פעולה זו מעדכנת מלאי ורושמת את העסקה. להמשיך?', confirmLabel: 'כן', danger: toStage === 'cancelled' || toStage === 'lost' });
+            if (!ok) return;
+        }
         setBusy(true);
         try { await advanceOrderStage(orderId, toStage); showToast(`עודכן: ${stageMeta(toStage).label} ✓`, 'success'); }
         catch { showToast('שגיאה', 'error'); } finally { setBusy(false); }
@@ -253,8 +265,8 @@ export default function AdminOrderHub() {
 
     const setMode = async (orderId, mode) => {
         try {
+            // updateQuoteFields already audit-logs the fulfillmentMode change — no second log
             await updateQuoteFields(orderId, { fulfillmentMode: mode });
-            await logOrderActivity(orderId, { type: 'system', message: `שיטת אספקה שונתה ל: ${mode === 'self' ? 'אספקה עצמית' : 'דרופשיפ (ספק)'}` });
             showToast('שיטת האספקה עודכנה', 'success');
         } catch { showToast('שגיאה', 'error'); }
     };
@@ -334,13 +346,6 @@ export default function AdminOrderHub() {
         finally { setBusy(false); inFlight.current = false; }
     };
 
-    const queueStageEmail = async (type, order) => {
-        const res = await fetch('/api/send-stage-email', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, quote: order }),
-        });
-        if (!res.ok) throw new Error('email queue failed');
-    };
 
     /* ── In-flow email: preview → edit → send (the human review IS the gate) ── */
     const openEmail = async (type, order, afterSend = null) => {
@@ -374,9 +379,15 @@ export default function AdminOrderHub() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ to, subject: customSubject || fin.subject || em.subject, html: fin.html || em.html }),
             });
-            const out = await res.json();
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.sent === false) {
+                // send did not actually happen → do NOT advance the stage or log "sent"
+                showToast('שליחת המייל נכשלה — בדוק/י תצורת שליחה', 'error');
+                setEmailModal(m => m && { ...m, sending: false });
+                return;
+            }
             await logOrderActivity(em.order.id, { type: 'email', message: `מייל נשלח ללקוח: ${customSubject || fin.subject || em.subject}` });
-            showToast(out.sent ? 'המייל נשלח ללקוח ✓' : 'המייל עובד — בדוק/י תצורת שליחה', out.sent ? 'success' : 'info');
+            showToast('המייל נשלח ללקוח ✓', 'success');
             if (em.afterSend) await em.afterSend();
             setEmailModal(null);
         } catch {
@@ -391,21 +402,22 @@ export default function AdminOrderHub() {
         inFlight.current = true;
         setBusy(true);
         try {
-            // tiered approval — governance guard on thin/negative margin
+            // tiered approval — governance guard on thin/negative margin (only when cost is KNOWN)
             const rev = orderTotal(order);
-            const cost0 = Number(supplierCost) || rev;
-            const marginPct = rev > 0 ? Math.round(((rev - cost0) / rev) * 100) : 100;
-            if (cost0 > 0 && marginPct < 10) {
-                const ok = await confirm({ title: '⚠ רווח נמוך', message: `הרווח בעסקה ${marginPct}% בלבד (מכירה ₪${rev.toLocaleString()} · עלות ספק ₪${cost0.toLocaleString()}). להעביר לספק בכל זאת?`, danger: true, confirmLabel: 'כן, העבר' });
-                if (!ok) { setBusy(false); inFlight.current = false; return; }
+            const cost = Number(supplierCost) || 0;   // 0 = cost unknown (operator didn't enter it)
+            if (cost > 0) {
+                const marginPct = rev > 0 ? Math.round(((rev - cost) / rev) * 100) : 100;
+                if (marginPct < 10) {
+                    const ok = await confirm({ title: '⚠ רווח נמוך', message: `הרווח בעסקה ${marginPct}% בלבד (מכירה ₪${rev.toLocaleString()} · עלות ספק ₪${cost.toLocaleString()}). להעביר לספק בכל זאת?`, danger: true, confirmLabel: 'כן, העבר' });
+                    if (!ok) { setBusy(false); inFlight.current = false; return; }
+                }
             }
             const shipAddr = order.shipTo?.address || order.address || '';
-            const cost = Number(supplierCost) || orderTotal(order);
             const poId = await createSupplierOrder({
                 customerName: orderTitle(order), supplierName: supplier?.name || supplier?.company || '',
                 supplierId: supplier?.id || '', productTitle: orderItemsSummary(order),
                 qty: (order.items || []).reduce((s, it) => s + (Number(it.qty) || 1), 0),
-                totalCost: cost, status: 'forwarded', eta: order.deliveryDate || '',
+                totalCost: cost > 0 ? cost : null, status: 'forwarded', eta: order.deliveryDate || '',
                 notes: `${note || ''}${shipAddr ? ` · אספקה: ${shipAddr}` : ''}`, customerOrderId: order.id,
             });
             if (poId) await linkSupplierOrder(order.id, poId);
@@ -463,7 +475,7 @@ export default function AdminOrderHub() {
                         style={{ padding: '8px 14px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: '#fff', color: '#6E6E73' }}>
                         ⚙️ חוקים
                     </button>
-                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['split', '⬓ מפוצל'], ['insights', '📊 תובנות']].map(([v, lbl]) => (
+                    {[['work', '✅ הצעד הבא'], ['kanban', '▦ לוח'], ['list', '☰ רשימה'], ['split', '⬓ מפוצל'], ['insights', '📊 תובנות'], ['trash', `🗑 סל${trashedOrders.length ? ` (${trashedOrders.length})` : ''}`]].map(([v, lbl]) => (
                         <button key={v} onClick={() => setView(v)}
                             style={{ padding: '8px 16px', borderRadius: 11, border: '1.5px solid ' + (view === v ? 'transparent' : 'rgba(0,0,0,0.1)'), cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 13, background: view === v ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#fff', color: view === v ? '#fff' : '#6E6E73' }}>
                             {lbl}
@@ -491,6 +503,9 @@ export default function AdminOrderHub() {
                         )}
                         {briefing.overduePay.length > 0 && (
                             <BriefItem emoji="💰" tone="danger" n={briefing.overduePay.length} text={`תשלומים באיחור · ₪${briefing.overdueTotal.toLocaleString()}`} onClick={() => setStageFilter('unpaid')} />
+                        )}
+                        {briefing.dups.length > 0 && (
+                            <BriefItem emoji="🗂️" tone="warning" n={briefing.dups.length} text="מוסדות עם כמה הזמנות פתוחות — שקול איחוד" onClick={() => { setView('list'); setSearch(briefing.dups[0]?.inst || ''); }} />
                         )}
                         {briefing.dueRem.length > 0 && (
                             <BriefItem emoji="⏰" tone="warning" n={briefing.dueRem.length} text="תזכורות שהגיע זמנן" onClick={() => briefing.dueRem[0]?.quoteId && setSelectedId(briefing.dueRem[0].quoteId)} />
@@ -592,6 +607,11 @@ export default function AdminOrderHub() {
                     <InsightsView orders={orders} supplierOrders={supplierOrders} />
                 </div>
             )}
+            {view === 'trash' && (
+                <TrashView items={trashedOrders} busy={busy}
+                    onRestore={async (o) => { await restoreQuote(o.id); showToast('ההזמנה שוחזרה', 'success'); }}
+                    onPurge={async (o) => { if (await confirm({ message: `למחוק לצמיתות את "${orderTitle(o)}"? פעולה בלתי הפיכה.`, danger: true })) { await hardDeleteQuote(o.id); showToast('נמחק לצמיתות', 'warning'); } }} />
+            )}
 
             {/* bulk-action bar (mass actions on list selection) */}
             <AnimatePresence>
@@ -616,7 +636,7 @@ export default function AdminOrderHub() {
             {/* record-360 drawer */}
             <AnimatePresence>
                 {selected && view !== 'split' && (
-                    <RecordDrawer order={selected} activity={activity} busy={busy}
+                    <RecordDrawer order={selected} activity={activity} busy={busy} catalog={inventory}
                         onClose={() => setSelectedId(null)}
                         onAction={runAction} onJump={jumpToStage} onSetMode={setMode} onSave={saveFields}
                         onEmail={(type) => openEmail(type, selected)}
@@ -861,7 +881,12 @@ function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><OrderStageChip order={o} size="sm" /><StaleBadge order={o} /></div>
                         <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 900, color: '#007AFF', whiteSpace: 'nowrap' }}>₪{orderTotal(o).toLocaleString()}</span>
-                        <span className="tabular-nums" style={{ fontSize: 11.5, fontWeight: 700, color: '#AEAEB2', whiteSpace: 'nowrap' }}>{daysInStage(o)} י׳</span>
+                        {(() => {
+                            const a = intakeAge(o);
+                            return a
+                                ? <span className="tabular-nums" title={`נקלט לפני ${a.days} ימים · בשלב הנוכחי ${daysInStage(o)} ימים`} style={{ fontSize: 11.5, fontWeight: 800, color: a.color, whiteSpace: 'nowrap' }}>{a.over ? '⚠️ ' : ''}{a.days}/21 י׳</span>
+                                : <span className="tabular-nums" style={{ fontSize: 11.5, fontWeight: 700, color: '#AEAEB2', whiteSpace: 'nowrap' }}>{daysInStage(o)} י׳</span>;
+                        })()}
                         {na
                             ? <button disabled={busy} onClick={e => { e.stopPropagation(); onAction(na, o); }}
                                 style={{ padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(0,122,255,0.1)', color: '#007AFF', fontFamily: HE, fontWeight: 800, fontSize: 11.5, whiteSpace: 'nowrap' }}>{na.label}</button>
@@ -878,9 +903,47 @@ function ListView({ orders, onOpen, onAction, onDelete, busy, sel, onToggleSel }
     );
 }
 
+// Trash / recycle bin — restore or permanently purge soft-deleted orders.
+function TrashView({ items, busy, onRestore, onPurge }) {
+    if (!items.length) {
+        return (
+            <div style={{ ...glass, borderRadius: 20, padding: 48, textAlign: 'center' }} dir="rtl">
+                <div style={{ fontSize: 34, marginBottom: 8 }}>🗑</div>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>סל המחזור ריק</p>
+                <p style={{ fontSize: 12.5, color: '#86868B', margin: '6px 0 0' }}>הזמנות שנמחקות יופיעו כאן וניתן לשחזר אותן.</p>
+            </div>
+        );
+    }
+    return (
+        <div className="rounded-[22px] overflow-hidden bg-white/70 border border-black/[0.05] shadow-[0_10px_44px_rgba(20,40,80,0.07)]" dir="rtl" style={{ backdropFilter: 'blur(20px)' }}>
+            <div style={{ padding: '12px 18px', background: 'rgba(255,59,48,0.05)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                <p style={{ margin: 0, fontSize: 12.5, fontWeight: 800, color: '#B42318' }}>סל מחזור · {items.length} הזמנות — ניתן לשחזר או למחוק לצמיתות</p>
+            </div>
+            {items.map(o => (
+                <div key={o.id} className="border-t border-black/[0.05]" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) auto auto auto', gap: 12, alignItems: 'center', padding: '13px 18px' }}>
+                    <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#86868B' }}>{o.institution || ''} · {orderItemsSummary(o)}</p>
+                    </div>
+                    <span className="tabular-nums" style={{ fontSize: 13, fontWeight: 900, color: '#6E6E73' }}>₪{orderTotal(o).toLocaleString()}</span>
+                    <button disabled={busy} onClick={() => onRestore(o)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, border: '1px solid rgba(52,199,89,0.28)', background: 'rgba(52,199,89,0.08)', color: '#1E8E3E', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>↩ שחזר</button>
+                    <button disabled={busy} onClick={() => onPurge(o)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, border: '1px solid rgba(255,59,48,0.22)', background: 'rgba(255,59,48,0.06)', color: '#FF3B30', cursor: 'pointer', fontFamily: HE, fontWeight: 800, fontSize: 12 }}>
+                        <Trash2 size={13} /> מחק לצמיתות</button>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 /* ─── Record-360 drawer ──────────────────────────────────────────────────────── */
 const EMAIL_TYPES = [['initial_contact', 'אישור קבלה'], ['quote_sent', 'הצעת מחיר'], ['confirmed', 'אישור הזמנה'], ['in_transit', 'בדרך אליך'], ['delivered', 'סופק'], ['reminder', 'תזכורת']];
-function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, onInst360, custStats, onAddNote }) {
+function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetMode, onSave, onEmail, onForward, onDelete, onInvoice, onSendChat, onReadChat, onSetReminder, onClearReminder, onUpdatePayment, onInst360, custStats, onAddNote, catalog = [] }) {
+    const [pick, setPick] = useState('');
+    const pickResults = pick.trim().length >= 2
+        ? catalog.filter(p => (p.title || '').toLowerCase().includes(pick.toLowerCase()) || (p.sku || '').toLowerCase().includes(pick.toLowerCase()) || (p.model || '').toLowerCase().includes(pick.toLowerCase())).slice(0, 6)
+        : [];
     const [tab, setTab] = useState('timeline');
     const [note, setNote] = useState('');
     const [chat, setChat] = useState('');
@@ -1014,6 +1077,23 @@ function RecordDrawer({ order, activity, busy, onClose, onAction, onJump, onSetM
                     )}
                     {tab === 'items' && (
                         <div style={{ ...glass, borderRadius: 16, padding: 12 }}>
+                            {/* Catalog picker — search real products instead of retyping */}
+                            <div style={{ position: 'relative', marginBottom: 10 }}>
+                                <input value={pick} onChange={e => setPick(e.target.value)} placeholder="🔎 חפש מוצר מהקטלוג להוספה…" dir="rtl"
+                                    style={{ ...inp, padding: '8px 11px', background: '#F5F5F7' }} />
+                                {pickResults.length > 0 && (
+                                    <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, zIndex: 10, marginTop: 4, background: '#fff', borderRadius: 12, boxShadow: '0 12px 40px rgba(20,40,80,0.18)', border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                                        {pickResults.map(p => (
+                                            <button key={p.id} onClick={() => { setItems([...its, { catalogNumber: p.sku || p.id || '', title: p.title || '', qty: 1, salePrice: Number(p.price) || 0, image: p.image || '', category: p.category || '' }]); setPick(''); }}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', border: 'none', borderBottom: '1px solid rgba(0,0,0,0.05)', background: '#fff', cursor: 'pointer', textAlign: 'right', fontFamily: HE }}>
+                                                {p.image ? <img src={p.image} alt="" onError={e => { e.target.style.display = 'none'; }} style={{ width: 30, height: 30, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }} /> : <div style={{ width: 30, height: 30, borderRadius: 7, background: '#F0F3F8', flexShrink: 0 }} />}
+                                                <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 700, color: '#1D1D1F', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+                                                <span style={{ fontSize: 12, fontWeight: 900, color: '#007AFF' }}>₪{(Number(p.price) || 0).toLocaleString()}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             {its.map((it, i) => (
                                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 74px 52px 84px 28px', gap: 6, alignItems: 'center', marginBottom: 6 }}>
                                     <input value={it.title} onChange={e => setIt(i, 'title', e.target.value)} placeholder="שם פריט" dir="rtl" style={{ ...inp, padding: '7px 9px' }} />
@@ -1540,7 +1620,9 @@ function Institution360({ name, orders, onClose, onOpen }) {
     const list = orders.filter(o => (o.institution || '').trim() === nm || (o.contactName || '').trim() === nm)
         .sort((a, b) => (b.dateTs || 0) - (a.dateTs || 0));
     const total = list.reduce((s, o) => s + orderTotal(o), 0);
-    const unpaid = list.filter(o => o.paymentStatus && o.paymentStatus !== 'paid').reduce((s, o) => s + orderTotal(o), 0);
+    // debt = billable (delivered/completed) orders not fully paid, net of amounts paid
+    const unpaid = list.filter(o => ['delivered', 'completed'].includes(deriveStage(o)) && o.paymentStatus !== 'paid')
+        .reduce((s, o) => s + Math.max(0, orderTotal(o) - (Number(o.amountPaid) || 0)), 0);
     return createPortal(
         <div onClick={e => e.target === e.currentTarget && onClose()} dir="rtl" style={{ position: 'fixed', inset: 0, zIndex: 3500, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <motion.div initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
