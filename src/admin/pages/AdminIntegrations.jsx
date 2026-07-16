@@ -82,10 +82,20 @@ function LiveConnectionStatus() {
                 </div>
             )}
             {st && !st.emailReady && (
-                <p className="text-[11px] font-bold mt-3 px-1" style={{ color: '#B25E00' }}>⚠️ שליחת מיילים כבויה — הוסף <code>RESEND_API_KEY</code> ב-Vercel כדי שהמיילים יצאו בפועל.</p>
+                <div className="flex items-center gap-3 mt-3 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                        <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
+                    </div>
+                    <p className="text-[12px] font-medium text-[#5A6472] m-0">שליחת מיילים כבויה — הוסף <code className="font-bold text-[#1D1D1F]">RESEND_API_KEY</code> ב-Vercel כדי שהמיילים יצאו בפועל.</p>
+                </div>
             )}
             {st && !st.aiReady && (
-                <p className="text-[11px] font-bold mt-1.5 px-1" style={{ color: '#B25E00' }}>⚠️ AI כבוי — הוסף <code>GEMINI_API_KEY</code> כדי להפעיל סריקה וייבוא מוצר.</p>
+                <div className="flex items-center gap-3 mt-2 p-3 rounded-2xl bg-white" style={{ border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 16px rgba(255,149,0,0.07)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,149,0,0.12)' }}>
+                        <AlertCircle size={18} color="#FF9500" strokeWidth={2.3} />
+                    </div>
+                    <p className="text-[12px] font-medium text-[#5A6472] m-0">AI כבוי — הוסף <code className="font-bold text-[#1D1D1F]">GEMINI_API_KEY</code> כדי להפעיל סריקה וייבוא מוצר.</p>
+                </div>
             )}
         </div>
     );

@@ -15,7 +15,7 @@ function useTimeColor() {
             if (h >= 5  && h < 9)  setColor('rgba(255,149,0,0.35)');
             else if (h >= 9  && h < 17) setColor('rgba(0,122,255,0.30)');
             else if (h >= 17 && h < 20) setColor('rgba(255,59,48,0.30)');
-            else setColor('rgba(88,86,214,0.35)');
+            else setColor('rgba(90,200,250,0.35)');
         };
         update();
         const t = setInterval(update, 60000);
@@ -110,7 +110,7 @@ const NAV_GROUPS = [
         icon: 'orders',
         accent: '#007AFF',
         items: [
-            { path: '/admin/orders',    icon: 'orders',    label: 'הזמנות והצעות',  badge: 'ordersAll' },
+            { path: '/admin/order-hub', icon: 'fulfillment', label: 'מרכז ההזמנות',    badge: 'ordersAll' },
             { path: '/admin/customers', icon: 'customers', label: 'לקוחות ופניות',  badge: 'newContacts' },
             { path: '/admin/users',     icon: 'community', label: 'משתמשים רשומים', badge: null },
         ],
@@ -325,7 +325,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     whileHover={{ scale: 1.08 }}
                     className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
                     style={{
-                        background: 'linear-gradient(145deg, #0055FF 0%, #00AAFF 50%, #7B61FF 100%)',
+                        background: 'linear-gradient(145deg, #0055FF 0%, #00AAFF 50%, #0A84FF 100%)',
                         boxShadow: '0 4px 18px rgba(0,100,255,0.50), 0 1px 0 rgba(255,255,255,0.30) inset',
                     }}
                 >
@@ -374,7 +374,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                         <div
                             className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
                             style={{
-                                background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))',
+                                background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(90,200,250,0.08))',
                                 border: '1px solid rgba(0,122,255,0.20)',
                                 boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)',
                             }}
@@ -599,7 +599,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
                     {/* Mobile header */}
                     <div className="flex items-center gap-3 px-4 py-4 border-b border-black/06">
                         <div className="w-9 h-9 rounded-[13px] flex items-center justify-center shrink-0 relative overflow-hidden"
-                            style={{ background: 'linear-gradient(145deg,#0055FF 0%,#00AAFF 50%,#7B61FF 100%)', boxShadow: '0 4px 18px rgba(0,100,255,0.45), 0 1px 0 rgba(255,255,255,0.28) inset' }}>
+                            style={{ background: 'linear-gradient(145deg,#0055FF 0%,#00AAFF 50%,#0A84FF 100%)', boxShadow: '0 4px 18px rgba(0,100,255,0.45), 0 1px 0 rgba(255,255,255,0.28) inset' }}>
                             <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.26) 0%, transparent 65%)' }} />
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="relative z-10">
                                 <path d="M4 14V4L14 14V4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -622,7 +622,7 @@ export default function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobile
 
                     {/* Revenue stat */}
                     <div className="mx-3 my-2 px-3 py-2.5 rounded-2xl"
-                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(88,86,214,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
+                        style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12), rgba(90,200,250,0.08))', border: '1px solid rgba(0,122,255,0.20)', boxShadow: '0 4px 16px rgba(0,122,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6)' }}>
                         <p className="text-[9px] font-black tracking-tight text-[#AEAEB2] mb-1">הכנסות ברוטו</p>
                         <p className="text-[#007AFF] font-black text-base tracking-tighter leading-none">₪{(kpis.totalRevenue || 0).toLocaleString()}</p>
                         <p className="text-[#AEAEB2] text-[10px] mt-0.5">{kpis.completedOrders || 0} עסקאות</p>

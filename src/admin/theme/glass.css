@@ -8,11 +8,11 @@
     /* Multi-layer radial MESH — bright, airy, multi-depth */
     --nc-bg-mesh:
         radial-gradient(ellipse at 12% 16%, rgba(0,122,255,0.12)  0%, transparent 55%),
-        radial-gradient(ellipse at 88% 12%, rgba(94,92,230,0.10)  0%, transparent 52%),
+        radial-gradient(ellipse at 88% 12%, rgba(90,200,250,0.10)  0%, transparent 52%),
         radial-gradient(ellipse at 50% 92%, rgba(90,200,250,0.08) 0%, transparent 55%),
-        radial-gradient(ellipse at 82% 74%, rgba(191,90,242,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 82% 74%, rgba(10,132,255,0.06) 0%, transparent 50%),
         radial-gradient(ellipse at 20% 74%, rgba(48,209,88,0.05)  0%, transparent 50%),
-        linear-gradient(150deg, #EEF2FF 0%, #F0F2FA 32%, #F2EEFF 64%, #EAF3FF 100%);
+        linear-gradient(150deg, #EDF3FF 0%, #F0F3FA 32%, #EAF2FC 64%, #EAF3FF 100%);
 
     --nc-glass-base:     rgba(255,255,255,0.72);
     --nc-glass-elevated: rgba(255,255,255,0.82);
@@ -56,13 +56,13 @@
 }
 .nc-orb-2 {
     width: 640px; height: 640px; bottom: -260px; left: -160px;
-    background: radial-gradient(circle, rgba(94,92,230,0.16) 0%, rgba(94,92,230,0.04) 50%, transparent 70%);
+    background: radial-gradient(circle, rgba(90,200,250,0.16) 0%, rgba(90,200,250,0.04) 50%, transparent 70%);
     filter: blur(92px);
     animation: nc-orb-drift-2 36s ease-in-out infinite;
 }
 .nc-orb-3 {
     width: 500px; height: 500px; top: 24%; left: 10%;
-    background: radial-gradient(circle, rgba(191,90,242,0.12) 0%, rgba(191,90,242,0.03) 50%, transparent 70%);
+    background: radial-gradient(circle, rgba(10,132,255,0.12) 0%, rgba(10,132,255,0.03) 50%, transparent 70%);
     filter: blur(84px);
     animation: nc-orb-drift-3 24s ease-in-out infinite;
 }

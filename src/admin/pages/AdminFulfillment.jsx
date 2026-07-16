@@ -913,9 +913,13 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
 }
 
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 
@@ -1491,9 +1495,14 @@ function PipelineOrdersView({ quotes, updateQuoteStatus, showToast }) {
     return (
         <div className="space-y-4">
             {/* Info banner — explains the bridge */}
-            <div className="p-4 rounded-2xl text-right text-[12px] font-medium text-[#0891B2]"
-                style={{ background: 'rgba(8,145,178,0.06)', border: '1px solid rgba(8,145,178,0.14)' }} dir="rtl">
-                הזמנות אלו מגיעות ישירות מצינור הצעות המחיר (הזמנות שהועברו לספק). קידום הסטטוס כאן מתעדכן חזרה בצינור — סימון "סופק" רושם את המכירה ומעדכן מלאי אוטומטית.
+            <div className="flex items-center gap-4 p-4 rounded-2xl text-right bg-white" dir="rtl"
+                style={{ border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)' }}>
+                <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(8,145,178,0.1)' }}>
+                    <Link2 size={20} color="#0891B2" strokeWidth={2.2} />
+                </div>
+                <p className="flex-1 min-w-0 text-[12px] font-medium text-[#5A6472] leading-relaxed m-0">
+                    הזמנות אלו מגיעות ישירות מצינור הצעות המחיר (הזמנות שהועברו לספק). קידום הסטטוס כאן מתעדכן חזרה בצינור — סימון <span className="font-bold text-[#1D1D1F]">"סופק"</span> רושם את המכירה ומעדכן מלאי אוטומטית.
+                </p>
             </div>
 
             {/* Status filter pills */}

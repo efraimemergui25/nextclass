@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, storage } from '../../firebase';
+import { db } from '../../firebase';
 import {
     collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, orderBy, query
 } from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { imageToDataUrl } from '../utils/fileStore';
 import { useAdminToast } from '../context/AdminToastContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
@@ -17,7 +17,7 @@ import {
     FolderOpen, X, Search, Grid, List, ExternalLink, Plus,
     ChevronLeft, Download, HardDrive, Calendar, Package
 } from 'lucide-react';
-import { GLASS as GLASS_TOKENS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
+import { GLASS as GLASS_TOKENS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow, toneColor, toneBg } from '../theme/tokens';
 
 // ─── Babushka drill helpers ────────────────────────────────────────────────────
 function DrillStat({ items }) {
@@ -60,9 +60,13 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
     );
 }
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 
@@ -351,7 +355,7 @@ function ProductImagesTab({ onCopy, copied, onOpen }) {
                                     className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <button onClick={(e) => { e.stopPropagation(); onCopy(p.image); }}
                                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-[11px] font-black"
-                                        style={{ background: copied === p.image ? '#34C759' : 'rgba(255,255,255,0.2)' }}>
+                                        style={{ background: copied === p.image ? toneColor('success') : 'rgba(255,255,255,0.2)' }}>
                                         {copied === p.image ? <Check size={12} /> : <Copy size={12} />}
                                         {copied === p.image ? 'הועתק' : 'העתק URL'}
                                     </button>
@@ -371,16 +375,24 @@ function ProductImagesTab({ onCopy, copied, onOpen }) {
 
 // ── VodTab ────────────────────────────────────────────────────────────────────
 function VodTab({ onCopy, copied, onOpen }) {
+    const { showToast } = useAdminToast();
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [search, setSearch] = useState('');
 
     useEffect(() => {
         const q = query(collection(db, 'vod_courses'), orderBy('createdAt', 'desc'));
         return onSnapshot(q, snap => {
             setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('VOD load failed:', err);
+            setError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת סרטוני VOD', 'error');
+        });
     }, []);
 
     const items = videos.filter(v =>
@@ -391,6 +403,16 @@ function VodTab({ onCopy, copied, onOpen }) {
         <div className="py-20 text-center">
             <div className="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-3" />
             <p className="text-[#AEAEB2] font-bold text-sm">טוען VOD...</p>
+        </div>
+    );
+
+    if (error && !loading) return (
+        <div className="rounded-[24px] overflow-hidden" style={CARD}>
+            <AdminEmpty
+                icon="empty"
+                title="שגיאה בטעינת VOD"
+                subtitle="לא ניתן לטעון את סרטוני ה-VOD כרגע. רענן את הדף ונסה שוב."
+            />
         </div>
     );
 
@@ -472,14 +494,21 @@ export default function AdminMedia() {
     const [copied, setCopied] = useState('');
     const [showUrlDialog, setShowUrlDialog] = useState(false);
     const [selectedItems, setSelectedItems] = useState(new Set());
+    const [loadError, setLoadError] = useState(false);
 
     // Load media from Firestore
     useEffect(() => {
         const q = query(collection(db, 'media_library'), orderBy('createdAt', 'desc'));
         const unsub = onSnapshot(q, snap => {
             setMedia(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoadError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('Media library load failed:', err);
+            setLoadError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת ספריית המדיה', 'error');
+        });
         return unsub;
     }, []);
 
@@ -489,41 +518,29 @@ export default function AdminMedia() {
         files.forEach(f => { progress[f.name] = 0; });
         setUploadProgress(progress);
 
-        try {
-            await Promise.all(files.map(async (file) => {
-                const path = `media/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                const sRef = storageRef(storage, path);
-                const task = uploadBytesResumable(sRef, file);
-
-                await new Promise((resolve, reject) => {
-                    task.on('state_changed',
-                        snap => {
-                            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-                            setUploadProgress(prev => ({ ...prev, [file.name]: pct }));
-                        },
-                        reject,
-                        async () => {
-                            const url = await getDownloadURL(task.snapshot.ref);
-                            await addDoc(collection(db, 'media_library'), {
-                                url,
-                                name: file.name,
-                                type: file.type,
-                                size: file.size,
-                                path,
-                                source: 'upload',
-                                createdAt: serverTimestamp(),
-                            });
-                            resolve();
-                        }
-                    );
+        let ok = 0;
+        await Promise.all(files.map(async (file) => {
+            try {
+                if (!file.type?.startsWith('image/')) throw new Error('not an image');
+                const url = await imageToDataUrl(file); // compressed to < ~900KB, stored inline
+                setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+                await addDoc(collection(db, 'media_library'), {
+                    url,
+                    name: file.name,
+                    type: 'image/jpeg',
+                    size: url.length,
+                    source: 'upload',
+                    createdAt: serverTimestamp(),
                 });
-            }));
-            showToast(`${files.length} קבצים הועלו בהצלחה`, 'success');
-        } catch (err) {
-            showToast('שגיאה בהעלאת קבצים', 'error');
-        }
+                ok++;
+            } catch {
+                setUploadProgress(prev => ({ ...prev, [file.name]: -1 }));
+            }
+        }));
         setUploading(false);
-        setUploadProgress({});
+        if (ok) showToast(`${ok} קבצים הועלו בהצלחה`, 'success');
+        if (ok < files.length) showToast(`${files.length - ok} קבצים נכשלו (רק תמונות נתמכות)`, 'error');
+        setTimeout(() => setUploadProgress({}), 1400);
     };
 
     const handleAddUrl = async ({ url, name, source }) => {
@@ -542,9 +559,6 @@ export default function AdminMedia() {
         if (!await confirm({ message: 'למחוק פריט זה מהספרייה?', danger: true })) return;
         try {
             await deleteDoc(doc(db, 'media_library', item.id));
-            if (item.path) {
-                try { await deleteObject(storageRef(storage, item.path)); } catch {}
-            }
             showToast('פריט נמחק', 'success');
         } catch {
             showToast('שגיאה במחיקה', 'error');
@@ -690,6 +704,14 @@ export default function AdminMedia() {
                     <div className="w-8 h-8 rounded-full animate-spin mx-auto mb-3"
                         style={{ border: `2px solid ${hexA(BRAND, 0.3)}`, borderTopColor: BRAND }} />
                     <p className="text-[#AEAEB2] font-bold text-sm">טוען ספרייה...</p>
+                </div>
+            ) : loadError ? (
+                <div className="rounded-[24px] overflow-hidden" style={CARD}>
+                    <AdminEmpty
+                        icon="empty"
+                        title="שגיאה בטעינת הספרייה"
+                        subtitle="לא ניתן לטעון את ספריית המדיה כרגע. רענן את הדף ונסה שוב."
+                    />
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="rounded-[24px] overflow-hidden" style={CARD}>
@@ -847,7 +869,7 @@ export default function AdminMedia() {
                             {shown.kind === 'library' && (
                                 <button onClick={() => { handleDelete(m); closeDrill(); }}
                                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer"
-                                    style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                    style={{ background: toneBg('danger'), color: toneColor('danger'), border: `1px solid ${hexA(toneColor('danger'), 0.22)}` }}>
                                     <Trash2 size={14} /> מחק מהספרייה
                                 </button>
                             )}

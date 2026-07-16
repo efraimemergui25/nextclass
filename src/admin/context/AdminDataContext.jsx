@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, getDocs, writeBatch, increment, arrayUnion, serverTimestamp, limit, runTransaction } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { CHUNK_CHARS } from '../utils/fileStore';
 import initialProducts from '../../data/products';
@@ -283,21 +283,44 @@ export function AdminDataProvider({ children }) {
     // Issue an invoice: assign the next running number, persist the record. Returns
     // { number, seq }. Single-admin use → a read-modify-write counter is sufficient.
     const issueInvoice = async (order = {}, meta = {}) => {
+        const oid = order.id;
+        // Idempotency: one invoice number per order. If this order was already
+        // invoiced, REUSE it (reopening/reprinting must not mint a new number).
+        if (oid && meta.docType !== 'proforma') {
+            try {
+                const existing = await getDocs(query(collection(db, 'invoices'), where('orderId', '==', String(oid)), limit(1)));
+                if (!existing.empty) {
+                    const d = existing.docs[0].data();
+                    return { number: d.number, seq: d.seq, existing: true };
+                }
+            } catch { /* fall through to mint */ }
+        }
         const year = new Date().getFullYear();
-        const seq = (Number(business.invoiceSeq) || 1000) + 1;
+        // Atomically allocate the next running number (no duplicate on concurrent issue).
+        const bizRef = doc(db, 'config', 'business');
+        const seq = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(bizRef);
+            const next = (Number(snap.data()?.invoiceSeq) || 1000) + 1;
+            tx.set(bizRef, { invoiceSeq: next }, { merge: true });
+            return next;
+        });
         const number = meta.invoiceNumber || `${year}-${String(seq).padStart(5, '0')}`;
-        await setDoc(doc(db, 'config', 'business'), { invoiceSeq: seq }, { merge: true });
         const id = `INV-${number}`;
         await setDoc(doc(db, 'invoices', id), {
-            id, number, seq, orderId: order.id || null,
-            customer: order.contactName || order.institution || '',
+            id, number, seq, orderId: oid ? String(oid) : null,
+            customer: order.contactName || order.customer || order.institution || '',
             docType: meta.docType || 'tax',
             vatRate: meta.vatRate ?? business.vatRate,
             allocationNumber: meta.allocationNumber || '',
             total: Number(meta.total) || null,
             issuedAt: serverTimestamp(), issuedTs: Date.now(),
         }, { merge: true });
-        addActivity(`הונפקה חשבונית ${number}${order.id ? ` (הזמנה ${order.id})` : ''}`, 'order');
+        // Stamp the source record so it shows as "invoiced" and won't re-mint.
+        if (oid) {
+            const coll = order._kind === 'order' ? 'orders' : 'quotes';
+            try { await setDoc(doc(db, coll, String(oid)), { invoiceNumber: number, invoicedAt: Date.now() }, { merge: true }); } catch { /* non-blocking */ }
+        }
+        addActivity(`הונפקה חשבונית ${number}${oid ? ` (הזמנה ${oid})` : ''}`, 'order');
         return { number, seq };
     };
 
@@ -573,27 +596,34 @@ export function AdminDataProvider({ children }) {
                     changes.push(`${AUDIT_LABELS[k]}: "${prev[k] || '—'}" ← "${v || '—'}"`);
                 }
             }
-            if (fields.items && JSON.stringify(prev.items || []) !== JSON.stringify(fields.items)) changes.push('פריטים עודכנו');
+            // compare items on a normalized projection so re-saving unchanged items doesn't log noise
+            if (fields.items) {
+                const proj = (arr) => JSON.stringify((arr || []).map(x => ({ t: (x.title || x.name || '').trim(), q: Number(x.qty) || 1, p: Number(x.salePrice ?? x.price) || 0, c: x.catalogNumber || '' })));
+                if (proj(prev.items) !== proj(fields.items)) changes.push('פריטים עודכנו');
+            }
             if (changes.length) {
                 await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), { type: 'system', message: '✏️ שינוי: ' + changes.join(' · '), at: serverTimestamp(), ts: Date.now() });
             }
         } catch { /* noop */ }
     };
 
-    // Payment tracking — status/amount/due date + timeline log
+    // Payment tracking — status/amount/due date. Logs only on a real status change.
     const updatePayment = async (quoteId, { paymentStatus, amountPaid, paymentDueTs, paymentTermsDays } = {}) => {
+        const prev = quotes.find(q => q.id === quoteId) || {};
         const patch = {};
         if (paymentStatus !== undefined) patch.paymentStatus = paymentStatus;
         if (amountPaid !== undefined) patch.amountPaid = Number(amountPaid) || 0;
         if (paymentDueTs !== undefined) patch.paymentDueTs = paymentDueTs;
         if (paymentTermsDays !== undefined) patch.paymentTermsDays = paymentTermsDays;
         await setDoc(doc(db, 'quotes', String(quoteId)), patch, { merge: true });
-        try {
-            await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), {
-                type: 'system', message: `תשלום עודכן: ${{ paid: 'שולם', partial: 'שולם חלקית', unpaid: 'ממתין לתשלום' }[paymentStatus] || paymentStatus || ''}`,
-                at: serverTimestamp(), ts: Date.now(),
-            });
-        } catch { /* noop */ }
+        if (paymentStatus !== undefined && paymentStatus !== (prev.paymentStatus || 'unpaid')) {
+            try {
+                await addDoc(collection(db, 'quotes', String(quoteId), 'activity'), {
+                    type: 'system', message: `💰 תשלום: ${{ paid: 'שולם', partial: 'שולם חלקית', unpaid: 'ממתין לתשלום' }[paymentStatus] || paymentStatus}`,
+                    at: serverTimestamp(), ts: Date.now(),
+                });
+            } catch { /* noop */ }
+        }
     };
 
     const addQuoteNote = async (quoteId, note) => {
@@ -861,7 +891,7 @@ export function AdminDataProvider({ children }) {
             avgOrderValue:    totalDeals > 0 ? Math.round(totalRevenue / totalDeals) : 0,
             // Quote alerts
             newQuotes:    quotes.filter(q => q.status === 'חדש' && (q.dateTs || 0) > ordersSeenAt).length,
-            unreadQuotes: quotes.filter(q => q.unreadAdmin === true && (q.dateTs || 0) > ordersSeenAt).length,
+            unreadQuotes: quotes.filter(q => q.unreadAdmin === true && (Math.max(q.dateTs || 0, q.lastInboundTs || 0)) > ordersSeenAt).length,
             pendingOrders: orders.filter(o => (o.status === 'ממתין' || o.status === 'חדש') && (o.dateTs || 0) > ordersSeenAt).length,
             stalledLeads: quotes.filter(q => ['ביצירת קשר', 'הוצע מחיר', 'במשא ומתן'].includes(q.status)).length,
             // Pipeline-specific

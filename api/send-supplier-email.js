@@ -388,12 +388,17 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { quote, supplier, to, preview, type, customNote, subject: customSubject, pricingData } = req.body ?? {};
+    const { quote, supplier, to, preview, type, customNote, subject: customSubject, pricingData, html: prebuiltHtml } = req.body ?? {};
     if (!quote) return res.status(400).json({ error: 'quote required' });
 
     try {
         const isOrder = type === 'order_confirmation';
-        const html    = isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) : buildSupplierOrderEmail(quote, supplier, customNote);
+        // The SupplierEmailComposer renders the premium HTML client-side (fully
+        // operator-edited) and passes it here — queue it verbatim. Otherwise fall
+        // back to the server-side builders (legacy / automated paths).
+        const html    = (prebuiltHtml && String(prebuiltHtml).trim())
+            ? String(prebuiltHtml)
+            : (isOrder ? buildOrderConfirmationEmail(quote, supplier, customNote, pricingData) : buildSupplierOrderEmail(quote, supplier, customNote));
         const subject = customSubject || (isOrder ? `אישור הזמנה ${quote.id} — NextClass` : `בקשת הצעת מחיר ${quote.id} — NextClass`);
 
         if (preview === true) {

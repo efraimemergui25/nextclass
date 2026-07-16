@@ -18,12 +18,13 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, FileText, Plus, Mail, Download, Settings, LayoutGrid, List, Columns3, BarChart3, ListChecks, ShoppingCart } from 'lucide-react';
+import { Trash2, FileText, Plus, Mail, Download, Settings, LayoutGrid, List, Columns3, BarChart3, ListChecks, ShoppingCart, MapPin, AlertTriangle } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import OwnerMonthlyReport from '../components/OwnerMonthlyReport';
 import TemplatesManager from '../components/TemplatesManager';
 import RulesManager, { RuleAlerts, useRules } from '../components/RulesManager';
 import OrderReviewSplit from '../components/OrderReviewSplit';
+import SupplierEmailComposer from '../components/SupplierEmailComposer';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { supplierCostForOrder, marginOf, bestCostFor, pricesForSupplier } from '../lib/supplierPricing';
@@ -67,9 +68,14 @@ export default function AdminOrderHub() {
         linkSupplierOrder, updateQuoteFields, createQuote, deleteQuote,
         sendThreadMessage, markAdminThreadRead, clearReminder, updatePayment,
         deletedItems = {}, restoreQuote, hardDeleteQuote, inventory = [],
-        orders: ecomAll = [], updateOrderStatus, deleteOrder,
+        orders: ecomAll = [], updateOrderStatus, deleteOrder, restoreOrder, hardDeleteOrder,
     } = useAdminData();
-    const trashedOrders = deletedItems.quotes || [];
+    // Trash = deleted B2B quotes + deleted storefront orders, tagged so restore/purge
+    // hit the right collection.
+    const trashedOrders = useMemo(() => [
+        ...(deletedItems.quotes || []).map(o => ({ ...o, _kind: 'quote' })),
+        ...(deletedItems.orders || []).map(o => ({ ...o, _kind: 'order' })),
+    ].sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0)), [deletedItems.quotes, deletedItems.orders]);
     // Live storefront (e-commerce) orders — separate collection/model from the B2B
     // quotes pipeline. Excludes synthetic quote-sale records (source==='quote').
     const ecomOrders = useMemo(() => (ecomAll || []).filter(o => o.source !== 'quote'), [ecomAll]);
@@ -93,6 +99,7 @@ export default function AdminOrderHub() {
     }, [searchParams]);
     const [busy, setBusy] = useState(false);
     const [dropship, setDropship] = useState(null); // order being forwarded
+    const [supplierEmail, setSupplierEmail] = useState(null); // { order, supplier, note } — compose supplier email
     const [suppliers, setSuppliers] = useState([]);
     const [supplierOrders, setSupplierOrders] = useState([]);
     const [prices, setPrices] = useState([]);        // supplier price book
@@ -475,19 +482,42 @@ export default function AdminOrderHub() {
                     }).catch(() => {})
                 ));
             }
-            // queue the supplier PO email (gate)
-            if (supplier?.email) {
-                await fetch('/api/send-supplier-email', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ quote: order, supplier, type: 'order_confirmation', to: supplier.email }),
-                }).catch(() => {});
-            }
             await advanceOrderStage(order.id, 'sent_supplier', { supplierName: supplier?.name || supplier?.company || '' });
-            await logOrderActivity(order.id, { type: 'supplier', message: `הועבר לספק${supplier?.name ? `: ${supplier.name}` : ''}${supplier?.email ? ' · טיוטת מייל בתור' : ''}` });
-            showToast('הועבר לספק · הזמנת רכש נוצרה' + (supplier?.email ? ' · טיוטת מייל בתור אישור' : ''), 'success');
+            await logOrderActivity(order.id, { type: 'supplier', message: `הועבר לספק${supplier?.name ? `: ${supplier.name}` : ''}${supplier?.email ? ' · עורך מייל לספק' : ''}` });
             setDropship(null);
+            // Open the supplier-email composer (auto-filled, fully editable) — the
+            // operator reviews/edits every field before it's queued to the gate.
+            if (supplier?.email) {
+                setSupplierEmail({ order, supplier, note });
+                showToast('הועבר לספק · ערוך/י את המייל לספק', 'success');
+            } else {
+                showToast('הועבר לספק · הזמנת רכש נוצרה (אין מייל לספק)', 'success');
+            }
         } catch (e) { showToast('שגיאה בהעברה לספק', 'error'); }
         finally { setBusy(false); inFlight.current = false; }
+    };
+
+    /* ── queue the composed supplier email (approval gate, never auto-sends) ──── */
+    const queueSupplierEmail = async ({ html, subject, to, model }) => {
+        if (busy) return;
+        setBusy(true);
+        try {
+            const order = supplierEmail?.order || {};
+            const supplier = supplierEmail?.supplier || null;
+            const res = await fetch('/api/send-supplier-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    quote: { id: order.id, orderNumber: order.orderNumber || order.id },
+                    supplier, to, subject, html, type: 'order_confirmation',
+                }),
+            });
+            if (!res.ok) throw new Error('queue failed');
+            await logOrderActivity(order.id, { type: 'supplier', message: `מייל לספק נשמר בתור אישור → ${to}` });
+            showToast('המייל לספק נשמר בתור — אשר/י ושלח/י ב"תקשורת"', 'success');
+            setSupplierEmail(null);
+        } catch (e) {
+            showToast('שמירת המייל לספק נכשלה', 'error');
+        } finally { setBusy(false); }
     };
 
     return (
@@ -674,13 +704,13 @@ export default function AdminOrderHub() {
             {view === 'store' && (
                 <EcomOrdersView orders={ecomOrders} busy={busy}
                     onStatus={async (o, s) => { await updateOrderStatus(o.id, s); showToast(`הזמנת אתר → ${s}`, 'success'); }}
-                    onInvoice={setInvoiceOrder}
+                    onInvoice={(o) => setInvoiceOrder({ ...o, _kind: 'order' })}
                     onDelete={async (o) => { if (await confirm({ message: `להעביר הזמנת אתר של ${o.customer || o.contactName || ''} לפח?`, danger: true })) { await deleteOrder(o.id); showToast('הועבר לפח', 'success'); } }} />
             )}
             {view === 'trash' && (
                 <TrashView items={trashedOrders} busy={busy}
-                    onRestore={async (o) => { await restoreQuote(o.id); showToast('ההזמנה שוחזרה', 'success'); }}
-                    onPurge={async (o) => { if (await confirm({ message: `למחוק לצמיתות את "${orderTitle(o)}"? פעולה בלתי הפיכה.`, danger: true })) { await hardDeleteQuote(o.id); showToast('נמחק לצמיתות', 'warning'); } }} />
+                    onRestore={async (o) => { await (o._kind === 'order' ? restoreOrder(o.id) : restoreQuote(o.id)); showToast('ההזמנה שוחזרה', 'success'); }}
+                    onPurge={async (o) => { if (await confirm({ message: `למחוק לצמיתות את "${orderTitle(o)}"? פעולה בלתי הפיכה.`, danger: true })) { await (o._kind === 'order' ? hardDeleteOrder(o.id) : hardDeleteQuote(o.id)); showToast('נמחק לצמיתות', 'warning'); } }} />
             )}
 
             {/* bulk-action bar (mass actions on list selection) */}
@@ -741,6 +771,15 @@ export default function AdminOrderHub() {
                 {dropship && (
                     <DropshipModal order={dropship} suppliers={suppliers} prices={prices} busy={busy}
                         onClose={() => setDropship(null)} onConfirm={confirmDropship} />
+                )}
+            </AnimatePresence>
+
+            {/* supplier-email composer — auto-filled from the order, fully editable */}
+            <AnimatePresence>
+                {supplierEmail && (
+                    <SupplierEmailComposer
+                        order={supplierEmail.order} supplier={supplierEmail.supplier} note={supplierEmail.note}
+                        busy={busy} onClose={() => setSupplierEmail(null)} onQueue={queueSupplierEmail} />
                 )}
             </AnimatePresence>
 
@@ -1614,8 +1653,14 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
                     ))}
                 </div>
 
-                <div style={{ padding: 12, borderRadius: 12, background: 'rgba(0,122,255,0.05)', marginBottom: 12 }}>
-                    <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, color: '#3A3A3C' }}>📍 אספקה ללקוח: {addr}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 12, background: '#F6F8FB', border: '1px solid rgba(0,0,0,0.05)', marginBottom: 12 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(0,122,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <MapPin size={15} color="#007AFF" strokeWidth={2.3} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 9.5, fontWeight: 800, color: '#AEAEB2', letterSpacing: '0.04em' }}>אספקה ללקוח</p>
+                        <p style={{ margin: '1px 0 0', fontSize: 12, fontWeight: 700, color: '#1D1D1F' }}>{addr}</p>
+                    </div>
                 </div>
 
                 {/* missing-info guard — don't forward Amal an incomplete order */}
@@ -1627,9 +1672,14 @@ function DropshipModal({ order, suppliers, prices = [], busy, onClose, onConfirm
                     if (!(order.items || []).length) miss.push('פריטים');
                     if (!miss.length) return null;
                     return (
-                        <div style={{ padding: '10px 12px', borderRadius: 12, background: 'rgba(255,149,0,0.09)', border: '1px solid rgba(255,149,0,0.3)', marginBottom: 12 }}>
-                            <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, color: '#B86A00' }}>⚠ חסר לפני העברה לספק: {miss.join(' · ')}</p>
-                            <p style={{ margin: '3px 0 0', fontSize: 10.5, fontWeight: 600, color: '#8A6D3B' }}>השלם/י בטאב "לקוח" כדי לא לשלוח לעמל הזמנה חלקית.</p>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 13px', borderRadius: 12, background: '#fff', border: '1px solid rgba(255,149,0,0.28)', boxShadow: '0 4px 16px rgba(255,149,0,0.08)', marginBottom: 12 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <AlertTriangle size={15} color="#FF9500" strokeWidth={2.3} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#1D1D1F' }}>חסר לפני העברה לספק: {miss.join(' · ')}</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 10.5, fontWeight: 600, color: '#86868B' }}>השלם/י בטאב "לקוח" כדי לא לשלוח לעמל הזמנה חלקית.</p>
+                            </div>
                         </div>
                     );
                 })()}

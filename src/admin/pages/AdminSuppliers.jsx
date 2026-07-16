@@ -18,19 +18,19 @@ import {
     Globe, User, Hash, Truck, Box, CreditCard,
     BarChart3, ArrowUpDown, Edit2, ChevronRight, ChevronLeft, Layers, Briefcase,
     Award, TrendingUp, Printer, Activity, Star, Calendar, AlertCircle,
-    Zap, Rocket, Crown, ClipboardList, MessageSquare, Download,
+    Zap, Rocket, Crown, ClipboardList, MessageSquare, Download, DollarSign,
 } from 'lucide-react';
 import {
     PALETTE, GLASS, RADIUS, SHADOW, SPRING, TAP,
-    hexA, glow, accentSurface,
+    hexA, glow, accentSurface, toneColor, toneBg, toneFg,
 } from '../theme/tokens';
 import { AdminKPICard } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
 
 // ─── Suppliers domain accent (restrained brand — azure, de-rainbowed) ──────────
 const GOLD      = '#007AFF';                                     // suppliers accent (azure)
-const GOLD_GRAD = 'linear-gradient(135deg,#007AFF,#5856D6)';
-const GOLD_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.14) 0%, rgba(88,86,214,0.08) 100%)';
+const GOLD_GRAD = 'linear-gradient(135deg,#007AFF,#5AC8FA)';
+const GOLD_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.14) 0%, rgba(90,200,250,0.08) 100%)';
 
 // ─── Liquid-glass surface recipes (token-driven — one system everywhere) ───────
 const G    = { ...GLASS.base,    borderRadius: RADIUS.card };    // workhorse card
@@ -40,7 +40,7 @@ const CARD = { ...GLASS.frosted, borderRadius: RADIUS.smCard };  // compact chro
 const NEG_STAGES = [
     { id: 'received',    label: 'התקבלה',    color: '#007AFF', icon: Package },
     { id: 'reviewing',  label: 'בבדיקה',     color: '#FF9500', icon: Search },
-    { id: 'negotiating',label: 'במשא ומתן', color: '#5856D6', icon: ArrowUpDown },
+    { id: 'negotiating',label: 'במשא ומתן', color: '#5AC8FA', icon: ArrowUpDown },
     { id: 'agreed',     label: 'הוסכם',      color: '#34C759', icon: CheckCircle2 },
     { id: 'ordered',    label: 'הוזמן',      color: '#30D158', icon: ShoppingCart },
 ];
@@ -67,7 +67,7 @@ const CATEGORIES   = [
 ];
 
 // ─── Category color (deterministic from string) ────────────────────────────────
-const CAT_PALETTE = ['#007AFF', '#5856D6', '#FF9500', '#FF2D55', '#34C759', '#00C7BE', '#BF5AF2'];
+const CAT_PALETTE = ['#007AFF', '#5AC8FA', '#FF9500', '#FF2D55', '#34C759', '#00C7BE', '#0A84FF'];
 const catColor = cat => {
     if (!cat) return '#AEAEB2';
     let h = 0; for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) | 0;
@@ -91,6 +91,58 @@ async function fetchUsdToIls() {
     return null;
 }
 
+// Force a fresh fetch (bypasses the 5-min cache) — used by the manual FX button.
+async function refreshUsdToIls() {
+    try {
+        const res = await fetch('/api/fx', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const rate = data?.usdToIls;
+        if (rate && Number.isFinite(rate) && rate > 0.5) {
+            _fxCache = { usdToIls: rate, fetchedAt: Date.now() };
+            return rate;
+        }
+    } catch {}
+    return null;
+}
+
+// ─── FX rate pill — shows the live USD→ILS rate + one-tap refresh ──────────────
+function FxRateButton({ rate, onRefresh, size = 'md' }) {
+    const [loading, setLoading] = useState(false);
+    const [ok, setOk] = useState(false);
+    const pad = size === 'sm' ? '5px 9px' : '7px 12px';
+    const fs  = size === 'sm' ? 11 : 12;
+    const dot = size === 'sm' ? 17 : 20;
+    const refresh = async (e) => {
+        e?.stopPropagation?.(); e?.preventDefault?.();
+        if (loading) return;
+        setLoading(true);
+        const r = await refreshUsdToIls();
+        setLoading(false);
+        if (r) { onRefresh?.(r); setOk(true); setTimeout(() => setOk(false), 1600); }
+    };
+    return (
+        <button type="button" onClick={refresh} disabled={loading}
+            title="עדכון שער דולר-שקל לפי השער הנוכחי"
+            style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: pad, borderRadius: 999,
+                border: `1px solid ${ok ? 'rgba(52,199,89,0.4)' : 'rgba(0,122,255,0.22)'}`,
+                background: ok ? 'rgba(52,199,89,0.10)' : 'linear-gradient(135deg, rgba(0,122,255,0.10), rgba(90,200,250,0.08))',
+                color: ok ? '#1A8C40' : '#007AFF', fontSize: fs, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)', transition: 'all 0.18s', whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => { if (!loading && !ok) e.currentTarget.style.filter = 'brightness(1.03)'; }}
+            onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}>
+            <span style={{ width: dot, height: dot, borderRadius: 999, background: ok ? '#34C759' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+                {loading ? <RefreshCw size={11} className="animate-spin" /> : ok ? <Check size={12} /> : <DollarSign size={12} />}
+            </span>
+            <span>{ok ? 'עודכן' : loading ? 'מעדכן…' : 'שער דולר'}</span>
+            <span style={{ fontWeight: 900 }}>{rate ? `₪${Number(rate).toFixed(2)}` : '—'}</span>
+            {!loading && !ok && <RefreshCw size={12} style={{ opacity: 0.55 }} />}
+        </button>
+    );
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmt  = n  => n  ? `₪${Number(n).toLocaleString('he-IL')}` : '—';
 const uid  = () => Math.random().toString(36).slice(2, 10);
@@ -111,7 +163,7 @@ function calcTotal(products = []) {
 function SupplierAvatar({ domain, name, size = 48, color, logoUrl }) {
     const [err, setErr] = useState(false);
     const initials = (name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
-    const FALLBACK_COLORS = ['#007AFF', '#5856D6', '#FF9500', '#FF2D55', '#34C759'];
+    const FALLBACK_COLORS = ['#007AFF', '#5AC8FA', '#FF9500', '#FF2D55', '#34C759'];
     const bg = color || FALLBACK_COLORS[(name || '').charCodeAt(0) % FALLBACK_COLORS.length];
     const r = Math.round(size * 0.25);
     const cleanDomain = (domain || '').replace(/https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].trim();
@@ -136,7 +188,7 @@ function SupplierAvatar({ domain, name, size = 48, color, logoUrl }) {
 }
 
 // ─── ColorPicker ───────────────────────────────────────────────────────────────
-const SUPPLIER_PRESET_COLORS = ['#007AFF','#5856D6','#FF9500','#FF2D55','#34C759','#FF3B30','#FF6B35','#AF52DE','#00BCD4','#795548'];
+const SUPPLIER_PRESET_COLORS = ['#007AFF','#5AC8FA','#FF9500','#FF2D55','#34C759','#FF3B30','#FF6B35','#0A84FF','#00BCD4','#795548'];
 function ColorPicker({ value, onChange }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -349,10 +401,12 @@ function LBL({ children }) {
 }
 
 // ─── ProductLookupRow ──────────────────────────────────────────────────────────
-function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, onGoToProducts, allCategories }) {
+function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, onGoToProducts, allCategories, fxRate }) {
     const [busy,       setBusy]      = useState(false);
     const [imgErr,     setImgErr]    = useState(false);
-    const [usdRate,    setUsdRate]   = useState(_fxCache.usdToIls);
+    const [usdRate,    setUsdRate]   = useState(fxRate || _fxCache.usdToIls);
+    // Sync with the editor-level FX rate (updated by the manual "שער דולר" button)
+    useEffect(() => { if (fxRate) setUsdRate(fxRate); }, [fxRate]);
     const [catInput,   setCatInput]  = useState(false);
     const [catVal,     setCatVal]    = useState('');
     const [showTiers,  setShowTiers] = useState((p.tiers || []).length > 0);
@@ -581,7 +635,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button
                         onClick={() => setShowTiers(t => !t)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: `1px solid ${(p.tiers || []).length > 0 ? 'rgba(88,86,214,0.25)' : 'rgba(0,0,0,0.10)'}`, background: (p.tiers || []).length > 0 ? 'rgba(88,86,214,0.06)' : 'rgba(0,0,0,0.02)', cursor: 'pointer', color: (p.tiers || []).length > 0 ? '#5856D6' : '#8E8E93', fontSize: 10, fontWeight: 700 }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: `1px solid ${(p.tiers || []).length > 0 ? 'rgba(90,200,250,0.25)' : 'rgba(0,0,0,0.10)'}`, background: (p.tiers || []).length > 0 ? 'rgba(90,200,250,0.06)' : 'rgba(0,0,0,0.02)', cursor: 'pointer', color: (p.tiers || []).length > 0 ? '#5AC8FA' : '#8E8E93', fontSize: 10, fontWeight: 700 }}>
                         <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2h14v3H1V2zm0 4.5h10v3H1v-3zm0 4.5h6v3H1v-3z"/></svg>
                         מדרגות מחיר{(p.tiers || []).length > 0 ? ` (${p.tiers.length})` : ''}
                         <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" style={{ transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M8 10L2 4h12L8 10z"/></svg>
@@ -594,11 +648,11 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                     )}
                 </div>
                 {showTiers && (
-                    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(88,86,214,0.12)', overflow: 'hidden', background: 'rgba(88,86,214,0.02)' }}>
+                    <div style={{ marginTop: 8, borderRadius: 10, border: '1px solid rgba(90,200,250,0.12)', overflow: 'hidden', background: 'rgba(90,200,250,0.02)' }}>
                         {/* header */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, background: 'rgba(88,86,214,0.06)', borderBottom: '1px solid rgba(88,86,214,0.10)', padding: '5px 10px', direction: 'rtl' }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>כמות מינ׳</span>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5856D6', textAlign: 'right' }}>מחיר ליח׳ (₪)</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 0, background: 'rgba(90,200,250,0.06)', borderBottom: '1px solid rgba(90,200,250,0.10)', padding: '5px 10px', direction: 'rtl' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5AC8FA', textAlign: 'right' }}>כמות מינ׳</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#5AC8FA', textAlign: 'right' }}>מחיר ליח׳ (₪)</span>
                             <span style={{ width: 22 }} />
                         </div>
                         {/* base tier */}
@@ -641,7 +695,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                     style={{ ...inputCss, fontSize: 11, flex: 1 }} />
                 {p.productPageUrl && (
                     <a href={p.productPageUrl} target="_blank" rel="noreferrer"
-                        style={{ padding: '6px 10px', borderRadius: 9, background: 'rgba(88,86,214,0.08)', color: '#5856D6', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        style={{ padding: '6px 10px', borderRadius: 9, background: 'rgba(90,200,250,0.08)', color: '#5AC8FA', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         <ExternalLink size={11} />פתח
                     </a>
                 )}
@@ -677,7 +731,7 @@ function ProductRow({ product: p, onChange, onDelete, quoteStatus, onPublish, on
                         </>
                     ) : (
                         <motion.button onClick={() => onPublish?.(p)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,122,255,0.28)' }}>
                             <Globe size={11} />פרסם לאתר
                         </motion.button>
                     )}
@@ -702,8 +756,8 @@ function DocsSection({ docs, onAdd, onRemove }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(docs || []).map((d, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(88,86,214,0.04)', border: '1px solid rgba(88,86,214,0.10)' }}>
-                    <FileText size={13} color="#5856D6" />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(90,200,250,0.04)', border: '1px solid rgba(90,200,250,0.10)' }}>
+                    <FileText size={13} color="#5AC8FA" />
                     <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#1D1D1F', textAlign: 'right' }}>{d.name}</span>
                     {d.url && <a href={d.url} target="_blank" rel="noreferrer" style={{ color: '#007AFF' }}><ExternalLink size={12} /></a>}
                     <button onClick={() => onRemove(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#FF3B30', padding: 3, display: 'flex' }}><X size={11} /></button>
@@ -846,7 +900,7 @@ function PublishProductModal({ product: p, quoteId, addProduct, onClose, onPubli
                     <div style={{ flex: 1 }}><MF label="שם המוצר באתר *" value={form.title} onChange={f('title')} placeholder="השם שיופיע ללקוחות" /></div>
                     {p.modelNumber && (
                         <motion.button onClick={refetch} disabled={busy} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-                            style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(88,86,214,0.18)', background: 'linear-gradient(135deg,rgba(88,86,214,0.10),rgba(88,86,214,0.07))', color: '#5856D6', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                            style={{ padding: '9px 13px', borderRadius: 10, border: '1px solid rgba(90,200,250,0.18)', background: 'linear-gradient(135deg,rgba(90,200,250,0.10),rgba(90,200,250,0.07))', color: '#5AC8FA', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                             {busy ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}{busy ? '...' : 'משוך נתונים'}
                         </motion.button>
                     )}
@@ -930,6 +984,8 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
     const [addingNote, setAN]   = useState(false);
     const [publishModal, setPublishModal] = useState(null); // product being published
     const [catFilter, setCatFilter] = useState('');
+    const [editorFx, setEditorFx] = useState(_fxCache.usdToIls);
+    useEffect(() => { fetchUsdToIls().then(r => { if (r) setEditorFx(r); }); }, []);
     const [highlightKey, setHighlightKey] = useState(focusProductKey || null);
     const focusRefs = React.useRef({});
     const baselineRef = React.useRef(JSON.stringify(quote));
@@ -1131,10 +1187,13 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                         <section>
                             <SL icon={<Package size={12} />} label={`מוצרים (${(d.products || []).length})`}
                                 extra={
-                                    <motion.button onClick={addProd} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 8, border: 'none', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                        <Plus size={11} />מוצר
-                                    </motion.button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <FxRateButton rate={editorFx} onRefresh={setEditorFx} size="sm" />
+                                        <motion.button onClick={addProd} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 8, border: 'none', background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            <Plus size={11} />מוצר
+                                        </motion.button>
+                                    </div>
                                 } />
 
                             {/* Category filter chips */}
@@ -1149,7 +1208,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                                                     padding: '5px 13px', borderRadius: 99,
                                                     border: active ? '1px solid rgba(0,122,255,0.30)' : '1px solid rgba(0,0,0,0.08)',
                                                     background: active
-                                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.11),rgba(88,86,214,0.09))'
+                                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.11),rgba(90,200,250,0.09))'
                                                         : 'rgba(255,255,255,0.70)',
                                                     backdropFilter: 'blur(12px)',
                                                     WebkitBackdropFilter: 'blur(12px)',
@@ -1182,7 +1241,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                                                 style={{ borderRadius: 12, transition: 'background 0.5s', background: isHighlighted ? 'rgba(52,199,89,0.10)' : 'transparent', boxShadow: isHighlighted ? '0 0 0 2px rgba(52,199,89,0.35)' : 'none' }}>
                                                 <ProductRow product={p} onChange={u => updProd(i, u)} onDelete={() => remProd(i)}
                                                     quoteStatus={d.status} onPublish={setPublishModal} onGoToProducts={() => navigate('/admin/products')}
-                                                    allCategories={allCategories} />
+                                                    allCategories={allCategories} fxRate={editorFx} />
                                             </div>
                                         );
                                     })}
@@ -1257,7 +1316,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                             const events = [];
                             const createdTs = quote.createdAt?.seconds ? quote.createdAt.seconds * 1000 : null;
                             if (createdTs) events.push({ ts: createdTs, icon: <ClipboardList size={8} />, label: 'הצעה נוצרה', color: '#007AFF', sub: fmtD(quote.createdAt) });
-                            (quote.notes || []).forEach(n => events.push({ ts: n.ts, icon: <MessageSquare size={8} />, label: n.text, color: '#5856D6', sub: new Date(n.ts).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) }));
+                            (quote.notes || []).forEach(n => events.push({ ts: n.ts, icon: <MessageSquare size={8} />, label: n.text, color: '#5AC8FA', sub: new Date(n.ts).toLocaleString('he-IL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) }));
                             const pubProds = (quote.products || []).filter(p => p.publishedProductId);
                             pubProds.forEach(p => events.push({ ts: 0, icon: <Rocket size={8} />, label: `"${p.name || p.modelNumber}" פורסם לאתר`, color: '#34C759', sub: 'פורסם' }));
                             if (quote.status && quote.status !== 'received') {
@@ -1301,7 +1360,7 @@ function QuoteDrawer({ quote, supplier, onClose, showToast, allCategories, focus
                 {/* Sticky save bar */}
                 <div style={{ padding: '14px 22px', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)' }}>
                     <motion.button onClick={save} disabled={!dirty || saving} whileHover={{ scale: dirty ? 1.02 : 1 }} whileTap={{ scale: dirty ? 0.98 : 1 }}
-                        style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: dirty ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.05)', color: dirty ? '#fff' : '#AEAEB2', fontSize: 14, fontWeight: 800, cursor: dirty ? 'pointer' : 'not-allowed', boxShadow: dirty ? '0 4px 18px rgba(0,122,255,0.28)' : 'none', transition: 'all 0.2s' }}>
+                        style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: dirty ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(0,0,0,0.05)', color: dirty ? '#fff' : '#AEAEB2', fontSize: 14, fontWeight: 800, cursor: dirty ? 'pointer' : 'not-allowed', boxShadow: dirty ? '0 4px 18px rgba(0,122,255,0.28)' : 'none', transition: 'all 0.2s' }}>
                         {saving ? 'שומר...' : dirty ? 'שמור שינויים' : 'אין שינויים'}
                     </motion.button>
                 </div>
@@ -1471,7 +1530,7 @@ function SupplierScorecard({ quotes }) {
                     {[
                         { icon: CheckCircle2, label: `${closed} נסגרו`, sub: `${Math.round(closeRate * 100)}% אחוז סגירה`, color: '#34C759' },
                         { icon: Globe,        label: `${published} פורסמו`, sub: 'מוצרים לאתר',  color: '#007AFF' },
-                        { icon: CreditCard,   label: fmt(totalValue),        sub: 'ערך כולל',      color: '#5856D6' },
+                        { icon: CreditCard,   label: fmt(totalValue),        sub: 'ערך כולל',      color: '#5AC8FA' },
                         avgLead > 0 ? { icon: Clock, label: `${Math.round(avgLead)} ימים`, sub: 'זמן אספקה ממוצע', color: '#FF9500' } : null,
                     ].filter(Boolean).map((kpi, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
@@ -1698,10 +1757,13 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 if (!key) return;
                 if (!map[key]) map[key] = { label: p.name || p.modelNumber, model: p.modelNumber, image: p.imageUrl, category: p.category || '', rows: {} };
                 if (!map[key].rows[q.supplierId]) map[key].rows[q.supplierId] = [];
-                let unitPrice = Number(p.pricePerUnit) || 0;
-                // Fallback for USD products saved with pricePerUnit=0 (rate was unavailable at save time)
-                if (!unitPrice && p.currency === 'USD' && p.priceInUsd && usdRate) {
+                // USD products always reflect the LIVE rate (so the "שער דולר" refresh re-converts them);
+                // ILS / fixed-price products keep their stored price.
+                let unitPrice;
+                if (p.currency === 'USD' && p.priceInUsd && usdRate) {
                     unitPrice = Math.round(parseFloat(p.priceInUsd) * usdRate * 100) / 100;
+                } else {
+                    unitPrice = Number(p.pricePerUnit) || 0;
                 }
                 const price = unitPrice * (1 - (Number(p.discount) || 0) / 100);
                 map[key].rows[q.supplierId].push({ price, qty: Number(p.quantity) || 1, qNum: q.quoteNumber || q.id?.slice(-6), quoteId: q.id, productKey: key });
@@ -1870,8 +1932,9 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 </motion.div>
             )}
 
-            {/* ── View mode toggle ────────────────────────────────── */}
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+            {/* ── FX rate + View mode toggle ──────────────────────── */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <FxRateButton rate={usdRate} onRefresh={setUsdRate} />
                 <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)' }}>
                     {[
                         { id: 'table', label: 'טבלה' },
@@ -1882,7 +1945,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                         <button key={v.id} onClick={() => setViewMode(v.id)} style={{
                             padding: '5px 12px', borderRadius: 8,
                             border: viewMode === v.id ? '1px solid rgba(0,122,255,0.22)' : '1px solid transparent',
-                            background: viewMode === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)' : 'transparent',
+                            background: viewMode === v.id ? 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.08) 100%)' : 'transparent',
                             color: viewMode === v.id ? '#007AFF' : '#6E6E73',
                             fontSize: 11, fontWeight: viewMode === v.id ? 700 : 500,
                             cursor: 'pointer', transition: 'all 0.15s',
@@ -1906,7 +1969,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                     padding: '6px 14px', borderRadius: 99,
                                     border: active ? '1px solid rgba(0,122,255,0.30)' : '1px solid rgba(255,255,255,0.65)',
                                     background: active
-                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(88,86,214,0.10))'
+                                        ? 'linear-gradient(135deg,rgba(0,122,255,0.12),rgba(90,200,250,0.10))'
                                         : 'rgba(255,255,255,0.62)',
                                     backdropFilter: 'blur(14px)',
                                     WebkitBackdropFilter: 'blur(14px)',
@@ -2256,7 +2319,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
 
             {/* ── Chart view — premium grouped bar chart ───────────── */}
             {viewMode === 'chart' && (() => {
-                const COLORS  = ['#007AFF','#FF9500','#34C759','#FF3B30','#5856D6','#FF2D55'];
+                const COLORS  = ['#007AFF','#FF9500','#34C759','#FF3B30','#5AC8FA','#FF2D55'];
                 const LIGHTS  = ['#4FC3F7','#FFD54F','#69F0AE','#FF8A65','#CE93D8','#F48FB1'];
                 const supColor = (s, i) => s.color || COLORS[i % 6];
                 const supLight = (s, i) => s.color ? s.color + 'BB' : LIGHTS[i % 6];
@@ -2494,7 +2557,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                 return (
                     <div style={{ ...G, padding: '18px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                            <TrendingUp size={14} color="#5856D6" />
+                            <TrendingUp size={14} color="#5AC8FA" />
                             <span style={{ fontSize: 14, fontWeight: 800, color: '#1D1D1F' }}>היסטוריית מחירים</span>
                             <span style={{ fontSize: 11, color: '#AEAEB2', fontWeight: 600 }}>· מוצרים עם מספר הצעות</span>
                         </div>
@@ -2509,7 +2572,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                 const trend = pts[pts.length - 1] - pts[0];
                                 const tColor = trend < 0 ? '#34C759' : trend > 0 ? '#FF3B30' : '#8E8E93';
                                 return (
-                                    <div key={ri} style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(88,86,214,0.03)', border: '1px solid rgba(88,86,214,0.10)' }}>
+                                    <div key={ri} style={{ padding: '12px 14px', borderRadius: 14, background: 'rgba(90,200,250,0.03)', border: '1px solid rgba(90,200,250,0.10)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: '#1D1D1F', maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.label}</div>
                                             <span style={{ fontSize: 11, fontWeight: 800, color: tColor, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2519,16 +2582,16 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
                                         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block' }}>
                                             <defs>
                                                 <linearGradient id={`cgrad${ri}`} x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#5856D6" stopOpacity="0.16" />
-                                                    <stop offset="100%" stopColor="#5856D6" stopOpacity="0" />
+                                                    <stop offset="0%" stopColor="#5AC8FA" stopOpacity="0.16" />
+                                                    <stop offset="100%" stopColor="#5AC8FA" stopOpacity="0" />
                                                 </linearGradient>
                                             </defs>
                                             <polygon points={`${xs[0]},${H} ${polyline} ${xs[xs.length-1]},${H}`} fill={`url(#cgrad${ri})`} />
-                                            <polyline points={polyline} fill="none" stroke="#5856D6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            <polyline points={polyline} fill="none" stroke="#5AC8FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                             {row.points.map((pt, i) => (
                                                 <g key={i}>
-                                                    <circle cx={xs[i]} cy={ys[i]} r="4" fill="#fff" stroke="#5856D6" strokeWidth="2" />
-                                                    <text x={xs[i]} y={ys[i] - 8} textAnchor="middle" fontSize="9" fill="#5856D6" fontWeight="700">{fmt(pt.price)}</text>
+                                                    <circle cx={xs[i]} cy={ys[i]} r="4" fill="#fff" stroke="#5AC8FA" strokeWidth="2" />
+                                                    <text x={xs[i]} y={ys[i] - 8} textAnchor="middle" fontSize="9" fill="#5AC8FA" fontWeight="700">{fmt(pt.price)}</text>
                                                     <text x={xs[i]} y={H + 13} textAnchor="middle" fontSize="8" fill="#AEAEB2">{pt.supplier}</text>
                                                 </g>
                                             ))}
@@ -2546,7 +2609,7 @@ function CompareTab({ suppliers, quotes, onSelectSupplier, onSelectQuote }) {
 }
 
 // ─── ContactCard ───────────────────────────────────────────────────────────────
-const ACCENT_PALETTE = ['#007AFF','#5856D6','#FF9500','#FF2D55','#34C759','#00C7BE','#BF5AF2'];
+const ACCENT_PALETTE = ['#007AFF','#5AC8FA','#FF9500','#FF2D55','#34C759','#00C7BE','#0A84FF'];
 function accentFor(name) {
     let h = 0; for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
     return ACCENT_PALETTE[Math.abs(h) % ACCENT_PALETTE.length];
@@ -2628,7 +2691,7 @@ function ContactCard({ contact: c, onSelectSupplier }) {
                     </a>
                 )}
                 {c.website && (
-                    <a href={c.website} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 13, background: 'rgba(88,86,214,0.06)', color: '#5856D6', textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid rgba(88,86,214,0.14)', overflow: 'hidden' }}>
+                    <a href={c.website} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderRadius: 13, background: 'rgba(90,200,250,0.06)', color: '#5AC8FA', textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid rgba(90,200,250,0.14)', overflow: 'hidden' }}>
                         <Globe size={13} style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{domain || c.website}</span>
                     </a>
@@ -2885,7 +2948,7 @@ function AddSupplierModal({ onClose, onAdded }) {
                 whileTap={{ scale: 0.985 }}
                 style={{
                     width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
-                    background: 'linear-gradient(135deg,#007AFF,#5856D6)',
+                    background: 'linear-gradient(135deg,#007AFF,#5AC8FA)',
                     color: '#fff', fontSize: 14, fontWeight: 800,
                     cursor: saving ? 'not-allowed' : 'pointer',
                     boxShadow: '0 6px 20px rgba(0,122,255,0.28)',
@@ -2961,7 +3024,7 @@ function EditSupplierModal({ supplier, onClose }) {
                 <ColorPicker value={form.color} onChange={f('color')} />
             </div>
             <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
+                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
                 {saving ? 'שומר...' : 'שמור שינויים'}
             </motion.button>
         </Modal>
@@ -2996,7 +3059,7 @@ function AddQuoteModal({ supplier, onClose, onCreated }) {
                 תיווצר הצעה ריקה — לאחר מכן תוכל להוסיף מוצרים, מחירים ופרטי עסקה.
             </p>
             <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
+                style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 22px rgba(0,122,255,0.28)' }}>
                 {saving ? 'יוצר...' : 'צור הצעה'}
             </motion.button>
         </Modal>
@@ -3297,7 +3360,7 @@ function exportQuotesXLSX(suppliers, quotes) {
             { label: `${suppliers.length} ספקים`,   bg: '1E3A5F', fg: 'FFFFFF', c1: 0, c2: 2 },
             { label: `${quotes.length} הצעות`,       bg: '2563EB', fg: 'FFFFFF', c1: 3, c2: 5 },
             { label: `₪${fmtNum(grandTotal)} ערך כולל`, bg: '065F46', fg: 'FFFFFF', c1: 6, c2: 7 },
-            { label: `${totalProducts} מוצרים`,     bg: '7C3AED', fg: 'FFFFFF', c1: 8, c2: 9 },
+            { label: `${totalProducts} מוצרים`,     bg: '0A84FF', fg: 'FFFFFF', c1: 8, c2: 9 },
         ];
         KPIs.forEach(kpi => {
             fillMerge(ws1, 2, kpi.c1, 2, kpi.c2, { v: kpi.label, t: 's', s: kpiSt(kpi.bg, kpi.fg) });
@@ -3612,7 +3675,7 @@ function exportQuotesXLSX(suppliers, quotes) {
             const stageSt3 = { ...dataSt(even), font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: stageColor } }, alignment: { horizontal: 'center', vertical: 'center' } };
             const publishedSt = { ...numSt(even), font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: p.publishedProductId ? C.greenTxt : C.light } } };
 
-            const tiersSt = { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: (p.tiers || []).length > 0 ? '5856D6' : C.light } }, alignment: { horizontal: 'right', vertical: 'center', wrapText: false } };
+            const tiersSt = { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: (p.tiers || []).length > 0 ? '5AC8FA' : C.light } }, alignment: { horizontal: 'right', vertical: 'center', wrapText: false } };
             const prodRow = [
                 { v: cat, t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 9, color: { rgb: hex(catColor(cat)) || C.mid } } } },
                 { v: p.name || '—', t: 's', s: { ...dataSt(even), font: { name: 'Calibri', sz: 10, bold: true } } },
@@ -3709,7 +3772,7 @@ function exportQuotesXLSX(suppliers, quotes) {
                 ? lc(
                     domainRaw,
                     domainFull,
-                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '7C3AED' }, underline: true } },
+                    { ...dataSt(even), font: { name: 'Calibri', sz: 10, color: { rgb: '0A84FF' }, underline: true } },
                 )
                 : { v: '—', t: 's', s: dataSt(even) };
 
@@ -3847,7 +3910,7 @@ export default function AdminSuppliers({ embedded = false }) {
                 setError(null);
                 setLoading(false);
             },
-            () => { setError('שגיאה בטעינת ספקים'); setLoading(false); }
+            (err) => { console.error('suppliers listener', err); setError('שגיאה בטעינת ספקים'); setLoading(false); showToast('שגיאה בטעינת ספקים', 'error'); }
         );
         return unsub;
     }, []);
@@ -3856,7 +3919,7 @@ export default function AdminSuppliers({ embedded = false }) {
         const unsub = onSnapshot(
             query(collection(db, 'supplier_quotes'), orderBy('createdAt', 'desc')),
             snap => setQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
-            () => setError('שגיאה בטעינת הצעות מחיר')
+            (err) => { console.error('supplier_quotes listener', err); setError('שגיאה בטעינת הצעות מחיר'); showToast('שגיאה בטעינת הצעות מחיר', 'error'); }
         );
         return unsub;
     }, []);
@@ -4215,7 +4278,7 @@ export default function AdminSuppliers({ embedded = false }) {
                             <DrillStat items={[
                                 { label: 'הצעות', value: list.length, color: accent },
                                 { label: 'ערך כולל', value: fmt(total), color: PALETTE.green },
-                                { label: 'איש קשר', value: s?.agentName || '—', color: '#5856D6' },
+                                { label: 'איש קשר', value: s?.agentName || '—', color: '#5AC8FA' },
                             ]} />
                             <QuoteList list={list} />
                         </div>
@@ -4239,7 +4302,7 @@ export default function AdminSuppliers({ embedded = false }) {
                                 <DrillStat items={[
                                     { label: 'מוצרים', value: (q.products || []).length, color: PALETTE.azure },
                                     { label: 'ערך', value: fmt(total), color: PALETTE.green },
-                                    { label: 'מס׳ הצעה', value: q.quoteNumber || '—', color: '#5856D6' },
+                                    { label: 'מס׳ הצעה', value: q.quoteNumber || '—', color: '#5AC8FA' },
                                 ]} />
                                 {(q.products || []).length > 0 ? (
                                     <div className="space-y-2">

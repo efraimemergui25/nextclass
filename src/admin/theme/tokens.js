@@ -18,9 +18,9 @@
 export const PALETTE = {
     azure:   '#007AFF',
     blue:    '#0A84FF',
-    indigo:  '#5E5CE6',
-    purple:  '#AF52DE',
-    violet:  '#BF5AF2',
+    indigo:  '#5AC8FA',
+    purple:  '#0A84FF',
+    violet:  '#0A84FF',
     pink:    '#FF375F',
     rose:    '#FF2D55',
     coral:   '#FF453A',
@@ -73,8 +73,8 @@ export function accentFor(input, fallback = PALETTE.azure) {
 
 /* ─── Signature gradients ────────────────────────────────────────────────────── */
 export const GRADIENT = {
-    signature: 'linear-gradient(135deg, #007AFF 0%, #5E5CE6 100%)',       // azure → indigo
-    aurora:    'linear-gradient(135deg, #007AFF 0%, #BF5AF2 55%, #FF375F 100%)',
+    signature: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)',       // azure → indigo
+    aurora:    'linear-gradient(135deg, #007AFF 0%, #0A84FF 55%, #FF375F 100%)',
     ink:       'linear-gradient(135deg, #1D1D1F 0%, #3C3C43 100%)',
 };
 
@@ -216,6 +216,12 @@ export const STATUS_TONES = {
     info:    { fg: '#005EC4', bg: 'rgba(0,122,255,0.12)',  dot: '#007AFF' },
     neutral: { fg: '#6E6E73', bg: 'rgba(0,0,0,0.05)',      dot: '#AEAEB2' },
 };
+
+/* Semantic tone → color accessors. Use these EVERYWHERE instead of inline status
+   hexes so the whole portal speaks one status-color language. */
+export const toneColor = (tone) => (STATUS_TONES[tone] || STATUS_TONES.neutral).dot;
+export const toneFg    = (tone) => (STATUS_TONES[tone] || STATUS_TONES.neutral).fg;
+export const toneBg    = (tone) => (STATUS_TONES[tone] || STATUS_TONES.neutral).bg;
 
 export default {
     PALETTE, DOMAIN_ACCENTS, MODULE_ACCENTS, accentFor,

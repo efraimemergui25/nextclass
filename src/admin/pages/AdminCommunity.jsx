@@ -7,6 +7,7 @@ import {
     doc, deleteDoc, addDoc, serverTimestamp
 } from 'firebase/firestore';
 import { useAdminToast } from '../context/AdminToastContext';
+import { useAdminConfirm } from '../context/AdminConfirmContext';
 import { AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
 import {
@@ -14,7 +15,10 @@ import {
     Calendar, Star, Zap, Send,
     CheckSquare, Square, ChevronLeft, Mail, Copy, Hash, Clock
 } from 'lucide-react';
-import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow } from '../theme/tokens';
+import { PALETTE, GLASS, RADIUS, SHADOW, TAP, hexA, glow, toneColor, toneBg, toneFg } from '../theme/tokens';
+
+// ─── Unified brand accent for subscriber avatars (no per-letter rainbow) ───────
+const AVATAR = '#007AFF';
 
 // ─── Babushka drill helpers (shared visual grammar with the dashboard) ─────────
 function DrillStat({ items }) {
@@ -57,15 +61,19 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
     );
 }
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 
 // ─── Community domain accent (restrained azure brand) ─────────────────────────
 const GREEN      = '#007AFF';
-const GREEN_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(94,92,230,0.08) 100%)';
+const GREEN_SOFT = 'linear-gradient(135deg, rgba(0,122,255,0.16) 0%, rgba(90,200,250,0.08) 100%)';
 
 function fmtDate(ts) {
     if (!ts) return '—';
@@ -81,7 +89,7 @@ function daysSince(ts) {
 function SourceBadge({ source }) {
     const map = {
         footer_newsletter: { label: 'Newsletter', color: '#007AFF' },
-        popup:    { label: 'Popup',    color: '#5856D6' },
+        popup:    { label: 'Popup',    color: '#5AC8FA' },
         checkout: { label: 'Checkout', color: '#34C759' },
         manual:   { label: 'Manual',   color: '#FF9500' },
     };
@@ -96,6 +104,7 @@ function SourceBadge({ source }) {
 
 export default function AdminCommunity() {
     const { showToast } = useAdminToast();
+    const confirm = useAdminConfirm();
 
     // ── Babushka drill stack ──────────────────────────────────────────────────
     const [drillStack, setDrillStack] = useState([]);
@@ -107,11 +116,11 @@ export default function AdminCommunity() {
 
     const [subs, setSubs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState('newest');
     const [selected, setSelected] = useState(new Set());
     const [deletingId, setDeletingId] = useState(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
     const [addEmail, setAddEmail] = useState('');
     const [addingEmail, setAddingEmail] = useState(false);
 
@@ -119,8 +128,14 @@ export default function AdminCommunity() {
         const q = query(collection(db, 'newsletter_subs'), orderBy('timestamp', 'desc'));
         const unsub = onSnapshot(q, (snap) => {
             setSubs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoadError(false);
             setLoading(false);
-        }, () => setLoading(false));
+        }, (err) => {
+            console.error('Newsletter subscribers load failed:', err);
+            setLoadError(true);
+            setLoading(false);
+            showToast('שגיאה בטעינת רשימת התפוצה', 'error');
+        });
         return unsub;
     }, []);
 
@@ -161,7 +176,12 @@ export default function AdminCommunity() {
             showToast('מנוי הוסר מהרשימה', 'success');
         } catch { showToast('שגיאה בהסרת המנוי', 'error'); }
         setDeletingId(null);
-        setShowDeleteConfirm(null);
+    };
+
+    const confirmDeleteSub = async (id) => {
+        if (await confirm({ title: 'הסר מנוי?', message: 'המנוי יוסר לצמיתות מרשימת התפוצה.', confirmLabel: 'כן, הסר', danger: true })) {
+            deleteSub(id);
+        }
     };
 
     const bulkDelete = async () => {
@@ -170,7 +190,12 @@ export default function AdminCommunity() {
             showToast(`${selected.size} מנויים הוסרו`, 'success');
             setSelected(new Set());
         } catch { showToast('שגיאה בהסרה קבוצתית', 'error'); }
-        setShowDeleteConfirm(null);
+    };
+
+    const confirmBulkDelete = async () => {
+        if (await confirm({ title: `הסר ${selected.size} מנויים?`, message: 'המנויים הנבחרים יוסרו לצמיתות.', confirmLabel: 'כן, הסר', danger: true })) {
+            bulkDelete();
+        }
     };
 
     const toggleSelect = (id) => {
@@ -214,7 +239,7 @@ export default function AdminCommunity() {
 
     const sourceColors = {
         footer_newsletter: '#007AFF',
-        popup: '#5856D6',
+        popup: '#5AC8FA',
         checkout: '#34C759',
         manual: '#FF9500',
         website: '#86868B',
@@ -239,9 +264,9 @@ export default function AdminCommunity() {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             whileTap={TAP}
-                            onClick={() => setShowDeleteConfirm('bulk')}
+                            onClick={confirmBulkDelete}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold text-white"
-                            style={{ background: '#FF3B30' }}
+                            style={{ background: toneColor('danger') }}
                         >
                             <Trash2 size={13} />
                             הסר {selected.size}
@@ -267,7 +292,7 @@ export default function AdminCommunity() {
                     icon={<TrendingUp size={20} color={PALETTE.blue} />} loading={loading} onClick={() => openDrill({ type: 'kpi-week' })} />
                 <AdminKPICard title="הצטרפו החודש" value={stats.thisMonth} subtitle="30 ימים אחרונים" accent={PALETTE.indigo} delay={0.1}
                     icon={<Calendar size={20} color={PALETTE.indigo} />} loading={loading} onClick={() => openDrill({ type: 'kpi-month' })} />
-                <AdminKPICard title="שיעור פתיחה" value="—" subtitle="בקרוב" accent={PALETTE.graphite} delay={0.15}
+                <AdminKPICard title="שיעור פתיחה" value="—" subtitle="מדד דיוור" accent={PALETTE.graphite} delay={0.15}
                     icon={<Star size={20} color={PALETTE.graphite} />} onClick={() => openDrill({ type: 'kpi-open' })} />
             </div>
 
@@ -315,6 +340,12 @@ export default function AdminCommunity() {
                         <div className="divide-y divide-black/[0.035] max-h-[540px] overflow-y-auto custom-scrollbar">
                             {loading ? (
                                 <div className="py-16 text-center text-[#AEAEB2] text-sm font-bold">טוען...</div>
+                            ) : loadError ? (
+                                <AdminEmpty
+                                    icon="empty"
+                                    title="שגיאה בטעינת רשימת התפוצה"
+                                    subtitle="לא ניתן לטעון את המנויים כרגע. רענן את הדף ונסה שוב."
+                                />
                             ) : filtered.length === 0 ? (
                                 <AdminEmpty
                                     icon="empty"
@@ -339,7 +370,7 @@ export default function AdminCommunity() {
                                         </button>
 
                                         <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 text-white text-[11px] font-black shadow-sm"
-                                            style={{ background: `hsl(${(sub.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>
+                                            style={{ background: AVATAR }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
 
@@ -361,7 +392,7 @@ export default function AdminCommunity() {
 
                                         <motion.button
                                             whileTap={{ scale: 0.88 }}
-                                            onClick={() => setShowDeleteConfirm(sub.id)}
+                                            onClick={() => confirmDeleteSub(sub.id)}
                                             className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-[#FF3B30]/10"
                                             disabled={deletingId === sub.id}
                                         >
@@ -394,7 +425,7 @@ export default function AdminCommunity() {
                                 type="submit"
                                 disabled={addingEmail || !addEmail.includes('@')}
                                 className="shrink-0 h-9 px-4 rounded-xl text-[12px] font-black text-white transition-all disabled:opacity-40"
-                                style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}
+                                style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)' }}
                             >
                                 {addingEmail ? '...' : 'הוסף'}
                             </button>
@@ -443,7 +474,7 @@ export default function AdminCommunity() {
                                         className="flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-black/[0.025] transition-colors cursor-pointer focus:outline-none"
                                     >
                                         <div className="w-7 h-7 rounded-[9px] flex items-center justify-center text-white text-[10px] font-black shrink-0"
-                                            style={{ background: `hsl(${(sub.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>
+                                            style={{ background: AVATAR }}>
                                             {(sub.email?.[0] || '?').toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0 text-right">
@@ -454,7 +485,7 @@ export default function AdminCommunity() {
                                         </div>
                                         {daysSince(sub.timestamp) === 0 && (
                                             <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full shrink-0"
-                                                style={{ background: 'rgba(52,199,89,0.12)', color: '#34C759', border: '1px solid rgba(52,199,89,0.25)' }}>
+                                                style={{ background: toneBg('success'), color: toneColor('success'), border: `1px solid ${hexA(toneColor('success'), 0.25)}` }}>
                                                 חדש
                                             </span>
                                         )}
@@ -500,106 +531,18 @@ export default function AdminCommunity() {
                                     })}
                                 </div>
                             ) : (
-                                <div className="space-y-2.5">
-                                    {['Newsletter', 'Popup', 'Manual'].map((label, i) => (
-                                        <div key={label}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] text-[#D1D1D6] font-bold">0 מנויים</span>
-                                                <span className="text-[11px] font-bold text-[#C7C7CC]">{label}</span>
-                                            </div>
-                                            <div className="h-1.5 bg-[#F2F2F7] rounded-full" />
-                                        </div>
-                                    ))}
-                                    <p className="text-[10px] text-[#AEAEB2] text-center pt-1">ייאספו נתונים עם הרשמות ראשונות</p>
+                                <div className="py-6 text-center">
+                                    <div className="w-10 h-10 rounded-2xl bg-[#F5F5F7] flex items-center justify-center mx-auto mb-2">
+                                        <Hash size={16} className="text-[#AEAEB2]" />
+                                    </div>
+                                    <p className="text-[11px] text-[#AEAEB2] font-bold">אין נתוני מקור עדיין</p>
+                                    <p className="text-[10px] text-[#C7C7CC] mt-0.5">פילוח לפי מקור יופיע עם ההרשמות הראשונות</p>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    {/* Newsletter compose card */}
-                    <div className="rounded-[22px] p-5" style={panelStyle}>
-                        <div className="flex items-center gap-2.5 mb-3">
-                            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: 'rgba(88,86,214,0.10)', border: '1px solid rgba(88,86,214,0.16)' }}>
-                                <Send size={12} className="text-[#5856D6]" />
-                            </div>
-                            <div className="text-right flex-1">
-                                <p className="text-[12px] font-black text-[#1D1D1F]">שליחת ניוזלטר</p>
-                                <p className="text-[10px] text-[#AEAEB2]">ל-{stats.total} מנויים</p>
-                            </div>
-                        </div>
-                        <textarea
-                            rows={3}
-                            placeholder="כתוב כאן את תוכן הניוזלטר שלך..."
-                            className="w-full px-3.5 py-2.5 bg-[#F5F5F7] rounded-xl text-[12px] font-medium text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#5856D6]/20 transition-all resize-none text-right mb-2.5"
-                        />
-                        <button
-                            disabled
-                            className="w-full py-2.5 rounded-xl text-[12px] font-black text-white flex items-center justify-center gap-1.5 opacity-45 cursor-not-allowed"
-                            style={{ background: 'linear-gradient(135deg, #5856D6, #007AFF)' }}
-                        >
-                            <Send size={12} />
-                            שלח לכולם (בקרוב)
-                        </button>
-                        <p className="text-[9px] text-[#AEAEB2] text-center mt-1.5">חיבור ל-SendGrid / Resend — בקרוב</p>
-                    </div>
                 </div>
             </div>
-
-            {/* Delete confirmation */}
-            <AnimatePresence>
-                {showDeleteConfirm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center"
-                        onClick={() => setShowDeleteConfirm(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.92, opacity: 0, y: 12 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.92, opacity: 0 }}
-                            onClick={e => e.stopPropagation()}
-                            className="rounded-[26px] p-7 max-w-sm w-full mx-4 text-right"
-                            style={{
-                                background: 'rgba(255,255,255,0.92)',
-                                backdropFilter: 'blur(32px) saturate(200%)',
-                                WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-                                border: '1px solid rgba(255,255,255,0.80)',
-                                boxShadow: '0 32px 80px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.95)',
-                            }}
-                        >
-                            <div className="w-12 h-12 rounded-2xl bg-[#FF3B30]/10 flex items-center justify-center mb-4 mr-auto ml-0">
-                                <Trash2 size={20} className="text-[#FF3B30]" />
-                            </div>
-                            <h3 className="text-lg font-black text-[#1D1D1F] mb-1.5">
-                                {showDeleteConfirm === 'bulk' ? `הסר ${selected.size} מנויים?` : 'הסר מנוי?'}
-                            </h3>
-                            <p className="text-[13px] text-[#6E6E73] font-medium mb-5">
-                                {showDeleteConfirm === 'bulk'
-                                    ? 'המנויים הנבחרים יוסרו לצמיתות.'
-                                    : 'המנוי יוסר לצמיתות מרשימת התפוצה.'}
-                            </p>
-                            <div className="flex gap-2.5">
-                                <button
-                                    onClick={() => showDeleteConfirm === 'bulk' ? bulkDelete() : deleteSub(showDeleteConfirm)}
-                                    className="flex-1 py-2.5 rounded-2xl text-white font-black text-[13px]"
-                                    style={{ background: '#FF3B30' }}
-                                >
-                                    כן, הסר
-                                </button>
-                                <button
-                                    onClick={() => setShowDeleteConfirm(null)}
-                                    className="flex-1 py-2.5 rounded-2xl text-[#1D1D1F] font-black text-[13px] bg-[#F5F5F7]"
-                                >
-                                    ביטול
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             {/* ── Babushka Drill Drawer — nested glass detail ─────────────────── */}
             {(() => {
@@ -614,7 +557,7 @@ export default function AdminCommunity() {
                     <DrillRow key={s.id} delay={i * 0.03}
                         onClick={() => pushDrill({ type: 'subscriber', sub: s })}
                         leading={<div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-[11px] font-black shrink-0"
-                            style={{ background: `hsl(${(s.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
+                            style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>}
                         title={s.email}
                         subtitle={`${fmtDate(s.timestamp)} · לפני ${daysSince(s.timestamp)} ימים`}
                         trailing={<SourceBadge source={s.source} />}
@@ -687,7 +630,7 @@ export default function AdminCommunity() {
                         <div className="space-y-5">
                             <div className="flex items-center gap-3">
                                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-[20px] font-black shrink-0"
-                                    style={{ background: `hsl(${(s.email?.charCodeAt(0) || 0) * 7 % 360}, 55%, 52%)` }}>{(s.email?.[0] || '?').toUpperCase()}</div>
+                                    style={{ background: AVATAR }}>{(s.email?.[0] || '?').toUpperCase()}</div>
                                 <div className="min-w-0 text-right flex-1">
                                     <p className="text-[15px] font-black text-[#1D1D1F] truncate" dir="ltr">{s.email}</p>
                                     <div className="mt-1"><SourceBadge source={s.source} /></div>
@@ -703,9 +646,9 @@ export default function AdminCommunity() {
                                     style={{ background: hexA(GREEN, 0.1), color: '#005EC4', border: `1px solid ${hexA(GREEN, 0.24)}` }}>
                                     <Copy size={14} /> העתק כתובת מייל
                                 </button>
-                                <button onClick={() => { closeDrill(); setShowDeleteConfirm(s.id); }}
+                                <button onClick={() => { closeDrill(); confirmDeleteSub(s.id); }}
                                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-[13px] font-black cursor-pointer transition-colors"
-                                    style={{ background: 'rgba(255,59,48,0.08)', color: '#FF3B30', border: '1px solid rgba(255,59,48,0.22)' }}>
+                                    style={{ background: toneBg('danger'), color: toneColor('danger'), border: `1px solid ${hexA(toneColor('danger'), 0.22)}` }}>
                                     <Trash2 size={14} /> הסר מהרשימה
                                 </button>
                             </div>

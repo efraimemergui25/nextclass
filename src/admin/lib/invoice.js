@@ -8,8 +8,10 @@ import { BUSINESS } from './businessProfile';
 
 const ils = (n) => `₪${(Math.round((Number(n) || 0) * 100) / 100).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Compute net / VAT / gross treating item sell prices as NET (pre-VAT, B2B standard).
-export function computeInvoiceTotals(order, vatRate = BUSINESS.vatRate) {
+// Compute net / VAT / gross. B2B quote prices are stored NET (pre-VAT). Storefront
+// (e-commerce) prices are VAT-INCLUSIVE — pass { vatInclusive:true } to back it out.
+export function computeInvoiceTotals(order, vatRate = BUSINESS.vatRate, opts = {}) {
+    const rate = Number(vatRate) || 0;
     const items = (order?.items || []).map(it => {
         const qty = Number(it.qty ?? it.quantity) || 1;
         const unit = Number(it.salePrice ?? it.price) || 0;
@@ -19,10 +21,17 @@ export function computeInvoiceTotals(order, vatRate = BUSINESS.vatRate) {
             qty, unit, total: qty * unit,
         };
     });
-    const net = items.reduce((s, i) => s + i.total, 0);
-    const vatAmount = Math.round(net * (Number(vatRate) || 0)) / 100;
+    const sum = items.reduce((s, i) => s + i.total, 0);
+    if (opts.vatInclusive) {
+        // Prices already include VAT → back out the net.
+        const gross = order?.total != null ? Number(order.total) : sum;
+        const net = gross / (1 + rate / 100);
+        return { items, net: Math.round(net * 100) / 100, vatAmount: Math.round((gross - net) * 100) / 100, gross: Math.round(gross * 100) / 100, vatRate: rate };
+    }
+    const net = sum;
+    const vatAmount = Math.round(net * rate) / 100;
     const gross = Math.round((net + vatAmount) * 100) / 100;
-    return { items, net, vatAmount, gross, vatRate: Number(vatRate) || 0 };
+    return { items, net, vatAmount, gross, vatRate: rate };
 }
 
 // Auto invoice number from the order id + year (editable in the UI before issuing).
@@ -35,7 +44,7 @@ export function suggestInvoiceNumber(order) {
 export function buildInvoiceHtml(order = {}, opts = {}) {
     const biz = { ...BUSINESS, ...(opts.business || {}) };
     const vatRate = opts.vatRate != null ? Number(opts.vatRate) : biz.vatRate;
-    const { items, net, vatAmount, gross } = computeInvoiceTotals(order, vatRate);
+    const { items, net, vatAmount, gross } = computeInvoiceTotals(order, vatRate, { vatInclusive: !!opts.vatInclusive });
     const docType = opts.docType || 'tax'; // 'tax' | 'proforma'
     const title = docType === 'tax' ? 'חשבונית מס' : 'חשבונית עסקה / דרישת תשלום';
     const invoiceNumber = opts.invoiceNumber || suggestInvoiceNumber(order);

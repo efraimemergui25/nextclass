@@ -6,10 +6,10 @@ import { Ticket, BarChart2, Percent, Check, Megaphone, Plus, ChevronLeft, Calend
 import { useNavigate } from 'react-router-dom';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
-import { AdminButton, AdminModal, AdminInput, AdminToggle, AdminKPICard, AdminEmpty, AdminSearchBar, AdminFilterPills } from '../components/AdminComponents';
+import { AdminButton, AdminModal, AdminInput, AdminToggle, AdminKPICard, AdminEmpty, AdminSearchBar, AdminFilterPills, AdminSkeleton } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
 import { useSettings } from '../../context/SettingsContext';
-import { PALETTE, GLASS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
+import { PALETTE, GLASS, RADIUS, SHADOW, GRADIENT, TAP, hexA, glow, toneFg, toneBg } from '../theme/tokens';
 
 // ─── Babushka drill helpers (shared with the glass detail drawer) ─────────────
 function DrillStat({ items }) {
@@ -113,7 +113,7 @@ function BannerManager({ onOpenDetail }) {
 
     return (
         <div className="rounded-[22px] overflow-hidden" style={glass}>
-            <div className="px-6 py-4 border-b border-black/06 flex items-center justify-between"
+            <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between"
                 style={{ background: 'rgba(248,248,250,0.85)' }}>
                 <AdminToggle label="" value={banner.visible} onChange={v => setBanner(b => ({ ...b, visible: v }))} />
                 <div className={`text-right ${onOpenDetail ? 'cursor-pointer group' : ''}`}
@@ -175,7 +175,7 @@ function CouponCard({ coupon, onToggle, onEdit, onDelete, onOpen, delay }) {
             role={onOpen ? 'button' : undefined}
             tabIndex={onOpen ? 0 : undefined}
             onKeyDown={onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } } : undefined}
-            className="flex items-center gap-4 px-5 py-4 border-b border-black/04 last:border-0 transition-colors hover:bg-[#007AFF]/03 cursor-pointer group focus:outline-none"
+            className="flex items-center gap-4 px-5 py-4 border-b border-black/[0.04] last:border-0 transition-colors hover:bg-[#007AFF]/[0.03] cursor-pointer group focus:outline-none"
         >
             {/* Code chip */}
             <div className="shrink-0">
@@ -247,7 +247,7 @@ function CouponCard({ coupon, onToggle, onEdit, onDelete, onOpen, delay }) {
 const EMPTY = { code: '', discount: '', type: 'percent', expiry: '', active: true };
 
 export default function AdminMarketing() {
-    const { coupons, addCoupon, updateCoupon, toggleCoupon, deleteCoupon } = useAdminData();
+    const { coupons, addCoupon, updateCoupon, toggleCoupon, deleteCoupon, loading } = useAdminData();
     const navigate = useNavigate();
     const [showNew, setShowNew] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -337,23 +337,23 @@ export default function AdminMarketing() {
 
             {/* KPI band — coupons · active · uses · avg discount */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
-                <AdminKPICard title="קופונים" value={coupons.length} subtitle="סך הכל במערכת" accent={BRAND} delay={0}
+                <AdminKPICard title="קופונים" value={coupons.length} subtitle="סך הכל במערכת" accent={BRAND} delay={0} loading={loading}
                     onClick={() => openDrill({ type: 'coupons', kind: 'all' })}
                     icon={<Ticket size={20} color={BRAND} />} />
-                <AdminKPICard title="פעילים" value={activeCoupons} subtitle="קופונים פעילים כעת" accent={PALETTE.green} delay={0.05}
+                <AdminKPICard title="פעילים" value={activeCoupons} subtitle="קופונים פעילים כעת" accent={PALETTE.green} delay={0.05} loading={loading}
                     onClick={() => openDrill({ type: 'coupons', kind: 'active' })}
                     icon={<Check size={20} color={PALETTE.green} />} />
-                <AdminKPICard title="שימושים" value={totalUses} subtitle="סך מימושים" accent={PALETTE.azure} delay={0.1}
+                <AdminKPICard title="שימושים" value={totalUses} subtitle="סך מימושים" accent={PALETTE.azure} delay={0.1} loading={loading}
                     onClick={() => openDrill({ type: 'uses' })}
                     icon={<BarChart2 size={20} color={PALETTE.azure} />} />
-                <AdminKPICard title="ממוצע הנחה" value={`${avgDiscount}%`} subtitle="קופוני אחוז" accent={PALETTE.azure} delay={0.15}
+                <AdminKPICard title="ממוצע הנחה" value={`${avgDiscount}%`} subtitle="קופוני אחוז" accent={PALETTE.azure} delay={0.15} loading={loading}
                     onClick={() => openDrill({ type: 'avg' })}
                     icon={<Percent size={20} color={PALETTE.azure} />} />
             </div>
 
             {/* Coupon list */}
             <div className="rounded-[22px] overflow-hidden" style={glass}>
-                <div className="px-5 py-4 border-b border-black/06 flex items-center justify-between gap-3 flex-wrap"
+                <div className="px-5 py-4 border-b border-black/[0.06] flex items-center justify-between gap-3 flex-wrap"
                     style={{ background: 'rgba(248,248,250,0.85)' }}>
                     <div className="flex items-center gap-3 flex-wrap">
                         <AdminFilterPills options={['הכל', 'פעילים', 'כבויים']} active={couponFilter} onChange={setCouponFilter} id="coupon-filter" />
@@ -362,13 +362,19 @@ export default function AdminMarketing() {
                     <h3 className="text-[#1D1D1F] font-black text-base">קופוני הנחה</h3>
                 </div>
 
+                {loading && (
+                    <div className="px-2 py-2">
+                        <AdminSkeleton rows={4} />
+                    </div>
+                )}
+
                 <AnimatePresence>
-                    {displayedCoupons.map((c, i) => (
+                    {!loading && displayedCoupons.map((c, i) => (
                         <CouponCard key={c.id} coupon={c} onToggle={toggleCoupon} onEdit={openEdit} onDelete={deleteCoupon} onOpen={() => openDrill({ type: 'coupon', id: c.id })} delay={i * 0.025} />
                     ))}
                 </AnimatePresence>
 
-                {displayedCoupons.length === 0 && (
+                {!loading && displayedCoupons.length === 0 && (
                     <AdminEmpty
                         icon="empty"
                         title={coupons.length === 0 ? 'אין קופונים עדיין' : 'לא נמצאו קופונים תואמים'}
@@ -446,7 +452,7 @@ export default function AdminMarketing() {
                                             leading={<span className="px-2 py-1 rounded-md font-mono font-black text-[11px] tracking-widest shrink-0" style={{ background: hexA(c.active ? BRAND : '#8E8E93', 0.1), color: c.active ? BRAND : '#AEAEB2' }}>{c.code}</span>}
                                             title={couponVal(c)}
                                             subtitle={`${c.uses || 0} שימושים${c.expiry ? ` · תוקף ${c.expiry}` : ''}`}
-                                            trailing={<span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: hexA(c.active ? PALETTE.green : '#8E8E93', 0.12), color: c.active ? '#1A8C40' : '#8E8E93' }}>{c.active ? 'פעיל' : 'כבוי'}</span>} />
+                                            trailing={<span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0" style={{ background: c.active ? toneBg('success') : toneBg('neutral'), color: c.active ? toneFg('success') : toneFg('neutral') }}>{c.active ? 'פעיל' : 'כבוי'}</span>} />
                                     ))}
                                 </div>
                             )}
@@ -518,7 +524,7 @@ export default function AdminMarketing() {
                     body = c ? (
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA(accent, 0.12), color: c.active ? '#1A8C40' : '#8E8E93' }}>{c.active ? 'פעיל' : 'כבוי'}</span>
+                                <span className="text-[11px] font-black rounded-full px-2.5 py-1" style={{ background: hexA(accent, 0.12), color: c.active ? toneFg('success') : toneFg('neutral') }}>{c.active ? 'פעיל' : 'כבוי'}</span>
                                 <span className="px-3 py-1.5 rounded-lg font-mono font-black text-sm tracking-widest" style={{ background: hexA(BRAND, 0.08), color: BRAND, border: `1px dashed ${hexA(BRAND, 0.25)}` }}>{c.code}</span>
                             </div>
                             <DrillStat items={[
@@ -530,7 +536,7 @@ export default function AdminMarketing() {
                                 <DrillRow tone={accent}
                                     leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(accent, 0.12) }}><Power size={13} color={accent} /></span>}
                                     title="סטטוס" subtitle={c.active ? 'הקופון פעיל וניתן למימוש' : 'הקופון כבוי'}
-                                    trailing={<span className="text-[11px] font-black shrink-0" style={{ color: c.active ? '#1A8C40' : '#8E8E93' }}>{c.active ? 'פעיל' : 'כבוי'}</span>} />
+                                    trailing={<span className="text-[11px] font-black shrink-0" style={{ color: c.active ? toneFg('success') : toneFg('neutral') }}>{c.active ? 'פעיל' : 'כבוי'}</span>} />
                                 <DrillRow tone={BRAND}
                                     leading={<span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexA(BRAND, 0.12) }}><Calendar size={13} color={BRAND} /></span>}
                                     title="תוקף" subtitle={c.expiry ? `בתוקף עד ${c.expiry}` : 'ללא תאריך תפוגה'}

@@ -14,23 +14,26 @@ import {
     ChevronDown, AlertCircle, MessageCircle, Zap, Clock,
     AtSign, Star, TrendingUp, Users, Hash, AlertTriangle, Check,
 } from 'lucide-react';
-import { GLASS, RADIUS, SPRING, hexA, accentSurface } from '../theme/tokens';
+import { GLASS, RADIUS, SPRING, hexA, accentSurface, toneColor, toneBg, toneFg } from '../theme/tokens';
+import { AdminKPICard } from '../components/AdminComponents';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SF = `-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',Heebo,Arial,sans-serif`;
+// Unified admin typeface — Heebo everywhere (matches the rest of the portal).
+const SF = `Heebo, sans-serif`;
 
 // ─── Communications domain accent (restrained azure brand) ─────────────────────
 const CORAL = '#007AFF';
 
+// Pipeline status colors — driven by the shared semantic tone system.
 const PIPELINE_STATUSES = {
-    'חדש':           { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
-    'ביצירת קשר':    { color: '#007AFF', bg: 'rgba(0,122,255,0.07)',    dot: '#007AFF' },
-    'הוצע מחיר':     { color: '#5856D6', bg: 'rgba(88,86,214,0.07)',    dot: '#5856D6' },
-    'במשא ומתן':     { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
-    'ממתין לאישור':  { color: '#FF9500', bg: 'rgba(255,149,0,0.07)',    dot: '#FF9500' },
-    'נסגר':          { color: '#34C759', bg: 'rgba(52,199,89,0.07)',    dot: '#34C759' },
-    'בוטל':           { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',    dot: '#FF3B30' },
+    'חדש':           { color: toneFg('info'),    bg: toneBg('info'),    dot: toneColor('info') },
+    'ביצירת קשר':    { color: toneFg('info'),    bg: toneBg('info'),    dot: toneColor('info') },
+    'הוצע מחיר':     { color: '#3B8FCC',          bg: hexA('#5AC8FA', 0.10), dot: '#5AC8FA' },
+    'במשא ומתן':     { color: toneFg('warning'), bg: toneBg('warning'), dot: toneColor('warning') },
+    'ממתין לאישור':  { color: toneFg('warning'), bg: toneBg('warning'), dot: toneColor('warning') },
+    'נסגר':          { color: toneFg('success'), bg: toneBg('success'), dot: toneColor('success') },
+    'בוטל':           { color: toneFg('danger'),  bg: toneBg('danger'),  dot: toneColor('danger') },
 };
 
 const CHANNELS = [
@@ -104,7 +107,7 @@ function getLeadScore(lead) {
     else if ((lead?.items || []).length >= 2) pts += 1;
     return Math.min(5, Math.max(1, Math.round(pts / 2.6)));
 }
-function scoreColor(s) { return s >= 4 ? '#FF3B30' : s >= 3 ? '#FF9500' : '#34C759'; }
+function scoreColor(s) { return s >= 4 ? toneColor('danger') : s >= 3 ? toneColor('warning') : toneColor('success'); }
 
 function ScoreDots({ score }) {
     const c = scoreColor(score);
@@ -144,7 +147,7 @@ function StatusPill({ status }) {
 const EMAIL_KIND_META = {
     customer: { label: 'לקוח',  color: '#007AFF', bg: 'rgba(0,122,255,0.10)' },
     supplier: { label: 'ספק',   color: '#0891B2', bg: 'rgba(8,145,178,0.10)' },
-    internal: { label: 'פנימי', color: '#5856D6', bg: 'rgba(88,86,214,0.10)' },
+    internal: { label: 'פנימי', color: '#5AC8FA', bg: 'rgba(90,200,250,0.10)' },
 };
 const KIND_ORDER = ['customer', 'supplier', 'internal'];
 
@@ -189,7 +192,7 @@ function Avatar({ name, size = 36, score }) {
         ? 'linear-gradient(135deg,#FF3B30,#FF2D55)'
         : s >= 3
             ? 'linear-gradient(135deg,#FF9500,#FF6B00)'
-            : 'linear-gradient(135deg,#007AFF,#5856D6)';
+            : 'linear-gradient(135deg,#007AFF,#5AC8FA)';
     return (
         <div style={{
             width: size, height: size, borderRadius: size / 3.2, flexShrink: 0,
@@ -272,7 +275,7 @@ function TemplateEditor({ template, onSave, onCancel }) {
                     ביטול
                 </button>
                 <button onClick={() => onSave(form)}
-                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5856D6)', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,122,255,0.28)' }}>
+                    style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: SF, border: 'none', background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,122,255,0.28)' }}>
                     שמור
                 </button>
             </div>
@@ -422,8 +425,9 @@ function LeadHero({ lead, onStatusChange }) {
             )}
 
             {lead.notes && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.18)', borderRight: '3px solid #F59E0B' }}>
-                    <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, textAlign: 'right', fontFamily: SF }}>{lead.notes}</p>
+                <div style={{ marginTop: 10, padding: '11px 13px', borderRadius: 12, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRight: '3px solid #F59E0B', boxShadow: '0 2px 12px rgba(20,40,80,0.05)' }}>
+                    <p style={{ fontSize: 9.5, fontWeight: 800, color: '#C08A2E', letterSpacing: '0.04em', margin: '0 0 4px', textAlign: 'right' }}>הערה</p>
+                    <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, textAlign: 'right', fontFamily: SF, margin: 0 }}>{lead.notes}</p>
                 </div>
             )}
 
@@ -478,7 +482,7 @@ function ChatThreadPanel({ lead, sendMessage, markRead }) {
                                     {(lead?.contactName || '?')[0]}
                                 </div>
                             )}
-                            <div style={{ maxWidth: '72%', padding: '9px 14px', background: isAdmin ? 'linear-gradient(135deg,#007AFF,#5856D6)' : '#F2F2F7', borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px', boxShadow: isAdmin ? '0 2px 12px rgba(0,122,255,0.25)' : 'none' }}>
+                            <div style={{ maxWidth: '72%', padding: '9px 14px', background: isAdmin ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : '#F2F2F7', borderRadius: isAdmin ? '16px 16px 4px 16px' : '16px 16px 16px 4px', boxShadow: isAdmin ? '0 2px 12px rgba(0,122,255,0.25)' : 'none' }}>
                                 <p style={{ fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', color: isAdmin ? '#fff' : '#1D1D1F', fontFamily: SF, margin: 0 }}>{m.text}</p>
                                 <p style={{ fontSize: 10, marginTop: 4, color: isAdmin ? 'rgba(255,255,255,0.5)' : '#AEAEB2', textAlign: isAdmin ? 'left' : 'right', fontFamily: SF, margin: '4px 0 0' }}>{fmtTime(m.tsNum)}</p>
                             </div>
@@ -493,7 +497,7 @@ function ChatThreadPanel({ lead, sendMessage, markRead }) {
                     placeholder="כתוב הודעה... (Enter לשליחה)" rows={2}
                     style={{ flex: 1, padding: '10px 14px', fontSize: 13, fontFamily: SF, borderRadius: 16, outline: 'none', resize: 'none', border: '1px solid rgba(0,0,0,0.09)', background: 'rgba(0,0,0,0.02)', color: '#1D1D1F', lineHeight: 1.5 }} />
                 <motion.button whileTap={{ scale: 0.9 }} onClick={handleSend} disabled={!msg.trim() || sending}
-                    style={{ width: 38, height: 38, borderRadius: 12, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: msg.trim() ? 'pointer' : 'default', background: msg.trim() ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'rgba(0,0,0,0.07)', boxShadow: msg.trim() ? '0 3px 12px rgba(0,122,255,0.35)' : 'none', transition: 'all 0.2s' }}>
+                    style={{ width: 38, height: 38, borderRadius: 12, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: msg.trim() ? 'pointer' : 'default', background: msg.trim() ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'rgba(0,0,0,0.07)', boxShadow: msg.trim() ? '0 3px 12px rgba(0,122,255,0.35)' : 'none', transition: 'all 0.2s' }}>
                     <Send size={15} color={msg.trim() ? '#fff' : '#C7C7CC'} strokeWidth={2} style={{ transform: 'scaleX(-1)' }} />
                 </motion.button>
             </div>
@@ -508,7 +512,7 @@ function SmartInserts({ lead, bizPhone, onInsert }) {
     const total     = lead.subtotal ? `₪${Number(String(lead.subtotal).replace(/[^0-9.]/g,'')).toLocaleString()}` : null;
 
     const chips = [
-        firstName   && { label: firstName,         hint: 'שם',         color: '#5856D6' },
+        firstName   && { label: firstName,         hint: 'שם',         color: '#5AC8FA' },
         lead.institution && { label: lead.institution, hint: 'מוסד',     color: '#007AFF' },
         total       && { label: total,              hint: 'סכום',       color: '#34C759' },
         lead.phone  && { label: lead.phone,         hint: 'טל׳ לקוח',  color: '#FF9500' },
@@ -609,7 +613,8 @@ export default function AdminCommunications() {
                     html: finalHtml,
                 }),
             });
-            if (res.ok) {
+            const out = res.ok ? await res.json().catch(() => ({})) : null;
+            if (res.ok && out.sent !== false) {
                 await setDoc(doc(db, 'pending_emails', emailItem.id), {
                     status: 'sent',
                     sentAt: Date.now(),
@@ -619,6 +624,10 @@ export default function AdminCommunications() {
                 showToast('המייל נשלח בהצלחה! ✓', true);
                 setSelectedEmail(null);
                 setIsEditingEmail(false);
+            } else if (res.ok && out.sent === false) {
+                // dispatch returned 200 but nothing was sent (e.g. RESEND_API_KEY missing) —
+                // keep the draft in the queue, don't falsely mark it 'sent'.
+                showToast('השליחה לא בוצעה — שירות המייל אינו מוגדר (RESEND_API_KEY). הטיוטה נשמרה בתור.', false);
             } else {
                 const errText = await res.text();
                 showToast(`שגיאה בשליחה: ${errText}`, false);
@@ -836,7 +845,7 @@ export default function AdminCommunications() {
             <AnimatePresence>
                 {toast && (
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? 'linear-gradient(135deg,#007AFF,#5856D6)' : 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: toast.ok ? '0 8px 30px rgba(0,122,255,0.30)' : '0 8px 30px rgba(255,59,48,0.30)', whiteSpace: 'nowrap' }}>
+                        style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, padding: '10px 20px', borderRadius: 99, fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: SF, background: toast.ok ? 'linear-gradient(135deg,#007AFF,#5AC8FA)' : 'linear-gradient(135deg,#FF3B30,#FF2D55)', boxShadow: toast.ok ? '0 8px 30px rgba(0,122,255,0.30)' : '0 8px 30px rgba(255,59,48,0.30)', whiteSpace: 'nowrap' }}>
                         {toast.msg}
                     </motion.div>
                 )}
@@ -869,12 +878,12 @@ export default function AdminCommunications() {
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                     {newCount > 0 && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(255,59,48,0.10)', color: '#FF3B30', fontFamily: SF }}>
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: toneBg('danger'), color: toneFg('danger'), fontFamily: SF }}>
                                             {newCount} חדש
                                         </span>
                                     )}
                                     {unreadCount > 0 && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,122,255,0.10)', color: '#007AFF', fontFamily: SF }}>
+                                        <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: toneBg('info'), color: toneFg('info'), fontFamily: SF }}>
                                             {unreadCount} הודעה
                                         </span>
                                     )}
@@ -913,15 +922,18 @@ export default function AdminCommunications() {
                         return (
                             <motion.div key={lead._docId}
                                 onClick={() => { setSelected(lead); setActiveTpl(null); setCustomMsg(''); setCustomSubject(''); }}
-                                whileHover={{ x: isActive ? 0 : -2 }}
                                 className="group"
+                                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(0,122,255,0.035)'; }}
+                                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = leadStale ? 'rgba(255,149,0,0.03)' : 'transparent'; }}
                                 style={{
                                     padding: '10px 14px', cursor: 'pointer', position: 'relative',
                                     borderBottom: '1px solid rgba(0,0,0,0.04)',
                                     background: isActive ? 'rgba(0,122,255,0.06)' : leadStale ? 'rgba(255,149,0,0.03)' : 'transparent',
-                                    borderRight: isActive ? `3px solid #007AFF` : leadStale ? '3px solid #FF9500' : '3px solid transparent',
                                     transition: 'background 0.15s',
                                 }}>
+                                {/* accent rail (right edge in RTL) — active always, else on hover */}
+                                <span className={isActive ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}
+                                    style={{ position: 'absolute', right: 0, top: 8, bottom: 8, width: 3, borderRadius: 99, background: leadStale && !isActive ? '#FF9500' : 'linear-gradient(180deg,#007AFF,#5AC8FA)' }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Avatar name={lead.contactName} size={34} score={score} />
                                     <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
@@ -950,7 +962,7 @@ export default function AdminCommunications() {
                                     </div>
                                 </div>
                                 {lead.unreadAdmin && (
-                                    <div style={{ position: 'absolute', top: 10, left: 10, width: 8, height: 8, borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: '0 0 0 2px rgba(248,248,250,0.9)' }} />
+                                    <div style={{ position: 'absolute', top: 10, left: 10, width: 8, height: 8, borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: '0 0 0 2px rgba(248,248,250,0.9)' }} />
                                 )}
                             </motion.div>
                         );
@@ -1059,7 +1071,7 @@ export default function AdminCommunications() {
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: 11, color: '#86868B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>{email.subject}</span>
-                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: isSent ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)', color: isSent ? '#34C759' : '#FF3B30' }}>
+                                                    <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: isSent ? toneBg('success') : toneBg('danger'), color: isSent ? toneFg('success') : toneFg('danger') }}>
                                                         {isSent ? 'נשלח' : 'נדחה'}
                                                     </span>
                                                 </div>
@@ -1087,18 +1099,33 @@ export default function AdminCommunications() {
                             </p>
                         </div>
 
+                        {/* KPI band — shared AdminKPICard shell (consistent with other pages) */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 24 }} dir="rtl">
+                            <AdminKPICard title="סה״כ לידים" value={leads.length} subtitle="במערכת" accent="#007AFF" delay={0}
+                                icon={<Users size={20} color="#007AFF" />} />
+                            <AdminKPICard title="לידים חדשים" value={newCount} subtitle="ממתינים לטיפול" accent={toneColor('danger')} delay={0.05}
+                                icon={<Zap size={20} color={toneColor('danger')} />} />
+                            <AdminKPICard title="הודעות שלא נקראו" value={unreadCount} subtitle="בצ׳אט" accent="#007AFF" delay={0.1}
+                                icon={<MessageCircle size={20} color="#007AFF" />} />
+                            <AdminKPICard title="לידים תקועים" value={staleCount} subtitle={`מעל ${STALE_DAYS} ימים`} accent={toneColor('warning')} delay={0.15}
+                                icon={<AlertTriangle size={20} color={toneColor('warning')} />} />
+                        </div>
+
                         {/* #6 Stale leads banner */}
                         {staleCount > 0 && (
                             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 18px', borderRadius: 16, marginBottom: 20, background: 'rgba(255,149,0,0.08)', border: '1.5px solid rgba(255,149,0,0.22)', fontFamily: SF }}>
+                                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 16, marginBottom: 20, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)', fontFamily: SF }}>
+                                <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <AlertTriangle size={20} color="#FF9500" strokeWidth={2.2} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                                    <p style={{ fontSize: 13.5, fontWeight: 800, color: '#1D1D1F', margin: 0 }}>{staleCount} לידים ממתינים לטיפול מעל {STALE_DAYS} ימים</p>
+                                    <p style={{ fontSize: 11.5, color: '#86868B', margin: '2px 0 0', fontWeight: 600, fontFamily: SF }}>לידים בסטטוס "חדש" או "ביצירת קשר" שלא עודכנו</p>
+                                </div>
                                 <button onClick={() => setShowStaleOnly(v => !v)}
-                                    style={{ padding: '7px 16px', borderRadius: 99, border: 'none', background: showStaleOnly ? '#FF9500' : 'rgba(255,149,0,0.15)', color: showStaleOnly ? '#fff' : '#FF9500', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: SF, flexShrink: 0, transition: 'all 0.15s' }}>
+                                    style={{ padding: '8px 16px', borderRadius: 10, border: showStaleOnly ? 'none' : '1.5px solid rgba(255,149,0,0.3)', background: showStaleOnly ? '#FF9500' : '#fff', color: showStaleOnly ? '#fff' : '#FF9500', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: SF, flexShrink: 0, transition: 'all 0.15s' }}>
                                     {showStaleOnly ? 'הצג הכל' : 'צפה בהם'}
                                 </button>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: 14, fontWeight: 800, color: '#FF9500', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={15} style={{ flexShrink: 0 }} />{staleCount} לידים ממתינים לטיפול מעל {STALE_DAYS} ימים</p>
-                                    <p style={{ fontSize: 12, color: '#86868B', margin: '2px 0 0', fontFamily: SF }}>לידים בסטטוס "חדש" או "ביצירת קשר" שלא עודכנו</p>
-                                </div>
                             </motion.div>
                         )}
 
@@ -1248,13 +1275,13 @@ export default function AdminCommunications() {
                                     {recommendedTpl && activeTpl?.id !== recommendedTpl.id && (
                                         <motion.button initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                                             onClick={() => setActiveTpl(recommendedTpl)}
-                                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14, marginBottom: 10, border: '1.5px solid rgba(0,122,255,0.22)', background: 'linear-gradient(135deg,rgba(0,122,255,0.05),rgba(88,86,214,0.04))', cursor: 'pointer', textAlign: 'right', transition: 'all 0.15s', fontFamily: SF }}>
+                                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14, marginBottom: 10, border: '1.5px solid rgba(0,122,255,0.22)', background: 'linear-gradient(135deg,rgba(0,122,255,0.05),rgba(90,200,250,0.04))', cursor: 'pointer', textAlign: 'right', transition: 'all 0.15s', fontFamily: SF }}>
                                             <Zap size={14} color="#007AFF" strokeWidth={2} style={{ flexShrink: 0 }} />
                                             <div style={{ flex: 1 }}>
                                                 <p style={{ fontSize: 12, fontWeight: 800, color: '#007AFF', margin: 0 }}>מומלץ לשלב "{selected?.status || 'חדש'}"</p>
                                                 <p style={{ fontSize: 11, color: '#6E6E73', margin: 0 }}>{recommendedTpl.name}</p>
                                             </div>
-                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '3px 10px', borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5856D6)', flexShrink: 0, fontFamily: SF }}>בחר</span>
+                                            <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '3px 10px', borderRadius: 99, background: 'linear-gradient(135deg,#007AFF,#5AC8FA)', flexShrink: 0, fontFamily: SF }}>בחר</span>
                                         </motion.button>
                                     )}
 
@@ -1357,7 +1384,7 @@ export default function AdminCommunications() {
                                             ) : (
                                                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={sendEmail}
                                                     disabled={!customMsg || !selected?.email}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(0,122,255,0.38)', transition: 'all 0.2s' }}>
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 99, fontSize: 14, fontWeight: 800, fontFamily: SF, color: '#fff', border: 'none', cursor: (!customMsg || !selected?.email) ? 'not-allowed' : 'pointer', opacity: (!customMsg || !selected?.email) ? 0.5 : 1, background: (!customMsg || !selected?.email) ? '#C7C7CC' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: (!customMsg || !selected?.email) ? 'none' : '0 4px 16px rgba(0,122,255,0.38)', transition: 'all 0.2s' }}>
                                                     <Mail size={15} strokeWidth={2} />
                                                     שלח מייל
                                                 </motion.button>
@@ -1458,8 +1485,8 @@ export default function AdminCommunications() {
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                                         <span style={{
                                             fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99,
-                                            background: selectedEmail.status === 'pending' ? 'rgba(255,149,0,0.1)' : selectedEmail.status === 'sent' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)',
-                                            color: selectedEmail.status === 'pending' ? '#FF9500' : selectedEmail.status === 'sent' ? '#34C759' : '#FF3B30'
+                                            background: selectedEmail.status === 'pending' ? toneBg('warning') : selectedEmail.status === 'sent' ? toneBg('success') : toneBg('danger'),
+                                            color: selectedEmail.status === 'pending' ? toneFg('warning') : selectedEmail.status === 'sent' ? toneFg('success') : toneFg('danger')
                                         }}>
                                             {selectedEmail.status === 'pending' ? 'ממתין לאישור' : selectedEmail.status === 'sent' ? 'נשלח' : 'נדחה'}
                                         </span>

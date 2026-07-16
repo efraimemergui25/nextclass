@@ -1,7 +1,8 @@
 /**
  * NextClass — Real Product Catalog (seed / offline fallback)
  *
- * This file holds the ONLY three real products NextClass sells: computer monitors.
+ * This file holds NextClass's real products: three computer monitors + three
+ * complementary keyboard/mouse accessories (offered as add-ons on monitor pages).
  * The live Firestore `products` collection is the source of truth for price/image/stock;
  * this array is the offline fallback + first-run seed. Specs below are verified against
  * the official ASUS / HP product pages (July 2026). Any spec that could not be verified
@@ -111,6 +112,62 @@ const defaultProducts = [
             { label: "עומק (עם מעמד)", value: "194 מ\"מ" },
             { label: "עובי (ללא מעמד)", value: "50 מ\"מ" },
             { label: "משקל", value: "3.77 ק\"ג" }
+        ]
+    },
+    // ─── Complementary accessories (offered on the monitor product pages). Data
+    //     extracted verbatim from c-data.co.il. Retail price is owner-set (B2B
+    //     wholesale price is login-gated), so priceOnRequest until priced in admin.
+    {
+        id: "asus-cw101", brand: "ASUS", model: "CW101", sku: "CW101 KEYBOARD+MOUSE/BK/IL/104",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי ASUS CW101 — דק ושקט, HEB/EN",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0024204_asus-cw101-wireless-keyboard-mouse-set-slim-silent-design-enheb-24gh-1000dpi-blackcopilot_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית ASUS בעיצוב דק ושקט. חיבור אלחוטי RF בתדר 2.4GHz בטווח עד 10 מטר, פריסת מקשים עברית/אנגלית, עכבר ברזולוציית 1000dpi ותאימות ל-Windows 8 ומעלה. צבע שחור.",
+        specs: [
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "ממשק", value: "Wireless RF 2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "רזולוציית עכבר", value: "1000dpi" },
+            { label: "פריסת מקשים", value: "עברית / אנגלית" },
+            { label: "עיצוב", value: "דק ושקט (Slim & Silent)" },
+            { label: "תאימות", value: "Windows 8 / 10 / 11 ומעלה" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "CW101 KEYBOARD+MOUSE/BK/IL/104" }
+        ]
+    },
+    {
+        id: "hp-235", brand: "HP", model: "235", sku: "1Y4D0UT#ABT",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי HP 235 — 2.4GHz",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0019664_hp-235-wireless-mouse-and-keyboard-combo_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית HP. חיבור אלחוטי בתדר 2.4GHz בטווח עד 10 מטר, בעיצוב נקי וצבע שחור. מתאים לעבודה משרדית יומיומית.",
+        specs: [
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "תדר", value: "2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "1Y4D0UT#ABT" }
+        ]
+    },
+    {
+        id: "asus-cw100", brand: "ASUS", model: "CW100", sku: "ACCY CW100",
+        category: "מוצרים משלימים", complementary: true, priceOnRequest: true,
+        title: "סט מקלדת ועכבר אלחוטי ASUS CW100 — HEB/ENG",
+        price: 0, stock: 0, threshold: 5,
+        image: "https://cdata.b-cdn.net/images/thumbs/0016694_cw100-keyboardmousebk-hebeng-wireless_600.jpeg",
+        description: "סט מקלדת ועכבר אלחוטי מבית ASUS. חיבור אלחוטי בתדר 2.4GHz בטווח עד 10 מטר, פריסת מקשים עברית/אנגלית ותאימות ל-Windows 8 ומעלה. צבע שחור.",
+        specs: [
+            { label: "סוג", value: "סט מקלדת ועכבר אלחוטי" },
+            { label: "ממשק", value: "Wireless RF 2.4GHz" },
+            { label: "טווח", value: "עד 10 מטר" },
+            { label: "פריסת מקשים", value: "עברית / אנגלית" },
+            { label: "תאימות", value: "Windows 8 / 10 ומעלה" },
+            { label: "מידות מקלדת", value: "445×133×26.8 מ\"מ" },
+            { label: "מידות עכבר", value: "112.5×60×36.7 מ\"מ" },
+            { label: "צבע", value: "שחור" },
+            { label: "מק\"ט", value: "ACCY CW100" }
         ]
     }
 ];

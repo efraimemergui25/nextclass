@@ -74,25 +74,30 @@ export function ProductsProvider({ children }) {
         [products]
     );
 
-    // Computed ranked lists
+    // Main (non-complementary) products power the hero/rank lists; complementary
+    // accessories are surfaced only as add-ons on product pages + their own category.
+    const mainProducts = useMemo(() => activeProducts.filter(p => !p.complementary), [activeProducts]);
+    const complementaryProducts = useMemo(() => activeProducts.filter(p => p.complementary), [activeProducts]);
+
+    // Computed ranked lists (exclude complementary accessories)
     const bestSellers = useMemo(
-        () => [...activeProducts].sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 4),
-        [activeProducts]
+        () => [...mainProducts].sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 4),
+        [mainProducts]
     );
 
     const newArrivals = useMemo(
-        () => activeProducts.filter(p => p.isNew).slice(0, 4),
-        [activeProducts]
+        () => mainProducts.filter(p => p.isNew).slice(0, 4),
+        [mainProducts]
     );
 
     const dealProducts = useMemo(
-        () => activeProducts.filter(p => p.salePrice).slice(0, 4),
-        [activeProducts]
+        () => mainProducts.filter(p => p.salePrice).slice(0, 4),
+        [mainProducts]
     );
 
     const featuredProduct = useMemo(
-        () => activeProducts.find(p => p.isFeatured) || activeProducts[0] || null,
-        [activeProducts]
+        () => mainProducts.find(p => p.isFeatured) || mainProducts[0] || null,
+        [mainProducts]
     );
 
     // Add _isBestSeller flag for ProductCard badges
@@ -121,13 +126,14 @@ export function ProductsProvider({ children }) {
     const value = useMemo(() => ({
         products: productsWithBadges,
         activeProducts: activeProductsWithBadges,
+        complementaryProducts,
         bestSellers,
         newArrivals,
         dealProducts,
         featuredProduct,
         getProductById,
         getActiveProductById,
-    }), [productsWithBadges, activeProductsWithBadges, bestSellers, newArrivals, dealProducts, featuredProduct, getProductById, getActiveProductById]);
+    }), [productsWithBadges, activeProductsWithBadges, complementaryProducts, bestSellers, newArrivals, dealProducts, featuredProduct, getProductById, getActiveProductById]);
 
     return (
         <ProductsContext.Provider value={value}>

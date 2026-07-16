@@ -2,14 +2,14 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Box, Upload, Loader2, LayoutGrid, List, AlertTriangle, Check, X, Plus } from 'lucide-react';
+import { ShoppingBag, Box, Upload, Loader2, LayoutGrid, List, AlertTriangle, Check, X, Plus, ChevronLeft, Boxes, Percent, CheckCircle2 } from 'lucide-react';
 import { useAdminData } from '../context/AdminDataContext';
 import { useAdminToast } from '../context/AdminToastContext';
 import initialProducts from '../../data/products';
 import { AdminSearchBar, AdminSectionHeader, AdminButton, AdminModal, AdminInput, AdminFilterPills, AdminToggle, StatusBadge, AdminKPICard, AdminEmpty } from '../components/AdminComponents';
 import { GLASS, RADIUS, SHADOW, SPRING, TAP, hexA, accentGradient } from '../theme/tokens';
-import { storage } from '../../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import DashDrillView from '../components/DashDrillView';
+import { imageToDataUrl } from '../utils/fileStore';
 
 const CATEGORIES = ['הכל', 'מסכים אינטראקטיביים והקרנה', 'מחשוב וטאבלטים', 'תשתיות רשת ואודיו-ויזואל', 'מעבדות STEM וחינוך STEAM', 'ריהוט חינוכי ואחסון', 'בטיחות ומעקב'];
 
@@ -17,7 +17,7 @@ const EMPTY_FORM = { title: '', brand: '', model: '', price: '', salePrice: '', 
 
 // ─── Products accent — unified brand azure (de-rainbowed) + liquid-glass surfaces ─
 const INDIGO      = '#007AFF';                                   // brand azure accent
-const INDIGO_GRAD = accentGradient('#5E5CE6');                   // azure → indigo signature
+const INDIGO_GRAD = accentGradient('#5AC8FA');                   // azure → indigo signature
 const G           = { ...GLASS.base, borderRadius: RADIUS.card };
 
 // Deterministic SKU — NC-BRAND-MODEL, sanitized. No randomness for production data.
@@ -222,6 +222,47 @@ function SpecRow({ spec, onChange, onRemove }) {
     );
 }
 
+// ─── Babushka drill primitives (shared grammar with dashboard/inventory) ──────
+function PDrillStat({ items }) {
+    const cols = items.length === 3 ? 'grid-cols-3' : items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4';
+    return (
+        <div className={`grid ${cols} gap-2.5`}>
+            {items.map((s, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="rounded-[14px] p-3 text-center"
+                    style={{ background: hexA(s.color || INDIGO, 0.07), border: `1px solid ${hexA(s.color || INDIGO, 0.16)}` }}>
+                    <p className="font-black text-[15px] tracking-tight leading-none truncate" style={{ color: s.color || '#1D1D1F' }}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[#AEAEB2] mt-1.5">{s.label}</p>
+                </motion.div>
+            ))}
+        </div>
+    );
+}
+function PDrillRow({ onClick, leading, title, subtitle, trailing, tone = INDIGO, delay = 0 }) {
+    return (
+        <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay }}
+            onClick={onClick} tabIndex={onClick ? 0 : undefined} role={onClick ? 'button' : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+            whileHover={onClick ? { backgroundColor: hexA(tone, 0.06), x: -3 } : undefined}
+            className={`flex items-center gap-3 p-3 rounded-[14px] transition-colors focus:outline-none ${onClick ? 'cursor-pointer' : ''}`}
+            style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            {leading}
+            <div className="flex-1 min-w-0 text-right">
+                <p className="text-[12px] font-bold text-[#1D1D1F] truncate">{title}</p>
+                {subtitle && <p className="text-[10px] text-[#AEAEB2] truncate mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+            {onClick && <ChevronLeft size={14} className="text-[#C7C7CC] shrink-0" strokeWidth={2.5} />}
+        </motion.div>
+    );
+}
+const PDrillEmpty = ({ icon: Icon, text }) => (
+    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
+        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
+        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    </div>
+);
+
 export default function AdminProducts() {
     const { products, updateProductDetails, addProduct, deleteProduct } = useAdminData();
     const { showToast } = useAdminToast();
@@ -237,15 +278,20 @@ export default function AdminProducts() {
     const [imgUploading, setImgUploading] = useState(false);
     const imgInputRef = useRef(null);
 
+    // ── Babushka drill stack (KPI → product list → product detail) ──
+    const [drillStack, setDrillStack] = useState([]);
+    const openDrill  = (level) => setDrillStack([level]);
+    const pushDrill  = (level) => setDrillStack(s => [...s, level]);
+    const popDrill   = () => setDrillStack(s => s.slice(0, -1));
+    const closeDrill = () => setDrillStack([]);
+
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setImgUploading(true);
         try {
-            const path = `products/${editingProduct?.id || Date.now()}_${file.name}`;
-            const snap = await uploadBytes(ref(storage, path), file);
-            const url = await getDownloadURL(snap.ref);
-            setField('image', url);
+            const dataUrl = await imageToDataUrl(file); // compressed to < ~900KB, stored inline
+            setField('image', dataUrl);
         } catch {
             showToast?.('שגיאה בהעלאת התמונה', 'error');
         }
@@ -373,10 +419,14 @@ export default function AdminProducts() {
 
             {/* KPI band */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <AdminKPICard title="סה״כ מוצרים" value={products.length} icon="products" accent={INDIGO} subtitle={`${filtered.length} מוצגים כעת`} delay={0} />
-                <AdminKPICard title="מוצרים פעילים" value={activeCount} icon="orders" accent="#34C759" subtitle={`${products.length - activeCount} מושבתים`} delay={0.05} />
-                <AdminKPICard title="מלאי נמוך" value={lowStockCount} icon="alert" accent="#FF9500" subtitle="מתחת לסף המלאי" delay={0.1} />
-                <AdminKPICard title="במבצע" value={saleCount} icon="revenue" accent="#FF3B30" subtitle="מחיר מבצע פעיל" delay={0.15} />
+                <AdminKPICard title="סה״כ מוצרים" value={products.length} icon="products" accent={INDIGO} subtitle={`${filtered.length} מוצגים כעת`} delay={0}
+                    onClick={products.length ? () => openDrill({ type: 'products', scope: 'all' }) : undefined} />
+                <AdminKPICard title="מוצרים פעילים" value={activeCount} icon="orders" accent="#34C759" subtitle={`${products.length - activeCount} מושבתים`} delay={0.05}
+                    onClick={activeCount ? () => openDrill({ type: 'products', scope: 'active' }) : undefined} />
+                <AdminKPICard title="מלאי נמוך" value={lowStockCount} icon="alert" accent="#FF9500" subtitle="מתחת לסף המלאי" delay={0.1}
+                    onClick={lowStockCount ? () => openDrill({ type: 'products', scope: 'low' }) : undefined} />
+                <AdminKPICard title="במבצע" value={saleCount} icon="revenue" accent="#FF3B30" subtitle="מחיר מבצע פעיל" delay={0.15}
+                    onClick={saleCount ? () => openDrill({ type: 'products', scope: 'sale' }) : undefined} />
             </div>
 
             {/* Filters */}
@@ -581,7 +631,7 @@ export default function AdminProducts() {
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <button type="button" onClick={addDimension}
-                                className="text-[#5856D6] text-xs font-bold hover:underline">+ הוסף מידה</button>
+                                className="text-[#5AC8FA] text-xs font-bold hover:underline">+ הוסף מידה</button>
                             <label className="text-[#6E6E73] text-[10px] font-black tracking-[0.18em]">מידות המוצר</label>
                         </div>
                         <div className="space-y-2">
@@ -613,6 +663,98 @@ export default function AdminProducts() {
                     </div>
                 </div>
             </AdminModal>
+
+            {/* ── Babushka Drill Drawer — KPI → product list → product detail ── */}
+            {(() => {
+                const current = drillStack[drillStack.length - 1] || null;
+                const isOpen  = drillStack.length > 0;
+                const canBack = drillStack.length > 1;
+                if (!current) return <DashDrillView open={false} onClose={closeDrill} levelKey="none" />;
+
+                const scopeMap = {
+                    all:    { label: 'כל המוצרים', color: INDIGO, Icon: Boxes, filter: () => true },
+                    active: { label: 'מוצרים פעילים', color: '#34C759', Icon: CheckCircle2, filter: p => p.isActive !== false },
+                    low:    { label: 'מלאי נמוך', color: '#FF9500', Icon: AlertTriangle, filter: p => typeof p.stock === 'number' && p.stock <= (p.threshold ?? 5) },
+                    sale:   { label: 'במבצע', color: '#FF3B30', Icon: Percent, filter: p => !!p.salePrice },
+                };
+                const pImg = (p) => (
+                    <span className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
+                        {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Box size={16} className="text-[#C7C7CC]" />}
+                    </span>
+                );
+                const priceTag = (p) => (
+                    <span className="text-[12px] font-black shrink-0" style={{ color: p.salePrice ? '#FF3B30' : '#1D1D1F' }}>₪{Number(p.salePrice ?? p.price ?? 0).toLocaleString()}</span>
+                );
+
+                let title = '', subtitle = '', icon = null, accent = INDIGO, footer = null, body = null;
+
+                if (current.type === 'products') {
+                    const sc = scopeMap[current.scope] || scopeMap.all;
+                    const list = products.filter(sc.filter);
+                    accent = sc.color; icon = <sc.Icon size={17} color={sc.color} />;
+                    title = sc.label; subtitle = `${list.length} מוצרים`;
+                    body = (
+                        <div className="space-y-5">
+                            <PDrillStat items={[
+                                { label: 'סה״כ', value: products.length, color: INDIGO },
+                                { label: 'פעילים', value: activeCount, color: '#34C759' },
+                                { label: 'מלאי נמוך', value: lowStockCount, color: '#FF9500' },
+                                { label: 'במבצע', value: saleCount, color: '#FF3B30' },
+                            ]} />
+                            {list.length === 0 ? <PDrillEmpty icon={ShoppingBag} text="אין מוצרים בקטגוריה זו" /> : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">מוצרים — לחץ לפרטים</p>
+                                    {list.map((p, i) => (
+                                        <PDrillRow key={p.id} delay={i * 0.02} tone={sc.color}
+                                            onClick={() => pushDrill({ type: 'product', id: p.id })}
+                                            leading={pImg(p)} title={p.title}
+                                            subtitle={`${p.category || 'ללא קטגוריה'} · ${typeof p.stock === 'number' ? `${p.stock} במלאי` : ''}`}
+                                            trailing={priceTag(p)} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                } else if (current.type === 'product') {
+                    const p = products.find(x => String(x.id) === String(current.id));
+                    if (!p) { title = 'מוצר'; icon = <Box size={17} color={INDIGO} />; body = <PDrillEmpty icon={Box} text="המוצר אינו זמין" />; }
+                    else {
+                        accent = INDIGO; icon = <Box size={17} color={INDIGO} />;
+                        title = p.title; subtitle = p.category || 'ללא קטגוריה';
+                        footer = { label: 'ערוך מוצר', onClick: () => { closeDrill(); handleEditClick(p); } };
+                        body = (
+                            <div className="space-y-5">
+                                <div className="rounded-2xl overflow-hidden bg-gray-100 aspect-video flex items-center justify-center">
+                                    {p.image ? <img src={p.image} alt={p.title} className="w-full h-full object-contain" /> : <Box size={40} className="text-[#C7C7CC]" />}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black" style={{ background: hexA(p.isActive !== false ? '#34C759' : '#8E8E93', 0.12), color: p.isActive !== false ? '#1A8C40' : '#6E6E73' }}>{p.isActive !== false ? 'פעיל' : 'מושבת'}</span>
+                                        {p.salePrice && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black" style={{ background: 'rgba(255,59,48,0.12)', color: '#FF3B30' }}>מבצע</span>}
+                                    </div>
+                                    <div className="text-left">
+                                        {p.salePrice ? (<><span className="text-[15px] font-black text-[#FF3B30]">₪{Number(p.salePrice).toLocaleString()}</span> <span className="text-[11px] text-[#AEAEB2] line-through">₪{Number(p.price).toLocaleString()}</span></>) : <span className="text-[15px] font-black text-[#1D1D1F]">₪{Number(p.price || 0).toLocaleString()}</span>}
+                                    </div>
+                                </div>
+                                <PDrillStat items={[
+                                    { label: 'מלאי', value: p.stock ?? '—', color: INDIGO },
+                                    { label: 'סף', value: p.threshold ?? 5, color: '#8E8E93' },
+                                    { label: 'מק״ט', value: p.sku ? '✓' : '—', color: '#5AC8FA' },
+                                ]} />
+                                {p.description && <p className="text-[12px] leading-relaxed text-[#6E6E73] text-right">{p.description}</p>}
+                            </div>
+                        );
+                    }
+                }
+
+                return (
+                    <DashDrillView open={isOpen} title={title} subtitle={subtitle} icon={icon} accent={accent}
+                        canBack={canBack} onBack={popDrill} onClose={closeDrill} footer={footer}
+                        levelKey={`${current.type}:${current.id ?? current.scope ?? ''}:${drillStack.length}`}>
+                        {body}
+                    </DashDrillView>
+                );
+            })()}
         </div>
     );
 }

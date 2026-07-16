@@ -5,9 +5,10 @@ import { db } from '../../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, ExternalLink, X, Save, Loader, Newspaper, Tag, Globe, ChevronLeft, Calendar, Clock } from 'lucide-react';
 import { GLASS, RADIUS, SHADOW, SPRING, GRADIENT, TAP, hexA, glow } from '../theme/tokens';
-import { AdminKPICard, AdminEmpty, AdminFilterPills } from '../components/AdminComponents';
+import { AdminKPICard, AdminEmpty, AdminFilterPills, AdminSkeleton } from '../components/AdminComponents';
 import DashDrillView from '../components/DashDrillView';
 import { useAdminConfirm } from '../context/AdminConfirmContext';
+import { useAdminToast } from '../context/AdminToastContext';
 
 // ─── Babushka drill helpers ────────────────────────────────────────────────────
 function DrillStat({ items }) {
@@ -50,9 +51,13 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
     );
 }
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 
@@ -78,56 +83,56 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
             style={{ ...glass, borderRadius: RADIUS.card }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">כותרת</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">כותרת</label>
                     <input value={form.title} onChange={e => set('title', e.target.value)}
                         placeholder="כותרת המאמר"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">קטגוריה</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">קטגוריה</label>
                     <select value={form.category} onChange={e => set('category', e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] bg-white">
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] bg-white">
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">מקור</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">מקור</label>
                     <input value={form.source} onChange={e => set('source', e.target.value)}
                         placeholder="Edutopia / EdSurge / eSchool News..."
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">תאריך</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">תאריך</label>
                     <input value={form.date} onChange={e => set('date', e.target.value)}
                         placeholder="17 מאי 2024"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div>
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">זמן קריאה</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">זמן קריאה</label>
                     <input value={form.readTime} onChange={e => set('readTime', e.target.value)}
                         placeholder="5 דק׳"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">תקציר</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">תקציר</label>
                     <textarea value={form.excerpt} onChange={e => set('excerpt', e.target.value)}
                         placeholder="2-3 משפטים המתארים את המאמר..."
                         rows={3}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] resize-none" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-right outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] resize-none" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">קישור לכתבה</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">קישור לכתבה</label>
                     <input value={form.url} onChange={e => set('url', e.target.value)}
                         placeholder="https://..."
                         dir="ltr"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-left outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-left outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-[11px] font-black text-gray-400 tracking-wider mb-1.5">URL תמונה (Unsplash או כל כתובת)</label>
+                    <label className="block text-[11px] font-black text-[#6E6E73] tracking-wider mb-1.5">URL תמונה (Unsplash או כל כתובת)</label>
                     <input value={form.image} onChange={e => set('image', e.target.value)}
                         placeholder="https://images.unsplash.com/..."
                         dir="ltr"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-[14px] text-left outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
+                        className="w-full border border-[rgba(0,0,0,0.10)] bg-white/70 rounded-xl px-4 py-2.5 text-[14px] text-left outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]" />
                 </div>
             </div>
 
@@ -149,10 +154,12 @@ function ArticleForm({ initial, onSave, onCancel, loading }) {
 
 export default function AdminMagazine() {
     const confirm = useAdminConfirm();
+    const { showToast } = useAdminToast();
     const [articles, setArticles] = useState([]);
     const [showAdd, setShowAdd] = useState(false);
     const [editId, setEditId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [listLoading, setListLoading] = useState(true);
     const [deleting, setDeleting] = useState(null);
     const [filterCat, setFilterCat] = useState('הכל');
 
@@ -166,7 +173,15 @@ export default function AdminMagazine() {
 
     useEffect(() => {
         const q = query(collection(db, 'magazine_articles'), orderBy('createdAt', 'desc'));
-        return onSnapshot(q, snap => setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+        return onSnapshot(
+            q,
+            snap => { setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setListLoading(false); },
+            err => {
+                console.warn('[Magazine] Firestore listener error:', err?.message);
+                showToast('שגיאה בטעינת הכתבות מהשרת', 'error');
+                setListLoading(false);
+            }
+        );
     }, []);
 
     const handleAdd = async (form) => {
@@ -234,11 +249,16 @@ export default function AdminMagazine() {
             </div>
 
             {/* Note when Firestore is empty */}
-            {articles.length === 0 && (
-                <div className="mb-6 p-5 rounded-2xl text-right"
-                    style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.18)' }}>
-                    <p className="text-[13px] font-bold text-[#007AFF] mb-1">הכתבות הסטטיות מוצגות כרגע</p>
-                    <p className="text-[12px] text-[#007AFF]/70">הוסף כתבה אחת לפחות כדי שהמגזין יציג את הכתבות מה-Firestore.</p>
+            {!listLoading && articles.length === 0 && (
+                <div className="mb-6 flex items-center gap-4 p-4 rounded-2xl text-right bg-white"
+                    style={{ border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(20,40,80,0.06)' }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(0,122,255,0.1)' }}>
+                        <Newspaper size={20} color="#007AFF" strokeWidth={2.2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[13.5px] font-bold text-[#1D1D1F] mb-0.5">הכתבות הסטטיות מוצגות כרגע</p>
+                        <p className="text-[12px] font-medium text-[#86868B]">הוסף כתבה אחת לפחות כדי שהמגזין יציג את הכתבות מה-Firestore.</p>
+                    </div>
                 </div>
             )}
 
@@ -248,7 +268,7 @@ export default function AdminMagazine() {
             </AnimatePresence>
 
             {/* Category filter */}
-            {articles.length > 0 && (
+            {!listLoading && articles.length > 0 && (
                 <div className="mb-5 overflow-x-auto no-scrollbar pb-1">
                     <AdminFilterPills options={['הכל', ...CATEGORIES]} active={filterCat} onChange={setFilterCat} id="magazine-cat" />
                 </div>
@@ -256,6 +276,7 @@ export default function AdminMagazine() {
 
             {/* Article list */}
             <div className="flex flex-col gap-3">
+                {listLoading && <AdminSkeleton rows={4} />}
                 <AnimatePresence>
                     {displayed.map(article => (
                         <motion.div key={article.id}
@@ -279,12 +300,12 @@ export default function AdminMagazine() {
                                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrill({ type: 'article', id: article.id }); } }}
                                         className="flex-1 min-w-0 text-right cursor-pointer focus:outline-none">
                                         <div className="flex items-center gap-2 justify-end mb-1">
-                                            <span className="text-[9px] font-black text-gray-300">{article.source}</span>
-                                            <span className="text-[9px] font-black text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded-full">{article.category}</span>
+                                            <span className="text-[9px] font-black text-[#C7C7CC]">{article.source}</span>
+                                            <span className="text-[9px] font-black text-[#007AFF] bg-[rgba(0,122,255,0.10)] px-2 py-0.5 rounded-full">{article.category}</span>
                                         </div>
                                         <p className="text-[14px] font-bold text-[#1D1D1F] line-clamp-1 hover:text-[#007AFF] transition-colors">{article.title}</p>
-                                        <p className="text-[12px] text-gray-400 line-clamp-1 mt-0.5">{article.excerpt}</p>
-                                        <p className="text-[11px] text-gray-300 mt-1">{article.date} · {article.readTime}</p>
+                                        <p className="text-[12px] text-[#86868B] line-clamp-1 mt-0.5">{article.excerpt}</p>
+                                        <p className="text-[11px] text-[#AEAEB2] mt-1">{article.date} · {article.readTime}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <a href={article.url} target="_blank" rel="noopener noreferrer"
@@ -309,7 +330,7 @@ export default function AdminMagazine() {
                     ))}
                 </AnimatePresence>
 
-                {displayed.length === 0 && (
+                {!listLoading && displayed.length === 0 && (
                     <div className="overflow-hidden" style={{ ...glass, borderRadius: RADIUS.card }}>
                         <AdminEmpty
                             icon="empty"
@@ -424,7 +445,7 @@ export default function AdminMagazine() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-2 flex-wrap justify-end">
-                                    <span className="text-[10px] font-black text-[#007AFF] bg-blue-50 px-2 py-0.5 rounded-full">{a.category}</span>
+                                    <span className="text-[10px] font-black text-[#007AFF] bg-[rgba(0,122,255,0.10)] px-2 py-0.5 rounded-full">{a.category}</span>
                                     {a.source && <span className="text-[11px] font-bold text-[#86868B] flex items-center gap-1"><Globe size={11} />{a.source}</span>}
                                 </div>
                                 <div className="p-4 rounded-[16px] text-right" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>

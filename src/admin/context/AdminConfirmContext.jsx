@@ -71,7 +71,7 @@ function ConfirmDialog({ opts, onResolve }) {
                     )}
                     <motion.button whileTap={{ scale: 0.97 }} onClick={() => onResolve(true)}
                         className="flex-1 h-12 rounded-full font-black text-[14px] text-white"
-                        style={{ background: danger ? 'linear-gradient(135deg,#FF453A,#FF3B30)' : 'linear-gradient(135deg,#007AFF,#5856D6)', boxShadow: `0 8px 22px ${hexA(accent, 0.38)}` }}>
+                        style={{ background: danger ? 'linear-gradient(135deg,#FF453A,#FF3B30)' : 'linear-gradient(135deg,#007AFF,#5AC8FA)', boxShadow: `0 8px 22px ${hexA(accent, 0.38)}` }}>
                         {alert ? 'הבנתי' : confirmLabel}
                     </motion.button>
                 </div>

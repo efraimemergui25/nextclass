@@ -29,6 +29,9 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router') || id.includes('node_modules/scheduler')) return 'react';
           // Icons
           if (id.includes('node_modules/lucide-react')) return 'icons';
+          // pdf.js — only ever loaded via dynamic import() in the vault; keep it
+          // in its own async chunk so it doesn't bloat the eager vendor bundle.
+          if (id.includes('node_modules/pdfjs-dist')) return 'pdfjs';
           // NOTE: dynamically-imported heavy libs (xlsx, mammoth) are auto-split by Rollup
           // via their import() call sites — no manual branch needed. Do NOT hand-split eager
           // libs here: it can reorder chunk init and cause "cannot access X before init" (TDZ).

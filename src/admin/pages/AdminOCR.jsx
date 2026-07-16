@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, ExternalLink, ZoomIn, ZoomOut, Maximize2, X, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { FileText, ExternalLink, ZoomIn, ZoomOut, Maximize2, X, ChevronLeft, ChevronRight, RotateCw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -688,10 +688,16 @@ export default function AdminOCR({ embedded = false }) {
                         </div>
 
                         {warnings.length > 0 && (
-                            <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 14, background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.22)' }}>
-                                {warnings.map((w, i) => (
-                                    <p key={i} style={{ fontSize: 11.5, fontWeight: 700, color: '#B25E00', margin: i ? '4px 0 0' : 0 }}>⚠️ {w}</p>
-                                ))}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, padding: '13px 15px', borderRadius: 16, background: '#fff', border: '1px solid rgba(255,149,0,0.25)', boxShadow: '0 4px 18px rgba(255,149,0,0.08)' }}>
+                                <div style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(255,149,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <AlertTriangle size={17} color="#FF9500" strokeWidth={2.3} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 11, fontWeight: 900, color: '#B25E00', letterSpacing: '0.04em', margin: '3px 0 6px' }}>שים לב לפני אישור</p>
+                                    {warnings.map((w, i) => (
+                                        <p key={i} style={{ fontSize: 12, fontWeight: 600, color: '#5A6472', margin: i ? '4px 0 0' : 0 }}>• {w}</p>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

@@ -214,7 +214,7 @@ export default function CheckoutPage() {
  trackEvent('quote_submitted', { value: subtotal, items: quote.items.length, institution_type: form.institutionType });
 
  // Push to HubSpot CRM
- fetch('/api/crm', {
+ fetch('/api/integrations-status', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },
    body: JSON.stringify({ quote }),

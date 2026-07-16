@@ -78,9 +78,13 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
 }
 
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 

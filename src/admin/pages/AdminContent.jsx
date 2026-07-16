@@ -8,9 +8,10 @@ import {
     AdminTextArea,
     AdminToggle,
     AdminButton,
-    AdminKPICard
+    AdminKPICard,
+    AdminSkeleton
 } from '../components/AdminComponents';
-import { hexA, accentGradient } from '../theme/tokens';
+import { hexA, accentGradient, GLASS } from '../theme/tokens';
 import DashDrillView from '../components/DashDrillView';
 import {
     Eye, Layout, Type, Image as ImageIcon, Search, Menu,
@@ -28,6 +29,10 @@ import { STATIC_ARTICLES, CATEGORY_COLORS } from '../../utils/magazineArticles';
 
 
 const CARD_STYLE = { boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.1)' };
+
+// ─── Shared liquid-glass surface (token-driven — one system everywhere) ────────
+// Replaces the hand-duplicated inline glass recipe that was repeated across the page.
+const CARD_GLASS = { ...GLASS.base };
 
 // ─── Content domain accent (restrained azure brand) ────────────────────────────
 const PURPLE = '#007AFF';
@@ -78,9 +83,13 @@ function DrillRow({ onClick, leading, title, subtitle, trailing, tone = '#007AFF
 }
 
 const DrillEmpty = ({ icon: Icon, text }) => (
-    <div className="py-12 flex flex-col items-center justify-center gap-2 text-center">
-        {Icon && <Icon size={26} className="text-[#AEAEB2] opacity-40" />}
-        <p className="text-[#AEAEB2] text-sm font-medium">{text}</p>
+    <div className="py-14 flex flex-col items-center justify-center gap-3 text-center">
+        {Icon && (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#F0F3F8] to-[#E6EBF3] shadow-[0_4px_16px_rgba(20,40,80,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <Icon size={24} className="text-[#B4BCC9]" strokeWidth={2} />
+            </div>
+        )}
+        <p className="text-[#9AA3B2] text-[13px] font-semibold">{text}</p>
     </div>
 );
 
@@ -115,7 +124,7 @@ const FIELD_SECTIONS = [
         id: 'branding',
         label: 'זהות ומיתוג',
         icon: '🎨',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'site_name',          label: 'שם האתר',              type: 'text',     default: 'NextClass' },
             { key: 'site_logo_url',      label: 'לוגו (URL)',            type: 'image',    default: '' },
@@ -255,7 +264,7 @@ const FIELD_SECTIONS = [
         id: 'quote_wizard',
         label: 'אשף הצעת מחיר',
         icon: '💬',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'quote_eyebrow',        label: 'תווית עליונה',      type: 'text',     default: 'כלי חינמי' },
             { key: 'quote_title',          label: 'כותרת',             type: 'text',     default: 'בונים לכם הצעת מחיר בדקה' },
@@ -318,7 +327,7 @@ const FIELD_SECTIONS = [
         id: 'catalog_full',
         label: 'קטלוג וסינון',
         icon: '🛍️',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'catalog_title',            label: 'כותרת ראשית',         type: 'text',     default: 'הכלים שמעצבים את המחר.' },
             { key: 'catalog_subtitle',         label: 'כותרת משנה',          type: 'textarea', default: 'פתרונות טכנולוגיים חכמים המותאמים לסביבת הלמידה הישראלית.' },
@@ -389,13 +398,13 @@ const FIELD_SECTIONS = [
         id: 'sidebar_sections',
         label: 'ניווט פנימי בדף מוצר',
         icon: '📋',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
     },
     {
         id: 'pd_dims_section',
         label: 'ממדים ומידות',
         icon: '📏',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'pd_dims_title',  label: 'כותרת קטע מידות',         type: 'text', default: 'מידות המוצר' },
             { key: 'pd_dims_label1', label: 'ממד 1: שם',              type: 'text', default: 'רוחב' },
@@ -443,7 +452,7 @@ const FIELD_SECTIONS = [
         id: 'pd_faq_section',
         label: 'שאלות נפוצות (FAQ)',
         icon: '❓',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'pd_faq_title', label: 'כותרת קטע שאלות',    type: 'text',     default: 'שאלות נפוצות' },
             { key: 'pd_faq_q1',   label: 'שאלה 1',              type: 'text',     default: 'מהו זמן האספקה הצפוי?' },
@@ -577,7 +586,7 @@ const FIELD_SECTIONS = [
         id: 'auth_modal',
         label: 'מסך הרשמה / כניסה',
         icon: '🔑',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'auth_hero_title',       label: 'כותרת פאנל הרשמה',              type: 'text',     default: 'בואו לבנות איתנו את עתיד החינוך' },
             { key: 'auth_hero_subtitle',    label: 'תיאור קצר תחת הכותרת',          type: 'textarea', default: 'ציוד תצוגה מקורי למוסדות חינוך, ישירות מהיבואן' },
@@ -610,7 +619,7 @@ const FIELD_SECTIONS = [
         id: 'about_page',
         label: 'אודות',
         icon: '📖',
-        accent: '#AF52DE',
+        accent: '#0A84FF',
         fields: [
             { key: 'about_hero_label',    label: 'תווית Badge עליונה',    type: 'text',     default: '' },
             { key: 'about_hero_title',    label: 'כותרת Hero',            type: 'text',     default: 'הטכנולוגיה\nשחינוך ראוי לה.' },
@@ -654,7 +663,7 @@ const FIELD_SECTIONS = [
         id: 'about_timeline',
         label: 'ציר זמן אודות',
         icon: '📅',
-        accent: '#AF52DE',
+        accent: '#0A84FF',
         fields: [
             { key: 'about_tm1_year',  label: 'אירוע 1: שנה',    type: 'text',     default: '2012' },
             { key: 'about_tm1_title', label: 'אירוע 1: כותרת',  type: 'text',     default: 'ההתחלה' },
@@ -758,7 +767,7 @@ const FIELD_SECTIONS = [
         id: 'legal',
         label: 'עמודים משפטיים',
         icon: '⚖️',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         fields: [
             { key: 'legal_privacy_updated', label: 'תאריך עדכון — מדיניות פרטיות', type: 'text',     default: '14 במאי 2026' },
             { key: 'legal_terms_updated',   label: 'תאריך עדכון — תנאי שימוש',     type: 'text',     default: '14 במאי 2026' },
@@ -848,7 +857,7 @@ const SECTION_GROUPS = [
         id: 'pages',
         label: 'עמודים',
         icon: '📄',
-        accent: '#5856D6',
+        accent: '#5AC8FA',
         subGroups: [
             { label: 'קטלוג ומנוע חיפוש', sections: ['catalog_full', 'search_section'] },
             { label: 'דף מוצר — פעולות וטקסטים', sections: ['product_detail', 'trust_badges'] },
@@ -914,7 +923,7 @@ const DESKTOP_GROUPS = [
         ],
     },
     {
-        id: 'dg_catalog', label: 'קטלוג', accent: '#5856D6',
+        id: 'dg_catalog', label: 'קטלוג', accent: '#5AC8FA',
         subGroups: [
             { label: null, sections: ['catalog_full', 'search_section'] },
         ],
@@ -976,7 +985,7 @@ const MOBILE_GROUPS = [
         ],
     },
     {
-        id: 'mg_nav', label: 'ניווט מובייל', accent: '#5856D6',
+        id: 'mg_nav', label: 'ניווט מובייל', accent: '#5AC8FA',
         subGroups: [
             { label: null, sections: ['mobile_menu_reorder'] },
         ],
@@ -1006,7 +1015,7 @@ const MOBILE_GROUPS = [
         ],
     },
     {
-        id: 'mg_brand', label: 'מיתוג', accent: '#AF52DE',
+        id: 'mg_brand', label: 'מיתוג', accent: '#0A84FF',
         subGroups: [
             { label: null, sections: ['branding'] },
         ],
@@ -1308,7 +1317,7 @@ const VisibilitySection = ({ content, onChange }) => (
     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {VISIBILITY_ITEMS.map(item => (
             <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border transition-all"
-                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                style={{ ...CARD_GLASS }}>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
                         <p className="text-sm font-bold text-[#1D1D1F]">{item.label}</p>
@@ -1369,7 +1378,7 @@ const NavMenuManager = ({ showToast }) => {
                 {items.map((item) => (
                     <div key={item.id}
                         className="flex items-center gap-4 p-4 rounded-2xl border group hover:border-[#007AFF]/30 transition-colors"
-                        style={{ opacity: item.visible === false ? 0.45 : 1, background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ opacity: item.visible === false ? 0.45 : 1, ...CARD_GLASS }}>
                         <span className="text-[#6E6E73] shrink-0">{NAV_ICON_COMPONENTS[item.id] || <Link2 size={15} />}</span>
                         <div className="flex-1 text-right">
                             <p className="text-sm font-bold text-[#1D1D1F]">{item.defaultLabel}</p>
@@ -1434,7 +1443,7 @@ const MobileMenuManager = ({ showToast }) => {
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
                         className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#34C759]/40 transition-colors select-none"
-                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ opacity: item.visible === false ? 0.4 : 1, listStyle: 'none', ...CARD_GLASS }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#34C759] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
@@ -1498,21 +1507,21 @@ const SidebarSectionManager = ({ showToast }) => {
     return (
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between mb-2">
-                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5856D6] transition-colors font-bold">איפוס לברירת מחדל</button>
+                <button onClick={handleReset} className="text-[11px] text-[#AEAEB2] hover:text-[#5AC8FA] transition-colors font-bold">איפוס לברירת מחדל</button>
                 <p className="text-[11px] font-black text-[#86868B] tracking-widest text-right">גרור לשינוי סדר • מתג להסתרה / הצגה</p>
             </div>
             <Reorder.Group axis="y" values={items} onReorder={handleReorder} className="space-y-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item) => (
                     <Reorder.Item key={item.id} value={item} onDragEnd={handleDragEnd}
-                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#5856D6]/30 transition-colors select-none"
-                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5856D6] transition-colors">
+                        className="flex items-center gap-4 p-4 rounded-2xl border cursor-grab active:cursor-grabbing group hover:border-[#5AC8FA]/30 transition-colors select-none"
+                        style={{ opacity: item.visible === false ? 0.45 : 1, listStyle: 'none', ...CARD_GLASS }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#AEAEB2" className="shrink-0 group-hover:fill-[#5AC8FA] transition-colors">
                             <rect x="3" y="3.5" width="10" height="1.5" rx="0.75" /><rect x="3" y="7.25" width="10" height="1.5" rx="0.75" /><rect x="3" y="11" width="10" height="1.5" rx="0.75" />
                         </svg>
                         <span className="text-[#6E6E73] shrink-0">{SIDEBAR_SECTION_ICONS[item.id] || <List size={14} />}</span>
                         <div className="flex-1 text-right">
                             <input type="text" value={item.label} onChange={e => updateLabel(item.id, e.target.value)} onBlur={() => persist(itemsRef.current)}
-                                className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5856D6] focus:outline-none transition-colors text-right px-0"
+                                className="w-full text-sm font-bold text-[#1D1D1F] bg-transparent border-0 border-b border-transparent hover:border-gray-200 focus:border-[#5AC8FA] focus:outline-none transition-colors text-right px-0"
                                 placeholder={item.defaultLabel} />
                             <p className="text-[10px] text-gray-400 font-mono mt-0.5">{item.id}</p>
                         </div>
@@ -1537,7 +1546,7 @@ const VideosSection = ({ showToast }) => {
             <div className="grid grid-cols-1 gap-3">
                 {videos.map(v => (
                     <div key={v.id} className="flex items-center justify-between p-3 rounded-xl border"
-                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ ...CARD_GLASS }}>
                         <div className="flex items-center gap-4">
                             <img src={v.thumbnail} className="w-16 h-10 object-cover rounded-lg bg-gray-100" alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
                             <div className="text-right"><p className="text-sm font-bold">{v.title}</p><p className="text-[10px] text-gray-400">{v.category} • {v.duration}</p></div>
@@ -1600,7 +1609,7 @@ const StaticArticlesSection = ({ firestoreArticles, showToast }) => {
                         return (
                             <div key={article.id}
                                 className="flex items-center gap-3 p-3 rounded-2xl border text-right"
-                                style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                                style={{ ...CARD_GLASS }}>
                                 <button
                                     onClick={() => handleImport(article)}
                                     disabled={importing === article.id}
@@ -1701,7 +1710,7 @@ const MagazineSection = ({ showToast }) => {
                     <motion.div key={a.id}
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
                         className="flex items-center gap-3 p-3 rounded-2xl border hover:border-[#007AFF]/20 transition-colors group"
-                        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(24px) saturate(200%)', WebkitBackdropFilter: 'blur(24px) saturate(200%)', border: '1px solid rgba(255,255,255,0.72)', boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95)' }}>
+                        style={{ ...CARD_GLASS }}>
                         {a.image && (
                             <img src={a.image} alt="" className="w-14 h-10 object-cover rounded-lg shrink-0 bg-gray-100" onError={e => { e.target.style.display = 'none'; }} />
                         )}
@@ -2185,8 +2194,14 @@ export default function AdminContent({ showToast }) {
         setOpenSections(new Set());
     };
 
+    // Content form hydrates from live settings on mount; gate on first population
+    // so the editor never flashes empty fields before Firestore/JSON resolves.
+    const contentReady = Object.keys(content).length > 0;
+
     // ── Shared content panel ───────────────────────────────────────────────────
-    const renderContentPanel = () => (
+    const renderContentPanel = () => {
+        if (!contentReady) return <AdminSkeleton rows={6} />;
+        return (
         <>
             {/* Global Search */}
             <div className="relative">
@@ -2303,7 +2318,8 @@ export default function AdminContent({ showToast }) {
                 </div>
             )}
         </>
-    );
+        );
+    };
 
     return (
         <div dir="rtl" className="space-y-5">
@@ -2334,7 +2350,7 @@ export default function AdminContent({ showToast }) {
                             whileTap={{ scale: 0.98 }}
                             className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
                             style={{
-                                background: 'linear-gradient(145deg, #007AFF 0%, #5856D6 100%)',
+                                background: 'linear-gradient(145deg, #007AFF 0%, #5AC8FA 100%)',
                                 boxShadow: '0 24px 60px rgba(0,122,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
                                 minHeight: 300,
                             }}
@@ -2377,7 +2393,7 @@ export default function AdminContent({ showToast }) {
                             whileTap={{ scale: 0.98 }}
                             className="relative flex flex-col items-center justify-center gap-6 p-10 rounded-3xl overflow-hidden text-white text-right"
                             style={{
-                                background: 'linear-gradient(145deg, #0A84FF 0%, #5E5CE6 100%)',
+                                background: 'linear-gradient(145deg, #0A84FF 0%, #5AC8FA 100%)',
                                 boxShadow: '0 24px 60px rgba(10,132,255,0.38), 0 0 0 1px rgba(255,255,255,0.12)',
                                 minHeight: 300,
                             }}
@@ -2442,7 +2458,7 @@ export default function AdminContent({ showToast }) {
                                     onClick={() => handleSelectPlatform('desktop')}
                                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
                                     style={{
-                                        background: platform === 'desktop' ? 'linear-gradient(135deg, #007AFF, #5856D6)' : 'transparent',
+                                        background: platform === 'desktop' ? 'linear-gradient(135deg, #007AFF, #5AC8FA)' : 'transparent',
                                         color: platform === 'desktop' ? 'white' : '#6E6E73',
                                         boxShadow: platform === 'desktop' ? '0 2px 8px rgba(0,122,255,0.3)' : 'none',
                                     }}
@@ -2454,7 +2470,7 @@ export default function AdminContent({ showToast }) {
                                     onClick={() => handleSelectPlatform('mobile')}
                                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold transition-all"
                                     style={{
-                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #0A84FF, #5E5CE6)' : 'transparent',
+                                        background: platform === 'mobile' ? 'linear-gradient(135deg, #0A84FF, #5AC8FA)' : 'transparent',
                                         color: platform === 'mobile' ? 'white' : '#6E6E73',
                                         boxShadow: platform === 'mobile' ? '0 2px 8px rgba(10,132,255,0.3)' : 'none',
                                     }}
@@ -2494,7 +2510,7 @@ export default function AdminContent({ showToast }) {
                     {/* KPI band — content-management overview */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <AdminKPICard title="קטעים לעריכה" value={ALL_SECTIONS.length} icon="products" accent={PURPLE} subtitle="סקציות תוכן" delay={0} onClick={() => openDrill({ type: 'sections' })} />
-                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5856D6" subtitle="ניתנים לעריכה" delay={0.05} onClick={() => openDrill({ type: 'fields' })} />
+                        <AdminKPICard title="שדות תוכן" value={Object.keys(ALL_FIELD_DEFAULTS).length} icon="orders" accent="#5AC8FA" subtitle="ניתנים לעריכה" delay={0.05} onClick={() => openDrill({ type: 'fields' })} />
                         <AdminKPICard title="קטעים פתוחים" value={openSections.size} icon="traffic" accent="#007AFF" subtitle="בעריכה כעת" delay={0.1} onClick={() => openDrill({ type: 'open' })} />
                         <AdminKPICard title={platform === 'mobile' ? 'גרסת מובייל' : 'גרסת מחשב'} value={currentGroups.length} icon="empty" accent="#8E8E93" subtitle="קבוצות ניווט" delay={0.15} onClick={() => openDrill({ type: 'groups' })} />
                     </div>
@@ -2567,7 +2583,7 @@ export default function AdminContent({ showToast }) {
                         <div className="space-y-5">
                             <DrillStat items={[
                                 { label: 'סקציות', value: ALL_SECTIONS.length, color: PURPLE },
-                                { label: 'שדות', value: totalFields, color: '#5856D6' },
+                                { label: 'שדות', value: totalFields, color: '#5AC8FA' },
                                 { label: 'פתוחים', value: openSections.size, color: '#007AFF' },
                             ]} />
                             <div className="space-y-2">
@@ -2578,12 +2594,12 @@ export default function AdminContent({ showToast }) {
                     );
                 } else if (shown.type === 'fields') {
                     const withFields = [...FIELD_SECTIONS].sort((a, b) => (b.fields?.length || 0) - (a.fields?.length || 0));
-                    title = 'שדות תוכן'; subtitle = `${totalFields} שדות ניתנים לעריכה`; accent = '#5856D6';
-                    icon = <span style={{ color: '#5856D6', display: 'flex' }}><Type size={17} /></span>;
+                    title = 'שדות תוכן'; subtitle = `${totalFields} שדות ניתנים לעריכה`; accent = '#5AC8FA';
+                    icon = <span style={{ color: '#5AC8FA', display: 'flex' }}><Type size={17} /></span>;
                     body = (
                         <div className="space-y-5">
                             <DrillStat items={[
-                                { label: 'שדות', value: totalFields, color: '#5856D6' },
+                                { label: 'שדות', value: totalFields, color: '#5AC8FA' },
                                 { label: 'סקציות עם שדות', value: FIELD_SECTIONS.length, color: PURPLE },
                                 { label: 'ממוצע לקטע', value: FIELD_SECTIONS.length ? Math.round(totalFields / FIELD_SECTIONS.length) : 0, color: '#007AFF' },
                             ]} />
@@ -2620,7 +2636,7 @@ export default function AdminContent({ showToast }) {
                         <div className="space-y-5">
                             <DrillStat items={[
                                 { label: 'קבוצות', value: currentGroups.length, color: PURPLE },
-                                { label: 'קטעים', value: currentGroups.reduce((n, g) => n + groupSectionCount(g), 0), color: '#5856D6' },
+                                { label: 'קטעים', value: currentGroups.reduce((n, g) => n + groupSectionCount(g), 0), color: '#5AC8FA' },
                             ]} />
                             <div className="space-y-2">
                                 <p className="text-[10px] font-black text-[#AEAEB2] uppercase tracking-widest">קבוצות ניווט — לחץ לפרטים</p>

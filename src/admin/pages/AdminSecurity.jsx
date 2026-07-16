@@ -17,7 +17,7 @@ const SEAFOAM = '#007AFF';
 const EVENT_LABELS = {
     rate_limited:      { label: 'Rate Limited',      color: '#FF3B30' },
     payload_too_large: { label: 'Payload Too Large', color: '#FF9500' },
-    crm_error:         { label: 'CRM Error',         color: '#5856D6' },
+    crm_error:         { label: 'CRM Error',         color: '#5AC8FA' },
     auth_failed:       { label: 'Auth Failed',       color: '#FF3B30' },
 };
 
@@ -117,7 +117,7 @@ export default function AdminSecurity({ embedded = false }) {
         { key: 'total',             label: 'סך הכל אירועים',   value: logs.length,                                                              color: SEAFOAM },
         { key: 'rate_limited',      label: 'חסימות Rate Limit', value: counts.rate_limited || 0,                                                 color: '#FF3B30' },
         { key: 'payload_too_large', label: 'Payload גדול מדי',  value: counts.payload_too_large || 0,                                            color: '#FF9500' },
-        { key: 'other',             label: 'אירועים אחרים',     value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#5856D6' },
+        { key: 'other',             label: 'אירועים אחרים',     value: logs.length - (counts.rate_limited || 0) - (counts.payload_too_large || 0), color: '#5AC8FA' },
     ];
 
     const showSkeleton = loading && logs.length === 0;

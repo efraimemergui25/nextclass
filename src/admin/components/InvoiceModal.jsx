@@ -16,15 +16,17 @@ export default function InvoiceModal({ order, onClose, business }) {
     const issuedRef = useRef(false);
     const iframeRef = useRef(null);
     const [docType, setDocType] = useState('tax');
-    const [invoiceNumber, setInvoiceNumber] = useState(nextNumber || suggestInvoiceNumber(order));
+    // Storefront (e-commerce) prices are VAT-inclusive; B2B quotes are net.
+    const vatInclusive = order?._kind === 'order';
+    const [invoiceNumber, setInvoiceNumber] = useState(order?.invoiceNumber || nextNumber || suggestInvoiceNumber(order));
     const [invoiceDate, setInvoiceDate] = useState(new Date().toLocaleDateString('he-IL'));
     const [vatRate, setVatRate] = useState(biz.vatRate);
     const [allocationNumber, setAllocationNumber] = useState('');
 
-    const opts = { docType, invoiceNumber, invoiceDate, vatRate, allocationNumber, business: biz };
+    const opts = { docType, invoiceNumber, invoiceDate, vatRate, allocationNumber, vatInclusive, business: biz };
     const html = useMemo(() => buildInvoiceHtml(order || {}, opts),
         [order, docType, invoiceNumber, invoiceDate, vatRate, allocationNumber]);
-    const totals = useMemo(() => computeInvoiceTotals(order || {}, vatRate), [order, vatRate]);
+    const totals = useMemo(() => computeInvoiceTotals(order || {}, vatRate, { vatInclusive }), [order, vatRate]);
     const needsAllocation = docType === 'tax' && totals.net > (biz.allocationThreshold || Infinity) && !allocationNumber;
 
     // Render the (already-perfect, Hebrew-correct) invoice iframe to a REAL PDF
@@ -64,7 +66,10 @@ export default function InvoiceModal({ order, onClose, business }) {
     const ensureIssued = async () => {
         if (issuedRef.current || docType !== 'tax') return;
         issuedRef.current = true;
-        try { await issueInvoice?.(order, { invoiceNumber, docType, vatRate, allocationNumber, total: totals.gross }); }
+        try {
+            const r = await issueInvoice?.(order, { invoiceNumber, docType, vatRate, allocationNumber, total: totals.gross });
+            if (r?.number && r.number !== invoiceNumber) setInvoiceNumber(r.number);
+        }
         catch (e) { /* non-blocking — printing still works */ }
     };
     const doPrint = async () => {

@@ -737,3 +737,9 @@
 .ocr-zoomable:hover .ocr-zoom-hint { opacity: 1; transform: translateY(0); }
 .ocr-zoomable img { transition: filter 0.18s ease; }
 .ocr-zoomable:hover img { filter: brightness(0.97); }
+
+/* Order cockpit split-view — collapse to one column on narrow screens */
+@media (max-width: 900px) {
+  .nc-splitview { grid-template-columns: 1fr !important; }
+  .nc-splitview > div:first-child { position: static !important; max-height: none !important; }
+}

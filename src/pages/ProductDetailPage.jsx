@@ -175,7 +175,7 @@ const ProductDetailPage = () => {
  const { getSetting, isVisible } = useSettings();
  const { cartItems, addToCart, removeFromCart } = useCart();
  const navigate = useNavigate();
- const { getProductById: fetchProduct } = useProducts();
+ const { getProductById: fetchProduct, complementaryProducts } = useProducts();
  const { addToCompare, removeFromCompare, isSelected: isProductCompared } = useCompare();
 
  const content = useMemo(() => ({
@@ -208,24 +208,20 @@ const ProductDetailPage = () => {
  { id: 'silver', name: 'Silver', hex: '#E3E3E5' },
  ], []);
 
- const ACCESSORIES = useMemo(() => [
- {
- id: 'hdmi',
- title: getSetting('acc_hdmi_title', 'כבל HDMI פרימיים 2.1'),
- description: getSetting('acc_hdmi_desc', '8K 60Hz סופר מהיר עם מגן אלקטרומגנטי'),
- price: parseInt(getSetting('acc_hdmi_price', '150')),
- image: 'https://images.pexels.com/photos/4219860/pexels-photo-4219860.jpeg?auto=compress&cs=tinysrgb&w=200',
- category: 'קישוריות',
- },
- {
- id: 'mount',
- title: getSetting('acc_mount_title', 'מתקן תלייה מגנטי'),
- description: getSetting('acc_mount_desc', 'התקנה בתוך דקות עם זרוע מתכוונן בשלושה צירים'),
- price: parseInt(getSetting('acc_mount_price', '300')),
- image: 'https://images.pexels.com/photos/7214589/pexels-photo-7214589.jpeg?auto=compress&cs=tinysrgb&w=200',
- category: 'התקנה',
- },
- ], [getSetting]);
+ // Complementary add-ons offered on the monitor page — the REAL keyboard/mouse
+ // sets from the catalog (source of truth: the `complementary` products).
+ const ACCESSORIES = useMemo(
+ () => (complementaryProducts || []).map(p => ({
+ id: p.id,
+ title: p.title,
+ description: (p.specs?.find(s => s.label === 'סוג')?.value) || p.brand || '',
+ price: Number(p.price) || 0,
+ priceOnRequest: !!p.priceOnRequest || !(Number(p.price) > 0),
+ image: p.image,
+ category: p.brand || 'מוצר משלים',
+ })),
+ [complementaryProducts]
+ );
 
  const SCROLLYTELLING_FEATURES = useMemo(() => [
  {
@@ -644,7 +640,8 @@ const ProductDetailPage = () => {
  </div>
  </section>
 
- {/* Accessories */}
+ {/* Accessories — complementary products (only when some exist) */}
+ {ACCESSORIES.length > 0 && (
  <section className="mb-12">
  <div className="flex items-center justify-between mb-5">
  <h3 className="text-xl font-black text-[#1D1D1F] tracking-tight">{content.accTitle}</h3>
@@ -694,7 +691,7 @@ const ProductDetailPage = () => {
  {acc.description && (
  <p className="text-xs text-[#AEAEB2] mt-0.5 leading-snug line-clamp-1">{acc.description}</p>
  )}
- <p className={`text-sm font-black tracking-tighter mt-1 ${isSelected ? 'text-[#007AFF]' : 'text-[#1D1D1F]'}`}>+₪{acc.price}</p>
+ <p className={`text-sm font-black tracking-tighter mt-1 ${isSelected ? 'text-[#007AFF]' : 'text-[#1D1D1F]'}`}>{acc.priceOnRequest ? 'בהצעת מחיר' : `+₪${acc.price}`}</p>
  </div>
 
  {/* CTA / Checkmark (left side) */}
@@ -726,6 +723,7 @@ const ProductDetailPage = () => {
  })}
  </div>
  </section>
+ )}
 
  {/* CTAs */}
  <div className="flex flex-col gap-4">

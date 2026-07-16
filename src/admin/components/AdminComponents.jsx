@@ -337,7 +337,7 @@ const STATUS_MAP = {
     'ממתין':    { bg: '#FFF5E5', border: '#FFE0B2', text: '#B86A00', dot: '#FF9500' },
     'חדש':      { bg: '#FFEBEB', border: '#FFC7C7', text: '#C0392B', dot: '#FF3B30' },
     'אושר':     { bg: '#E5F0FF', border: '#B2D4FF', text: '#005EC4', dot: '#007AFF' },
-    'נשלח':     { bg: '#EFEFFF', border: '#D0CFFF', text: '#4340A8', dot: '#5856D6' },
+    'נשלח':     { bg: '#EFEFFF', border: '#D0CFFF', text: '#4340A8', dot: '#5AC8FA' },
     'נמסר':     { bg: '#EBF9EE', border: '#C7EDD0', text: '#1A8C40', dot: '#34C759' },
     'בוטל':     { bg: '#FFEBEB', border: '#FFC7C7', text: '#C0392B', dot: '#FF3B30' },
     'בטיפול':   { bg: '#FFF5E5', border: '#FFE0B2', text: '#B86A00', dot: '#FF9500' },
@@ -499,7 +499,7 @@ export function AdminButton({ children, onClick, variant = 'primary', size = 'md
     const [ripple, setRipple] = useState(null);
     const styles = {
         primary: {
-            bg: accent ? accentGradient(accent) : 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+            bg: accent ? accentGradient(accent) : 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)',
             color: 'white',
             border: '1px solid rgba(255,255,255,0.20)',
             shadow: `0 4px 16px ${hexA(accent || '#007AFF', 0.4)}, inset 0 1px 0 rgba(255,255,255,0.22)`,
@@ -574,7 +574,7 @@ export function AdminModal({ open, onClose, title, children, size = 'md', accent
     const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl', split: 'max-w-6xl' };
     const strip = accent
         ? `linear-gradient(90deg, ${accent}, ${hexA(accent, 0.55)})`
-        : 'linear-gradient(90deg,#007AFF,#5856D6,#AF52DE)';
+        : 'linear-gradient(90deg,#007AFF,#5AC8FA,#0A84FF)';
     useEffect(() => {
         document.body.style.overflow = open ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
@@ -678,7 +678,7 @@ export function AdminFilterPills({ options, active, onChange, id }) {
                     style={{ color: active === opt ? '#007AFF' : '#86868B' }}>
                     {active === opt && (
                         <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
-                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
+                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
                     <span className="relative z-10">{opt}</span>
@@ -708,7 +708,7 @@ export function AdminDateFilter({ value, onChange, id }) {
                     style={{ color: value === o.id ? '#007AFF' : '#86868B' }}>
                     {value === o.id && (
                         <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
-                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
+                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
                     <span className="relative z-10">{o.label}</span>
@@ -749,7 +749,7 @@ export function AdminTabs({ tabs, active, onChange, id }) {
                     style={{ color: active === t.id ? '#007AFF' : '#86868B' }}>
                     {active === t.id && (
                         <motion.div layoutId={pillId} className="absolute inset-0 rounded-xl"
-                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
+                            style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.08) 100%)', border: '1px solid rgba(0,122,255,0.22)', boxShadow: '0 2px 8px rgba(0,122,255,0.15)' }}
                             transition={{ type: 'spring', stiffness: 420, damping: 30 }} />
                     )}
                     <span className="relative z-10">{t.label}</span>
@@ -1156,7 +1156,7 @@ export function BarChart({ data = [], color, labels = [], height = 80 }) {
 }
 
 // ─── Donut Chart ──────────────────────────────────────────────────────────────
-export function DonutChart({ data, colors = ['#007AFF', '#5856D6', '#34C759', '#FF9500', '#FF3B30', '#AF52DE'], size = 130 }) {
+export function DonutChart({ data, colors = ['#007AFF', '#5AC8FA', '#34C759', '#FF9500', '#FF3B30', '#0A84FF'], size = 130 }) {
     const total = data.reduce((s, d) => s + d.value, 0) || 1;
     const r = 38, cx = 50, cy = 50;
     const C = 2 * Math.PI * r;
@@ -1320,7 +1320,7 @@ export function AdminEmpty({ icon, title, subtitle, action }) {
                     />
                 ))}
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center relative z-10"
-                    style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(88,86,214,0.09) 100%)', border: '1px solid rgba(0,122,255,0.18)', color: '#007AFF', boxShadow: '0 8px 24px rgba(0,122,255,0.12)' }}>
+                    style={{ background: 'linear-gradient(135deg, rgba(0,122,255,0.12) 0%, rgba(90,200,250,0.09) 100%)', border: '1px solid rgba(0,122,255,0.18)', color: '#007AFF', boxShadow: '0 8px 24px rgba(0,122,255,0.12)' }}>
                     {typeof icon === 'string' && ICONS[icon] ? (
                         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>{ICONS[icon]}</svg>
                     ) : (
@@ -1365,7 +1365,7 @@ export function AdminFAB({ actions = [] }) {
             <motion.button whileTap={{ scale: 0.95 }} animate={{ rotate: open ? 45 : 0 }}
                 onClick={() => setOpen(o => !o)}
                 className="w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl font-light shadow-2xl transition-all"
-                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)', boxShadow: '0 8px 28px rgba(0,122,255,0.45)' }}
+                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)', boxShadow: '0 8px 28px rgba(0,122,255,0.45)' }}
                 whileHover={{ scale: 1.05, boxShadow: '0 12px 36px rgba(0,122,255,0.55)' }}
                 >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

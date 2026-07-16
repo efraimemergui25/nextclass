@@ -27,6 +27,46 @@ const cleanStr = (v) => {
     return s;
 };
 
+// ── Groq (OpenAI-compatible) — fallback when no Gemini key. Text + vision. ──────
+async function callGroqText(key, prompt, docText, fileName) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.1, max_tokens: 4096,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: prompt },
+                { role: 'user', content: `===== DOCUMENT CONTENT${fileName ? ` (${fileName})` : ''} =====\n${docText}` },
+            ],
+        }),
+    });
+    if (!res.ok) throw new Error('Groq text error: ' + (await res.text()).slice(0, 300));
+    const d = await res.json();
+    return d?.choices?.[0]?.message?.content || '';
+}
+async function callGroqVision(key, prompt, base64, mime) {
+    // Groq multimodal model — reads an image (photo/scan of a PO)
+    for (const model of ['meta-llama/llama-4-scout-17b-16e-instruct', 'llama-3.2-90b-vision-preview']) {
+        try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model, temperature: 0.1, max_tokens: 4096,
+                    messages: [{ role: 'user', content: [
+                        { type: 'text', text: prompt + '\n\nReturn ONLY the JSON object.' },
+                        { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } },
+                    ] }],
+                }),
+            });
+            if (res.ok) { const d = await res.json(); return d?.choices?.[0]?.message?.content || ''; }
+        } catch {}
+    }
+    throw new Error('Groq vision unavailable');
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -46,9 +86,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Provide fileBase64 (image/pdf) or text (csv/docx/xlsx)' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-        return res.status(500).json({ error: 'Gemini API key not configured. Add GEMINI_API_KEY to .env' });
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!geminiKey && !groqKey) {
+        return res.status(500).json({ error: 'לא הוגדר ספק AI — הוסף GEMINI_API_KEY או GROQ_API_KEY לסביבה' });
     }
 
     const prompt = `You are an expert order-intake OCR engine for NextClass, a B2B educational-technology supplier in Israel.
@@ -102,52 +143,55 @@ Rules:
 - "confidence" is your 0-100 self-assessed extraction confidence.
 - Return ONLY valid JSON. No markdown, no commentary.`;
 
-    // Build the request parts: media (image/pdf) OR pre-extracted text.
-    let parts;
-    if (inlineData) {
-        parts = [
-            { inline_data: { mime_type: mimeType, data: inlineData } },
-            { text: prompt },
-        ];
-    } else {
-        parts = [
-            { text: prompt },
-            { text: `\n\n===== DOCUMENT CONTENT${fileName ? ` (${fileName})` : ''} =====\n${text}` },
-        ];
-    }
-
     try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts }],
-                    generationConfig: {
-                        temperature: 0.1,
-                        topK: 32,
-                        topP: 1,
-                        maxOutputTokens: 4096,
-                    },
-                    safetySettings: [
-                        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-                    ],
-                }),
-            }
-        );
+        let rawText = '';
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error('[OCR] Gemini API error:', errText);
-            return res.status(502).json({ error: 'Gemini API error', details: errText });
+        if (geminiKey) {
+            // ── Gemini path (native PDF + image vision) ──────────────────────
+            const parts = inlineData
+                ? [{ inline_data: { mime_type: mimeType, data: inlineData } }, { text: prompt }]
+                : [{ text: prompt }, { text: `\n\n===== DOCUMENT CONTENT${fileName ? ` (${fileName})` : ''} =====\n${text}` }];
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+                {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts }],
+                        generationConfig: { temperature: 0.1, topK: 32, topP: 1, maxOutputTokens: 4096 },
+                        safetySettings: [
+                            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+                        ],
+                    }),
+                }
+            );
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('[OCR] Gemini API error:', errText);
+                if (!groqKey) return res.status(502).json({ error: 'Gemini API error', details: errText });
+            } else {
+                const geminiData = await response.json();
+                rawText = geminiData?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('') || '';
+            }
         }
 
-        const geminiData = await response.json();
-        const rawText = geminiData?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('') || '';
+        // ── Groq fallback (text via pdf.js-extracted content, or image vision) ─
+        if (!rawText) {
+            const docText = cleanStr(text);
+            if (docText) {
+                rawText = await callGroqText(groqKey, prompt, docText, fileName);
+            } else if (inlineData && (mimeType || '').startsWith('image/')) {
+                rawText = await callGroqVision(groqKey, prompt, inlineData, mimeType);
+            } else {
+                // PDF binary with no Gemini + no extracted text → ask client to extract text
+                return res.status(200).json({
+                    success: false, needsText: true,
+                    warnings: ['סריקת PDF ללא מפתח Gemini דורשת חילוץ טקסט בדפדפן — נסה שוב, המערכת תחלץ אוטומטית'],
+                });
+            }
+        }
 
         // Extract JSON (Gemini sometimes wraps it in a ```json fence)
         const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) ||

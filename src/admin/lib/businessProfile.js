@@ -16,7 +16,7 @@ export const BUSINESS = {
     vatRate: 18,                      // מע״מ נוכחי בישראל (18% מ-2025)
     // Israel "allocation number" (מספר הקצאה) is required for a buyer to deduct VAT
     // on a tax invoice above this pre-VAT threshold. 2025: ₪20,000 · 2026-01: ₪10,000.
-    allocationThreshold: 20000,
+    allocationThreshold: 10000,
     accent: '#007AFF',
 };
 
